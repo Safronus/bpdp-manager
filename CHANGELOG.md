@@ -7,12 +7,28 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-16
+
+### Changed
+- **Forma studia se odvozuje z přípony oboru** — pole *Forma* už není potřeba
+  vyplňovat ručně. Obor končící na `-P` = prezenční, `-K` = kombinovaná.
+  Property `Student.form` to vrátí na čtení; v JSON úložišti se nic neukládá.
+  Dialog studenta má pod oborem **živý indikátor** odvozené formy
+  (zelený ✓ při detekci, červená hláška „přípona -P/-K nenalezena" jinak).
+- `Student.model_config` má `extra='ignore'`, takže staré JSON soubory
+  s polem `form` se načtou bez chyby (pole je tiše zahozeno).
+- Demo data v `examples/seed_demo.json` čistá bez `form` polí.
+
 ### Added
 - README: sekce *Venv mimo synchronizovanou složku (iCloud, Dropbox, OneDrive…)*
   s návodem, jak provozovat projekt synchronizovaný v iCloud Drive, aniž by
   iCloud rozbil `.venv`. Řešení: venv leží v `~/.venvs/bpdp-manager/`, v projektu
   je jen symlink.
 - README: zsh tip k uvozovkám u `pip install -e ".[dev]"`.
+- Helper `derive_form_from_obor()` v `models/student.py` — sdílený mezi
+  modelem a UI dialogem pro konzistentní detekci.
+- Testy pro odvození formy (`test_form_derived_*`) a pro zpětnou
+  kompatibilitu načtení JSON se starým `form` polem.
 
 ## [0.3.1] - 2026-05-15
 
@@ -101,7 +117,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/Safronus/bpdp-manager/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Safronus/bpdp-manager/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Safronus/bpdp-manager/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Safronus/bpdp-manager/compare/v0.2.0...v0.2.1

@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from bpdpmanager.models import Opponent, Student, Thesis
-from bpdpmanager.models.enums import AttachmentKind, OpponentKind, ThesisType
+from bpdpmanager.models.enums import AttachmentKind, OpponentKind, StudyForm, ThesisType
+from bpdpmanager.models.student import derive_form_from_obor
 from bpdpmanager.services import ThesisService
 from bpdpmanager.storage import JsonRepository
 
@@ -43,6 +44,47 @@ def test_remove_obor_clears_students(service: ThesisService) -> None:
     refreshed = service.get_student(student.id)
     assert refreshed is not None and refreshed.obor == ""
     assert "NSWI-P" not in service.list_obory()
+
+
+# --- forma studia (odvozená z přípony oboru) ---------------------------------
+
+
+def test_form_derived_from_obor_presential() -> None:
+    assert derive_form_from_obor("NSWI-P") == StudyForm.PRESENTIAL
+    assert derive_form_from_obor("NKYB-P") == StudyForm.PRESENTIAL
+    assert derive_form_from_obor("nswi-p") == StudyForm.PRESENTIAL  # case-insensitive
+
+
+def test_form_derived_from_obor_combined() -> None:
+    assert derive_form_from_obor("NSWI-K") == StudyForm.COMBINED
+    assert derive_form_from_obor("NKYB-K") == StudyForm.COMBINED
+
+
+def test_form_derived_none_when_no_suffix() -> None:
+    assert derive_form_from_obor("") is None
+    assert derive_form_from_obor(None) is None
+    assert derive_form_from_obor("NSWI") is None
+    assert derive_form_from_obor("Computer Science") is None
+
+
+def test_student_form_property_reflects_obor() -> None:
+    s = Student(first_name="Jan", last_name="Vzor", obor="NSWI-P")
+    assert s.form == StudyForm.PRESENTIAL
+    s.obor = "NSWI-K"
+    assert s.form == StudyForm.COMBINED
+    s.obor = "Custom"
+    assert s.form is None
+
+
+def test_old_form_field_in_json_is_ignored(service: ThesisService) -> None:
+    """Načtení staré JSON struktury s 'form' polem nesmí selhat — pole se ignoruje."""
+    # simulace načtení starých dat
+    s = Student.model_validate(
+        {"first_name": "Eva", "last_name": "Stará", "obor": "NSWI-K", "form": "P"}
+    )
+    assert s.obor == "NSWI-K"
+    # form se odvozuje z obor, ne z legacy pole
+    assert s.form == StudyForm.COMBINED
 
 
 # --- oponenti -----------------------------------------------------------------

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from bpdpmanager.models import Student, Thesis
-from bpdpmanager.models.enums import StudyForm, ThesisStatus, ThesisType
+from bpdpmanager.models.enums import ThesisStatus, ThesisType
 from bpdpmanager.services import ThesisService
 from bpdpmanager.services.thesis_service import TransitionError
 from bpdpmanager.storage import Database, JsonRepository
@@ -26,7 +26,7 @@ def test_creates_db_on_first_load(repo: JsonRepository) -> None:
 
 def test_roundtrip_thesis(repo: JsonRepository) -> None:
     service = ThesisService(repo)
-    student = Student(first_name="Jan", last_name="Vzorník", obor="NSWI-P", form=StudyForm.PRESENTIAL)
+    student = Student(first_name="Jan", last_name="Vzorník", obor="NSWI-P")
     service.upsert_student(student)
 
     thesis = Thesis(
