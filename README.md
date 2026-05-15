@@ -5,22 +5,26 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
+**Aktuální verze: 0.2.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou
 > commitnuta do Gitu.
 
 ## Funkce
 
-- Strukturovaná evidence prací podle akademického roku, typu (BP/DP) a stavu
-- 7 stavů toku: *Zájemce → Rezervace s tématem → Vypsané téma → Oficiálně zadané → V řešení → Obhájeno → Nedokončeno*
-- Sledování studentů (jméno, obor, forma studia, osobní číslo UTB, kontakt) a oponentů
-- Pole pro vypsané téma (název CZ, anotace) i oficiální zadání (název EN, body, literatura)
-- Termíny, poznámky z konzultací a přílohy/odkazy
-- Pohledy: **Aktuální** rok, **Budoucí** zájemci, **Historie**, **Vše**
-- **Harmonogram fakulty**: import PDF časového plánu výuky (FAI UTB), automatická extrakce
-  klíčových termínů (odevzdání BP/DP, SZZ, promoce, zkouškové období…), upozornění
-  na nadcházející důležité termíny
-- Lokální JSON úložiště s atomickými zápisy a automatickou zálohou
+- **Evidence prací** strukturovaná podle akademického roku, typu (BP/DP) a stavu
+- **7 stavů toku**: *Zájemce → Rezervace s tématem → Vypsané téma → Oficiálně zadané → V řešení → Obhájeno → Nedokončeno*, s validací přechodů
+- **Studenti**: jméno, obor, forma studia, osobní číslo UTB (např. A24390), email, telefon, poznámka
+- **Oponenti** rozdělení na **interní** (jméno + email) a **externí** (jméno + email + telefon + adresa)
+- **Studijní obory** jako spravovatelný číselník — přidat, přejmenovat (synchronizuje studenty), smazat
+- **Vypsané téma**: název CZ + anotace
+- **Oficiální zadání**: navíc název EN, body zadání, literární zdroje
+- **Dokumenty k práci**: nahrávání souborů s typem (Posudek vedoucího, Posudek oponenta, Text práce, Oficiální zadání, Prezentace, Jiné) + externí URL/odkazy
+- **Pohledy**: *Aktuální rok*, *Budoucí zájemci*, *Historie*, *Vše*
+- **📅 Harmonogram fakulty**: import PDF časového plánu výuky FAI UTB, automatická extrakce klíčových termínů (odevzdání BP/DP, SZZ, promoce, zkouškové období…), žlutý panel s nadcházejícími důležitými termíny v následujících 60 dnech
+- **Termíny a poznámky** z konzultací u každé práce
+- **Lokální JSON úložiště** s atomickými zápisy a automatickou zálohou `db.json.bak`
 
 ## Požadavky
 
@@ -62,11 +66,30 @@ pouze smyšlené postavy.
 
 ```
 src/bpdpmanager/
-├── models/      # datové třídy (pydantic)
-├── storage/     # perzistence (JSON repository)
-├── services/    # business logika
-└── ui/          # PySide6 okna a widgety
+├── models/        # datové třídy (pydantic): Student, Opponent, Thesis, Harmonogram, …
+├── storage/       # JSON úložiště s atomickými zápisy
+├── services/      # business logika (ThesisService) a PDF parser harmonogramu
+├── ui/            # PySide6 okna, dialogy, widgety
+│   └── widgets/   # znovupoužitelné komponenty (DocumentsWidget, StatusBadge, …)
+└── resources/     # statické zdroje (styly, defaultní obory…)
 ```
+
+## Datové soubory
+
+Reálná data nikdy nejsou v repozitáři. Sídlí v `~/.bpdpmanager/`:
+
+```
+~/.bpdpmanager/
+├── db.json                       # hlavní databáze (JSON)
+├── db.json.bak                   # automatická záloha
+├── harmonograms/
+│   └── 2026-2027.pdf             # naimportované PDF harmonogramy
+└── documents/
+    └── {thesis_id}/
+        └── posudek_vedouciho.pdf # nahrané dokumenty
+```
+
+Cestu lze přepsat env proměnnou `BPDPMANAGER_DATA_DIR` (např. pro testování).
 
 ## Vývoj
 

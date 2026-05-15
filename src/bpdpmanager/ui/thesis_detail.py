@@ -23,7 +23,7 @@ from ..services import ThesisService
 from ..services.thesis_service import TransitionError
 from .opponent_dialog import OpponentDialog
 from .student_dialog import StudentDialog
-from .widgets import StatusBadge, StringListEditor
+from .widgets import DocumentsWidget, StatusBadge, StringListEditor
 
 
 class ThesisDetail(QWidget):
@@ -91,6 +91,7 @@ class ThesisDetail(QWidget):
         self.tabs.addTab(self._build_listing_tab(), "Vypsané téma")
         self.tabs.addTab(self._build_assignment_tab(), "Oficiální zadání")
         self.tabs.addTab(self._build_notes_tab(), "Poznámky")
+        self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
 
         # Uložit
         save_row = QHBoxLayout()
@@ -169,10 +170,14 @@ class ThesisDetail(QWidget):
         layout.addWidget(QLabel("Poznámky a deník konzultací"))
         self.ed_notes = QPlainTextEdit()
         layout.addWidget(self.ed_notes)
+        return w
 
-        layout.addWidget(QLabel("Přílohy / odkazy (label | url-nebo-cesta)"))
-        self.ed_attachments = StringListEditor(placeholder="Název | URL nebo cesta")
-        layout.addWidget(self.ed_attachments)
+    def _build_documents_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.addWidget(QLabel("Dokumenty k práci (posudky, text práce, prezentace, odkazy…)"))
+        self.documents_widget = DocumentsWidget(self.service)
+        layout.addWidget(self.documents_widget)
         return w
 
     # --- načítání / zobrazení -------------------------------------------------
@@ -227,9 +232,7 @@ class ThesisDetail(QWidget):
         self.ed_objectives.set_items(thesis.objectives)
         self.ed_references.set_items(thesis.references)
         self.ed_notes.setPlainText(thesis.notes)
-        self.ed_attachments.set_items(
-            [f"{a.label} | {a.url_or_path}" for a in thesis.attachments]
-        )
+        self.documents_widget.set_thesis_id(thesis.id)
 
         self._update_transition_buttons()
 
@@ -270,17 +273,11 @@ class ThesisDetail(QWidget):
         self.thesis.objectives = self.ed_objectives.items()
         self.thesis.references = self.ed_references.items()
         self.thesis.notes = self.ed_notes.toPlainText().strip()
-
-        from ..models import Attachment
-        attachments: list[Attachment] = []
-        for raw in self.ed_attachments.items():
-            if "|" in raw:
-                label, url = (s.strip() for s in raw.split("|", 1))
-            else:
-                label, url = raw.strip(), raw.strip()
-            if url:
-                attachments.append(Attachment(label=label or url, url_or_path=url))
-        self.thesis.attachments = attachments
+        # attachments spravuje DocumentsWidget okamžitě skrz service,
+        # zde je proto nepřepisujeme — jen znovu načteme aktuální stav.
+        fresh = self.service.get_thesis(self.thesis.id)
+        if fresh is not None:
+            self.thesis.attachments = fresh.attachments
 
     def _save(self) -> None:
         if self.thesis is None:

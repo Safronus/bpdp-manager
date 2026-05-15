@@ -50,16 +50,22 @@
   "opponents": [
     {
       "id": "opp-0001",
+      "kind": "internal",
       "name": "doc. Smyšlený Zkušební",
-      "email": null,
+      "email": "smyseny@example.com",
       "affiliation": "FAI UTB (fiktivní)",
+      "phone": null,
+      "address": null,
       "note": null
     },
     {
       "id": "opp-0002",
+      "kind": "external",
       "name": "Ing. Demonstrativní Příklad, Ph.D.",
-      "email": null,
+      "email": "priklad@example.com",
       "affiliation": "Fiktivní firma s.r.o.",
+      "phone": "+420 600 000 000",
+      "address": "Smyšlená 123, 760 01 Zlín",
       "note": null
     }
   ],

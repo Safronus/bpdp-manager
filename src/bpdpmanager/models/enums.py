@@ -21,6 +21,38 @@ class StudyForm(str, Enum):
         return {"P": "Prezenční", "K": "Kombinovaná"}[self.value]
 
 
+class OpponentKind(str, Enum):
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+
+    @property
+    def label(self) -> str:
+        return {"internal": "Interní", "external": "Externí"}[self.value]
+
+
+class AttachmentKind(str, Enum):
+    SUPERVISOR_REVIEW = "supervisor_review"
+    OPPONENT_REVIEW = "opponent_review"
+    THESIS_TEXT = "thesis_text"
+    ASSIGNMENT = "assignment"
+    PRESENTATION = "presentation"
+    OTHER = "other"
+
+    @property
+    def label(self) -> str:
+        return ATTACHMENT_KIND_LABELS[self]
+
+
+ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
+    AttachmentKind.SUPERVISOR_REVIEW: "Posudek vedoucího",
+    AttachmentKind.OPPONENT_REVIEW: "Posudek oponenta",
+    AttachmentKind.THESIS_TEXT: "Text práce",
+    AttachmentKind.ASSIGNMENT: "Oficiální zadání",
+    AttachmentKind.PRESENTATION: "Prezentace",
+    AttachmentKind.OTHER: "Jiné",
+}
+
+
 class ThesisStatus(str, Enum):
     INTERESTED = "interested"
     RESERVED = "reserved"

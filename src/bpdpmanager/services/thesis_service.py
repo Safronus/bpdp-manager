@@ -4,9 +4,16 @@ import shutil
 from datetime import date
 from pathlib import Path
 
-from ..config import harmonograms_dir
-from ..models import AcademicYearInfo, KeyDate, Opponent, Student, Thesis
-from ..models.enums import ALLOWED_TRANSITIONS, ThesisStatus
+from ..config import harmonograms_dir, thesis_documents_dir
+from ..models import (
+    AcademicYearInfo,
+    Attachment,
+    KeyDate,
+    Opponent,
+    Student,
+    Thesis,
+)
+from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus
 from ..storage import Database, Repository
 from .harmonogram_parser import parse_pdf
 
@@ -62,8 +69,11 @@ class ThesisService:
 
     # --- oponenti ------------------------------------------------------------
 
-    def list_opponents(self) -> list[Opponent]:
-        return sorted(self._db.opponents, key=lambda o: o.name.lower())
+    def list_opponents(self, kind: OpponentKind | None = None) -> list[Opponent]:
+        opps = self._db.opponents
+        if kind is not None:
+            opps = [o for o in opps if o.kind == kind]
+        return sorted(opps, key=lambda o: o.name.lower())
 
     def get_opponent(self, opponent_id: str) -> Opponent | None:
         return next((o for o in self._db.opponents if o.id == opponent_id), None)
@@ -96,6 +106,44 @@ class ThesisService:
         if name and name not in self._db.obory:
             self._db.obory.append(name)
             self.save()
+
+    def rename_obor(self, old_name: str, new_name: str) -> int:
+        """Přejmenuje obor v číselníku a u všech studentů s tímto oborem.
+
+        Vrací počet aktualizovaných studentů.
+        """
+        new_name = new_name.strip()
+        if not new_name or old_name == new_name:
+            return 0
+        if old_name in self._db.obory:
+            self._db.obory[self._db.obory.index(old_name)] = new_name
+        # dedup pro případ, že nový název už existoval
+        self._db.obory = list(dict.fromkeys(self._db.obory))
+        count = 0
+        for student in self._db.students:
+            if student.obor == old_name:
+                student.obor = new_name
+                count += 1
+        self.save()
+        return count
+
+    def remove_obor(self, name: str) -> int:
+        """Smaže obor z číselníku. Studentům s tímto oborem ho vyprázdní.
+
+        Vrací počet ovlivněných studentů.
+        """
+        if name in self._db.obory:
+            self._db.obory.remove(name)
+        count = 0
+        for student in self._db.students:
+            if student.obor == name:
+                student.obor = ""
+                count += 1
+        self.save()
+        return count
+
+    def obor_usage_count(self, name: str) -> int:
+        return sum(1 for s in self._db.students if s.obor == name)
 
     # --- akademické roky -----------------------------------------------------
 
@@ -243,6 +291,61 @@ class ThesisService:
         if 0 <= index < len(info.key_dates):
             del info.key_dates[index]
         return self.upsert_year_info(info)
+
+    # --- dokumenty k práci ---------------------------------------------------
+
+    def attach_document(
+        self,
+        thesis_id: str,
+        source_path: Path,
+        kind: AttachmentKind = AttachmentKind.OTHER,
+        label: str | None = None,
+    ) -> Attachment:
+        """Nahraje soubor do ~/.bpdpmanager/documents/{thesis_id}/ a přidá ho k práci."""
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            raise ValueError(f"Práce {thesis_id} neexistuje.")
+
+        target_dir = thesis_documents_dir(thesis_id)
+        target_name = source_path.name
+        target_path = target_dir / target_name
+        if target_path.exists():
+            # přidej suffix _2, _3, … aby se nepřepisovalo
+            stem, suffix = target_path.stem, target_path.suffix
+            i = 2
+            while target_path.exists():
+                target_path = target_dir / f"{stem}_{i}{suffix}"
+                i += 1
+        shutil.copy2(source_path, target_path)
+
+        attachment = Attachment(
+            label=label or target_path.name,
+            url_or_path=target_path.name,
+            kind=kind,
+            is_file=True,
+        )
+        thesis.attachments.append(attachment)
+        self.upsert_thesis(thesis)
+        return attachment
+
+    def remove_document(self, thesis_id: str, index: int, delete_file: bool = False) -> None:
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None or not (0 <= index < len(thesis.attachments)):
+            return
+        attachment = thesis.attachments[index]
+        if delete_file and attachment.is_file:
+            target = thesis_documents_dir(thesis_id) / attachment.url_or_path
+            if target.exists():
+                target.unlink()
+        del thesis.attachments[index]
+        self.upsert_thesis(thesis)
+
+    def document_absolute_path(self, thesis_id: str, attachment: Attachment) -> Path | None:
+        if not attachment.is_file:
+            return None
+        return thesis_documents_dir(thesis_id) / attachment.url_or_path
+
+    # --- harmonogram napříč roky --------------------------------------------
 
     def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:
         """Vrátí důležité nadcházející termíny napříč všemi roky."""

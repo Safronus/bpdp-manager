@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 APP_NAME = "bpdpmanager"
 SCHEMA_VERSION = 1
+ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 DEFAULT_OBORY: list[str] = [
     "NSWI-P",
@@ -18,8 +20,12 @@ DEFAULT_OBORY: list[str] = [
 
 
 def app_data_dir() -> Path:
-    """Vrátí adresář pro lokální data uživatele (vytvoří, pokud neexistuje)."""
-    path = Path.home() / f".{APP_NAME}"
+    """Vrátí adresář pro lokální data uživatele (vytvoří, pokud neexistuje).
+
+    Lze přepsat env proměnnou ``BPDPMANAGER_DATA_DIR`` (užitečné v testech).
+    """
+    override = os.environ.get(ENV_DATA_DIR)
+    path = Path(override) if override else Path.home() / f".{APP_NAME}"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -34,5 +40,17 @@ def db_backup_path() -> Path:
 
 def harmonograms_dir() -> Path:
     path = app_data_dir() / "harmonograms"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def documents_dir() -> Path:
+    path = app_data_dir() / "documents"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def thesis_documents_dir(thesis_id: str) -> Path:
+    path = documents_dir() / thesis_id
     path.mkdir(parents=True, exist_ok=True)
     return path

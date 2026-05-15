@@ -1,54 +1,112 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QLabel,
     QLineEdit,
     QPlainTextEdit,
     QVBoxLayout,
 )
 
 from ..models import Opponent
+from ..models.enums import OpponentKind
 from ..services import ThesisService
 
 
 class OpponentDialog(QDialog):
-    def __init__(self, service: ThesisService, opponent: Opponent | None = None, parent=None) -> None:
+    """Dialog pro vytvoření/úpravu oponenta.
+
+    Pole se mění podle typu:
+      - Interní: jméno, email, pracoviště, poznámka
+      - Externí: jméno, email, telefon, adresa, pracoviště, poznámka
+    """
+
+    def __init__(
+        self,
+        service: ThesisService,
+        opponent: Opponent | None = None,
+        default_kind: OpponentKind = OpponentKind.INTERNAL,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.service = service
-        self.opponent = opponent or Opponent(name="")
+        self.opponent = opponent or Opponent(name="", kind=default_kind)
         self.setWindowTitle("Oponent" if opponent else "Nový oponent")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(460)
 
+        layout = QVBoxLayout(self)
         form = QFormLayout()
+
+        self.cb_kind = QComboBox()
+        for k in OpponentKind:
+            self.cb_kind.addItem(k.label, k.value)
+        idx = self.cb_kind.findData(self.opponent.kind.value)
+        self.cb_kind.setCurrentIndex(max(idx, 0))
+        self.cb_kind.currentIndexChanged.connect(self._on_kind_change)
+        form.addRow("Typ", self.cb_kind)
+
         self.ed_name = QLineEdit(self.opponent.name)
+        form.addRow("Jméno", self.ed_name)
+
         self.ed_email = QLineEdit(self.opponent.email or "")
+        form.addRow("Email", self.ed_email)
+
+        # Externí pole — viditelná jen pro externí
+        self.ed_phone = QLineEdit(self.opponent.phone or "")
+        self.lbl_phone = QLabel("Telefon")
+        form.addRow(self.lbl_phone, self.ed_phone)
+
+        self.ed_address = QPlainTextEdit(self.opponent.address or "")
+        self.ed_address.setMaximumHeight(60)
+        self.lbl_address = QLabel("Adresa")
+        form.addRow(self.lbl_address, self.ed_address)
+
         self.ed_affiliation = QLineEdit(self.opponent.affiliation or "")
+        form.addRow("Pracoviště / firma", self.ed_affiliation)
+
         self.ed_note = QPlainTextEdit(self.opponent.note or "")
         self.ed_note.setMaximumHeight(80)
-
-        form.addRow("Jméno", self.ed_name)
-        form.addRow("Email", self.ed_email)
-        form.addRow("Pracoviště", self.ed_affiliation)
         form.addRow("Poznámka", self.ed_note)
+
+        layout.addLayout(form)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
-
-        layout = QVBoxLayout(self)
-        layout.addLayout(form)
         layout.addWidget(buttons)
 
+        self._apply_kind_visibility()
+
+    def _on_kind_change(self) -> None:
+        self._apply_kind_visibility()
+
+    def _apply_kind_visibility(self) -> None:
+        is_external = self.cb_kind.currentData() == OpponentKind.EXTERNAL.value
+        self.lbl_phone.setVisible(is_external)
+        self.ed_phone.setVisible(is_external)
+        self.lbl_address.setVisible(is_external)
+        self.ed_address.setVisible(is_external)
+
     def _on_accept(self) -> None:
-        self.opponent.name = self.ed_name.text().strip()
+        name = self.ed_name.text().strip()
+        if not name:
+            return
+        kind = OpponentKind(self.cb_kind.currentData())
+        self.opponent.kind = kind
+        self.opponent.name = name
         self.opponent.email = self.ed_email.text().strip() or None
         self.opponent.affiliation = self.ed_affiliation.text().strip() or None
+        if kind == OpponentKind.EXTERNAL:
+            self.opponent.phone = self.ed_phone.text().strip() or None
+            self.opponent.address = self.ed_address.toPlainText().strip() or None
+        else:
+            self.opponent.phone = None
+            self.opponent.address = None
         self.opponent.note = self.ed_note.toPlainText().strip() or None
-        if not self.opponent.name:
-            return
         self.service.upsert_opponent(self.opponent)
         self.accept()

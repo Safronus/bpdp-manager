@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from .enums import ThesisStatus, ThesisType
+from .enums import AttachmentKind, ThesisStatus, ThesisType
 
 
 class Deadline(BaseModel):
@@ -16,7 +16,9 @@ class Deadline(BaseModel):
 
 class Attachment(BaseModel):
     label: str
-    url_or_path: str
+    url_or_path: str  # absolute path, URL, nebo relativní cesta v documents/{thesis_id}/
+    kind: AttachmentKind = AttachmentKind.OTHER
+    is_file: bool = False  # True = lokální soubor v documents/, False = URL/externí cesta
 
 
 class Thesis(BaseModel):
