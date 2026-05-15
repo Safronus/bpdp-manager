@@ -47,6 +47,8 @@ class StudentDialog(QDialog):
             if idx >= 0:
                 self.cb_form.setCurrentIndex(idx)
 
+        self.ed_university_id = QLineEdit(self.student.university_id or "")
+        self.ed_university_id.setPlaceholderText("např. A24390")
         self.ed_email = QLineEdit(self.student.email or "")
         self.ed_phone = QLineEdit(self.student.phone or "")
         self.ed_note = QPlainTextEdit(self.student.note or "")
@@ -56,6 +58,7 @@ class StudentDialog(QDialog):
         form.addRow("Příjmení", self.ed_last)
         form.addRow("Obor", self.cb_obor)
         form.addRow("Forma", self.cb_form)
+        form.addRow("Osobní číslo (UTB)", self.ed_university_id)
         form.addRow("Email", self.ed_email)
         form.addRow("Telefon", self.ed_phone)
         form.addRow("Poznámka", self.ed_note)
@@ -79,6 +82,7 @@ class StudentDialog(QDialog):
             self.service.add_obor(obor)
         form_value = self.cb_form.currentData()
         self.student.form = StudyForm(form_value) if form_value else None
+        self.student.university_id = self.ed_university_id.text().strip() or None
         self.student.email = self.ed_email.text().strip() or None
         self.student.phone = self.ed_phone.text().strip() or None
         self.student.note = self.ed_note.toPlainText().strip() or None

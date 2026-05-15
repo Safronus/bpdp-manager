@@ -20,7 +20,7 @@ class ThesesTreeWidget(QTreeWidget):
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self.setHeaderLabels(["Téma / student", "Stav", "Číslo zadání"])
+        self.setHeaderLabels(["Téma / student", "Stav", "Osobní č."])
         self.setColumnWidth(0, 360)
         self.setColumnWidth(1, 160)
         self.setAlternatingRowColors(True)
@@ -71,8 +71,9 @@ class ThesesTreeWidget(QTreeWidget):
                     student_str = student.full_name if student else "(bez studenta)"
                     title = t.display_title
                     text = f"{title} — {student_str}"
+                    uni_id = student.university_id if student and student.university_id else ""
 
-                    leaf = QTreeWidgetItem([text, t.status.label, t.assignment_number or ""])
+                    leaf = QTreeWidgetItem([text, t.status.label, uni_id])
                     leaf.setData(0, ROLE_THESIS_ID, t.id)
                     leaf.setData(0, ROLE_KIND, "thesis")
                     brush = QBrush(QColor(t.status.color))

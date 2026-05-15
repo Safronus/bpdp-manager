@@ -129,14 +129,10 @@ class ThesisDetail(QWidget):
         opponent_row.addWidget(self.cb_opponent, stretch=1)
         opponent_row.addWidget(self.btn_new_opponent)
 
-        self.ed_assignment_number = QLineEdit()
-        self.ed_assignment_number.setPlaceholderText("např. A24390")
-
         form.addRow("Typ", self.cb_type)
         form.addRow("Akademický rok", self.ed_year)
         form.addRow("Student", student_row)
         form.addRow("Oponent", opponent_row)
-        form.addRow("Číslo zadání", self.ed_assignment_number)
         return w
 
     def _build_listing_tab(self) -> QWidget:
@@ -225,7 +221,6 @@ class ThesisDetail(QWidget):
         idx = self.cb_opponent.findData(thesis.opponent_id)
         self.cb_opponent.setCurrentIndex(max(idx, 0))
 
-        self.ed_assignment_number.setText(thesis.assignment_number or "")
         self.ed_title_cs.setText(thesis.title_cs)
         self.ed_annotation.setPlainText(thesis.annotation)
         self.ed_title_en.setText(thesis.title_en)
@@ -269,7 +264,6 @@ class ThesisDetail(QWidget):
         self.thesis.academic_year = self.ed_year.text().strip()
         self.thesis.student_id = self.cb_student.currentData()
         self.thesis.opponent_id = self.cb_opponent.currentData()
-        self.thesis.assignment_number = self.ed_assignment_number.text().strip() or None
         self.thesis.title_cs = self.ed_title_cs.text().strip()
         self.thesis.annotation = self.ed_annotation.toPlainText().strip()
         self.thesis.title_en = self.ed_title_en.text().strip()

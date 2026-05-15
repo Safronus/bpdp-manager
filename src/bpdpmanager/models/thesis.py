@@ -28,7 +28,6 @@ class Thesis(BaseModel):
     student_id: str | None = None
     opponent_id: str | None = None
 
-    assignment_number: str | None = None
     title_cs: str = ""
     title_en: str = ""
     annotation: str = ""
@@ -59,7 +58,7 @@ class Thesis(BaseModel):
         return (not missing, missing)
 
     def is_ready_for_assignment(self) -> tuple[bool, list[str]]:
-        """Oficiální zadání vyžaduje navíc EN název, body zadání, literaturu, číslo zadání."""
+        """Oficiální zadání vyžaduje navíc EN název, body zadání a literaturu."""
         ok, missing = self.is_ready_for_listing()
         if not self.title_en.strip():
             missing.append("název EN")
@@ -67,6 +66,4 @@ class Thesis(BaseModel):
             missing.append("body zadání")
         if not self.references:
             missing.append("literární zdroje")
-        if not (self.assignment_number or "").strip():
-            missing.append("číslo zadání")
         return (not missing, missing)

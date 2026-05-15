@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from .enums import StudyForm
 
@@ -13,7 +13,8 @@ class Student(BaseModel):
     last_name: str
     obor: str = ""
     form: StudyForm | None = None
-    email: str | EmailStr | None = None
+    university_id: str | None = None
+    email: str | None = None
     phone: str | None = None
     note: str | None = None
 

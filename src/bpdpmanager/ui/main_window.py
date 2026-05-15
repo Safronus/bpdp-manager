@@ -170,7 +170,8 @@ class MainWindow(QMainWindow):
             self,
             title="Studenti",
             items_loader=self.service.list_students,
-            item_label=lambda s: f"{s.full_name} — {s.display_obor}",
+            item_label=lambda s: f"{s.full_name} — {s.display_obor}"
+            + (f"  [{s.university_id}]" if s.university_id else ""),
             editor=lambda s: StudentDialog(self.service, s, self),
             new_editor=lambda: StudentDialog(self.service, None, self),
             deleter=lambda s: self.service.delete_student(s.id),
