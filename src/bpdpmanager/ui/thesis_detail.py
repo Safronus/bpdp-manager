@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from datetime import datetime
+
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -27,17 +29,41 @@ from .widgets import DocumentsWidget, StatusBadge, StringListEditor
 
 
 class ThesisDetail(QWidget):
-    """Panel s detailem a editací jedné práce."""
+    """Panel s detailem a editací jedné práce.
+
+    Implementuje autosave: po každé změně pole se po krátké pauze (debounce)
+    obsah uloží na pozadí; periodický timer slouží jako pojistka. Při přepnutí
+    na jinou práci nebo při zavření aplikace se ještě jednou flushne.
+    """
 
     saved = Signal(str)  # thesis id
     deleted = Signal(str)
+
+    AUTOSAVE_DEBOUNCE_MS = 1500
+    AUTOSAVE_SAFETY_MS = 30_000
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
         self.thesis: Thesis | None = None
 
+        # Autosave state
+        self._dirty = False
+        self._loading = False  # potlačí dirty signály při programovém naplnění formuláře
+        self._last_save_at: datetime | None = None
+
+        self._debounce_timer = QTimer(self)
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(self.AUTOSAVE_DEBOUNCE_MS)
+        self._debounce_timer.timeout.connect(self._autosave)
+
+        self._safety_timer = QTimer(self)
+        self._safety_timer.setInterval(self.AUTOSAVE_SAFETY_MS)
+        self._safety_timer.timeout.connect(self._autosave_if_dirty)
+        self._safety_timer.start()
+
         self._build_ui()
+        self._connect_dirty_signals()
         self._show_empty()
 
     # --- konstrukce UI -------------------------------------------------------
@@ -66,6 +92,10 @@ class ThesisDetail(QWidget):
         self.lbl_title.setStyleSheet("font-size: 16px; font-weight: bold;")
         header.addWidget(self.status_badge)
         header.addWidget(self.lbl_title, stretch=1)
+
+        self.lbl_save_state = QLabel("")
+        self.lbl_save_state.setStyleSheet("color: #888; font-size: 11px;")
+        header.addWidget(self.lbl_save_state)
 
         self.btn_delete = QPushButton("Smazat")
         self.btn_delete.clicked.connect(self._delete)
@@ -203,37 +233,49 @@ class ThesisDetail(QWidget):
             self.cb_opponent.addItem(o.name, o.id)
 
     def set_thesis(self, thesis: Thesis | None) -> None:
+        # Před přepnutím flushni rozpracované změny aktuální práce
+        if self._dirty and self.thesis is not None:
+            self._autosave()
+
         self.thesis = thesis
         if thesis is None:
             self._show_empty()
+            self._update_save_state_label(idle=True)
             return
         self._show_form()
-        self.refresh_combos()
 
-        self.status_badge.setText(thesis.status.label)
-        self.status_badge.setStyleSheet(
-            f"QLabel {{ background-color: {thesis.status.color}; color: white; "
-            f"font-weight: bold; padding: 2px 8px; border-radius: 8px; }}"
-        )
-        self.lbl_title.setText(thesis.display_title)
+        self._loading = True
+        try:
+            self.refresh_combos()
+            self.status_badge.setText(thesis.status.label)
+            self.status_badge.setStyleSheet(
+                f"QLabel {{ background-color: {thesis.status.color}; color: white; "
+                f"font-weight: bold; padding: 2px 8px; border-radius: 8px; }}"
+            )
+            self.lbl_title.setText(thesis.display_title)
 
-        idx = self.cb_type.findData(thesis.type.value)
-        self.cb_type.setCurrentIndex(max(idx, 0))
-        self.ed_year.setText(thesis.academic_year)
+            idx = self.cb_type.findData(thesis.type.value)
+            self.cb_type.setCurrentIndex(max(idx, 0))
+            self.ed_year.setText(thesis.academic_year)
 
-        idx = self.cb_student.findData(thesis.student_id)
-        self.cb_student.setCurrentIndex(max(idx, 0))
-        idx = self.cb_opponent.findData(thesis.opponent_id)
-        self.cb_opponent.setCurrentIndex(max(idx, 0))
+            idx = self.cb_student.findData(thesis.student_id)
+            self.cb_student.setCurrentIndex(max(idx, 0))
+            idx = self.cb_opponent.findData(thesis.opponent_id)
+            self.cb_opponent.setCurrentIndex(max(idx, 0))
 
-        self.ed_title_cs.setText(thesis.title_cs)
-        self.ed_annotation.setPlainText(thesis.annotation)
-        self.ed_title_en.setText(thesis.title_en)
-        self.ed_objectives.set_items(thesis.objectives)
-        self.ed_references.set_items(thesis.references)
-        self.ed_notes.setPlainText(thesis.notes)
-        self.documents_widget.set_thesis_id(thesis.id)
+            self.ed_title_cs.setText(thesis.title_cs)
+            self.ed_annotation.setPlainText(thesis.annotation)
+            self.ed_title_en.setText(thesis.title_en)
+            self.ed_objectives.set_items(thesis.objectives)
+            self.ed_references.set_items(thesis.references)
+            self.ed_notes.setPlainText(thesis.notes)
+            self.documents_widget.set_thesis_id(thesis.id)
+        finally:
+            self._loading = False
 
+        self._dirty = False
+        self._debounce_timer.stop()
+        self._update_save_state_label(idle=True)
         self._update_transition_buttons()
 
     def _update_transition_buttons(self) -> None:
@@ -243,21 +285,101 @@ class ThesisDetail(QWidget):
         for status, btn in self.transition_buttons.items():
             btn.setEnabled(status in allowed and status != self.thesis.status)
 
+    # --- autosave ------------------------------------------------------------
+
+    def _connect_dirty_signals(self) -> None:
+        """Napojí změny všech polí na ``_mark_dirty``."""
+        self.cb_type.currentIndexChanged.connect(self._mark_dirty)
+        self.ed_year.textChanged.connect(self._mark_dirty)
+        self.cb_student.currentIndexChanged.connect(self._mark_dirty)
+        self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
+        self.ed_title_cs.textChanged.connect(self._mark_dirty)
+        self.ed_annotation.textChanged.connect(self._mark_dirty)
+        self.ed_title_en.textChanged.connect(self._mark_dirty)
+        self.ed_objectives.changed.connect(self._mark_dirty)
+        self.ed_references.changed.connect(self._mark_dirty)
+        self.ed_notes.textChanged.connect(self._mark_dirty)
+        # documents_widget si spravuje stav sám (ukládá okamžitě skrz service)
+
+    def _mark_dirty(self, *_args) -> None:
+        if self._loading or self.thesis is None:
+            return
+        self._dirty = True
+        self._update_save_state_label(idle=False, pending=True)
+        self._debounce_timer.start()  # restart debounce
+
+    def _autosave_if_dirty(self) -> None:
+        if self._dirty and self.thesis is not None:
+            self._autosave()
+
+    def _autosave(self) -> None:
+        if self.thesis is None or not self._dirty:
+            return
+        try:
+            self._collect_into_thesis()
+            self.service.upsert_thesis(self.thesis)
+        except Exception as exc:  # noqa: BLE001
+            self._update_save_state_label(idle=False, pending=False, error=str(exc))
+            return
+        self._dirty = False
+        self._last_save_at = datetime.now()
+        self.lbl_title.setText(self.thesis.display_title)
+        self._update_save_state_label(idle=False, pending=False)
+        self.saved.emit(self.thesis.id)
+
+    def flush(self) -> None:
+        """Vynutí okamžitý zápis rozpracovaných změn (volat při zavření okna)."""
+        self._debounce_timer.stop()
+        if self._dirty:
+            self._autosave()
+
+    def _update_save_state_label(
+        self,
+        *,
+        idle: bool = False,
+        pending: bool = False,
+        error: str | None = None,
+    ) -> None:
+        if idle:
+            self.lbl_save_state.setText("")
+            return
+        if error:
+            self.lbl_save_state.setText(f"⚠ Chyba ukládání: {error}")
+            self.lbl_save_state.setStyleSheet("color: #c62828; font-size: 11px;")
+            return
+        if pending:
+            self.lbl_save_state.setText("● Ukládám…")
+            self.lbl_save_state.setStyleSheet("color: #ef6c00; font-size: 11px;")
+            return
+        # po úspěšném autosavu
+        ts = self._last_save_at.strftime("%H:%M:%S") if self._last_save_at else ""
+        self.lbl_save_state.setText(f"✓ Uloženo {ts}")
+        self.lbl_save_state.setStyleSheet("color: #2e7d32; font-size: 11px;")
+
     # --- akce ----------------------------------------------------------------
 
     def _new_student(self) -> None:
         dlg = StudentDialog(self.service, parent=self)
         if dlg.exec():
-            self.refresh_combos()
-            idx = self.cb_student.findData(dlg.student.id)
+            self._loading = True
+            try:
+                self.refresh_combos()
+                idx = self.cb_student.findData(dlg.student.id)
+            finally:
+                self._loading = False
             if idx >= 0:
+                # nastavení vybraného nového studenta už dirty být MÁ
                 self.cb_student.setCurrentIndex(idx)
 
     def _new_opponent(self) -> None:
         dlg = OpponentDialog(self.service, parent=self)
         if dlg.exec():
-            self.refresh_combos()
-            idx = self.cb_opponent.findData(dlg.opponent.id)
+            self._loading = True
+            try:
+                self.refresh_combos()
+                idx = self.cb_opponent.findData(dlg.opponent.id)
+            finally:
+                self._loading = False
             if idx >= 0:
                 self.cb_opponent.setCurrentIndex(idx)
 
@@ -282,10 +404,9 @@ class ThesisDetail(QWidget):
     def _save(self) -> None:
         if self.thesis is None:
             return
-        self._collect_into_thesis()
-        self.service.upsert_thesis(self.thesis)
-        self.lbl_title.setText(self.thesis.display_title)
-        self.saved.emit(self.thesis.id)
+        self._debounce_timer.stop()
+        self._dirty = True  # vynutí, aby _autosave vůbec běžel
+        self._autosave()
 
     def _delete(self) -> None:
         if self.thesis is None:

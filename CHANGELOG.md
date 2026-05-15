@@ -7,6 +7,25 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-15
+
+### Added
+- **Autosave na pozadí** detailu práce. Po každé změně pole se po **1,5 s**
+  (debounce) zápis sám uloží — nemůžeš tak přijít o rozepsanou anotaci, body
+  zadání ani poznámky. Bezpečnostní timer každých **30 s** uloží pro jistotu,
+  i kdyby debounce nezvládl.
+- Při **přepnutí na jinou práci** se nejdřív flushne rozpracovaná verze té
+  předchozí, aby se nic neztratilo.
+- Při **zavření okna** (`closeEvent`) se ještě jednou flushnou všechny detaily.
+- Vizuální indikátor stavu ukládání v hlavičce detailu:
+  *✓ Uloženo HH:MM:SS* (zelený), *● Ukládám…* (oranžový),
+  *⚠ Chyba ukládání: …* (červený).
+- Ruční tlačítko *Uložit změny* zůstává — vynutí okamžitý zápis (přeskočí debounce).
+
+### Changed
+- `_loading` flag v `ThesisDetail` chrání před falešnými dirty signály při
+  programovém naplnění formuláře (`set_thesis`, `refresh_combos`, atd.).
+
 ## [0.2.1] - 2026-05-15
 
 ### Added
@@ -62,7 +81,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Safronus/bpdp-manager/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Safronus/bpdp-manager/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Safronus/bpdp-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Safronus/bpdp-manager/releases/tag/v0.1.0

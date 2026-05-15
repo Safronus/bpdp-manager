@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
@@ -196,6 +196,14 @@ class MainWindow(QMainWindow):
             elif isinstance(widget, HarmonogramTab):
                 widget._refresh_year_combo()
         self._update_status()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt API)
+        """Při zavření okna ještě flushne všechny dirty formuláře."""
+        for i in range(self.tabs.count()):
+            widget = self.tabs.widget(i)
+            if isinstance(widget, _ThesesTab):
+                widget.detail.flush()
+        super().closeEvent(event)
 
     def _update_status(self) -> None:
         total = len(self.service.list_theses())

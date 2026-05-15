@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.2.1** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.3.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou
@@ -28,6 +28,7 @@ o budoucí témata.
 - **Pohledy**: *Aktuální rok*, *Budoucí zájemci*, *Historie*, *Vše*
 - **📅 Harmonogram fakulty**: import PDF časového plánu výuky FAI UTB, automatická extrakce klíčových termínů (odevzdání BP/DP, SZZ, promoce, zkouškové období…), žlutý panel s nadcházejícími důležitými termíny v následujících 60 dnech
 - **Termíny a poznámky** z konzultací u každé práce
+- **Autosave** na pozadí — změny v detailu práce se samy uloží 1,5 s po poslední úpravě (debounce), s 30s pojistkou, plus flush při přepnutí práce a zavření okna
 - **Lokální JSON úložiště** s atomickými zápisy a automatickou zálohou `db.json.bak`
 
 ## Požadavky
