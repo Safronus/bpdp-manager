@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-15
+
+### Added
+- **Aplikační ikona** — vlastní vektorově generovaná (Pillow) v macOS rounded-square stylu.
+  Modrá kniha s usměvavou absolventskou tváří, černou čepicí se žlutým střapcem
+  a červenou záložkou. 100% MIT-kompatibilní (žádné externí stock obrázky).
+- Generátor `scripts/make_icon.py` — vyrobí master 1024×1024 PNG, doplňkové
+  velikosti (128/256/512), macOS iconset a `.icns` přes `iconutil`.
+- Pillow přidán do dev závislostí (`pip install -e ".[dev]"`).
+- Ikona se aplikuje na všechna okna přes `QApplication.setWindowIcon`.
+
 ## [0.2.0] - 2026-05-15
 
 ### Added
@@ -51,6 +62,7 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Safronus/bpdp-manager/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Safronus/bpdp-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Safronus/bpdp-manager/releases/tag/v0.1.0

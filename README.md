@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/bpdpmanager/resources/icons/app_icon_256.png" width="160" alt="BPDPManager logo">
+</p>
+
 # BPDPManager
 
 Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadávání témat
@@ -5,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.2.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.2.1** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou
@@ -98,6 +102,19 @@ pip install -e .[dev]
 pytest
 ruff check src tests
 ```
+
+## Ikona
+
+Aplikační ikona je **vlastní výtvor** generovaný skriptem `scripts/make_icon.py`
+(Pillow). Žádné externí stock obrázky — 100% MIT-kompatibilní.
+
+Regenerace všech velikostí a `.icns` (na macOS):
+
+```bash
+python scripts/make_icon.py
+```
+
+Výstup: `src/bpdpmanager/resources/icons/app_icon{.png,_512.png,_256.png,_128.png,.icns}`.
 
 ## Licence
 
