@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
 
 from ..config import SCHEMA_VERSION
-from ..models import Opponent, Student, Thesis
+from ..models import AcademicYearInfo, Opponent, Student, Thesis
 
 
 class Database(BaseModel):
@@ -16,6 +16,7 @@ class Database(BaseModel):
     students: list[Student] = Field(default_factory=list)
     opponents: list[Opponent] = Field(default_factory=list)
     theses: list[Thesis] = Field(default_factory=list)
+    academic_years: list[AcademicYearInfo] = Field(default_factory=list)
 
 
 class Repository(ABC):

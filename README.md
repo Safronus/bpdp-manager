@@ -13,10 +13,13 @@ o budoucí témata.
 
 - Strukturovaná evidence prací podle akademického roku, typu (BP/DP) a stavu
 - 7 stavů toku: *Zájemce → Rezervace s tématem → Vypsané téma → Oficiálně zadané → V řešení → Obhájeno → Nedokončeno*
-- Sledování studentů (jméno, obor, forma studia, kontakt) a oponentů
+- Sledování studentů (jméno, obor, forma studia, osobní číslo UTB, kontakt) a oponentů
 - Pole pro vypsané téma (název CZ, anotace) i oficiální zadání (název EN, body, literatura)
 - Termíny, poznámky z konzultací a přílohy/odkazy
-- Tři pohledy: **Historie**, **Aktuální** rok, **Budoucí** zájemci
+- Pohledy: **Aktuální** rok, **Budoucí** zájemci, **Historie**, **Vše**
+- **Harmonogram fakulty**: import PDF časového plánu výuky (FAI UTB), automatická extrakce
+  klíčových termínů (odevzdání BP/DP, SZZ, promoce, zkouškové období…), upozornění
+  na nadcházející důležité termíny
 - Lokální JSON úložiště s atomickými zápisy a automatickou zálohou
 
 ## Požadavky

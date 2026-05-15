@@ -30,3 +30,9 @@ def db_path() -> Path:
 
 def db_backup_path() -> Path:
     return app_data_dir() / "db.json.bak"
+
+
+def harmonograms_dir() -> Path:
+    path = app_data_dir() / "harmonograms"
+    path.mkdir(parents=True, exist_ok=True)
+    return path

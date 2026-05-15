@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 from ..models import Thesis
 from ..models.enums import ThesisStatus, ThesisType
 from ..services import ThesisService
+from .harmonogram_tab import HarmonogramTab
 from .opponent_dialog import OpponentDialog
 from .student_dialog import StudentDialog
 from .thesis_detail import ThesisDetail
@@ -95,11 +96,13 @@ class MainWindow(QMainWindow):
             or (t.academic_year and t.academic_year < current_year and t.status not in {ThesisStatus.INTERESTED}),
         )
         self.tab_all = _ThesesTab(service, lambda t: True)
+        self.tab_harmonogram = HarmonogramTab(service)
 
         self.tabs.addTab(self.tab_current, f"Aktuální ({current_year})")
         self.tabs.addTab(self.tab_future, f"Budoucí ({next_year})")
         self.tabs.addTab(self.tab_history, "Historie")
         self.tabs.addTab(self.tab_all, "Vše")
+        self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
 
         self.setCentralWidget(self.tabs)
         self.setStatusBar(QStatusBar())
@@ -193,8 +196,11 @@ class MainWindow(QMainWindow):
     def _refresh_all(self) -> None:
         self.service.reload()
         for i in range(self.tabs.count()):
-            tab: _ThesesTab = self.tabs.widget(i)  # type: ignore[assignment]
-            tab.refresh()
+            widget = self.tabs.widget(i)
+            if hasattr(widget, "refresh"):
+                widget.refresh()
+            elif isinstance(widget, HarmonogramTab):
+                widget._refresh_year_combo()
         self._update_status()
 
     def _update_status(self) -> None:

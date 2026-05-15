@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import shutil
 from datetime import date
+from pathlib import Path
 
-from ..models import Opponent, Student, Thesis
+from ..config import harmonograms_dir
+from ..models import AcademicYearInfo, KeyDate, Opponent, Student, Thesis
 from ..models.enums import ALLOWED_TRANSITIONS, ThesisStatus
 from ..storage import Database, Repository
+from .harmonogram_parser import parse_pdf
 
 
 class TransitionError(ValueError):
@@ -175,3 +179,75 @@ class ThesisService:
             out.setdefault(year, {"BP": [], "DP": []})
             out[year][t.type.value].append(t)
         return out
+
+    # --- harmonogram ---------------------------------------------------------
+
+    def get_year_info(self, label: str) -> AcademicYearInfo | None:
+        return next((y for y in self._db.academic_years if y.label == label), None)
+
+    def get_or_create_year_info(self, label: str) -> AcademicYearInfo:
+        info = self.get_year_info(label)
+        if info is None:
+            info = AcademicYearInfo(label=label)
+            self._db.academic_years.append(info)
+            self.save()
+        return info
+
+    def list_year_infos(self) -> list[AcademicYearInfo]:
+        return sorted(self._db.academic_years, key=lambda y: y.label, reverse=True)
+
+    def upsert_year_info(self, info: AcademicYearInfo) -> AcademicYearInfo:
+        existing = self.get_year_info(info.label)
+        if existing:
+            idx = self._db.academic_years.index(existing)
+            self._db.academic_years[idx] = info
+        else:
+            self._db.academic_years.append(info)
+        self.save()
+        return info
+
+    def import_harmonogram_pdf(self, label: str, source_pdf: Path) -> AcademicYearInfo:
+        """Importuje PDF harmonogramu pro daný akademický rok.
+
+        - Zkopíruje PDF do ``~/.bpdpmanager/harmonograms/{label}.pdf``
+        - Spustí parser a uloží extrahované klíčové termíny
+        """
+        info = self.get_or_create_year_info(label)
+        target_name = label.replace("/", "-") + ".pdf"
+        target_path = harmonograms_dir() / target_name
+        shutil.copy2(source_pdf, target_path)
+
+        info.pdf_filename = target_name
+        info.pdf_source_path = str(source_pdf)
+
+        parsed = parse_pdf(target_path)
+        # zachovej manuálně přidané, nahraď jen ty importované
+        manual = [kd for kd in info.key_dates if kd.source == "manual"]
+        info.key_dates = manual + parsed
+
+        return self.upsert_year_info(info)
+
+    def add_key_date(self, year_label: str, key_date: KeyDate) -> AcademicYearInfo:
+        info = self.get_or_create_year_info(year_label)
+        info.key_dates.append(key_date)
+        return self.upsert_year_info(info)
+
+    def update_key_date(self, year_label: str, index: int, key_date: KeyDate) -> AcademicYearInfo:
+        info = self.get_or_create_year_info(year_label)
+        if 0 <= index < len(info.key_dates):
+            info.key_dates[index] = key_date
+        return self.upsert_year_info(info)
+
+    def remove_key_date(self, year_label: str, index: int) -> AcademicYearInfo:
+        info = self.get_or_create_year_info(year_label)
+        if 0 <= index < len(info.key_dates):
+            del info.key_dates[index]
+        return self.upsert_year_info(info)
+
+    def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:
+        """Vrátí důležité nadcházející termíny napříč všemi roky."""
+        out: list[tuple[str, KeyDate]] = []
+        for info in self._db.academic_years:
+            for kd in info.upcoming(from_date, days):
+                out.append((info.label, kd))
+        return sorted(out, key=lambda x: x[1].sort_key())
