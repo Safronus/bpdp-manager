@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+### Added
+- README: sekce *Venv mimo synchronizovanou složku (iCloud, Dropbox, OneDrive…)*
+  s návodem, jak provozovat projekt synchronizovaný v iCloud Drive, aniž by
+  iCloud rozbil `.venv`. Řešení: venv leží v `~/.venvs/bpdp-manager/`, v projektu
+  je jen symlink.
+- README: zsh tip k uvozovkám u `pip install -e ".[dev]"`.
+
 ## [0.3.1] - 2026-05-15
 
 ### Fixed

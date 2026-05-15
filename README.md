@@ -46,6 +46,74 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
+> **zsh tip:** pokud chceš nainstalovat i dev závislosti, napiš `pip install -e ".[dev]"` v uvozovkách — zsh by jinak `[dev]` interpretoval jako glob a hlásil `no matches found`.
+
+## Venv mimo synchronizovanou složku (iCloud, Dropbox, OneDrive…)
+
+Pokud máš projekt v **iCloud-synchronizované složce** (typicky `~/Desktop/` nebo `~/Documents/` na macOS s defaultním nastavením), **nedávej do něj `.venv` přímo**. iCloud Drive
+nezvládá tisíce malých souborů ve virtualenvu konzistentně — občas některé soubory přes noc
+„odlehčí" (offload) nebo úplně smaže s předpokladem, že je znovu stáhne, čímž rozbije pip
+i samotný balíček. Stejné riziko platí pro Dropbox a OneDrive.
+
+**Řešení: venv mimo iCloud + symlink z projektu.** iCloud nesynchronizuje obsah symlinku,
+jen samotný odkaz, takže projektová struktura zůstane synchronní mezi zařízeními a každé
+zařízení má svůj vlastní venv lokálně.
+
+### Setup (jednorázový na každém zařízení)
+
+```bash
+# 1) Mimo iCloud připrav složku pro venvy
+mkdir -p ~/.venvs
+
+# 2) Postav venv mimo projekt
+/opt/homebrew/bin/python3.12 -m venv ~/.venvs/bpdp-manager     # macOS s Homebrew
+# Linux / jiné:  python3.12 -m venv ~/.venvs/bpdp-manager
+
+# 3) V projektu vytvoř symlink na ten venv (pokud .venv existuje, nejdřív ho smaž)
+cd <cesta-k-projektu>
+rm -rf .venv
+ln -s ~/.venvs/bpdp-manager .venv
+
+# 4) Aktivuj a nainstaluj jako obvykle — všechno funguje, jen reálné soubory leží mimo iCloud
+source .venv/bin/activate
+pip install -e ".[dev]"
+python -m bpdpmanager
+```
+
+### Použití z druhého zařízení
+
+Na dalším Macu (po iCloud synchronizaci projektu) **stačí znova udělat jen krok 1–3**:
+symlink `.venv` je už nasynchronizovaný, jen na něj připrav cíl:
+
+```bash
+mkdir -p ~/.venvs
+/opt/homebrew/bin/python3.12 -m venv ~/.venvs/bpdp-manager
+cd <cesta-k-projektu>
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+Ověření, že to sedí:
+
+```bash
+ls -la .venv          # → /Users/<ty>/.venvs/bpdp-manager
+readlink .venv        # → /Users/<ty>/.venvs/bpdp-manager
+which python          # → cesta přes .venv/bin/python (přes symlink)
+```
+
+### Volitelně: ochrana .git/
+
+Adresář `.git/` má taky tisíce malých souborů a iCloud mu může lokálně způsobovat
+zpomalení nebo občasné `unable to read tree` chyby. Pokud na to narazíš, vyřeší to
+stejný trik:
+
+```bash
+mv .git ~/.gitstores/bpdp-manager
+ln -s ~/.gitstores/bpdp-manager .git
+```
+
+Jinak je `.git` díky content hashům odolnější než venv a většinou nepotřebuje řešit.
+
 ## Spuštění
 
 ```bash
