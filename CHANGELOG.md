@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-05-16
+
+### Added
+- **Copy-to-clipboard tlačítka** 📋 v záložce *Souhrn* — jedním klikem
+  zkopíruje do schránky:
+  - název práce (CZ)
+  - název práce (EN)
+  - anotaci (čistý text)
+  - body zadání (každý bod jako "• ..." na nové řádce)
+  - literární zdroje (každý bibliografický záznam jako "• ..." na nové řádce)
+- Po kliknutí se zobrazí krátký tooltip *📋 Zkopírováno: {název pole}*.
+- Použita technika anchor-link `copy:<field>` v QTextBrowseru s vlastním
+  handlerem na `anchorClicked` (žádná interakce s externími prohlížeči).
+
 ## [0.5.1] - 2026-05-16
 
 ### Added
@@ -222,7 +236,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/Safronus/bpdp-manager/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Safronus/bpdp-manager/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Safronus/bpdp-manager/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/Safronus/bpdp-manager/compare/v0.4.2...v0.4.3

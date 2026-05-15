@@ -3,8 +3,10 @@ from __future__ import annotations
 import html
 from datetime import datetime
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFormLayout,
     QGroupBox,
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QTabWidget,
     QTextBrowser,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -266,7 +269,9 @@ class ThesisDetail(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.summary_view = QTextBrowser()
-        self.summary_view.setOpenExternalLinks(True)
+        self.summary_view.setOpenExternalLinks(False)
+        self.summary_view.setOpenLinks(False)  # anchory zpracujeme sami
+        self.summary_view.anchorClicked.connect(self._on_summary_anchor_clicked)
         self.summary_view.setStyleSheet(
             "QTextBrowser { padding: 12px; font-family: -apple-system, "
             "'Segoe UI', sans-serif; }"
@@ -445,6 +450,15 @@ class ThesisDetail(QWidget):
             return
         self.summary_view.setHtml(self._build_summary_html(self.thesis))
 
+    @staticmethod
+    def _copy_btn(field: str, tooltip: str) -> str:
+        """HTML pro malé „📋" tlačítko, které spustí copy:field anchor."""
+        return (
+            f'&nbsp;<a href="copy:{field}" title="{tooltip}" '
+            'style="text-decoration:none;font-size:11pt;'
+            'color:#42a5f5;">📋</a>'
+        )
+
     def _build_summary_html(self, thesis) -> str:
         """Sestaví HTML přehled práce — styl podobný uživatelovu zápisníku."""
         student = self.service.get_student(thesis.student_id) if thesis.student_id else None
@@ -472,6 +486,7 @@ class ThesisDetail(QWidget):
         ready_assignment, missing_assignment = thesis.is_ready_for_assignment()
 
         e = html.escape
+        cp = self._copy_btn
 
         # ── status bar (velký, barevný, hned patrný) ────────────────────────
         status_bar = (
@@ -497,9 +512,12 @@ class ThesisDetail(QWidget):
             )
 
         # ── nadpisová sekce ────────────────────────────────────────────────
+        title_cs_with_copy = (
+            f"{e(title_cs)}{cp('title_cs', 'Zkopírovat název (CZ)')}"
+        )
         header_line = (
             f'<h2 style="color:{status_color};margin:0 0 4px 0;line-height:1.35;">'
-            f"{e(type_label)} — {e(title_cs)} — "
+            f"{e(type_label)} — {title_cs_with_copy} — "
             f'<span>{e(student_name)}</span> '
             f'<span style="color:#9e9e9e;">({e(obor)})</span> '
             f'<span style="color:#9e9e9e;">→ {e(uni_id)}</span> '
@@ -510,12 +528,17 @@ class ThesisDetail(QWidget):
         if title_en:
             en_line = (
                 f'<p style="color:#9e9e9e;font-style:italic;'
-                f'margin:0 0 18px 0;">{e(title_en)}</p>'
+                f'margin:0 0 18px 0;">{e(title_en)}'
+                f"{cp('title_en', 'Zkopírovat název (EN)')}</p>"
             )
 
         # ── Anotace ────────────────────────────────────────────────────────
         if annotation:
-            anot_html = e(annotation).replace("\n\n", "</p><p style='text-indent:2em;'>").replace("\n", "<br>")
+            anot_html = (
+                e(annotation)
+                .replace("\n\n", "</p><p style='text-indent:2em;'>")
+                .replace("\n", "<br>")
+            )
             anot_html = f"<p style='text-indent:2em;'>{anot_html}</p>"
         else:
             anot_html = "<p style='color:#888;font-style:italic;'>(bez anotace)</p>"
@@ -546,14 +569,56 @@ class ThesisDetail(QWidget):
             f"{readiness_html}"
             f"{header_line}"
             f"{en_line}"
-            f'<h3 style="{section_header_style}">Anotace:</h3>'
+            f'<h3 style="{section_header_style}">Anotace:'
+            f"{cp('annotation', 'Zkopírovat anotaci')}</h3>"
             f"{anot_html}"
-            f'<h3 style="{section_header_style}">Body zadání:</h3>'
+            f'<h3 style="{section_header_style}">Body zadání:'
+            f"{cp('objectives', 'Zkopírovat body zadání')}</h3>"
             f"{obj_html}"
-            f'<h3 style="{section_header_style}">Literární zdroje:</h3>'
+            f'<h3 style="{section_header_style}">Literární zdroje:'
+            f"{cp('references', 'Zkopírovat literární zdroje')}</h3>"
             f"{ref_html}"
             "</body></html>"
         )
+
+    def _on_summary_anchor_clicked(self, url: QUrl) -> None:
+        """Click na 'copy:<field>' v Souhrnu → zkopíruje hodnotu do schránky."""
+        s = url.toString()
+        if not s.startswith("copy:"):
+            return
+        field = s[len("copy:"):]
+        if self.thesis is None:
+            return
+
+        text, label = self._summary_field_value(field)
+        if text is None:
+            return
+
+        QApplication.clipboard().setText(text)
+        QToolTip.showText(
+            QCursor.pos(),
+            f"📋  Zkopírováno: {label}",
+            self.summary_view,
+        )
+
+    def _summary_field_value(self, field: str) -> tuple[str | None, str]:
+        """Vrátí (text-do-schránky, popisek-pro-tooltip) pro daný field."""
+        t = self.thesis
+        if t is None:
+            return None, ""
+        if field == "title_cs":
+            return t.title_cs or "", "název (CZ)"
+        if field == "title_en":
+            return t.title_en or "", "název (EN)"
+        if field == "annotation":
+            return t.annotation or "", "anotace"
+        if field == "objectives":
+            text = "\n".join(f"• {o}" for o in t.objectives) if t.objectives else ""
+            return text, "body zadání"
+        if field == "references":
+            text = "\n".join(f"• {r}" for r in t.references) if t.references else ""
+            return text, "literární zdroje"
+        return None, ""
 
     # --- akce ----------------------------------------------------------------
 
