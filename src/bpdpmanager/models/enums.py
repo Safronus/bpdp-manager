@@ -76,10 +76,10 @@ class ThesisStatus(str, Enum):
 
 
 STATUS_LABELS: dict[ThesisStatus, str] = {
-    ThesisStatus.INTERESTED: "Zájemce",
-    ThesisStatus.RESERVED: "Rezervace s tématem",
+    ThesisStatus.INTERESTED: "Zájemce bez tématu",
+    ThesisStatus.RESERVED: "Zájemce s tématem",
     ThesisStatus.LISTED: "Vypsané téma",
-    ThesisStatus.ASSIGNED: "Oficiálně zadané",
+    ThesisStatus.ASSIGNED: "Schválené téma",
     ThesisStatus.IN_PROGRESS: "V řešení",
     ThesisStatus.DEFENDED: "Obhájeno",
     ThesisStatus.CANCELLED: "Nedokončeno",

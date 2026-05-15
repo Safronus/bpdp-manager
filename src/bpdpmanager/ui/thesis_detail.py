@@ -149,9 +149,7 @@ class ThesisDetail(QWidget):
         layout.addWidget(self.tabs)
 
         self.tabs.addTab(self._build_summary_tab(), "📋 Souhrn")
-        self.tabs.addTab(self._build_basic_tab(), "Základní info")
-        self.tabs.addTab(self._build_listing_tab(), "Vypsané téma")
-        self.tabs.addTab(self._build_assignment_tab(), "Oficiální zadání")
+        self.tabs.addTab(self._build_topic_tab(), "📝 Téma zadání")
         self.tabs.addTab(self._build_notes_tab(), "Poznámky")
         self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
         self.tabs.currentChanged.connect(self._on_tab_changed)
@@ -165,10 +163,24 @@ class ThesisDetail(QWidget):
         save_row.addWidget(self.btn_save)
         layout.addLayout(save_row)
 
-    def _build_basic_tab(self) -> QWidget:
+    def _build_topic_tab(self) -> QWidget:
+        """Sloučená záložka Téma zadání: Základní info + Vypsané téma + Oficiální zadání."""
         w = QWidget()
         outer = QVBoxLayout(w)
-        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setContentsMargins(8, 8, 8, 8)
+        outer.setSpacing(12)
+
+        outer.addWidget(self._build_basic_section())
+        outer.addWidget(self._build_listing_section(), stretch=1)
+        outer.addWidget(self._build_assignment_section(), stretch=2)
+        return w
+
+    # --- sekce uvnitř Téma zadání -------------------------------------------
+
+    def _build_basic_section(self) -> QGroupBox:
+        box = QGroupBox("Základní info")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(8, 12, 8, 8)
         form = _make_form_layout()
 
         self.cb_type = QComboBox()
@@ -204,34 +216,35 @@ class ThesisDetail(QWidget):
         form.addRow("Student", student_row)
         form.addRow("Oponent", opponent_row)
 
-        outer.addLayout(form)
-        outer.addStretch(1)
-        return w
+        layout.addLayout(form)
+        return box
 
-    def _build_listing_tab(self) -> QWidget:
-        w = QWidget()
-        outer = QVBoxLayout(w)
-        outer.setContentsMargins(0, 0, 0, 0)
+    def _build_listing_section(self) -> QGroupBox:
+        box = QGroupBox("Vypsané téma (název CZ + anotace)")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(8, 12, 8, 8)
 
         form = _make_form_layout()
         self.ed_title_cs = QLineEdit()
         form.addRow("Název (CZ)", self.ed_title_cs)
-        outer.addLayout(form)
+        layout.addLayout(form)
 
         lbl = QLabel("Anotace")
         lbl.setContentsMargins(8, 4, 8, 0)
-        outer.addWidget(lbl)
+        layout.addWidget(lbl)
 
         self.ed_annotation = QPlainTextEdit()
-        self.ed_annotation.setMinimumHeight(180)
-        self.ed_annotation.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        outer.addWidget(self.ed_annotation, stretch=1)
-        return w
+        self.ed_annotation.setMinimumHeight(120)
+        self.ed_annotation.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        layout.addWidget(self.ed_annotation, stretch=1)
+        return box
 
-    def _build_assignment_tab(self) -> QWidget:
-        w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.setContentsMargins(0, 0, 0, 0)
+    def _build_assignment_section(self) -> QGroupBox:
+        box = QGroupBox("Oficiální zadání (název EN, body zadání, literatura)")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(8, 12, 8, 8)
 
         form = _make_form_layout()
         self.ed_title_en = QLineEdit()
@@ -244,6 +257,7 @@ class ThesisDetail(QWidget):
         lbl_obj.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_obj)
         self.ed_objectives = QPlainTextEdit()
+        self.ed_objectives.setMinimumHeight(120)
         self.ed_objectives.setPlaceholderText(
             "1. Nastudujte a popište problematiku testování softwaru…\n"
             "2. Prozkoumejte možnosti testování softwaru pomocí umělé inteligence.\n"
@@ -261,6 +275,7 @@ class ThesisDetail(QWidget):
         lbl_ref.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_ref)
         self.ed_references = QPlainTextEdit()
+        self.ed_references.setMinimumHeight(120)
         self.ed_references.setPlaceholderText(
             "1. SMITH, Adam Leon; BLACK, Rex et al. Artificial Intelligence and "
             "Software Testing… BCS, 2022. ISBN 1780175787.\n"
@@ -270,7 +285,7 @@ class ThesisDetail(QWidget):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         layout.addWidget(self.ed_references, stretch=1)
-        return w
+        return box
 
     def _build_notes_tab(self) -> QWidget:
         w = QWidget()
@@ -379,9 +394,12 @@ class ThesisDetail(QWidget):
         self._debounce_timer.stop()
         self._update_save_state_label(idle=True)
         self._update_transition_buttons()
-        # Pokud je aktuálně viditelný Souhrn, hned ho přegeneruj
-        if self.tabs.currentIndex() == 0:
-            self._refresh_summary()
+        # Po výběru práce ze seznamu přepneme na Souhrn — uživatel
+        # vidí jako první rozhled celé práce, pak může jít editovat.
+        # _refresh_summary voláme přímo, protože setCurrentIndex(0) v případě,
+        # že už jsme na 0, nevyvolá _on_tab_changed.
+        self.tabs.setCurrentIndex(0)
+        self._refresh_summary()
 
     def _update_transition_buttons(self) -> None:
         if self.thesis is None:

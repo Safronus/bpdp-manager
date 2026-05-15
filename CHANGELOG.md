@@ -7,6 +7,25 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-16
+
+### Changed
+- **Záložky detailu sloučeny** — z dosavadních *Základní info* + *Vypsané téma*
+  + *Oficiální zadání* je nyní **jedna záložka „📝 Téma zadání"** se třemi
+  vizuálně oddělenými sekcemi (`QGroupBox`). Méně klikání mezi taby při
+  vyplňování práce, vše na jedné stránce s vnitřním skrolováním.
+- **Po výběru práce v seznamu se aktivuje záložka 📋 Souhrn** — uživatel
+  dostane nejdříve celkový přehled, teprve potom přepne na úpravy.
+- **Přejmenování stavů** (jen popisky, JSON hodnoty zůstávají kompatibilní):
+  - `Zájemce` → **„Zájemce bez tématu"**
+  - `Rezervace s tématem` → **„Zájemce s tématem"**
+  - `Oficiálně zadané` → **„Schválené téma"**
+
+### Removed
+- `_build_basic_tab`, `_build_listing_tab`, `_build_assignment_tab` —
+  nahrazeno `_build_topic_tab` + tři sekce (`_build_basic_section`,
+  `_build_listing_section`, `_build_assignment_section`).
+
 ## [0.6.0] - 2026-05-16
 
 ### Changed
@@ -277,7 +296,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Safronus/bpdp-manager/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Safronus/bpdp-manager/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/Safronus/bpdp-manager/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Safronus/bpdp-manager/compare/v0.5.0...v0.5.1
