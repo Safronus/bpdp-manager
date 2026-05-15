@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-15
+
+### Fixed
+- **Rozložení polí v detailu práce** — pole v záložkách *Základní info*,
+  *Vypsané téma*, *Oficiální zadání* a *Poznámky* už nestrčí ve středu okna,
+  ale roztáhnou se na celou šířku panelu. QFormLayout nyní používá
+  `AllNonFixedFieldsGrow` field growth policy a komponenty mají `Expanding`
+  size policy.
+- **Anotace** (Vypsané téma) a **Poznámky** vyplní celou volnou výšku
+  panelu, ne jen sizeHint.
+- *Body zadání* a *Literární zdroje* (Oficiální zadání) si rovnoměrně rozdělí
+  svislý prostor.
+
 ## [0.3.0] - 2026-05-15
 
 ### Added
@@ -81,7 +94,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Safronus/bpdp-manager/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Safronus/bpdp-manager/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Safronus/bpdp-manager/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Safronus/bpdp-manager/compare/v0.1.0...v0.2.0

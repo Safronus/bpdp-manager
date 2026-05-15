@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -14,10 +14,23 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
+
+
+def _make_form_layout() -> QFormLayout:
+    """Form layout, který nechá fieldy roztáhnout na šířku panelu (na macOS jinak smrští)."""
+    form = QFormLayout()
+    form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+    form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
+    form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    form.setHorizontalSpacing(12)
+    form.setVerticalSpacing(8)
+    form.setContentsMargins(8, 8, 8, 8)
+    return form
 
 from ..models import Thesis
 from ..models.enums import ALLOWED_TRANSITIONS, ThesisStatus, ThesisType
@@ -134,17 +147,21 @@ class ThesisDetail(QWidget):
 
     def _build_basic_tab(self) -> QWidget:
         w = QWidget()
-        form = QFormLayout(w)
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(0, 0, 0, 0)
+        form = _make_form_layout()
 
         self.cb_type = QComboBox()
         for t in ThesisType:
             self.cb_type.addItem(t.label, t.value)
+        self.cb_type.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.ed_year = QLineEdit()
         self.ed_year.setPlaceholderText("např. 2024/2025")
 
         self.cb_student = QComboBox()
         self.cb_student.setEditable(False)
+        self.cb_student.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.btn_new_student = QPushButton("+")
         self.btn_new_student.setFixedWidth(32)
         self.btn_new_student.clicked.connect(self._new_student)
@@ -153,6 +170,7 @@ class ThesisDetail(QWidget):
         student_row.addWidget(self.btn_new_student)
 
         self.cb_opponent = QComboBox()
+        self.cb_opponent.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.btn_new_opponent = QPushButton("+")
         self.btn_new_opponent.setFixedWidth(32)
         self.btn_new_opponent.clicked.connect(self._new_opponent)
@@ -164,50 +182,78 @@ class ThesisDetail(QWidget):
         form.addRow("Akademický rok", self.ed_year)
         form.addRow("Student", student_row)
         form.addRow("Oponent", opponent_row)
+
+        outer.addLayout(form)
+        outer.addStretch(1)
         return w
 
     def _build_listing_tab(self) -> QWidget:
         w = QWidget()
-        form = QFormLayout(w)
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        form = _make_form_layout()
         self.ed_title_cs = QLineEdit()
-        self.ed_annotation = QPlainTextEdit()
-        self.ed_annotation.setMinimumHeight(160)
         form.addRow("Název (CZ)", self.ed_title_cs)
-        form.addRow("Anotace", self.ed_annotation)
+        outer.addLayout(form)
+
+        lbl = QLabel("Anotace")
+        lbl.setContentsMargins(8, 4, 8, 0)
+        outer.addWidget(lbl)
+
+        self.ed_annotation = QPlainTextEdit()
+        self.ed_annotation.setMinimumHeight(180)
+        self.ed_annotation.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        outer.addWidget(self.ed_annotation, stretch=1)
         return w
 
     def _build_assignment_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        form = QFormLayout()
+        form = _make_form_layout()
         self.ed_title_en = QLineEdit()
         form.addRow("Název (EN)", self.ed_title_en)
         layout.addLayout(form)
 
-        layout.addWidget(QLabel("Body zadání"))
+        lbl_obj = QLabel("Body zadání")
+        lbl_obj.setContentsMargins(8, 4, 8, 0)
+        layout.addWidget(lbl_obj)
         self.ed_objectives = StringListEditor(placeholder="Bod zadání")
-        layout.addWidget(self.ed_objectives)
+        self.ed_objectives.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.ed_objectives, stretch=1)
 
-        layout.addWidget(QLabel("Literární zdroje"))
+        lbl_ref = QLabel("Literární zdroje")
+        lbl_ref.setContentsMargins(8, 4, 8, 0)
+        layout.addWidget(lbl_ref)
         self.ed_references = StringListEditor(placeholder="Citace literárního zdroje")
-        layout.addWidget(self.ed_references)
+        self.ed_references.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.ed_references, stretch=1)
         return w
 
     def _build_notes_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.addWidget(QLabel("Poznámky a deník konzultací"))
+        layout.setContentsMargins(0, 0, 0, 0)
+        lbl = QLabel("Poznámky a deník konzultací")
+        lbl.setContentsMargins(8, 4, 8, 0)
+        layout.addWidget(lbl)
         self.ed_notes = QPlainTextEdit()
-        layout.addWidget(self.ed_notes)
+        self.ed_notes.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.ed_notes, stretch=1)
         return w
 
     def _build_documents_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.addWidget(QLabel("Dokumenty k práci (posudky, text práce, prezentace, odkazy…)"))
+        layout.setContentsMargins(0, 0, 0, 0)
+        lbl = QLabel("Dokumenty k práci (posudky, text práce, prezentace, odkazy…)")
+        lbl.setContentsMargins(8, 4, 8, 0)
+        layout.addWidget(lbl)
         self.documents_widget = DocumentsWidget(self.service)
-        layout.addWidget(self.documents_widget)
+        self.documents_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.documents_widget, stretch=1)
         return w
 
     # --- načítání / zobrazení -------------------------------------------------
