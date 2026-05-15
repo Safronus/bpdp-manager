@@ -1,6 +1,18 @@
 {
   "version": 1,
-  "obory": ["NSWI-P", "NSWI-K", "NKYB-P", "NKYB-K", "NIB-P", "NIB-K"],
+  "obory": [
+    {"name": "NSWI-P"},
+    {
+      "name": "NSWI-K",
+      "secretary_name": "Ing. Eva Smyšlená",
+      "secretary_email": "smyselena@example.com",
+      "secretary_phone": "+420 600 000 000"
+    },
+    {"name": "NKYB-P"},
+    {"name": "NKYB-K"},
+    {"name": "NIB-P"},
+    {"name": "NIB-K"}
+  ],
   "students": [
     {
       "id": "stu-0001",

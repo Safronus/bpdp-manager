@@ -9,6 +9,7 @@ from ..models import (
     AcademicYearInfo,
     Attachment,
     KeyDate,
+    Obor,
     Opponent,
     Student,
     Thesis,
@@ -99,13 +100,39 @@ class ThesisService:
     # --- obory ---------------------------------------------------------------
 
     def list_obory(self) -> list[str]:
-        return sorted(self._db.obory)
+        """Vrátí seznam názvů oborů — pro plnění combo boxů (backward compat)."""
+        return sorted(o.name for o in self._db.obory)
 
-    def add_obor(self, name: str) -> None:
+    def list_obor_objects(self) -> list[Obor]:
+        """Vrátí seznam Obor objektů (včetně kontaktu na sekretářku)."""
+        return sorted(self._db.obory, key=lambda o: o.name.lower())
+
+    def get_obor(self, name: str) -> Obor | None:
+        return next((o for o in self._db.obory if o.name == name), None)
+
+    def add_obor(self, name: str) -> Obor | None:
+        """Přidá obor (pokud neexistuje). Vrací příslušný Obor."""
         name = name.strip()
-        if name and name not in self._db.obory:
-            self._db.obory.append(name)
-            self.save()
+        if not name:
+            return None
+        existing = self.get_obor(name)
+        if existing:
+            return existing
+        obor = Obor(name=name)
+        self._db.obory.append(obor)
+        self.save()
+        return obor
+
+    def upsert_obor(self, obor: Obor) -> Obor:
+        """Vloží nebo aktualizuje obor (klíč = ``name``)."""
+        existing = self.get_obor(obor.name)
+        if existing:
+            idx = self._db.obory.index(existing)
+            self._db.obory[idx] = obor
+        else:
+            self._db.obory.append(obor)
+        self.save()
+        return obor
 
     def rename_obor(self, old_name: str, new_name: str) -> int:
         """Přejmenuje obor v číselníku a u všech studentů s tímto oborem.
@@ -115,10 +142,14 @@ class ThesisService:
         new_name = new_name.strip()
         if not new_name or old_name == new_name:
             return 0
-        if old_name in self._db.obory:
-            self._db.obory[self._db.obory.index(old_name)] = new_name
-        # dedup pro případ, že nový název už existoval
-        self._db.obory = list(dict.fromkeys(self._db.obory))
+        old_obor = self.get_obor(old_name)
+        target = self.get_obor(new_name)
+        if old_obor is not None:
+            if target is not None and target is not old_obor:
+                # cíl už existuje — sloučení: starý zahodíme, ponecháme target
+                self._db.obory = [o for o in self._db.obory if o is not old_obor]
+            else:
+                old_obor.name = new_name
         count = 0
         for student in self._db.students:
             if student.obor == old_name:
@@ -132,8 +163,7 @@ class ThesisService:
 
         Vrací počet ovlivněných studentů.
         """
-        if name in self._db.obory:
-            self._db.obory.remove(name)
+        self._db.obory = [o for o in self._db.obory if o.name != name]
         count = 0
         for student in self._db.students:
             if student.obor == name:

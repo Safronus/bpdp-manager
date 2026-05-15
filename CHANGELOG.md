@@ -7,6 +7,47 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-16
+
+### Changed
+- **Obor je entita**, ne jen řetězec. ``Database.obory: list[Obor]``
+  (dříve ``list[str]``). Stará JSON data se automaticky migrují přes
+  ``model_validator(mode="before")``. Aplikace tak může u každého oboru
+  evidovat **sekretářku oboru** (jméno, email, telefon, poznámka).
+- **Body zadání a literární zdroje** jsou nyní **volný text** (``str``)
+  místo ``list[str]``. Uživatel si čísluje sám (``1. ... \n 2. ...``) —
+  styl odpovídá oficiálnímu zadání UTB. Stará data se automaticky
+  konvertují na číslovaný text.
+- ``ThesisDetail``: pole *Body zadání* a *Literární zdroje* jsou
+  ``QPlainTextEdit`` s placeholder příkladem.
+- Souhrn renderuje body zadání + literaturu s `<br>` mezi řádky a
+  zachovává uživatelův formát; clipboard copy vrací plain text 1:1.
+- ``StringListEditor`` widget odstraněn (nepoužívaný).
+- ``Thesis.is_ready_for_assignment()`` testuje ``objectives.strip()``
+  a ``references.strip()`` místo prázdné kolekce.
+
+### Added
+- **Sekretářka oboru** — v ``Obor`` modelu pole ``secretary_name``,
+  ``secretary_email``, ``secretary_phone``, ``note``.
+- **OborDialog** — nový dialog pro editaci oboru včetně kontaktu na
+  sekretářku.
+- **OboryManageDialog** přepsán z plochého seznamu na tabulku se sloupci
+  *Obor | Studentů | Sekretářka | Kontakt*. Dvojklik otevře OborDialog.
+- ``ThesisService``: ``list_obor_objects()``, ``get_obor()``,
+  ``upsert_obor()``.
+- **Našeptávání ve výběru studenta a oponenta** v záložce *Základní info*:
+  combo boxy jsou editovatelné, ``QCompleter`` s ``MatchContains`` +
+  ``CaseInsensitive`` filtruje podle libovolné části jména/příjmení malými
+  i velkými písmeny.
+- ``_resolve_combo_id`` helper — robustně získá ID z editovatelného combo
+  porovnáním textu s itemy (i když Qt nestihne updatovat currentIndex).
+- Testy pro Obor s sekretářkou, migraci ``list[str] → list[Obor]``,
+  migraci ``list[str] → numbered text`` pro objectives/references.
+
+### Removed
+- ``src/bpdpmanager/ui/widgets/list_editor.py`` (StringListEditor) —
+  nahrazen QPlainTextEdit.
+
 ## [0.5.2] - 2026-05-16
 
 ### Added
@@ -236,7 +277,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Safronus/bpdp-manager/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/Safronus/bpdp-manager/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Safronus/bpdp-manager/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Safronus/bpdp-manager/compare/v0.4.3...v0.5.0

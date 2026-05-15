@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .enums import AttachmentKind, ThesisStatus, ThesisType
 
@@ -33,8 +34,11 @@ class Thesis(BaseModel):
     title_cs: str = ""
     title_en: str = ""
     annotation: str = ""
-    objectives: list[str] = Field(default_factory=list)
-    references: list[str] = Field(default_factory=list)
+    # Body zadání a literární zdroje jsou volný text s vlastním číslováním
+    # (viz oficiální zadání UTB: "1. ...\n2. ...\n..."). Dřívější verze
+    # používaly list[str]; přechod ze starého formátu řeší validator.
+    objectives: str = ""
+    references: str = ""
 
     deadlines: list[Deadline] = Field(default_factory=list)
     notes: str = ""
@@ -42,6 +46,20 @@ class Thesis(BaseModel):
 
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_list_fields_to_text(cls, data: Any) -> Any:
+        """Konvertuje stará pole objectives/references z list[str] na číslovaný text."""
+        if isinstance(data, dict):
+            for field in ("objectives", "references"):
+                v = data.get(field)
+                if isinstance(v, list):
+                    items = [str(x).strip() for x in v if str(x).strip()]
+                    data[field] = "\n".join(
+                        f"{i + 1}. {item}" for i, item in enumerate(items)
+                    )
+        return data
 
     def touch(self) -> None:
         self.updated_at = datetime.now()
@@ -64,8 +82,8 @@ class Thesis(BaseModel):
         ok, missing = self.is_ready_for_listing()
         if not self.title_en.strip():
             missing.append("název EN")
-        if not self.objectives:
+        if not self.objectives.strip():
             missing.append("body zadání")
-        if not self.references:
+        if not self.references.strip():
             missing.append("literární zdroje")
         return (not missing, missing)

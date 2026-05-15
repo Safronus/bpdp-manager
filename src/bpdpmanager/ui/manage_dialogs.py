@@ -22,9 +22,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..models import Opponent, Student, Thesis
+from ..models import Obor, Opponent, Student, Thesis
 from ..models.enums import OpponentKind, ThesisStatus, ThesisType
 from ..services import ThesisService
+from .obor_dialog import OborDialog
 from .opponent_dialog import OpponentDialog
 from .student_dialog import StudentDialog
 
@@ -473,104 +474,142 @@ class OpponentsManageDialog(QDialog):
 
 
 class OboryManageDialog(QDialog):
-    """Správa číselníku studijních oborů."""
+    """Správa číselníku studijních oborů (jméno + sekretářka)."""
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
         self.setWindowTitle("Studijní obory")
-        self.setMinimumSize(480, 480)
+        self.setMinimumSize(720, 480)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Seznam studijních oborů (např. NSWI-P, NKYB-K)"))
+        layout.addWidget(
+            QLabel(
+                "Seznam studijních oborů (např. NSWI-P, NKYB-K). U každého lze evidovat "
+                "sekretářku oboru — dvojklik upraví detail."
+            )
+        )
 
-        self.list_widget = QListWidget()
-        self.list_widget.itemDoubleClicked.connect(self._rename)
-        layout.addWidget(self.list_widget)
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(4)
+        self.tree.setHeaderLabels(["Obor", "Studentů", "Sekretářka", "Kontakt"])
+        self.tree.setRootIsDecorated(False)
+        self.tree.setAlternatingRowColors(True)
+        self.tree.itemDoubleClicked.connect(self._edit)
+        h = self.tree.header()
+        h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.tree, stretch=1)
 
         self.lbl_info = QLabel("")
-        self.lbl_info.setStyleSheet("color: #888;")
+        self.lbl_info.setStyleSheet("color: #888; font-size: 11px;")
         layout.addWidget(self.lbl_info)
 
         row = QHBoxLayout()
         btn_new = QPushButton("+ Přidat…")
-        btn_rename = QPushButton("Přejmenovat…")
+        btn_edit = QPushButton("Upravit…")
         btn_delete = QPushButton("Smazat")
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._new)
-        btn_rename.clicked.connect(self._rename)
+        btn_edit.clicked.connect(self._edit)
         btn_delete.clicked.connect(self._delete)
         btn_close.clicked.connect(self.accept)
         row.addWidget(btn_new)
-        row.addWidget(btn_rename)
+        row.addWidget(btn_edit)
         row.addWidget(btn_delete)
         row.addStretch()
         row.addWidget(btn_close)
         layout.addLayout(row)
 
-        self.list_widget.currentRowChanged.connect(self._update_info)
+        self.tree.currentItemChanged.connect(lambda *_: self._update_info())
         self._refresh()
+
+    # --- načtení / akce -----------------------------------------------------
 
     def _refresh(self) -> None:
-        self.list_widget.clear()
-        for name in self.service.list_obory():
-            count = self.service.obor_usage_count(name)
-            label = f"{name}    (studentů: {count})"
-            item = QListWidgetItem(label)
-            item.setData(Qt.ItemDataRole.UserRole, name)
-            self.list_widget.addItem(item)
-        self._update_info(self.list_widget.currentRow())
+        selected_name = self._current_name()
+        self.tree.clear()
+        for obor in self.service.list_obor_objects():
+            count = self.service.obor_usage_count(obor.name)
+            contact_parts = []
+            if obor.secretary_email:
+                contact_parts.append(f"✉ {obor.secretary_email}")
+            if obor.secretary_phone:
+                contact_parts.append(f"☎ {obor.secretary_phone}")
+            contact = "   ".join(contact_parts) if contact_parts else ""
+            item = QTreeWidgetItem(
+                [
+                    obor.name,
+                    str(count),
+                    obor.secretary_name or "—",
+                    contact or "—",
+                ]
+            )
+            item.setData(0, Qt.ItemDataRole.UserRole, obor)
+            self.tree.addTopLevelItem(item)
+        if selected_name:
+            self._select_by_name(selected_name)
+        self._update_info()
 
-    def _current(self) -> str | None:
-        item = self.list_widget.currentItem()
-        return item.data(Qt.ItemDataRole.UserRole) if item else None
+    def _current_obor(self) -> Obor | None:
+        item = self.tree.currentItem()
+        if item is None:
+            return None
+        return item.data(0, Qt.ItemDataRole.UserRole)
 
-    def _update_info(self, _row: int) -> None:
-        name = self._current()
-        if not name:
+    def _current_name(self) -> str | None:
+        obor = self._current_obor()
+        return obor.name if obor else None
+
+    def _select_by_name(self, name: str) -> None:
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            obor = item.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(obor, Obor) and obor.name == name:
+                self.tree.setCurrentItem(item)
+                return
+
+    def _update_info(self) -> None:
+        obor = self._current_obor()
+        if obor is None:
             self.lbl_info.setText("")
             return
-        count = self.service.obor_usage_count(name)
+        count = self.service.obor_usage_count(obor.name)
+        parts = []
         if count == 0:
-            self.lbl_info.setText(f"Obor „{name}“ není přiřazen žádnému studentovi.")
+            parts.append(f"Obor „{obor.name}\" není přiřazen žádnému studentovi.")
         else:
-            self.lbl_info.setText(f"Obor „{name}“ je přiřazen u {count} studentů.")
+            parts.append(f"Obor „{obor.name}\" je přiřazen u {count} studentů.")
+        if obor.has_secretary:
+            parts.append(f"Sekretářka evidovaná.")
+        else:
+            parts.append("Sekretářka neuvedena.")
+        self.lbl_info.setText("   ·   ".join(parts))
 
     def _new(self) -> None:
-        text, ok = QInputDialog.getText(self, "Nový obor", "Zkratka oboru (např. NSWI-P):")
-        if ok and text.strip():
-            self.service.add_obor(text.strip())
+        dlg = OborDialog(self.service, parent=self)
+        if dlg.exec():
             self._refresh()
 
-    def _rename(self) -> None:
-        current = self._current()
-        if current is None:
+    def _edit(self) -> None:
+        obor = self._current_obor()
+        if obor is None:
             return
-        text, ok = QInputDialog.getText(
-            self,
-            "Přejmenovat obor",
-            f"Nový název pro „{current}“:",
-            text=current,
-        )
-        if not ok or not text.strip() or text.strip() == current:
-            return
-        count = self.service.rename_obor(current, text.strip())
-        QMessageBox.information(
-            self,
-            "Hotovo",
-            f"Obor přejmenován. Aktualizováno studentů: {count}.",
-        )
-        self._refresh()
+        dlg = OborDialog(self.service, obor, parent=self)
+        if dlg.exec():
+            self._refresh()
 
     def _delete(self) -> None:
-        current = self._current()
-        if current is None:
+        obor = self._current_obor()
+        if obor is None:
             return
-        count = self.service.obor_usage_count(current)
-        msg = f"Opravdu smazat obor „{current}“?"
+        count = self.service.obor_usage_count(obor.name)
+        msg = f"Opravdu smazat obor „{obor.name}\"?"
         if count:
-            msg += f"\n\nU {count} studentů bude pole „obor“ vyprázdněno."
+            msg += f"\n\nU {count} studentů bude pole „obor\" vyprázdněno."
         confirm = QMessageBox.question(self, "Smazat obor", msg)
         if confirm == QMessageBox.StandardButton.Yes:
-            self.service.remove_obor(current)
+            self.service.remove_obor(obor.name)
             self._refresh()

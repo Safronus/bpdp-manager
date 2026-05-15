@@ -75,8 +75,8 @@ def test_transition_requires_full_assignment(repo: JsonRepository) -> None:
         service.transition(thesis.id, ThesisStatus.ASSIGNED)
 
     thesis.title_en = "Topic"
-    thesis.objectives = ["Bod 1"]
-    thesis.references = ["Zdroj 1"]
+    thesis.objectives = "1. Bod 1"
+    thesis.references = "1. Zdroj 1"
     service.upsert_thesis(thesis)
     updated = service.transition(thesis.id, ThesisStatus.ASSIGNED)
     assert updated.status == ThesisStatus.ASSIGNED

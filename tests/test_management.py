@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from bpdpmanager.models import Opponent, Student, Thesis
+from bpdpmanager.models import Obor, Opponent, Student, Thesis
 from bpdpmanager.models.enums import AttachmentKind, OpponentKind, StudyForm, ThesisType
 from bpdpmanager.models.student import derive_form_from_obor
 from bpdpmanager.services import ThesisService
@@ -44,6 +44,73 @@ def test_remove_obor_clears_students(service: ThesisService) -> None:
     refreshed = service.get_student(student.id)
     assert refreshed is not None and refreshed.obor == ""
     assert "NSWI-P" not in service.list_obory()
+
+
+# --- obory s tajemnicemi -----------------------------------------------------
+
+
+def test_add_obor_returns_obor_object(service: ThesisService) -> None:
+    obor = service.add_obor("NEW-Z")
+    assert obor is not None
+    assert obor.name == "NEW-Z"
+    assert obor.secretary_name is None
+
+
+def test_upsert_obor_stores_secretary(service: ThesisService) -> None:
+    obor = service.add_obor("NEW-Z")
+    obor.secretary_name = "Ing. Test Sekretářka"
+    obor.secretary_email = "tajemnice@example.com"
+    obor.secretary_phone = "+420 111 222 333"
+    service.upsert_obor(obor)
+
+    service.reload()
+    refreshed = service.get_obor("NEW-Z")
+    assert refreshed is not None
+    assert refreshed.secretary_name == "Ing. Test Sekretářka"
+    assert refreshed.secretary_email == "tajemnice@example.com"
+    assert refreshed.secretary_phone == "+420 111 222 333"
+
+
+def test_list_obor_objects_sorted_by_name(service: ThesisService) -> None:
+    service.add_obor("ZULU")
+    service.add_obor("ALPHA")
+    service.add_obor("MIKE")
+    names = [o.name for o in service.list_obor_objects()]
+    # default fixture obory don't exist (empty DB), so first three are these
+    assert names[:3] == ["ALPHA", "MIKE", "ZULU"]
+
+
+def test_old_obory_strings_migrate_to_objects(tmp_path) -> None:
+    """Stará JSON struktura s obory jako list[str] se musí načíst bez chyby."""
+    from bpdpmanager.storage import Database
+
+    db = Database.model_validate(
+        {
+            "version": 1,
+            "obory": ["NSWI-P", "NKYB-K"],
+            "students": [],
+            "opponents": [],
+            "theses": [],
+        }
+    )
+    assert len(db.obory) == 2
+    assert all(isinstance(o, Obor) for o in db.obory)
+    names = {o.name for o in db.obory}
+    assert names == {"NSWI-P", "NKYB-K"}
+
+
+def test_old_thesis_objectives_list_migrate_to_text() -> None:
+    """Staré pole objectives/references jako list[str] se konvertuje na číslovaný text."""
+    thesis = Thesis.model_validate(
+        {
+            "type": "BP",
+            "academic_year": "2024/2025",
+            "objectives": ["První bod.", "Druhý bod."],
+            "references": ["SMITH, J. Title. 2020.", "ANOTHER. Title. 2021."],
+        }
+    )
+    assert thesis.objectives == "1. První bod.\n2. Druhý bod."
+    assert thesis.references == "1. SMITH, J. Title. 2020.\n2. ANOTHER. Title. 2021."
 
 
 # --- forma studia (odvozená z přípony oboru) ---------------------------------

@@ -37,13 +37,26 @@ def _make_form_layout() -> QFormLayout:
     form.setContentsMargins(8, 8, 8, 8)
     return form
 
+
+def _setup_searchable_combo(combo: QComboBox) -> None:
+    """Editable combo s našeptáváním přes 'contains' filter (case-insensitive)."""
+    combo.setEditable(True)
+    combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+    completer = combo.completer()
+    if completer is not None:
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setCompletionMode(
+            completer.CompletionMode.PopupCompletion
+        )
+
 from ..models import Thesis
 from ..models.enums import ALLOWED_TRANSITIONS, ThesisStatus, ThesisType
 from ..services import ThesisService
 from ..services.thesis_service import TransitionError
 from .opponent_dialog import OpponentDialog
 from .student_dialog import StudentDialog
-from .widgets import DocumentsWidget, StatusBadge, StringListEditor
+from .widgets import DocumentsWidget, StatusBadge
 
 
 class ThesisDetail(QWidget):
@@ -167,8 +180,8 @@ class ThesisDetail(QWidget):
         self.ed_year.setPlaceholderText("např. 2024/2025")
 
         self.cb_student = QComboBox()
-        self.cb_student.setEditable(False)
         self.cb_student.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        _setup_searchable_combo(self.cb_student)
         self.btn_new_student = QPushButton("+")
         self.btn_new_student.setFixedWidth(32)
         self.btn_new_student.clicked.connect(self._new_student)
@@ -178,6 +191,7 @@ class ThesisDetail(QWidget):
 
         self.cb_opponent = QComboBox()
         self.cb_opponent.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        _setup_searchable_combo(self.cb_opponent)
         self.btn_new_opponent = QPushButton("+")
         self.btn_new_opponent.setFixedWidth(32)
         self.btn_new_opponent.clicked.connect(self._new_opponent)
@@ -224,18 +238,37 @@ class ThesisDetail(QWidget):
         form.addRow("Název (EN)", self.ed_title_en)
         layout.addLayout(form)
 
-        lbl_obj = QLabel("Body zadání")
+        lbl_obj = QLabel(
+            "Body zadání  —  volný text, čísluj 1. 2. 3. (každý bod na nové řádce):"
+        )
         lbl_obj.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_obj)
-        self.ed_objectives = StringListEditor(placeholder="Bod zadání")
-        self.ed_objectives.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.ed_objectives = QPlainTextEdit()
+        self.ed_objectives.setPlaceholderText(
+            "1. Nastudujte a popište problematiku testování softwaru…\n"
+            "2. Prozkoumejte možnosti testování softwaru pomocí umělé inteligence.\n"
+            "3. …"
+        )
+        self.ed_objectives.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         layout.addWidget(self.ed_objectives, stretch=1)
 
-        lbl_ref = QLabel("Literární zdroje")
+        lbl_ref = QLabel(
+            "Literární zdroje  —  volný text, čísluj 1. 2. 3. "
+            "(každá citace na nové řádce):"
+        )
         lbl_ref.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_ref)
-        self.ed_references = StringListEditor(placeholder="Citace literárního zdroje")
-        self.ed_references.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.ed_references = QPlainTextEdit()
+        self.ed_references.setPlaceholderText(
+            "1. SMITH, Adam Leon; BLACK, Rex et al. Artificial Intelligence and "
+            "Software Testing… BCS, 2022. ISBN 1780175787.\n"
+            "2. …"
+        )
+        self.ed_references.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         layout.addWidget(self.ed_references, stretch=1)
         return w
 
@@ -335,8 +368,8 @@ class ThesisDetail(QWidget):
             self.ed_title_cs.setText(thesis.title_cs)
             self.ed_annotation.setPlainText(thesis.annotation)
             self.ed_title_en.setText(thesis.title_en)
-            self.ed_objectives.set_items(thesis.objectives)
-            self.ed_references.set_items(thesis.references)
+            self.ed_objectives.setPlainText(thesis.objectives or "")
+            self.ed_references.setPlainText(thesis.references or "")
             self.ed_notes.setPlainText(thesis.notes)
             self.documents_widget.set_thesis_id(thesis.id)
         finally:
@@ -368,8 +401,8 @@ class ThesisDetail(QWidget):
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
         self.ed_annotation.textChanged.connect(self._mark_dirty)
         self.ed_title_en.textChanged.connect(self._mark_dirty)
-        self.ed_objectives.changed.connect(self._mark_dirty)
-        self.ed_references.changed.connect(self._mark_dirty)
+        self.ed_objectives.textChanged.connect(self._mark_dirty)
+        self.ed_references.textChanged.connect(self._mark_dirty)
         self.ed_notes.textChanged.connect(self._mark_dirty)
         # documents_widget si spravuje stav sám (ukládá okamžitě skrz service)
 
@@ -478,8 +511,8 @@ class ThesisDetail(QWidget):
         opp_name = opponent.name if opponent else ""
 
         annotation = thesis.annotation.strip() if thesis.annotation else ""
-        objectives = thesis.objectives or []
-        references = thesis.references or []
+        objectives_text = (thesis.objectives or "").strip()
+        references_text = (thesis.references or "").strip()
 
         # validace připravenosti
         ready_listing, missing_listing = thesis.is_ready_for_listing()
@@ -543,21 +576,21 @@ class ThesisDetail(QWidget):
         else:
             anot_html = "<p style='color:#888;font-style:italic;'>(bez anotace)</p>"
 
-        # ── Body zadání ────────────────────────────────────────────────────
-        if objectives:
-            obj_items = "".join(
-                f"<li style='margin-bottom:4px;'>{e(o)}</li>" for o in objectives
+        # ── Body zadání (volný text, zachovat formátování) ─────────────────
+        if objectives_text:
+            obj_lines = "<br>".join(e(line) for line in objectives_text.split("\n"))
+            obj_html = (
+                f"<div style='margin-left:1.2em;line-height:1.55;'>{obj_lines}</div>"
             )
-            obj_html = f"<ul>{obj_items}</ul>"
         else:
             obj_html = "<p style='color:#888;font-style:italic;'>(žádné body zadání)</p>"
 
-        # ── Literární zdroje ───────────────────────────────────────────────
-        if references:
-            ref_items = "".join(
-                f"<li style='margin-bottom:6px;'>{e(r)}</li>" for r in references
+        # ── Literární zdroje (volný text, zachovat formátování) ────────────
+        if references_text:
+            ref_lines = "<br>".join(e(line) for line in references_text.split("\n"))
+            ref_html = (
+                f"<div style='margin-left:1.2em;line-height:1.55;'>{ref_lines}</div>"
             )
-            ref_html = f"<ul>{ref_items}</ul>"
         else:
             ref_html = "<p style='color:#888;font-style:italic;'>(žádné literární zdroje)</p>"
 
@@ -613,11 +646,9 @@ class ThesisDetail(QWidget):
         if field == "annotation":
             return t.annotation or "", "anotace"
         if field == "objectives":
-            text = "\n".join(f"• {o}" for o in t.objectives) if t.objectives else ""
-            return text, "body zadání"
+            return t.objectives or "", "body zadání"
         if field == "references":
-            text = "\n".join(f"• {r}" for r in t.references) if t.references else ""
-            return text, "literární zdroje"
+            return t.references or "", "literární zdroje"
         return None, ""
 
     # --- akce ----------------------------------------------------------------
@@ -647,17 +678,33 @@ class ThesisDetail(QWidget):
             if idx >= 0:
                 self.cb_opponent.setCurrentIndex(idx)
 
+    @staticmethod
+    def _resolve_combo_id(combo: QComboBox) -> str | None:
+        """Vrátí ID (UserData) pro položku odpovídající aktuálnímu textu combo.
+
+        Když user vybere ze suggestion v completer, Qt nemusí stihnout updatovat
+        currentIndex před tím, než klikne Save. Proto raději porovnáváme text.
+        """
+        text = combo.currentText().strip().lower()
+        if not text:
+            return combo.itemData(0)  # první položka by měla být "— bez —"
+        for i in range(combo.count()):
+            if combo.itemText(i).strip().lower() == text:
+                return combo.itemData(i)
+        # text neodpovídá žádné položce → spadne na currentData (může vrátit None)
+        return combo.currentData()
+
     def _collect_into_thesis(self) -> None:
         assert self.thesis is not None
         self.thesis.type = ThesisType(self.cb_type.currentData())
         self.thesis.academic_year = self.ed_year.text().strip()
-        self.thesis.student_id = self.cb_student.currentData()
-        self.thesis.opponent_id = self.cb_opponent.currentData()
+        self.thesis.student_id = self._resolve_combo_id(self.cb_student)
+        self.thesis.opponent_id = self._resolve_combo_id(self.cb_opponent)
         self.thesis.title_cs = self.ed_title_cs.text().strip()
         self.thesis.annotation = self.ed_annotation.toPlainText().strip()
         self.thesis.title_en = self.ed_title_en.text().strip()
-        self.thesis.objectives = self.ed_objectives.items()
-        self.thesis.references = self.ed_references.items()
+        self.thesis.objectives = self.ed_objectives.toPlainText()
+        self.thesis.references = self.ed_references.toPlainText()
         self.thesis.notes = self.ed_notes.toPlainText().strip()
         # attachments spravuje DocumentsWidget okamžitě skrz service,
         # zde je proto nepřepisujeme — jen znovu načteme aktuální stav.
