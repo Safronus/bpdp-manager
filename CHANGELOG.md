@@ -7,6 +7,31 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-05-16
+
+### Changed
+- **Správa studentů** přerobena z plochého seznamu na **strom s grupováním**:
+  *Typ práce (BP/DP) → Obor → studenti*. Studenti bez přiřazené práce
+  jsou v sekci „Bez přiřazené práce" na konci.
+- V rámci skupiny seřazeno **abecedně dle příjmení** (a podle jména
+  jako sekundární klíč). Zobrazení jména ve tvaru *Příjmení, Jméno*.
+- Tři sloupce: *Příjmení, Jméno | Osobní č. | Stav (rok)*.
+- **Barevné odlišení** podle aktuálnosti práce:
+  - modrá tučná = běží v aktuálním ak. roce
+  - tyrkysová = budoucí rok / zájemce
+  - šedá kurzíva = obhájeno
+  - červená kurzíva = nedokončeno
+- Sloupec *Stav* má barevné pozadí podle ``ThesisStatus.color`` jako jinde.
+- Tooltip u jména studenta ukazuje historii všech jeho prací.
+- Legenda barev pod tlačítky.
+
+### Added
+- Checkbox **„Skrýt dokončené studenty"** — odfiltruje studenty, jejichž
+  primární práce je obhájena. Počet skrytých se objeví v info pruhu.
+- Helper `_thesis_priority()` v `manage_dialogs.py` — vybere
+  „nejaktuálnější" práci studenta (aktivní > zájemce > obhájeno > nedokončeno;
+  uvnitř tier preferuje vyšší ak. rok).
+
 ## [0.4.2] - 2026-05-16
 
 ### Changed
@@ -161,7 +186,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/Safronus/bpdp-manager/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Safronus/bpdp-manager/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Safronus/bpdp-manager/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Safronus/bpdp-manager/compare/v0.3.2...v0.4.0

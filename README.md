@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.4.2** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.4.3** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou
@@ -19,7 +19,7 @@ o budoucí témata.
 
 - **Evidence prací** strukturovaná podle akademického roku, typu (BP/DP) a stavu
 - **7 stavů toku**: *Zájemce → Rezervace s tématem → Vypsané téma → Oficiálně zadané → V řešení → Obhájeno → Nedokončeno*, s validací přechodů
-- **Studenti**: jméno, obor (forma studia se odvozuje z přípony `-P` / `-K`), osobní číslo UTB (např. A24390), email, telefon, poznámka
+- **Studenti**: jméno, obor (forma studia se odvozuje z přípony `-P` / `-K`), osobní číslo UTB (např. A24390), email, telefon, poznámka. Správa studentů: strom *BP/DP → obor → studenti*, řazeno dle příjmení, barevné odlišení aktuálních/budoucích/dokončených, filtr „Skrýt dokončené".
 - **Oponenti** rozdělení na **interní** (jméno + email) a **externí** (jméno + email + telefon + adresa)
 - **Studijní obory** jako spravovatelný číselník — přidat, přejmenovat (synchronizuje studenty), smazat
 - **Vypsané téma**: název CZ + anotace
