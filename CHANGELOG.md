@@ -7,6 +7,29 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-16
+
+### Added
+- **Záložka „📋 Souhrn"** jako **první** v detailu práce. Zobrazuje
+  formátovaný read-only přehled celé práce ve stylu připomínajícím
+  textový zápisník — ideální pro rychlý vizuální audit a tisk.
+  Obsahuje:
+  - **Velký barevný stavový pruh** na vrchu — stav práce je hned
+    patrný (akademický rok v pravém rohu).
+  - **Varování** pokud chybí pole pro oficiální zadání (žluté
+    upozornění s výpisem chybějících položek).
+  - Nadpisovou řádku: `BP/DP — Název CZ — Jméno studenta (Obor)
+    → Osobní č. (Oponent - …)` v barvě stavu.
+  - Anglický název v kurzívě pod nadpisem.
+  - Sekce **Anotace** (odsazený odstavec).
+  - Sekce **Body zadání** (bulletový seznam).
+  - Sekce **Literární zdroje** (bulletový seznam).
+- Souhrn se **automaticky aktualizuje**:
+  - při přepnutí na záložku Souhrn,
+  - při změně vybrané práce (`set_thesis`),
+  - po každém autosavu (1.5 s po editaci),
+  - po ručním uložení.
+
 ## [0.4.3] - 2026-05-16
 
 ### Changed
@@ -186,7 +209,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Safronus/bpdp-manager/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/Safronus/bpdp-manager/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Safronus/bpdp-manager/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Safronus/bpdp-manager/compare/v0.4.0...v0.4.1

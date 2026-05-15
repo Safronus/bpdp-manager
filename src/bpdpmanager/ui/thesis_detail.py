@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from datetime import datetime
 
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QTabWidget,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -130,11 +132,13 @@ class ThesisDetail(QWidget):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
+        self.tabs.addTab(self._build_summary_tab(), "📋 Souhrn")
         self.tabs.addTab(self._build_basic_tab(), "Základní info")
         self.tabs.addTab(self._build_listing_tab(), "Vypsané téma")
         self.tabs.addTab(self._build_assignment_tab(), "Oficiální zadání")
         self.tabs.addTab(self._build_notes_tab(), "Poznámky")
         self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
+        self.tabs.currentChanged.connect(self._on_tab_changed)
 
         # Uložit
         save_row = QHBoxLayout()
@@ -256,6 +260,20 @@ class ThesisDetail(QWidget):
         layout.addWidget(self.documents_widget, stretch=1)
         return w
 
+    def _build_summary_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.summary_view = QTextBrowser()
+        self.summary_view.setOpenExternalLinks(True)
+        self.summary_view.setStyleSheet(
+            "QTextBrowser { padding: 12px; font-family: -apple-system, "
+            "'Segoe UI', sans-serif; }"
+        )
+        layout.addWidget(self.summary_view, stretch=1)
+        return w
+
     # --- načítání / zobrazení -------------------------------------------------
 
     def _show_empty(self) -> None:
@@ -323,6 +341,9 @@ class ThesisDetail(QWidget):
         self._debounce_timer.stop()
         self._update_save_state_label(idle=True)
         self._update_transition_buttons()
+        # Pokud je aktuálně viditelný Souhrn, hned ho přegeneruj
+        if self.tabs.currentIndex() == 0:
+            self._refresh_summary()
 
     def _update_transition_buttons(self) -> None:
         if self.thesis is None:
@@ -371,6 +392,9 @@ class ThesisDetail(QWidget):
         self._last_save_at = datetime.now()
         self.lbl_title.setText(self.thesis.display_title)
         self._update_save_state_label(idle=False, pending=False)
+        # Souhrn se po uložení změn musí přegenerovat (aby seděl s realitou)
+        if self.tabs.currentIndex() == 0:
+            self._refresh_summary()
         self.saved.emit(self.thesis.id)
 
     def flush(self) -> None:
@@ -401,6 +425,135 @@ class ThesisDetail(QWidget):
         ts = self._last_save_at.strftime("%H:%M:%S") if self._last_save_at else ""
         self.lbl_save_state.setText(f"✓ Uloženo {ts}")
         self.lbl_save_state.setStyleSheet("color: #2e7d32; font-size: 11px;")
+
+    # --- souhrn (read-only přehled) -----------------------------------------
+
+    def _on_tab_changed(self, index: int) -> None:
+        # Souhrn (tab 0) — vždy přegeneruj při zobrazení
+        if index == 0:
+            self._refresh_summary()
+
+    def _refresh_summary(self) -> None:
+        if not hasattr(self, "summary_view"):
+            return
+        if self.thesis is None:
+            self.summary_view.setHtml(
+                "<p style='color:#888;padding:24px;'>"
+                "Vyberte práci ve stromu vlevo, nebo přidejte novou."
+                "</p>"
+            )
+            return
+        self.summary_view.setHtml(self._build_summary_html(self.thesis))
+
+    def _build_summary_html(self, thesis) -> str:
+        """Sestaví HTML přehled práce — styl podobný uživatelovu zápisníku."""
+        student = self.service.get_student(thesis.student_id) if thesis.student_id else None
+        opponent = self.service.get_opponent(thesis.opponent_id) if thesis.opponent_id else None
+
+        status = thesis.status
+        status_color = status.color
+
+        type_label = thesis.type.value
+        year = thesis.academic_year or "—"
+        title_cs = thesis.title_cs or "(bez názvu CZ)"
+        title_en = thesis.title_en or ""
+
+        student_name = student.full_name if student else "(nepřiřazený student)"
+        obor = student.obor if student and student.obor else "—"
+        uni_id = student.university_id if student and student.university_id else "—"
+        opp_name = opponent.name if opponent else ""
+
+        annotation = thesis.annotation.strip() if thesis.annotation else ""
+        objectives = thesis.objectives or []
+        references = thesis.references or []
+
+        # validace připravenosti
+        ready_listing, missing_listing = thesis.is_ready_for_listing()
+        ready_assignment, missing_assignment = thesis.is_ready_for_assignment()
+
+        e = html.escape
+
+        # ── status bar (velký, barevný, hned patrný) ────────────────────────
+        status_bar = (
+            f'<table width="100%" cellpadding="14" cellspacing="0" '
+            f'style="background-color:{status_color};margin-bottom:18px;">'
+            f"<tr>"
+            f'<td style="color:white;font-weight:bold;font-size:16pt;'
+            f"letter-spacing:1.5px;\">⬢  {e(status.label.upper())}</td>"
+            f'<td align="right" style="color:white;font-size:11pt;">'
+            f"Akademický rok: <b>{e(year)}</b></td>"
+            f"</tr></table>"
+        )
+
+        # ── připravenost (varování, co chybí pro listing/assignment) ────────
+        readiness_html = ""
+        if not ready_assignment and missing_assignment:
+            readiness_html = (
+                f'<div style="background:#fff3e0;border-left:4px solid #ef6c00;'
+                f"padding:10px 14px;margin-bottom:14px;color:#555;\">"
+                f'<b style="color:#ef6c00;">Pro oficiální zadání chybí:</b> '
+                f"{e(', '.join(missing_assignment))}"
+                f"</div>"
+            )
+
+        # ── nadpisová sekce ────────────────────────────────────────────────
+        header_line = (
+            f'<h2 style="color:{status_color};margin:0 0 4px 0;line-height:1.35;">'
+            f"{e(type_label)} — {e(title_cs)} — "
+            f'<span>{e(student_name)}</span> '
+            f'<span style="color:#9e9e9e;">({e(obor)})</span> '
+            f'<span style="color:#9e9e9e;">→ {e(uni_id)}</span> '
+            f'<span style="color:#9e9e9e;">(Oponent - {e(opp_name)})</span>'
+            f"</h2>"
+        )
+        en_line = ""
+        if title_en:
+            en_line = (
+                f'<p style="color:#9e9e9e;font-style:italic;'
+                f'margin:0 0 18px 0;">{e(title_en)}</p>'
+            )
+
+        # ── Anotace ────────────────────────────────────────────────────────
+        if annotation:
+            anot_html = e(annotation).replace("\n\n", "</p><p style='text-indent:2em;'>").replace("\n", "<br>")
+            anot_html = f"<p style='text-indent:2em;'>{anot_html}</p>"
+        else:
+            anot_html = "<p style='color:#888;font-style:italic;'>(bez anotace)</p>"
+
+        # ── Body zadání ────────────────────────────────────────────────────
+        if objectives:
+            obj_items = "".join(
+                f"<li style='margin-bottom:4px;'>{e(o)}</li>" for o in objectives
+            )
+            obj_html = f"<ul>{obj_items}</ul>"
+        else:
+            obj_html = "<p style='color:#888;font-style:italic;'>(žádné body zadání)</p>"
+
+        # ── Literární zdroje ───────────────────────────────────────────────
+        if references:
+            ref_items = "".join(
+                f"<li style='margin-bottom:6px;'>{e(r)}</li>" for r in references
+            )
+            ref_html = f"<ul>{ref_items}</ul>"
+        else:
+            ref_html = "<p style='color:#888;font-style:italic;'>(žádné literární zdroje)</p>"
+
+        section_header_style = "color:#ffa726;margin-top:18px;margin-bottom:6px;"
+
+        return (
+            "<html><body>"
+            f"{status_bar}"
+            f"{readiness_html}"
+            f"{header_line}"
+            f"{en_line}"
+            f'<h3 style="{section_header_style}">Anotace:</h3>'
+            f"{anot_html}"
+            f'<h3 style="{section_header_style}">Body zadání:</h3>'
+            f"{obj_html}"
+            f'<h3 style="{section_header_style}">Literární zdroje:</h3>'
+            f"{ref_html}"
+            "</body></html>"
+        )
 
     # --- akce ----------------------------------------------------------------
 
