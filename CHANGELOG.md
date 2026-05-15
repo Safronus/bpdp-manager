@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-16
+
+### Added
+- **Tlačítko „+ Minulá práce"** v toolbaru pro přidávání historických
+  prací (např. pro doplnění zpětně do evidence). Otevře dialog s poli:
+  - *Akademický rok* (default: rok před aktuálním)
+  - *Typ* (BP/DP)
+  - *Stav* (Obhájeno / V řešení / Oficiálně zadané / Nedokončeno)
+  Nová práce se automaticky vyfokusuje v záložce, kde patří (typicky
+  *Historie*).
+- `ThesisService.previous_academic_year()` helper — počítá rok před
+  aktuálním AR.
+
 ## [0.5.0] - 2026-05-16
 
 ### Added
@@ -209,7 +222,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Safronus/bpdp-manager/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Safronus/bpdp-manager/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/Safronus/bpdp-manager/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Safronus/bpdp-manager/compare/v0.4.1...v0.4.2

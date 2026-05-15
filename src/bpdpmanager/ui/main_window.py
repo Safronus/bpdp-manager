@@ -3,7 +3,12 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
     QInputDialog,
+    QLineEdit,
     QMainWindow,
     QSplitter,
     QStatusBar,
@@ -135,6 +140,10 @@ class MainWindow(QMainWindow):
         )
         toolbar.addAction(act_new_interest)
 
+        act_new_past = QAction("+ Minulá práce", self)
+        act_new_past.triggered.connect(self._new_past_thesis)
+        toolbar.addAction(act_new_past)
+
         toolbar.addSeparator()
 
         act_students = QAction("Studenti", self)
@@ -169,6 +178,58 @@ class MainWindow(QMainWindow):
         if not ok:
             return
         thesis_type = next(t for t in ThesisType if t.label == thesis_type_label)
+        thesis = Thesis(type=thesis_type, status=status, academic_year=year)
+        self.service.upsert_thesis(thesis)
+        self._refresh_all()
+        self._focus_thesis(thesis.id)
+
+    def _new_past_thesis(self) -> None:
+        """Dialog pro přidání historické práce — libovolný rok, typ, stav."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Přidat minulou práci")
+        dialog.setMinimumWidth(420)
+
+        layout = QVBoxLayout(dialog)
+        form = QFormLayout()
+
+        ed_year = QLineEdit(ThesisService.previous_academic_year())
+        ed_year.setPlaceholderText("např. 2024/2025")
+
+        cb_type = QComboBox()
+        for t in ThesisType:
+            cb_type.addItem(t.label, t.value)
+
+        cb_status = QComboBox()
+        past_statuses = [
+            ThesisStatus.DEFENDED,
+            ThesisStatus.IN_PROGRESS,
+            ThesisStatus.ASSIGNED,
+            ThesisStatus.CANCELLED,
+        ]
+        for s in past_statuses:
+            cb_status.addItem(s.label, s.value)
+
+        form.addRow("Akademický rok", ed_year)
+        form.addRow("Typ", cb_type)
+        form.addRow("Stav", cb_status)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        year = ed_year.text().strip()
+        if not year:
+            return
+
+        thesis_type = ThesisType(cb_type.currentData())
+        status = ThesisStatus(cb_status.currentData())
         thesis = Thesis(type=thesis_type, status=status, academic_year=year)
         self.service.upsert_thesis(thesis)
         self._refresh_all()

@@ -163,6 +163,12 @@ class ThesisService:
         start = int(cur.split("/")[0]) + 1
         return f"{start}/{start + 1}"
 
+    @staticmethod
+    def previous_academic_year() -> str:
+        cur = ThesisService.current_academic_year()
+        start = int(cur.split("/")[0]) - 1
+        return f"{start}/{start + 1}"
+
     # --- práce ---------------------------------------------------------------
 
     def list_theses(self) -> list[Thesis]:
