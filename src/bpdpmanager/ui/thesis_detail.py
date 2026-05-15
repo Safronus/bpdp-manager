@@ -1,7 +1,33 @@
 from __future__ import annotations
 
 import html
+import re
 from datetime import datetime
+
+_NUM_PREFIX_RE = re.compile(r"^\s*\d+\.\s+")
+
+
+def _split_items(text: str | None) -> list[str]:
+    """Rozdělí volný text na položky — co řádek, to bod.
+
+    Pro zpětnou kompatibilitu odstraňuje případnou pořadovou číslici
+    na začátku řádku (``"1. "``, ``"2. "`` …), aby se v Souhrnu
+    nečíslovalo dvakrát.
+    """
+    if not text:
+        return []
+    out = []
+    for line in text.split("\n"):
+        cleaned = _NUM_PREFIX_RE.sub("", line.strip())
+        if cleaned:
+            out.append(cleaned)
+    return out
+
+
+def _format_numbered(text: str | None) -> str:
+    """Vrátí číslovaný plain text (1. ..., 2. ...) — pro clipboard / export."""
+    items = _split_items(text)
+    return "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items))
 
 from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QCursor
@@ -220,13 +246,15 @@ class ThesisDetail(QWidget):
         return box
 
     def _build_listing_section(self) -> QGroupBox:
-        box = QGroupBox("Vypsané téma (název CZ + anotace)")
+        box = QGroupBox("Vypsané téma (název CZ, název EN, anotace)")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
 
         form = _make_form_layout()
         self.ed_title_cs = QLineEdit()
+        self.ed_title_en = QLineEdit()
         form.addRow("Název (CZ)", self.ed_title_cs)
+        form.addRow("Název (EN)", self.ed_title_en)
         layout.addLayout(form)
 
         lbl = QLabel("Anotace")
@@ -242,26 +270,23 @@ class ThesisDetail(QWidget):
         return box
 
     def _build_assignment_section(self) -> QGroupBox:
-        box = QGroupBox("Oficiální zadání (název EN, body zadání, literatura)")
+        box = QGroupBox("Oficiální zadání (body zadání, literatura)")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
 
-        form = _make_form_layout()
-        self.ed_title_en = QLineEdit()
-        form.addRow("Název (EN)", self.ed_title_en)
-        layout.addLayout(form)
-
         lbl_obj = QLabel(
-            "Body zadání  —  volný text, čísluj 1. 2. 3. (každý bod na nové řádce):"
+            "Body zadání  —  každý bod na nové řádce, číslování se přidá "
+            "automaticky v Souhrnu."
         )
         lbl_obj.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_obj)
         self.ed_objectives = QPlainTextEdit()
         self.ed_objectives.setMinimumHeight(120)
         self.ed_objectives.setPlaceholderText(
-            "1. Nastudujte a popište problematiku testování softwaru…\n"
-            "2. Prozkoumejte možnosti testování softwaru pomocí umělé inteligence.\n"
-            "3. …"
+            "Nastudujte a popište problematiku testování softwaru.\n"
+            "Prozkoumejte možnosti testování pomocí umělé inteligence.\n"
+            "Rozeberte vhodné nástroje AI využitelné pro testování softwaru.\n"
+            "…"
         )
         self.ed_objectives.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -269,17 +294,19 @@ class ThesisDetail(QWidget):
         layout.addWidget(self.ed_objectives, stretch=1)
 
         lbl_ref = QLabel(
-            "Literární zdroje  —  volný text, čísluj 1. 2. 3. "
-            "(každá citace na nové řádce):"
+            "Literární zdroje  —  každá citace na nové řádce, číslování se "
+            "přidá automaticky v Souhrnu."
         )
         lbl_ref.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_ref)
         self.ed_references = QPlainTextEdit()
         self.ed_references.setMinimumHeight(120)
         self.ed_references.setPlaceholderText(
-            "1. SMITH, Adam Leon; BLACK, Rex et al. Artificial Intelligence and "
+            "SMITH, Adam Leon; BLACK, Rex et al. Artificial Intelligence and "
             "Software Testing… BCS, 2022. ISBN 1780175787.\n"
-            "2. …"
+            "ZERILLI, John; DANAHER, John et al. A citizen's guide to artificial "
+            "intelligence. Cambridge, Massachusetts: The MIT Press, 2020.\n"
+            "…"
         )
         self.ed_references.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -594,20 +621,26 @@ class ThesisDetail(QWidget):
         else:
             anot_html = "<p style='color:#888;font-style:italic;'>(bez anotace)</p>"
 
-        # ── Body zadání (volný text, zachovat formátování) ─────────────────
-        if objectives_text:
-            obj_lines = "<br>".join(e(line) for line in objectives_text.split("\n"))
+        # ── Body zadání — auto-číslováno pomocí <ol> ───────────────────────
+        obj_items = _split_items(objectives_text)
+        if obj_items:
+            items_html = "".join(
+                f"<li style='margin-bottom:4px;'>{e(line)}</li>" for line in obj_items
+            )
             obj_html = (
-                f"<div style='margin-left:1.2em;line-height:1.55;'>{obj_lines}</div>"
+                f"<ol style='margin-left:1.2em;line-height:1.55;'>{items_html}</ol>"
             )
         else:
             obj_html = "<p style='color:#888;font-style:italic;'>(žádné body zadání)</p>"
 
-        # ── Literární zdroje (volný text, zachovat formátování) ────────────
-        if references_text:
-            ref_lines = "<br>".join(e(line) for line in references_text.split("\n"))
+        # ── Literární zdroje — auto-číslováno pomocí <ol> ──────────────────
+        ref_items = _split_items(references_text)
+        if ref_items:
+            items_html = "".join(
+                f"<li style='margin-bottom:6px;'>{e(line)}</li>" for line in ref_items
+            )
             ref_html = (
-                f"<div style='margin-left:1.2em;line-height:1.55;'>{ref_lines}</div>"
+                f"<ol style='margin-left:1.2em;line-height:1.55;'>{items_html}</ol>"
             )
         else:
             ref_html = "<p style='color:#888;font-style:italic;'>(žádné literární zdroje)</p>"
@@ -664,9 +697,9 @@ class ThesisDetail(QWidget):
         if field == "annotation":
             return t.annotation or "", "anotace"
         if field == "objectives":
-            return t.objectives or "", "body zadání"
+            return _format_numbered(t.objectives), "body zadání"
         if field == "references":
-            return t.references or "", "literární zdroje"
+            return _format_numbered(t.references), "literární zdroje"
         return None, ""
 
     # --- akce ----------------------------------------------------------------

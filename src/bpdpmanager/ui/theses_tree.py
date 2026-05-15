@@ -118,7 +118,14 @@ class ThesesTreeWidget(QTreeWidget):
             year_item.setExpanded(expanded_years.get(year, True))
 
         if selected_id:
-            self.select_thesis(selected_id)
+            # Blokuj signál během programového re-výběru, aby autosave →
+            # tree.refresh nezavolal set_thesis na detailu (jinak by se kurzor
+            # v aktivním textovém poli vracel na začátek).
+            self.blockSignals(True)
+            try:
+                self.select_thesis(selected_id)
+            finally:
+                self.blockSignals(False)
 
     def select_thesis(self, thesis_id: str) -> bool:
         for i in range(self.topLevelItemCount()):

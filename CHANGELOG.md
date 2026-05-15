@@ -7,6 +7,29 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-05-16
+
+### Changed
+- **Pole „Název EN" přesunuto do sekce *Vypsané téma*** (pod *Název CZ*).
+  V sekci *Oficiální zadání* zůstávají jen body zadání a literatura.
+- **Body zadání + literární zdroje zadávej bez ručního číslování** —
+  každý bod / citace na samostatnou řádku. Číslování (1., 2., 3., …)
+  se automaticky vygeneruje v záložce *📋 Souhrn* (HTML ``<ol>``)
+  i v exportu do schránky.
+- Pro zpětnou kompatibilitu: jakákoli stávající ručně zadaná čísla
+  na začátku řádků (např. ``"1. text"``) jsou při zobrazení regexem
+  odstraněna, takže se nečísluje dvakrát.
+- Editor má aktualizovaný placeholder bez čísel a popisku, který
+  vysvětluje, že číslování přibyde automaticky.
+
+### Fixed
+- **Kurzor v body zadání / literatura už neskáče na začátek**
+  při autosavu. Příčina: po každém uložení strom `refresh()` volal
+  `select_thesis()`, což vyvolalo `itemSelectionChanged` → tab znovu
+  načetl detail a `setPlainText` resetoval pozici kurzoru. Strom teď
+  blokuje signály při programovém re-výběru (uživatelské kliky
+  fungují normálně).
+
 ## [0.7.0] - 2026-05-16
 
 ### Changed
@@ -296,7 +319,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/Safronus/bpdp-manager/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Safronus/bpdp-manager/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Safronus/bpdp-manager/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/Safronus/bpdp-manager/compare/v0.5.1...v0.5.2
