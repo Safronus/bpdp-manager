@@ -22,41 +22,47 @@ from .manage_dialogs import (
     OpponentsManageDialog,
     StudentsManageDialog,
 )
-from .theses_table import ThesesTableWidget
+from .theses_tree import ThesesTreeWidget
 from .thesis_detail import ThesisDetail
 
 
 class _ThesesTab(QWidget):
-    """Jedna záložka = tabulka prací nahoře + detail dole, s vlastním filtrem."""
+    """Jedna záložka = strom prací (grupování rok → BP/DP) nahoře + detail dole."""
 
     def __init__(self, service: ThesisService, filter_predicate, parent=None) -> None:
         super().__init__(parent)
         self.service = service
 
         splitter = QSplitter(Qt.Orientation.Vertical)
-        self.table = ThesesTableWidget(service)
-        self.table.set_filter(filter_predicate)
+        splitter.setChildrenCollapsible(False)
+        self.tree = ThesesTreeWidget(service)
+        self.tree.setMinimumHeight(160)
+        self.tree.set_filter(filter_predicate)
         self.detail = ThesisDetail(service)
+        self.detail.setMinimumHeight(520)
 
-        splitter.addWidget(self.table)
+        splitter.addWidget(self.tree)
         splitter.addWidget(self.detail)
-        splitter.setStretchFactor(0, 2)  # tabulka
-        splitter.setStretchFactor(1, 3)  # detail mírně větší
+        # Výchozí proporce: detail má dvojnásobek místa proti seznamu,
+        # aby se formulářová pole vlezla bez vnitřního skrolování.
+        splitter.setSizes([260, 640])
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 2)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(splitter)
 
-        self.table.thesis_selected.connect(self._on_thesis_selected)
-        self.detail.saved.connect(lambda _: self.table.refresh())
-        self.detail.deleted.connect(lambda _: self.table.refresh())
+        self.tree.thesis_selected.connect(self._on_thesis_selected)
+        self.detail.saved.connect(lambda _: self.tree.refresh())
+        self.detail.deleted.connect(lambda _: self.tree.refresh())
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
         self.detail.set_thesis(thesis)
 
     def refresh(self) -> None:
-        self.table.refresh()
+        self.tree.refresh()
 
 
 class MainWindow(QMainWindow):
@@ -64,7 +70,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.service = service
         self.setWindowTitle("BPDPManager — správa BP/DP")
-        self.resize(1280, 800)
+        self.resize(1400, 960)
+        self.setMinimumSize(1100, 760)
 
         current_year = ThesisService.current_academic_year()
         next_year = ThesisService.next_academic_year()
@@ -170,7 +177,7 @@ class MainWindow(QMainWindow):
     def _focus_thesis(self, thesis_id: str) -> None:
         for i in range(self.tabs.count()):
             widget = self.tabs.widget(i)
-            if isinstance(widget, _ThesesTab) and widget.table.select_thesis(thesis_id):
+            if isinstance(widget, _ThesesTab) and widget.tree.select_thesis(thesis_id):
                 self.tabs.setCurrentIndex(i)
                 widget.detail.set_thesis(self.service.get_thesis(thesis_id))
                 return
