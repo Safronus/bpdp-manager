@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-16
+
+### Fixed
+- `NameError: name 'QVBoxLayout' is not defined` při startu — v 0.4.0
+  jsem v `_ThesesTab.__init__` přepsal `QHBoxLayout` na `QVBoxLayout`,
+  ale opomněl jsem aktualizovat importy v `main_window.py`. App neběžela.
+
 ## [0.4.0] - 2026-05-16
 
 ### Changed
@@ -137,7 +144,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Safronus/bpdp-manager/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Safronus/bpdp-manager/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/Safronus/bpdp-manager/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Safronus/bpdp-manager/compare/v0.3.0...v0.3.1
