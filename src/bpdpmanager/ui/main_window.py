@@ -22,41 +22,41 @@ from .manage_dialogs import (
     OpponentsManageDialog,
     StudentsManageDialog,
 )
+from .theses_table import ThesesTableWidget
 from .thesis_detail import ThesisDetail
-from .tree_view import ThesesTreeWidget
 
 
 class _ThesesTab(QWidget):
-    """Jedna záložka = strom + detail, s vlastním filtrem."""
+    """Jedna záložka = tabulka prací nahoře + detail dole, s vlastním filtrem."""
 
     def __init__(self, service: ThesisService, filter_predicate, parent=None) -> None:
         super().__init__(parent)
         self.service = service
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.tree = ThesesTreeWidget(service)
-        self.tree.set_filter(filter_predicate)
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        self.table = ThesesTableWidget(service)
+        self.table.set_filter(filter_predicate)
         self.detail = ThesisDetail(service)
 
-        splitter.addWidget(self.tree)
+        splitter.addWidget(self.table)
         splitter.addWidget(self.detail)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 2)
+        splitter.setStretchFactor(0, 2)  # tabulka
+        splitter.setStretchFactor(1, 3)  # detail mírně větší
 
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(splitter)
 
-        self.tree.thesis_selected.connect(self._on_thesis_selected)
-        self.detail.saved.connect(lambda _: self.tree.refresh())
-        self.detail.deleted.connect(lambda _: self.tree.refresh())
+        self.table.thesis_selected.connect(self._on_thesis_selected)
+        self.detail.saved.connect(lambda _: self.table.refresh())
+        self.detail.deleted.connect(lambda _: self.table.refresh())
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
         self.detail.set_thesis(thesis)
 
     def refresh(self) -> None:
-        self.tree.refresh()
+        self.table.refresh()
 
 
 class MainWindow(QMainWindow):
@@ -170,7 +170,7 @@ class MainWindow(QMainWindow):
     def _focus_thesis(self, thesis_id: str) -> None:
         for i in range(self.tabs.count()):
             widget = self.tabs.widget(i)
-            if isinstance(widget, _ThesesTab) and widget.tree.select_thesis(thesis_id):
+            if isinstance(widget, _ThesesTab) and widget.table.select_thesis(thesis_id):
                 self.tabs.setCurrentIndex(i)
                 widget.detail.set_thesis(self.service.get_thesis(thesis_id))
                 return

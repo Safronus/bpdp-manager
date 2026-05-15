@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-16
+
+### Changed
+- **Hlavní okno přerozděleno vertikálně**: tabulka prací nahoře, detail dole
+  (dříve strom vlevo, detail vpravo). Tabulka má více místa na šířku,
+  detail dostává plnou šířku okna pro formulářová pole.
+- **Strom prací nahrazen plnohodnotnou tabulkou** se sloupci:
+  *Student | Téma | Stav | Oponent | Obor*. Sloupec *Stav* má **barevné
+  pozadí** odpovídající stavu (šedá zájemce, oranžová rezervace, modré
+  vypsané/zadané, fialová v řešení, zelená obhájeno, červená nedokončeno)
+  s bílým bold textem.
+- Šířka sloupců se automaticky přizpůsobuje obsahu; sloupec *Téma* vyplní
+  zbývající prostor. Tabulka je tříditelná kliknutím na hlavičku
+  (defaultní řazení: akademický rok ↓, stav v procesním pořadí, název).
+- Tooltipy u buněk: student → osobní číslo + forma, téma → plný název,
+  oponent → pracoviště + interní/externí.
+
+### Removed
+- `src/bpdpmanager/ui/tree_view.py` (nahrazeno `theses_table.py`).
+
 ## [0.3.2] - 2026-05-16
 
 ### Changed
@@ -117,7 +137,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Safronus/bpdp-manager/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/Safronus/bpdp-manager/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Safronus/bpdp-manager/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Safronus/bpdp-manager/compare/v0.2.1...v0.3.0
