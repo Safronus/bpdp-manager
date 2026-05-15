@@ -1,0 +1,61 @@
+# Reálná data — NIKDY necommitovat
+~/.bpdpmanager/
+.bpdpmanager/
+*.local.json
+data/
+private/
+exports/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+share/python-wheels/
+MANIFEST
+
+# Venv
+.venv/
+venv/
+env/
+ENV/
+
+# Testy a nástroje
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logy
+*.log
+
+# Qt
+*.pyc
+*.qmlc
+*.jsc
+.qmake.cache
+.qmake.stash
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# Lokální překlady
+*.ts.bak

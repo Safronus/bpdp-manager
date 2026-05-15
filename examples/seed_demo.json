@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "obory": ["NSWI-P", "NSWI-K", "NKYB-P", "NKYB-K", "NIB-P", "NIB-K"],
+  "students": [
+    {
+      "id": "stu-0001",
+      "first_name": "Jan",
+      "last_name": "Vzorník",
+      "obor": "NSWI-P",
+      "form": "P",
+      "email": "vzornik@example.com",
+      "phone": null,
+      "note": "Fiktivní postava — pouze pro ukázku UI."
+    },
+    {
+      "id": "stu-0002",
+      "first_name": "Eva",
+      "last_name": "Příkladová",
+      "obor": "NKYB-K",
+      "form": "K",
+      "email": "prikladova@example.com",
+      "phone": null,
+      "note": null
+    },
+    {
+      "id": "stu-0003",
+      "first_name": "Marek",
+      "last_name": "Demonstrující",
+      "obor": "NSWI-K",
+      "form": "K",
+      "email": null,
+      "phone": null,
+      "note": null
+    },
+    {
+      "id": "stu-0004",
+      "first_name": "Lucie",
+      "last_name": "Testovací",
+      "obor": "NKYB-P",
+      "form": "P",
+      "email": null,
+      "phone": null,
+      "note": null
+    }
+  ],
+  "opponents": [
+    {
+      "id": "opp-0001",
+      "name": "doc. Smyšlený Zkušební",
+      "email": null,
+      "affiliation": "FAI UTB (fiktivní)",
+      "note": null
+    },
+    {
+      "id": "opp-0002",
+      "name": "Ing. Demonstrativní Příklad, Ph.D.",
+      "email": null,
+      "affiliation": "Fiktivní firma s.r.o.",
+      "note": null
+    }
+  ],
+  "theses": [
+    {
+      "id": "th-0001",
+      "type": "DP",
+      "status": "in_progress",
+      "academic_year": "2024/2025",
+      "student_id": "stu-0001",
+      "opponent_id": "opp-0001",
+      "assignment_number": "A24001",
+      "title_cs": "Ukázkové diplomové téma o automatizaci testů",
+      "title_en": "Sample Thesis Topic on Test Automation",
+      "annotation": "Tato práce je čistě demonstrativní — slouží pouze k ukázce uživatelského rozhraní aplikace BPDPManager. Veškerá data jsou smyšlená.",
+      "objectives": [
+        "Nastudujte a popište terminologii v kontextu práce.",
+        "Proveďte přehled existujících přístupů.",
+        "Navrhněte řešení dle tématu práce.",
+        "Implementujte navržené řešení.",
+        "Vhodně vyhodnoťte své řešení."
+      ],
+      "references": [
+        "DEMO, A. Ukázková publikace 1. Vydavatelství X, 2024.",
+        "PŘÍKLAD, B. Ukázková publikace 2. Vydavatelství Y, 2023."
+      ],
+      "deadlines": [],
+      "notes": "Smyšlená poznámka pro demo účely.",
+      "attachments": [],
+      "created_at": "2024-10-01T10:00:00",
+      "updated_at": "2024-10-01T10:00:00"
+    },
+    {
+      "id": "th-0002",
+      "type": "BP",
+      "status": "assigned",
+      "academic_year": "2024/2025",
+      "student_id": "stu-0002",
+      "opponent_id": null,
+      "assignment_number": "A24002",
+      "title_cs": "Demonstrativní bakalářské téma o webových technologiích",
+      "title_en": "Demonstrative Bachelor Topic on Web Technologies",
+      "annotation": "Práce demonstruje pole vyplněná pro oficiální zadání — vše smyšlené.",
+      "objectives": [
+        "Definujte rozsah práce.",
+        "Vyberte vhodné technologie.",
+        "Implementujte prototyp.",
+        "Otestujte řešení."
+      ],
+      "references": [
+        "WEB, C. Smyšlené webové standardy. 2024."
+      ],
+      "deadlines": [],
+      "notes": "",
+      "attachments": [],
+      "created_at": "2024-09-15T10:00:00",
+      "updated_at": "2024-09-15T10:00:00"
+    },
+    {
+      "id": "th-0003",
+      "type": "DP",
+      "status": "listed",
+      "academic_year": "2025/2026",
+      "student_id": "stu-0003",
+      "opponent_id": null,
+      "assignment_number": null,
+      "title_cs": "Vypsané téma — ukázka",
+      "title_en": "",
+      "annotation": "Práce s pouze vypsaným tématem (název a anotace). Body zadání a literatura zatím chybí.",
+      "objectives": [],
+      "references": [],
+      "deadlines": [],
+      "notes": "",
+      "attachments": [],
+      "created_at": "2025-05-01T10:00:00",
+      "updated_at": "2025-05-01T10:00:00"
+    },
+    {
+      "id": "th-0004",
+      "type": "BP",
+      "status": "interested",
+      "academic_year": "2026/2027",
+      "student_id": "stu-0004",
+      "opponent_id": null,
+      "assignment_number": null,
+      "title_cs": "",
+      "title_en": "",
+      "annotation": "",
+      "objectives": [],
+      "references": [],
+      "deadlines": [],
+      "notes": "Zájemce o budoucí akademický rok — téma ještě nedohodnuto.",
+      "attachments": [],
+      "created_at": "2026-04-01T10:00:00",
+      "updated_at": "2026-04-01T10:00:00"
+    },
+    {
+      "id": "th-0005",
+      "type": "DP",
+      "status": "defended",
+      "academic_year": "2023/2024",
+      "student_id": null,
+      "opponent_id": "opp-0002",
+      "assignment_number": "A23010",
+      "title_cs": "Dokončená ukázková práce z minulého roku",
+      "title_en": "Completed Sample Thesis from Last Year",
+      "annotation": "Příklad obhájené práce v historii.",
+      "objectives": [
+        "Dokončený bod 1.",
+        "Dokončený bod 2."
+      ],
+      "references": [
+        "STARÝ, D. Historická publikace. 2022."
+      ],
+      "deadlines": [],
+      "notes": "",
+      "attachments": [],
+      "created_at": "2023-09-01T10:00:00",
+      "updated_at": "2024-06-30T15:00:00"
+    }
+  ]
+}
