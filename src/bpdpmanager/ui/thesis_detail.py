@@ -133,14 +133,13 @@ class ThesisDetail(QWidget):
         self.placeholder.setStyleSheet("color: #888; padding: 24px;")
         outer.addWidget(self.placeholder)
 
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        outer.addWidget(self.scroll)
+        # Hlavička, transition box, taby a save row jsou pevné — nescrollují.
+        # Scrollování řeší jednotlivé taby uvnitř (Souhrn QTextBrowser
+        # interně; Téma zadání má vlastní QScrollArea v _build_topic_tab).
+        self.container = QWidget()
+        outer.addWidget(self.container)
 
-        container = QWidget()
-        self.scroll.setWidget(container)
-
-        layout = QVBoxLayout(container)
+        layout = QVBoxLayout(self.container)
 
         # Hlavička: stav + akce
         header = QHBoxLayout()
@@ -190,16 +189,29 @@ class ThesisDetail(QWidget):
         layout.addLayout(save_row)
 
     def _build_topic_tab(self) -> QWidget:
-        """Sloučená záložka Téma zadání: Základní info + Vypsané téma + Oficiální zadání."""
-        w = QWidget()
-        outer = QVBoxLayout(w)
-        outer.setContentsMargins(8, 8, 8, 8)
-        outer.setSpacing(12)
+        """Sloučená záložka Téma zadání s vlastní vnitřní QScrollArea.
 
-        outer.addWidget(self._build_basic_section())
-        outer.addWidget(self._build_listing_section(), stretch=1)
-        outer.addWidget(self._build_assignment_section(), stretch=2)
-        return w
+        Hlavička detailu, transition tlačítka a save tlačítko zůstávají
+        pevně, scrolluje jen obsah této záložky (sekce uvnitř).
+        """
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+        inner = QWidget()
+        inner_layout = QVBoxLayout(inner)
+        inner_layout.setContentsMargins(8, 8, 8, 8)
+        inner_layout.setSpacing(12)
+
+        inner_layout.addWidget(self._build_basic_section())
+        inner_layout.addWidget(self._build_listing_section(), stretch=1)
+        inner_layout.addWidget(self._build_assignment_section(), stretch=2)
+
+        scroll.setWidget(inner)
+        return scroll
 
     # --- sekce uvnitř Téma zadání -------------------------------------------
 
@@ -246,7 +258,7 @@ class ThesisDetail(QWidget):
         return box
 
     def _build_listing_section(self) -> QGroupBox:
-        box = QGroupBox("Vypsané téma (název CZ, název EN, anotace)")
+        box = QGroupBox("Vypsané téma (název CZ/EN, anotace CZ/EN)")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
 
@@ -257,16 +269,28 @@ class ThesisDetail(QWidget):
         form.addRow("Název (EN)", self.ed_title_en)
         layout.addLayout(form)
 
-        lbl = QLabel("Anotace")
-        lbl.setContentsMargins(8, 4, 8, 0)
-        layout.addWidget(lbl)
-
+        lbl_cs = QLabel("Anotace (CZ)")
+        lbl_cs.setContentsMargins(8, 4, 8, 0)
+        layout.addWidget(lbl_cs)
         self.ed_annotation = QPlainTextEdit()
-        self.ed_annotation.setMinimumHeight(120)
+        self.ed_annotation.setMinimumHeight(100)
         self.ed_annotation.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         layout.addWidget(self.ed_annotation, stretch=1)
+
+        lbl_en = QLabel("Anotace (EN)")
+        lbl_en.setContentsMargins(8, 4, 8, 0)
+        layout.addWidget(lbl_en)
+        self.ed_annotation_en = QPlainTextEdit()
+        self.ed_annotation_en.setMinimumHeight(100)
+        self.ed_annotation_en.setPlaceholderText(
+            "English version of the annotation (optional)."
+        )
+        self.ed_annotation_en.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        layout.addWidget(self.ed_annotation_en, stretch=1)
         return box
 
     def _build_assignment_section(self) -> QGroupBox:
@@ -358,11 +382,11 @@ class ThesisDetail(QWidget):
 
     def _show_empty(self) -> None:
         self.placeholder.setVisible(True)
-        self.scroll.setVisible(False)
+        self.container.setVisible(False)
 
     def _show_form(self) -> None:
         self.placeholder.setVisible(False)
-        self.scroll.setVisible(True)
+        self.container.setVisible(True)
 
     def refresh_combos(self) -> None:
         """Znovu načti seznamy studentů a oponentů z DB."""
@@ -409,6 +433,7 @@ class ThesisDetail(QWidget):
 
             self.ed_title_cs.setText(thesis.title_cs)
             self.ed_annotation.setPlainText(thesis.annotation)
+            self.ed_annotation_en.setPlainText(thesis.annotation_en or "")
             self.ed_title_en.setText(thesis.title_en)
             self.ed_objectives.setPlainText(thesis.objectives or "")
             self.ed_references.setPlainText(thesis.references or "")
@@ -445,6 +470,7 @@ class ThesisDetail(QWidget):
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
         self.ed_annotation.textChanged.connect(self._mark_dirty)
+        self.ed_annotation_en.textChanged.connect(self._mark_dirty)
         self.ed_title_en.textChanged.connect(self._mark_dirty)
         self.ed_objectives.textChanged.connect(self._mark_dirty)
         self.ed_references.textChanged.connect(self._mark_dirty)
@@ -556,6 +582,7 @@ class ThesisDetail(QWidget):
         opp_name = opponent.name if opponent else ""
 
         annotation = thesis.annotation.strip() if thesis.annotation else ""
+        annotation_en = thesis.annotation_en.strip() if thesis.annotation_en else ""
         objectives_text = (thesis.objectives or "").strip()
         references_text = (thesis.references or "").strip()
 
@@ -621,6 +648,17 @@ class ThesisDetail(QWidget):
         else:
             anot_html = "<p style='color:#888;font-style:italic;'>(bez anotace)</p>"
 
+        # ── Anotace (EN) ───────────────────────────────────────────────────
+        if annotation_en:
+            anot_en_html = (
+                e(annotation_en)
+                .replace("\n\n", "</p><p style='text-indent:2em;'>")
+                .replace("\n", "<br>")
+            )
+            anot_en_html = f"<p style='text-indent:2em;'>{anot_en_html}</p>"
+        else:
+            anot_en_html = ""
+
         # ── Body zadání — auto-číslováno pomocí <ol> ───────────────────────
         obj_items = _split_items(objectives_text)
         if obj_items:
@@ -647,6 +685,14 @@ class ThesisDetail(QWidget):
 
         section_header_style = "color:#ffa726;margin-top:18px;margin-bottom:6px;"
 
+        anot_en_section = ""
+        if annotation_en:
+            anot_en_section = (
+                f'<h3 style="{section_header_style}">Anotace (EN):'
+                f"{cp('annotation_en', 'Zkopírovat anotaci EN')}</h3>"
+                f"{anot_en_html}"
+            )
+
         return (
             "<html><body>"
             f"{status_bar}"
@@ -656,6 +702,7 @@ class ThesisDetail(QWidget):
             f'<h3 style="{section_header_style}">Anotace:'
             f"{cp('annotation', 'Zkopírovat anotaci')}</h3>"
             f"{anot_html}"
+            f"{anot_en_section}"
             f'<h3 style="{section_header_style}">Body zadání:'
             f"{cp('objectives', 'Zkopírovat body zadání')}</h3>"
             f"{obj_html}"
@@ -696,6 +743,8 @@ class ThesisDetail(QWidget):
             return t.title_en or "", "název (EN)"
         if field == "annotation":
             return t.annotation or "", "anotace"
+        if field == "annotation_en":
+            return t.annotation_en or "", "anotace (EN)"
         if field == "objectives":
             return _format_numbered(t.objectives), "body zadání"
         if field == "references":
@@ -753,6 +802,7 @@ class ThesisDetail(QWidget):
         self.thesis.opponent_id = self._resolve_combo_id(self.cb_opponent)
         self.thesis.title_cs = self.ed_title_cs.text().strip()
         self.thesis.annotation = self.ed_annotation.toPlainText().strip()
+        self.thesis.annotation_en = self.ed_annotation_en.toPlainText().strip()
         self.thesis.title_en = self.ed_title_en.text().strip()
         self.thesis.objectives = self.ed_objectives.toPlainText()
         self.thesis.references = self.ed_references.toPlainText()

@@ -70,62 +70,67 @@ class ThesesTreeWidget(QTreeWidget):
         selected_id = self.selected_thesis_id()
         # zapamatuj si rozbalené roky (po refresh chceme zachovat stav)
         expanded_years = self._snapshot_expanded()
-        self.clear()
 
-        groups: dict[str, dict[str, list[Thesis]]] = {}
-        for thesis in self.service.list_theses():
-            if not self._filter_predicate(thesis):
-                continue
-            year = thesis.academic_year or "(bez roku)"
-            groups.setdefault(year, {"BP": [], "DP": []})
-            groups[year][thesis.type.value].append(thesis)
+        # Blokuj VŠECHNY signály po celou dobu rebuild + re-select. Jinak by
+        # clear() / addTopLevelItem / setCurrentItem mohly emitovat
+        # itemSelectionChanged a vyvolat set_thesis na detailu (→ skok kurzoru
+        # i přepnutí tabu zpět na Souhrn během psaní).
+        self.blockSignals(True)
+        try:
+            self.clear()
 
-        for year in sorted(groups.keys(), reverse=True):
-            total = sum(len(v) for v in groups[year].values())
-            year_item = QTreeWidgetItem([f"📅 {year}    ({total})", "", "", "", ""])
-            year_item.setData(0, ROLE_KIND, "year")
-            year_item.setData(0, Qt.ItemDataRole.UserRole + 3, year)  # ulož klíč pro snapshot
-            font = year_item.font(0)
-            font.setBold(True)
-            font.setPointSize(font.pointSize() + 1)
-            year_item.setFont(0, font)
-            year_item.setFirstColumnSpanned(True)
-            self.addTopLevelItem(year_item)
-
-            for type_code in ("BP", "DP"):
-                theses = groups[year][type_code]
-                if not theses:
+            groups: dict[str, dict[str, list[Thesis]]] = {}
+            for thesis in self.service.list_theses():
+                if not self._filter_predicate(thesis):
                     continue
-                theses.sort(key=lambda t: (t.status.order, t.display_title.lower()))
+                year = thesis.academic_year or "(bez roku)"
+                groups.setdefault(year, {"BP": [], "DP": []})
+                groups[year][thesis.type.value].append(thesis)
 
-                type_label = ThesisType(type_code).label
-                type_item = QTreeWidgetItem(
-                    [f"  {type_label}  ({len(theses)})", "", "", "", ""]
+            for year in sorted(groups.keys(), reverse=True):
+                total = sum(len(v) for v in groups[year].values())
+                year_item = QTreeWidgetItem(
+                    [f"📅 {year}    ({total})", "", "", "", ""]
                 )
-                type_item.setData(0, ROLE_KIND, "type")
-                type_font = type_item.font(0)
-                type_font.setItalic(True)
-                type_item.setFont(0, type_font)
-                type_item.setFirstColumnSpanned(True)
-                year_item.addChild(type_item)
+                year_item.setData(0, ROLE_KIND, "year")
+                year_item.setData(0, Qt.ItemDataRole.UserRole + 3, year)
+                font = year_item.font(0)
+                font.setBold(True)
+                font.setPointSize(font.pointSize() + 1)
+                year_item.setFont(0, font)
+                year_item.setFirstColumnSpanned(True)
+                self.addTopLevelItem(year_item)
 
-                for thesis in theses:
-                    self._add_thesis_row(type_item, thesis)
+                for type_code in ("BP", "DP"):
+                    theses = groups[year][type_code]
+                    if not theses:
+                        continue
+                    theses.sort(
+                        key=lambda t: (t.status.order, t.display_title.lower())
+                    )
 
-                type_item.setExpanded(True)
+                    type_label = ThesisType(type_code).label
+                    type_item = QTreeWidgetItem(
+                        [f"  {type_label}  ({len(theses)})", "", "", "", ""]
+                    )
+                    type_item.setData(0, ROLE_KIND, "type")
+                    type_font = type_item.font(0)
+                    type_font.setItalic(True)
+                    type_item.setFont(0, type_font)
+                    type_item.setFirstColumnSpanned(True)
+                    year_item.addChild(type_item)
 
-            # rok rozbal pokud byl rozbalený před refresh (default: rozbalený)
-            year_item.setExpanded(expanded_years.get(year, True))
+                    for thesis in theses:
+                        self._add_thesis_row(type_item, thesis)
 
-        if selected_id:
-            # Blokuj signál během programového re-výběru, aby autosave →
-            # tree.refresh nezavolal set_thesis na detailu (jinak by se kurzor
-            # v aktivním textovém poli vracel na začátek).
-            self.blockSignals(True)
-            try:
+                    type_item.setExpanded(True)
+
+                year_item.setExpanded(expanded_years.get(year, True))
+
+            if selected_id:
                 self.select_thesis(selected_id)
-            finally:
-                self.blockSignals(False)
+        finally:
+            self.blockSignals(False)
 
     def select_thesis(self, thesis_id: str) -> bool:
         for i in range(self.topLevelItemCount()):

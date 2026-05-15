@@ -7,6 +7,29 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-05-16
+
+### Added
+- **Pole *Anotace (EN)*** v sekci *Vypsané téma* (pod *Anotace*) — volitelný
+  anglický překlad anotace. Nový field ``Thesis.annotation_en: str = ""``
+  (default prázdný; staré JSON se načtou bez problémů).
+- Souhrn zobrazuje sekci *Anotace (EN)* jen pokud je vyplněná, vlastní
+  📋 tlačítko pro kopírování do schránky.
+
+### Fixed
+- **Žádné skoky při autosavu**:
+  - Strom blokuje signály **po celou dobu** ``refresh()`` (clear + build
+    + re-select), ne jen v okamžiku re-selectu. Tím se zamezí emisi
+    ``itemSelectionChanged`` z ``clear()``, která dříve vedla k re-loadu
+    detailu a přeskoku na záložku *Souhrn* uprostřed psaní.
+  - Po autosavu zůstává aktuální záložka i pozice kurzoru tam, kde jsi byl.
+
+### Changed
+- **Pevná hlavička + taby**: outer ``QScrollArea`` v detailu odstraněna.
+  Hlavička (status badge, název, save state, smazat), transition tlačítka,
+  taby a save row jsou nyní fixed a nikam se nescrollují. Scrolluje **jen
+  obsah tabu *Téma zadání*** přes vlastní ``QScrollArea``.
+
 ## [0.7.1] - 2026-05-16
 
 ### Changed
@@ -319,7 +342,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/Safronus/bpdp-manager/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/Safronus/bpdp-manager/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Safronus/bpdp-manager/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Safronus/bpdp-manager/compare/v0.5.2...v0.6.0
