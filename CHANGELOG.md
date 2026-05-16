@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-05-16
+
+### Fixed
+- **Nově přidaný student/oponent se hned objeví v rozbalovači** u záložky
+  *Téma zadání*. Dříve se sice úspěšně uložil, ale combo box detailu
+  zůstal s původním seznamem, dokud uživatel nevybral jinou práci.
+  ``MainWindow._refresh_all()`` teď po každé akci managementu (Studenti /
+  Oponenti / Obory) zavolá také ``detail.refresh_combos()``.
+
+### Changed
+- ``ThesisDetail.refresh_combos()`` **zachovává aktuální výběr** —
+  zachytí ID studenta/oponenta před clearem combo a po refilll je znovu
+  nastaví. Tím se ztratí cyklus, kdy refresh „odhlasil" právě
+  rozeditovaného studenta práce.
+
 ## [0.7.4] - 2026-05-16
 
 ### Changed
@@ -377,7 +392,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.4...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.5...HEAD
+[0.7.5]: https://github.com/Safronus/bpdp-manager/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/Safronus/bpdp-manager/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/Safronus/bpdp-manager/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/Safronus/bpdp-manager/compare/v0.7.1...v0.7.2

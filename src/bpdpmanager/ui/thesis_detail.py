@@ -395,17 +395,30 @@ class ThesisDetail(QWidget):
     def refresh_combos(self) -> None:
         """Znovu načti seznamy studentů a oponentů z DB.
 
-        Žádná sentinel položka "— bez studenta —" — prázdné políčko = bez
-        přiřazení. Informace je vidět přes placeholderText nastavený na
-        lineEditu comba.
+        Aktuální výběr se **zachová** — voláno typicky po zavření dialogu
+        správy studentů/oponentů, aby se nový záznam okamžitě objevil
+        v rozbalovacím seznamu, aniž by se ztratila vazba na aktuálně
+        editované práci.
         """
-        self.cb_student.clear()
-        for s in self.service.list_students():
-            self.cb_student.addItem(s.full_name, s.id)
+        # Zachyť aktuální výběr před clearem (přes ID)
+        current_student_id = self._resolve_combo_id(self.cb_student)
+        current_opponent_id = self._resolve_combo_id(self.cb_opponent)
 
-        self.cb_opponent.clear()
-        for o in self.service.list_opponents():
-            self.cb_opponent.addItem(o.name, o.id)
+        # Suprimuj _mark_dirty signály během programového refillu
+        was_loading = self._loading
+        self._loading = True
+        try:
+            self.cb_student.clear()
+            for s in self.service.list_students():
+                self.cb_student.addItem(s.full_name, s.id)
+            self._set_combo_to_id(self.cb_student, current_student_id)
+
+            self.cb_opponent.clear()
+            for o in self.service.list_opponents():
+                self.cb_opponent.addItem(o.name, o.id)
+            self._set_combo_to_id(self.cb_opponent, current_opponent_id)
+        finally:
+            self._loading = was_loading
 
     def set_thesis(self, thesis: Thesis | None) -> None:
         # Před přepnutím flushni rozpracované změny aktuální práce

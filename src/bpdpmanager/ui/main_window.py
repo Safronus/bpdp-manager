@@ -261,6 +261,10 @@ class MainWindow(QMainWindow):
             widget = self.tabs.widget(i)
             if isinstance(widget, _ThesesTab):
                 widget.refresh()
+                # Combo se studenty/oponenty obnov taky — když uživatel
+                # přidal studenta/oponenta v management dialogu, ať se
+                # hned objeví v rozbalovači u Téma zadání.
+                widget.detail.refresh_combos()
             elif isinstance(widget, HarmonogramTab):
                 widget._refresh_year_combo()
         self._update_status()
