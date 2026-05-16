@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-05-16
+
+### Changed
+- **Combo pro výběr studenta/oponenta nemá sentinel položku** „— bez
+  studenta —" / „— bez oponenta —". Při kliknutí do prázdného pole už
+  uživatel nemusí nic mazat, aby spustil našeptávání. Místo sentinel
+  položky se používá ``QLineEdit.setPlaceholderText("(bez studenta)")``,
+  který se chová standardně — světle šedý text vidíš dokud nezačneš psát,
+  pak zmizí.
+- ``_resolve_combo_id`` má jasnější sémantiku:
+  - prázdný text → ``None`` (explicitní „bez přiřazení"),
+  - přesná shoda s položkou → ID té položky,
+  - text se neshoduje (uživatel ještě dopisuje) → poslední vybraná
+    položka přes ``currentData()`` (nemažeme vazbu během psaní).
+- Helper ``_set_combo_to_id`` v ``ThesisDetail`` — kompaktní logika pro
+  „buď nastav na položku s daným ID, nebo vyčisti".
+
 ## [0.7.2] - 2026-05-16
 
 ### Added
@@ -342,7 +359,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/Safronus/bpdp-manager/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/Safronus/bpdp-manager/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/Safronus/bpdp-manager/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Safronus/bpdp-manager/compare/v0.6.0...v0.7.0

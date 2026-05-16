@@ -232,6 +232,8 @@ class ThesisDetail(QWidget):
         self.cb_student = QComboBox()
         self.cb_student.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         _setup_searchable_combo(self.cb_student)
+        if self.cb_student.lineEdit() is not None:
+            self.cb_student.lineEdit().setPlaceholderText("(bez studenta)")
         self.btn_new_student = QPushButton("+")
         self.btn_new_student.setFixedWidth(32)
         self.btn_new_student.clicked.connect(self._new_student)
@@ -242,6 +244,8 @@ class ThesisDetail(QWidget):
         self.cb_opponent = QComboBox()
         self.cb_opponent.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         _setup_searchable_combo(self.cb_opponent)
+        if self.cb_opponent.lineEdit() is not None:
+            self.cb_opponent.lineEdit().setPlaceholderText("(bez oponenta)")
         self.btn_new_opponent = QPushButton("+")
         self.btn_new_opponent.setFixedWidth(32)
         self.btn_new_opponent.clicked.connect(self._new_opponent)
@@ -389,14 +393,17 @@ class ThesisDetail(QWidget):
         self.container.setVisible(True)
 
     def refresh_combos(self) -> None:
-        """Znovu načti seznamy studentů a oponentů z DB."""
+        """Znovu načti seznamy studentů a oponentů z DB.
+
+        Žádná sentinel položka "— bez studenta —" — prázdné políčko = bez
+        přiřazení. Informace je vidět přes placeholderText nastavený na
+        lineEditu comba.
+        """
         self.cb_student.clear()
-        self.cb_student.addItem("— bez studenta —", None)
         for s in self.service.list_students():
             self.cb_student.addItem(s.full_name, s.id)
 
         self.cb_opponent.clear()
-        self.cb_opponent.addItem("— bez oponenta —", None)
         for o in self.service.list_opponents():
             self.cb_opponent.addItem(o.name, o.id)
 
@@ -426,10 +433,8 @@ class ThesisDetail(QWidget):
             self.cb_type.setCurrentIndex(max(idx, 0))
             self.ed_year.setText(thesis.academic_year)
 
-            idx = self.cb_student.findData(thesis.student_id)
-            self.cb_student.setCurrentIndex(max(idx, 0))
-            idx = self.cb_opponent.findData(thesis.opponent_id)
-            self.cb_opponent.setCurrentIndex(max(idx, 0))
+            self._set_combo_to_id(self.cb_student, thesis.student_id)
+            self._set_combo_to_id(self.cb_opponent, thesis.opponent_id)
 
             self.ed_title_cs.setText(thesis.title_cs)
             self.ed_annotation.setPlainText(thesis.annotation)
@@ -779,19 +784,32 @@ class ThesisDetail(QWidget):
                 self.cb_opponent.setCurrentIndex(idx)
 
     @staticmethod
+    def _set_combo_to_id(combo: QComboBox, target_id: str | None) -> None:
+        """Nastav combo na položku s daným ID, nebo ho vyprázdni (None)."""
+        if target_id:
+            idx = combo.findData(target_id)
+            if idx >= 0:
+                combo.setCurrentIndex(idx)
+                return
+        combo.setCurrentIndex(-1)
+        if combo.lineEdit() is not None:
+            combo.lineEdit().clear()
+
+    @staticmethod
     def _resolve_combo_id(combo: QComboBox) -> str | None:
         """Vrátí ID (UserData) pro položku odpovídající aktuálnímu textu combo.
 
-        Když user vybere ze suggestion v completer, Qt nemusí stihnout updatovat
-        currentIndex před tím, než klikne Save. Proto raději porovnáváme text.
+        - Prázdný text → ``None`` (explicitní „bez studenta / oponenta").
+        - Text se přesně shoduje s položkou → ID té položky.
+        - Text se neshoduje (user píše a ještě nedopsal) → poslední vybraná
+          položka přes ``currentData()`` (nemažeme vazbu během psaní).
         """
         text = combo.currentText().strip().lower()
         if not text:
-            return combo.itemData(0)  # první položka by měla být "— bez —"
+            return None
         for i in range(combo.count()):
             if combo.itemText(i).strip().lower() == text:
                 return combo.itemData(i)
-        # text neodpovídá žádné položce → spadne na currentData (může vrátit None)
         return combo.currentData()
 
     def _collect_into_thesis(self) -> None:
