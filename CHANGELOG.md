@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-05-16
+
+### Changed
+- **Hlavní okno se spouští maximalizované** (``window.showMaximized()``
+  místo ``window.show()``). Šetří klikání po každém startu.
+- **Správa oponentů přepsána** z taby + dvou ``QListWidget`` na jeden
+  přehledný ``QTreeWidget`` s:
+  - dvěma top-level skupinami **📍 Interní (UTB)** a **🏢 Externí**
+  - **čtyřmi sloupci**: *Jméno | Pracoviště | Email | Telefon*
+  - **abecedním řazením** uvnitř skupin (při řazení se ignorují akademické
+    tituly typu ``doc.``, ``prof.``, ``Ing.``, ``Mgr.``, ``MUDr.``,
+    ``RNDr.``, ``JUDr.``, ``PhDr.``, ``PaedDr.``, ``Bc.``, ``DiS.``,
+    ``Ph.D.``, ``CSc.``, ``DSc.``, ``Th.D.``, ``MgA.``)
+  - tooltipem s adresou u externích oponentů
+  - info pruhem na spodku se souhrnnými počty.
+- Pro „+ Nový oponent" se default kind určí podle aktuálního výběru
+  ve stromu (jsi-li v sekci Externí → default = Externí).
+
 ## [0.7.3] - 2026-05-16
 
 ### Changed
@@ -359,7 +377,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.4...HEAD
+[0.7.4]: https://github.com/Safronus/bpdp-manager/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/Safronus/bpdp-manager/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/Safronus/bpdp-manager/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/Safronus/bpdp-manager/compare/v0.7.0...v0.7.1

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -21,6 +23,21 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+# Akademické tituly, které ignorujeme při řazení abecedně.
+_TITLE_PREFIX_RE = re.compile(
+    r"^(?:(?:doc\.|prof\.|MgA\.|MUDr\.|RNDr\.|JUDr\.|PhDr\.|PaedDr\.|"
+    r"Bc\.|Mgr\.|Ing\.|DiS\.|Ph\.D\.|CSc\.|DSc\.|Th\.D\.)\s+)+",
+    re.IGNORECASE,
+)
+
+
+def _opponent_sort_key(name: str | None) -> str:
+    """Vrátí klíč pro abecední řazení oponenta — ignoruje akademické tituly."""
+    if not name:
+        return ""
+    stripped = _TITLE_PREFIX_RE.sub("", name).strip()
+    return stripped.lower()
 
 from ..models import Obor, Opponent, Student, Thesis
 from ..models.enums import OpponentKind, ThesisStatus, ThesisType
@@ -376,22 +393,44 @@ _CATEGORY_COLORS: dict[str, str | None] = {
 
 
 class OpponentsManageDialog(QDialog):
-    """Správa oponentů — odděleně interní a externí."""
+    """Správa oponentů — jeden strom s grupováním Interní / Externí.
+
+    Sloupce: Jméno | Pracoviště | Email | Telefon. Uvnitř každé skupiny
+    abecedně podle jména (s ignorováním akademických titulů typu
+    ``doc.``, ``Ing.``, ``Mgr.``, …).
+    """
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
         self.setWindowTitle("Oponenti")
-        self.setMinimumSize(640, 520)
+        self.setMinimumSize(820, 560)
 
         layout = QVBoxLayout(self)
+        layout.addWidget(
+            QLabel(
+                "Seznam oponentů — Interní (UTB) a Externí. "
+                "Dvojklik upraví detail."
+            )
+        )
 
-        self.tabs = QTabWidget()
-        self.list_internal = self._build_list_tab(OpponentKind.INTERNAL)
-        self.list_external = self._build_list_tab(OpponentKind.EXTERNAL)
-        self.tabs.addTab(self.list_internal, "Interní (UTB)")
-        self.tabs.addTab(self.list_external, "Externí")
-        layout.addWidget(self.tabs)
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(4)
+        self.tree.setHeaderLabels(["Jméno", "Pracoviště", "Email", "Telefon"])
+        self.tree.setAlternatingRowColors(True)
+        self.tree.setRootIsDecorated(True)
+        self.tree.itemDoubleClicked.connect(self._edit)
+        h = self.tree.header()
+        h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setStretchLastSection(False)
+        layout.addWidget(self.tree, stretch=1)
+
+        self.lbl_info = QLabel("")
+        self.lbl_info.setStyleSheet("color: #888; font-size: 11px;")
+        layout.addWidget(self.lbl_info)
 
         row = QHBoxLayout()
         btn_new = QPushButton("Nový…")
@@ -409,45 +448,105 @@ class OpponentsManageDialog(QDialog):
         row.addWidget(btn_close)
         layout.addLayout(row)
 
+        self.tree.currentItemChanged.connect(lambda *_: self._update_info())
         self._refresh()
 
-    def _build_list_tab(self, kind: OpponentKind) -> QListWidget:
-        lw = QListWidget()
-        lw.itemDoubleClicked.connect(self._edit)
-        lw.setProperty("opponent_kind", kind.value)
-        return lw
-
-    def _current_list(self) -> QListWidget:
-        return self.tabs.currentWidget()  # type: ignore[return-value]
-
-    def _current_kind(self) -> OpponentKind:
-        return OpponentKind(self._current_list().property("opponent_kind"))
+    # --- načítání + grupování ----------------------------------------------
 
     def _refresh(self) -> None:
-        for lw, kind in (
-            (self.list_internal, OpponentKind.INTERNAL),
-            (self.list_external, OpponentKind.EXTERNAL),
+        selected_id = self._selected_opponent_id()
+        self.tree.clear()
+
+        for kind, icon in (
+            (OpponentKind.INTERNAL, "📍"),
+            (OpponentKind.EXTERNAL, "🏢"),
         ):
-            lw.clear()
-            for o in self.service.list_opponents(kind=kind):
-                parts = [o.name]
-                if o.affiliation:
-                    parts.append(f"({o.affiliation})")
-                if o.email:
-                    parts.append(f"✉ {o.email}")
-                if o.phone and kind == OpponentKind.EXTERNAL:
-                    parts.append(f"☎ {o.phone}")
-                item = QListWidgetItem(" ".join(parts))
-                item.setData(Qt.ItemDataRole.UserRole, o)
-                lw.addItem(item)
+            opps = sorted(
+                self.service.list_opponents(kind=kind),
+                key=lambda o: _opponent_sort_key(o.name),
+            )
+            group = QTreeWidgetItem(
+                [f"{icon}  {kind.label}  ({len(opps)})", "", "", ""]
+            )
+            group.setFirstColumnSpanned(True)
+            f = group.font(0)
+            f.setBold(True)
+            f.setPointSize(f.pointSize() + 1)
+            group.setFont(0, f)
+            self.tree.addTopLevelItem(group)
+
+            for o in opps:
+                phone = o.phone if (o.phone and kind == OpponentKind.EXTERNAL) else ""
+                leaf = QTreeWidgetItem(
+                    [
+                        o.name,
+                        o.affiliation or "",
+                        o.email or "",
+                        phone,
+                    ]
+                )
+                leaf.setData(0, Qt.ItemDataRole.UserRole, o)
+                # tooltip s adresou (jen externí)
+                if kind == OpponentKind.EXTERNAL and o.address:
+                    leaf.setToolTip(0, f"{o.name}\n{o.address}")
+                group.addChild(leaf)
+
+            group.setExpanded(True)
+
+        total_int = len(self.service.list_opponents(kind=OpponentKind.INTERNAL))
+        total_ext = len(self.service.list_opponents(kind=OpponentKind.EXTERNAL))
+        self.lbl_info.setText(
+            f"Interní: {total_int}    ·    Externí: {total_ext}    ·    "
+            f"Celkem: {total_int + total_ext}"
+        )
+
+        if selected_id:
+            self._select_opponent(selected_id)
+
+    # --- helper akce -------------------------------------------------------
 
     def _current_opp(self) -> Opponent | None:
-        lw = self._current_list()
-        item = lw.currentItem()
-        return item.data(Qt.ItemDataRole.UserRole) if item else None
+        item = self.tree.currentItem()
+        if item is None:
+            return None
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        return data if isinstance(data, Opponent) else None
+
+    def _selected_opponent_id(self) -> str | None:
+        o = self._current_opp()
+        return o.id if o else None
+
+    def _select_opponent(self, opp_id: str) -> bool:
+        for i in range(self.tree.topLevelItemCount()):
+            group = self.tree.topLevelItem(i)
+            for j in range(group.childCount()):
+                leaf = group.child(j)
+                data = leaf.data(0, Qt.ItemDataRole.UserRole)
+                if isinstance(data, Opponent) and data.id == opp_id:
+                    self.tree.setCurrentItem(leaf)
+                    return True
+        return False
+
+    def _current_kind_for_new(self) -> OpponentKind:
+        """Pokud je vybraná položka uvnitř Externí skupiny, použij default Externí."""
+        item = self.tree.currentItem()
+        while item is not None and item.parent() is not None:
+            item = item.parent()
+        if item is None:
+            return OpponentKind.INTERNAL
+        idx = self.tree.indexOfTopLevelItem(item)
+        return OpponentKind.INTERNAL if idx == 0 else OpponentKind.EXTERNAL
+
+    def _update_info(self) -> None:
+        # placeholder pro budoucí kontextové info (zatím prázdné)
+        pass
 
     def _new(self) -> None:
-        dlg = OpponentDialog(self.service, default_kind=self._current_kind(), parent=self)
+        dlg = OpponentDialog(
+            self.service,
+            default_kind=self._current_kind_for_new(),
+            parent=self,
+        )
         if dlg.exec():
             self._refresh()
 
@@ -466,7 +565,8 @@ class OpponentsManageDialog(QDialog):
         confirm = QMessageBox.question(
             self,
             "Smazat oponenta",
-            f"Opravdu smazat „{o.name}“? Práce, které ho mají přiřazeného, zůstanou (bez oponenta).",
+            f'Opravdu smazat „{o.name}"? Práce, které ho mají přiřazeného, '
+            f"zůstanou (bez oponenta).",
         )
         if confirm == QMessageBox.StandardButton.Yes:
             self.service.delete_opponent(o.id)
