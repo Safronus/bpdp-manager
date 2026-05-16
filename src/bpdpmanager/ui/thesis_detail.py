@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import html
 import re
-from datetime import datetime
+from datetime import date, datetime
 
 _NUM_PREFIX_RE = re.compile(r"^\s*\d+\.\s+")
 
@@ -33,6 +33,7 @@ from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QApplication,
+    QButtonGroup,
     QComboBox,
     QFormLayout,
     QGroupBox,
@@ -42,6 +43,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QRadioButton,
     QScrollArea,
     QSizePolicy,
     QTabWidget,
@@ -62,6 +64,19 @@ def _make_form_layout() -> QFormLayout:
     form.setVerticalSpacing(8)
     form.setContentsMargins(8, 8, 8, 8)
     return form
+
+
+def _academic_year_choices() -> list[str]:
+    """Vrátí rozsah ak. roků od 2009/2010 po (aktuální + 2), sestupně.
+
+    - Aktuální + budoucích 2 roky (např. 2025/2026, 2026/2027, 2027/2028)
+    - Vše do hloubky 2009/2010 pro historické práce
+    """
+    today = date.today()
+    current_start = today.year if today.month >= 9 else today.year - 1
+    end_start = current_start + 2  # +2 = rok po příštím
+    years = [f"{s}/{s + 1}" for s in range(2009, end_start + 1)]
+    return list(reversed(years))
 
 
 def _setup_searchable_combo(combo: QComboBox) -> None:
@@ -216,49 +231,74 @@ class ThesisDetail(QWidget):
     # --- sekce uvnitř Téma zadání -------------------------------------------
 
     def _build_basic_section(self) -> QGroupBox:
+        """Kompaktní jednořádkové info: Typ (radio) + Rok (combo) + Student + Oponent."""
         box = QGroupBox("Základní info")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
-        form = _make_form_layout()
 
-        self.cb_type = QComboBox()
-        for t in ThesisType:
-            self.cb_type.addItem(t.label, t.value)
-        self.cb_type.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        row = QHBoxLayout()
+        row.setSpacing(10)
 
-        self.ed_year = QLineEdit()
-        self.ed_year.setPlaceholderText("např. 2024/2025")
+        # Typ — radio BP / DP
+        row.addWidget(QLabel("Typ:"))
+        self.rb_bp = QRadioButton("BP")
+        self.rb_dp = QRadioButton("DP")
+        self._type_group = QButtonGroup(self)
+        self._type_group.addButton(self.rb_bp, 0)
+        self._type_group.addButton(self.rb_dp, 1)
+        self.rb_bp.setChecked(True)
+        row.addWidget(self.rb_bp)
+        row.addWidget(self.rb_dp)
+        row.addSpacing(12)
 
+        # Rok — editovatelný combobox s pevným rozsahem
+        row.addWidget(QLabel("Rok:"))
+        self.cb_year = QComboBox()
+        self.cb_year.setEditable(True)
+        self.cb_year.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        for y in _academic_year_choices():
+            self.cb_year.addItem(y)
+        self.cb_year.setMinimumContentsLength(9)  # "2027/2028"
+        self.cb_year.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
+        row.addWidget(self.cb_year)
+        row.addSpacing(12)
+
+        # Student — combobox s našeptáváním + tlačítko
+        row.addWidget(QLabel("Student:"))
         self.cb_student = QComboBox()
-        self.cb_student.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.cb_student.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.cb_student.setMinimumWidth(180)
         _setup_searchable_combo(self.cb_student)
         if self.cb_student.lineEdit() is not None:
             self.cb_student.lineEdit().setPlaceholderText("(bez studenta)")
         self.btn_new_student = QPushButton("+")
-        self.btn_new_student.setFixedWidth(32)
+        self.btn_new_student.setFixedWidth(28)
         self.btn_new_student.clicked.connect(self._new_student)
-        student_row = QHBoxLayout()
-        student_row.addWidget(self.cb_student, stretch=1)
-        student_row.addWidget(self.btn_new_student)
+        row.addWidget(self.cb_student, stretch=1)
+        row.addWidget(self.btn_new_student)
+        row.addSpacing(12)
 
+        # Oponent — totéž
+        row.addWidget(QLabel("Oponent:"))
         self.cb_opponent = QComboBox()
-        self.cb_opponent.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.cb_opponent.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.cb_opponent.setMinimumWidth(180)
         _setup_searchable_combo(self.cb_opponent)
         if self.cb_opponent.lineEdit() is not None:
             self.cb_opponent.lineEdit().setPlaceholderText("(bez oponenta)")
         self.btn_new_opponent = QPushButton("+")
-        self.btn_new_opponent.setFixedWidth(32)
+        self.btn_new_opponent.setFixedWidth(28)
         self.btn_new_opponent.clicked.connect(self._new_opponent)
-        opponent_row = QHBoxLayout()
-        opponent_row.addWidget(self.cb_opponent, stretch=1)
-        opponent_row.addWidget(self.btn_new_opponent)
+        row.addWidget(self.cb_opponent, stretch=1)
+        row.addWidget(self.btn_new_opponent)
 
-        form.addRow("Typ", self.cb_type)
-        form.addRow("Akademický rok", self.ed_year)
-        form.addRow("Student", student_row)
-        form.addRow("Oponent", opponent_row)
-
-        layout.addLayout(form)
+        layout.addLayout(row)
         return box
 
     def _build_listing_section(self) -> QGroupBox:
@@ -442,9 +482,11 @@ class ThesisDetail(QWidget):
             )
             self.lbl_title.setText(thesis.display_title)
 
-            idx = self.cb_type.findData(thesis.type.value)
-            self.cb_type.setCurrentIndex(max(idx, 0))
-            self.ed_year.setText(thesis.academic_year)
+            if thesis.type == ThesisType.BP:
+                self.rb_bp.setChecked(True)
+            else:
+                self.rb_dp.setChecked(True)
+            self.cb_year.setCurrentText(thesis.academic_year)
 
             self._set_combo_to_id(self.cb_student, thesis.student_id)
             self._set_combo_to_id(self.cb_opponent, thesis.opponent_id)
@@ -482,8 +524,9 @@ class ThesisDetail(QWidget):
 
     def _connect_dirty_signals(self) -> None:
         """Napojí změny všech polí na ``_mark_dirty``."""
-        self.cb_type.currentIndexChanged.connect(self._mark_dirty)
-        self.ed_year.textChanged.connect(self._mark_dirty)
+        self.rb_bp.toggled.connect(self._mark_dirty)
+        self.rb_dp.toggled.connect(self._mark_dirty)
+        self.cb_year.editTextChanged.connect(self._mark_dirty)
         self.cb_student.currentIndexChanged.connect(self._mark_dirty)
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
@@ -827,8 +870,8 @@ class ThesisDetail(QWidget):
 
     def _collect_into_thesis(self) -> None:
         assert self.thesis is not None
-        self.thesis.type = ThesisType(self.cb_type.currentData())
-        self.thesis.academic_year = self.ed_year.text().strip()
+        self.thesis.type = ThesisType.BP if self.rb_bp.isChecked() else ThesisType.DP
+        self.thesis.academic_year = self.cb_year.currentText().strip()
         self.thesis.student_id = self._resolve_combo_id(self.cb_student)
         self.thesis.opponent_id = self._resolve_combo_id(self.cb_opponent)
         self.thesis.title_cs = self.ed_title_cs.text().strip()

@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-05-16
+
+### Changed
+- **Sekce *Základní info* na jeden kompaktní řádek**. Místo 4 řádků
+  (Typ / Akademický rok / Student / Oponent) je teď vše vedle sebe
+  v jednom horizontálním layoutu — šetří svislé místo, zůstává plně
+  funkční.
+- **Typ práce přepnut na radio buttony** ``BP`` / ``DP`` (přes
+  ``QButtonGroup``) — rychlejší přepnutí než combobox.
+- **Akademický rok je teď editovatelný combobox** s pevně definovaným
+  rozsahem od ``2009/2010`` po ``(aktuální + 2)`` (aktuální + 2 budoucí
+  roky pro plánování zájemců). Sestupně, takže nejaktuálnější rok je
+  nahoře. Pole zůstává editovatelné, kdyby si uživatel potřeboval doplnit
+  ručně exotický rok.
+- Helper ``_academic_year_choices()`` počítá rozsah dynamicky podle
+  ``date.today()`` — žádný hardcode budoucnosti.
+
 ## [0.7.5] - 2026-05-16
 
 ### Fixed
@@ -392,7 +409,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.5...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.6...HEAD
+[0.7.6]: https://github.com/Safronus/bpdp-manager/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/Safronus/bpdp-manager/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/Safronus/bpdp-manager/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/Safronus/bpdp-manager/compare/v0.7.2...v0.7.3
