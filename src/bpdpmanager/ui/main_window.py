@@ -28,13 +28,25 @@ from .manage_dialogs import (
     StudentsManageDialog,
 )
 from .theses_tree import ThesesTreeWidget
-from .thesis_detail import ThesisDetail
+from .thesis_detail import (
+    YEAR_MODE_ALL,
+    YEAR_MODE_CURRENT,
+    YEAR_MODE_FUTURE,
+    YEAR_MODE_HISTORY,
+    ThesisDetail,
+)
 
 
 class _ThesesTab(QWidget):
     """Jedna záložka = strom prací (grupování rok → BP/DP) nahoře + detail dole."""
 
-    def __init__(self, service: ThesisService, filter_predicate, parent=None) -> None:
+    def __init__(
+        self,
+        service: ThesisService,
+        filter_predicate,
+        year_mode: str = YEAR_MODE_ALL,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.service = service
 
@@ -43,7 +55,7 @@ class _ThesesTab(QWidget):
         self.tree = ThesesTreeWidget(service)
         self.tree.setMinimumHeight(160)
         self.tree.set_filter(filter_predicate)
-        self.detail = ThesisDetail(service)
+        self.detail = ThesisDetail(service, year_mode=year_mode)
         self.detail.setMinimumHeight(520)
 
         splitter.addWidget(self.tree)
@@ -93,11 +105,13 @@ class MainWindow(QMainWindow):
         self.tab_current = _ThesesTab(
             service,
             lambda t: t.academic_year == current_year and t.status in active_states,
+            year_mode=YEAR_MODE_CURRENT,
         )
         self.tab_future = _ThesesTab(
             service,
             lambda t: t.academic_year == next_year
             or (t.status == ThesisStatus.INTERESTED and t.academic_year >= current_year),
+            year_mode=YEAR_MODE_FUTURE,
         )
         self.tab_history = _ThesesTab(
             service,
@@ -107,8 +121,9 @@ class MainWindow(QMainWindow):
                 and t.academic_year < current_year
                 and t.status not in {ThesisStatus.INTERESTED}
             ),
+            year_mode=YEAR_MODE_HISTORY,
         )
-        self.tab_all = _ThesesTab(service, lambda t: True)
+        self.tab_all = _ThesesTab(service, lambda t: True, year_mode=YEAR_MODE_ALL)
         self.tab_harmonogram = HarmonogramTab(service)
 
         self.tabs.addTab(self.tab_current, f"Aktuální ({current_year})")

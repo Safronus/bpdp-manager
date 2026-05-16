@@ -66,16 +66,35 @@ def _make_form_layout() -> QFormLayout:
     return form
 
 
-def _academic_year_choices() -> list[str]:
-    """Vrátí rozsah ak. roků od 2009/2010 po (aktuální + 2), sestupně.
+# Year mode konstanty — určují rozsah a chování comba pro akademický rok.
+YEAR_MODE_CURRENT = "current"   # jen aktuální rok, combo disabled
+YEAR_MODE_FUTURE = "future"     # next + next+1 (budoucí 2 roky)
+YEAR_MODE_HISTORY = "history"   # 2009/2010 .. current-1
+YEAR_MODE_ALL = "all"           # 2009/2010 .. current+2, plně editovatelné
 
-    - Aktuální + budoucích 2 roky (např. 2025/2026, 2026/2027, 2027/2028)
-    - Vše do hloubky 2009/2010 pro historické práce
-    """
+
+def _current_year_start() -> int:
     today = date.today()
-    current_start = today.year if today.month >= 9 else today.year - 1
-    end_start = current_start + 2  # +2 = rok po příštím
-    years = [f"{s}/{s + 1}" for s in range(2009, end_start + 1)]
+    return today.year if today.month >= 9 else today.year - 1
+
+
+def _academic_year_choices(mode: str) -> list[str]:
+    """Vrátí seznam ak. roků pro daný mode, vždy sestupně (nejaktuálnější nahoře)."""
+    s = _current_year_start()
+    current = f"{s}/{s + 1}"
+    next_year = f"{s + 1}/{s + 2}"
+    next_next = f"{s + 2}/{s + 3}"
+
+    if mode == YEAR_MODE_CURRENT:
+        return [current]
+    if mode == YEAR_MODE_FUTURE:
+        return [next_year, next_next]
+    if mode == YEAR_MODE_HISTORY:
+        years = [f"{y}/{y + 1}" for y in range(2009, s)]  # 2009/2010 .. (current-1)/current
+        return list(reversed(years))
+    # YEAR_MODE_ALL
+    end = s + 2
+    years = [f"{y}/{y + 1}" for y in range(2009, end + 1)]
     return list(reversed(years))
 
 
@@ -114,10 +133,16 @@ class ThesisDetail(QWidget):
     AUTOSAVE_DEBOUNCE_MS = 1500
     AUTOSAVE_SAFETY_MS = 30_000
 
-    def __init__(self, service: ThesisService, parent=None) -> None:
+    def __init__(
+        self,
+        service: ThesisService,
+        year_mode: str = YEAR_MODE_ALL,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.service = service
         self.thesis: Thesis | None = None
+        self._year_mode = year_mode
 
         # Autosave state
         self._dirty = False
@@ -251,17 +276,28 @@ class ThesisDetail(QWidget):
         row.addWidget(self.rb_dp)
         row.addSpacing(12)
 
-        # Rok — editovatelný combobox s pevným rozsahem
+        # Rok — combobox s rozsahem podle year_mode
         row.addWidget(QLabel("Rok:"))
         self.cb_year = QComboBox()
-        self.cb_year.setEditable(True)
-        self.cb_year.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        for y in _academic_year_choices():
+        for y in _academic_year_choices(self._year_mode):
             self.cb_year.addItem(y)
         self.cb_year.setMinimumContentsLength(9)  # "2027/2028"
         self.cb_year.setSizePolicy(
             QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
         )
+
+        if self._year_mode == YEAR_MODE_CURRENT:
+            # Aktuální tab — rok je vždy aktuální a nelze měnit
+            self.cb_year.setEnabled(False)
+            self.cb_year.setToolTip("Aktuální akademický rok — zamčeno")
+        elif self._year_mode == YEAR_MODE_ALL:
+            # Vše tab — editovatelné, kdyby uživatel chtěl ojedinělý rok
+            self.cb_year.setEditable(True)
+            self.cb_year.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        else:
+            # Budoucí / Historie — jen výběr z dropdownu, needitovatelné
+            self.cb_year.setEditable(False)
+
         row.addWidget(self.cb_year)
         row.addSpacing(12)
 
@@ -486,7 +522,7 @@ class ThesisDetail(QWidget):
                 self.rb_bp.setChecked(True)
             else:
                 self.rb_dp.setChecked(True)
-            self.cb_year.setCurrentText(thesis.academic_year)
+            self._set_year(thesis.academic_year or "")
 
             self._set_combo_to_id(self.cb_student, thesis.student_id)
             self._set_combo_to_id(self.cb_opponent, thesis.opponent_id)
@@ -526,7 +562,7 @@ class ThesisDetail(QWidget):
         """Napojí změny všech polí na ``_mark_dirty``."""
         self.rb_bp.toggled.connect(self._mark_dirty)
         self.rb_dp.toggled.connect(self._mark_dirty)
-        self.cb_year.editTextChanged.connect(self._mark_dirty)
+        self.cb_year.currentTextChanged.connect(self._mark_dirty)
         self.cb_student.currentIndexChanged.connect(self._mark_dirty)
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
@@ -838,6 +874,28 @@ class ThesisDetail(QWidget):
                 self._loading = False
             if idx >= 0:
                 self.cb_opponent.setCurrentIndex(idx)
+
+    def _set_year(self, year: str) -> None:
+        """Nastav cb_year na danou hodnotu i kdyby nebyla v dropdownu.
+
+        - Editable combo: setEditText / setCurrentText pohodlně funguje.
+        - Non-editable combo: pokud chybí v seznamu, dočasně ji přidáme,
+          aby se zobrazila správná hodnota i pro historické práce mimo
+          standardní rozsah year_mode.
+        """
+        if not year:
+            self.cb_year.setCurrentIndex(-1)
+            return
+        idx = self.cb_year.findText(year)
+        if idx < 0 and not self.cb_year.isEditable():
+            # Nebyla v seznamu — vlož ji na začátek, ať je vidět správná hodnota
+            self.cb_year.insertItem(0, year)
+            idx = 0
+        if idx >= 0:
+            self.cb_year.setCurrentIndex(idx)
+        else:
+            # editable combo — prostě nastav text
+            self.cb_year.setCurrentText(year)
 
     @staticmethod
     def _set_combo_to_id(combo: QComboBox, target_id: str | None) -> None:

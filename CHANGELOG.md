@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.7] - 2026-05-16
+
+### Changed
+- **Rozsah hodnot v comboboxu *Rok* závisí na záložce, ve které se práce
+  zobrazuje**:
+  - **Aktuální**: combobox **zamčený** (disabled), vždy aktuální rok,
+    nelze měnit. Tooltip: „Aktuální akademický rok — zamčeno".
+  - **Budoucí**: jen 2 hodnoty — *aktuální + 1* a *aktuální + 2*
+    (např. 2026/2027, 2027/2028). Nelze měnit jiné roky — dropdown only.
+  - **Historie**: 2009/2010 až *aktuální − 1* (sestupně). Dropdown only.
+  - **Vše**: 2009/2010 až *aktuální + 2*. Editovatelné, kdyby uživatel
+    potřeboval extrémní hodnotu.
+- ``ThesisDetail`` má nový konstrukční parametr ``year_mode``
+  (``current`` / ``future`` / ``history`` / ``all``).
+- ``_ThesesTab`` ``year_mode`` propaguje, ``MainWindow`` ho zadává podle
+  záložky.
+- Helper ``_set_year`` zajistí, že rok mimo standardní rozsah
+  (legacy data, např. 2005/2006) se v non-editable combu zobrazí —
+  dočasně se vloží do dropdownu.
+
 ## [0.7.6] - 2026-05-16
 
 ### Changed
@@ -409,7 +429,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.6...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.7...HEAD
+[0.7.7]: https://github.com/Safronus/bpdp-manager/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/Safronus/bpdp-manager/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/Safronus/bpdp-manager/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/Safronus/bpdp-manager/compare/v0.7.3...v0.7.4
