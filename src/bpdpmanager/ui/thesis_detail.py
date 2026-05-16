@@ -349,28 +349,40 @@ class ThesisDetail(QWidget):
         form.addRow("Název (EN)", self.ed_title_en)
         layout.addLayout(form)
 
+        # Anotace CZ a EN vedle sebe — šetří svislé místo
+        annot_row = QHBoxLayout()
+        annot_row.setSpacing(12)
+
+        cz_col = QVBoxLayout()
+        cz_col.setSpacing(2)
         lbl_cs = QLabel("Anotace (CZ)")
-        lbl_cs.setContentsMargins(8, 4, 8, 0)
-        layout.addWidget(lbl_cs)
+        lbl_cs.setContentsMargins(2, 4, 0, 0)
+        cz_col.addWidget(lbl_cs)
         self.ed_annotation = QPlainTextEdit()
-        self.ed_annotation.setMinimumHeight(100)
+        self.ed_annotation.setMinimumHeight(120)
         self.ed_annotation.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        layout.addWidget(self.ed_annotation, stretch=1)
+        cz_col.addWidget(self.ed_annotation, stretch=1)
+        annot_row.addLayout(cz_col, stretch=1)
 
+        en_col = QVBoxLayout()
+        en_col.setSpacing(2)
         lbl_en = QLabel("Anotace (EN)")
-        lbl_en.setContentsMargins(8, 4, 8, 0)
-        layout.addWidget(lbl_en)
+        lbl_en.setContentsMargins(2, 4, 0, 0)
+        en_col.addWidget(lbl_en)
         self.ed_annotation_en = QPlainTextEdit()
-        self.ed_annotation_en.setMinimumHeight(100)
+        self.ed_annotation_en.setMinimumHeight(120)
         self.ed_annotation_en.setPlaceholderText(
             "English version of the annotation (optional)."
         )
         self.ed_annotation_en.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        layout.addWidget(self.ed_annotation_en, stretch=1)
+        en_col.addWidget(self.ed_annotation_en, stretch=1)
+        annot_row.addLayout(en_col, stretch=1)
+
+        layout.addLayout(annot_row, stretch=1)
         return box
 
     def _build_assignment_section(self) -> QGroupBox:

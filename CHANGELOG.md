@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.7.8] - 2026-05-16
+
+### Changed
+- **Anotace CZ a Anotace EN vedle sebe** v sekci *Vypsané téma* —
+  místo dvou ``QPlainTextEdit`` pod sebou jsou nyní v ``QHBoxLayout``
+  s rovnoměrným rozdělením šířky 50/50. Šetří svislé místo, plně
+  funkční zachováno.
+
 ## [0.7.7] - 2026-05-16
 
 ### Changed
@@ -429,7 +437,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.7...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.8...HEAD
+[0.7.8]: https://github.com/Safronus/bpdp-manager/compare/v0.7.7...v0.7.8
 [0.7.7]: https://github.com/Safronus/bpdp-manager/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/Safronus/bpdp-manager/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/Safronus/bpdp-manager/compare/v0.7.4...v0.7.5
