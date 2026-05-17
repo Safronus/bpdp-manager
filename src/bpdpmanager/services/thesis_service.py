@@ -381,6 +381,43 @@ class ThesisService:
             return None
         return thesis_documents_dir(thesis_id) / attachment.url_or_path
 
+    # --- plagiátorství ------------------------------------------------------
+
+    def set_plagiarism_pdf(self, thesis_id: str, source_path: Path) -> str:
+        """Zkopíruje PDF s výsledkem plagiátorství do data složky a uloží filename."""
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            raise ValueError(f"Práce {thesis_id} neexistuje.")
+        target_dir = thesis_documents_dir(thesis_id)
+        target_path = target_dir / source_path.name
+        if target_path.exists():
+            stem, suffix = target_path.stem, target_path.suffix
+            i = 2
+            while target_path.exists():
+                target_path = target_dir / f"{stem}_{i}{suffix}"
+                i += 1
+        shutil.copy2(source_path, target_path)
+        thesis.plagiarism_pdf_filename = target_path.name
+        self.upsert_thesis(thesis)
+        return target_path.name
+
+    def remove_plagiarism_pdf(self, thesis_id: str, delete_file: bool = False) -> None:
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None or not thesis.plagiarism_pdf_filename:
+            return
+        if delete_file:
+            target = thesis_documents_dir(thesis_id) / thesis.plagiarism_pdf_filename
+            if target.exists():
+                target.unlink()
+        thesis.plagiarism_pdf_filename = None
+        self.upsert_thesis(thesis)
+
+    def plagiarism_pdf_path(self, thesis_id: str) -> Path | None:
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None or not thesis.plagiarism_pdf_filename:
+            return None
+        return thesis_documents_dir(thesis_id) / thesis.plagiarism_pdf_filename
+
     # --- harmonogram napříč roky --------------------------------------------
 
     def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:

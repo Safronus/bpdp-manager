@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import re
 from datetime import date, datetime
+from pathlib import Path
 
 _NUM_PREFIX_RE = re.compile(r"^\s*\d+\.\s+")
 
@@ -35,6 +36,8 @@ from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -216,6 +219,7 @@ class ThesisDetail(QWidget):
         self.tabs.addTab(self._build_summary_tab(), "📋 Souhrn")
         self.tabs.addTab(self._build_topic_tab(), "📝 Téma zadání")
         self.tabs.addTab(self._build_notes_tab(), "Poznámky")
+        self.tabs.addTab(self._build_plagiarism_tab(), "🔍 Plagiátorství")
         self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
@@ -454,6 +458,65 @@ class ThesisDetail(QWidget):
         layout.addWidget(self.documents_widget, stretch=1)
         return w
 
+    def _build_plagiarism_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(10)
+
+        # Shoda %
+        perc_row = QHBoxLayout()
+        perc_row.addWidget(QLabel("Procento shody:"))
+        self.spin_plag_pct = QDoubleSpinBox()
+        self.spin_plag_pct.setRange(0.0, 100.0)
+        self.spin_plag_pct.setDecimals(1)
+        self.spin_plag_pct.setSingleStep(0.5)
+        self.spin_plag_pct.setSuffix(" %")
+        self.spin_plag_pct.setFixedWidth(140)
+        # Speciální text pro hodnotu 0.0 — "nezadáno"
+        self.spin_plag_pct.setSpecialValueText("(nezadáno)")
+        perc_row.addWidget(self.spin_plag_pct)
+        perc_row.addStretch()
+        layout.addLayout(perc_row)
+
+        # Komentář
+        lbl_c = QLabel("Komentář k výsledku plagiátorství:")
+        lbl_c.setContentsMargins(0, 8, 0, 0)
+        layout.addWidget(lbl_c)
+        self.ed_plag_comment = QPlainTextEdit()
+        self.ed_plag_comment.setPlaceholderText(
+            "Např. „Drobné shody v citacích a standardních formulacích, žádné podezření.\""
+        )
+        self.ed_plag_comment.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        layout.addWidget(self.ed_plag_comment, stretch=1)
+
+        # PDF protokol
+        pdf_lbl = QLabel("PDF protokol o plagiátorství:")
+        pdf_lbl.setContentsMargins(0, 8, 0, 0)
+        layout.addWidget(pdf_lbl)
+
+        pdf_row = QHBoxLayout()
+        self.lbl_plag_pdf = QLabel("(žádný soubor)")
+        self.lbl_plag_pdf.setStyleSheet("color: #888;")
+        pdf_row.addWidget(self.lbl_plag_pdf, stretch=1)
+
+        self.btn_plag_upload = QPushButton("📎 Vybrat PDF…")
+        self.btn_plag_upload.clicked.connect(self._plag_upload)
+        pdf_row.addWidget(self.btn_plag_upload)
+
+        self.btn_plag_open = QPushButton("📂 Otevřít")
+        self.btn_plag_open.clicked.connect(self._plag_open)
+        pdf_row.addWidget(self.btn_plag_open)
+
+        self.btn_plag_remove = QPushButton("🗑 Odebrat")
+        self.btn_plag_remove.clicked.connect(self._plag_remove)
+        pdf_row.addWidget(self.btn_plag_remove)
+
+        layout.addLayout(pdf_row)
+        return w
+
     def _build_summary_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
@@ -546,6 +609,14 @@ class ThesisDetail(QWidget):
             self.ed_objectives.setPlainText(thesis.objectives or "")
             self.ed_references.setPlainText(thesis.references or "")
             self.ed_notes.setPlainText(thesis.notes)
+
+            # Plagiátorství
+            self.spin_plag_pct.setValue(
+                thesis.plagiarism_similarity_pct or 0.0
+            )
+            self.ed_plag_comment.setPlainText(thesis.plagiarism_comment or "")
+            self._update_plagiarism_pdf_display()
+
             self.documents_widget.set_thesis_id(thesis.id)
         finally:
             self._loading = False
@@ -575,6 +646,8 @@ class ThesisDetail(QWidget):
         self.rb_bp.toggled.connect(self._mark_dirty)
         self.rb_dp.toggled.connect(self._mark_dirty)
         self.cb_year.currentTextChanged.connect(self._mark_dirty)
+        self.spin_plag_pct.valueChanged.connect(self._mark_dirty)
+        self.ed_plag_comment.textChanged.connect(self._mark_dirty)
         self.cb_student.currentIndexChanged.connect(self._mark_dirty)
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
@@ -802,6 +875,34 @@ class ThesisDetail(QWidget):
                 f"{anot_en_html}"
             )
 
+        # ── Plagiátorství (jen pokud něco vyplněno) ────────────────────────
+        plag_section = ""
+        has_plag_pct = thesis.plagiarism_similarity_pct is not None
+        has_plag_comment = bool((thesis.plagiarism_comment or "").strip())
+        has_plag_pdf = bool(thesis.plagiarism_pdf_filename)
+        if has_plag_pct or has_plag_comment or has_plag_pdf:
+            pct_str = (
+                f"{thesis.plagiarism_similarity_pct:.1f} %"
+                if has_plag_pct
+                else "—"
+            )
+            comment_html = (
+                e(thesis.plagiarism_comment.strip()).replace("\n", "<br>")
+                if has_plag_comment
+                else "<span style='color:#888;font-style:italic;'>(bez komentáře)</span>"
+            )
+            pdf_html = (
+                f"📄 {e(thesis.plagiarism_pdf_filename)}"
+                if has_plag_pdf
+                else "<span style='color:#888;font-style:italic;'>(žádné PDF)</span>"
+            )
+            plag_section = (
+                f'<h3 style="{section_header_style}">🔍 Plagiátorství:</h3>'
+                f"<p><b>Shoda:</b> {pct_str}</p>"
+                f"<p><b>Komentář:</b> {comment_html}</p>"
+                f"<p><b>PDF protokol:</b> {pdf_html}</p>"
+            )
+
         return (
             "<html><body>"
             f"{status_bar}"
@@ -818,6 +919,7 @@ class ThesisDetail(QWidget):
             f'<h3 style="{section_header_style}">Literární zdroje:'
             f"{cp('references', 'Zkopírovat literární zdroje')}</h3>"
             f"{ref_html}"
+            f"{plag_section}"
             "</body></html>"
         )
 
@@ -951,11 +1053,109 @@ class ThesisDetail(QWidget):
         self.thesis.objectives = self.ed_objectives.toPlainText()
         self.thesis.references = self.ed_references.toPlainText()
         self.thesis.notes = self.ed_notes.toPlainText().strip()
+
+        # Plagiátorství — hodnota 0 znamená "nezadáno" (specialValueText)
+        pct = self.spin_plag_pct.value()
+        self.thesis.plagiarism_similarity_pct = pct if pct > 0 else None
+        self.thesis.plagiarism_comment = self.ed_plag_comment.toPlainText().strip()
         # attachments spravuje DocumentsWidget okamžitě skrz service,
         # zde je proto nepřepisujeme — jen znovu načteme aktuální stav.
         fresh = self.service.get_thesis(self.thesis.id)
         if fresh is not None:
             self.thesis.attachments = fresh.attachments
+
+    # --- plagiátorství akce -------------------------------------------------
+
+    def _update_plagiarism_pdf_display(self) -> None:
+        """Aktualizuje label a stav tlačítek podle stavu PDF."""
+        has_pdf = bool(
+            self.thesis and self.thesis.plagiarism_pdf_filename
+        )
+        if has_pdf:
+            self.lbl_plag_pdf.setText(f"📄 {self.thesis.plagiarism_pdf_filename}")
+            self.lbl_plag_pdf.setStyleSheet("")
+        else:
+            self.lbl_plag_pdf.setText("(žádný soubor)")
+            self.lbl_plag_pdf.setStyleSheet("color: #888;")
+        self.btn_plag_open.setEnabled(has_pdf)
+        self.btn_plag_remove.setEnabled(has_pdf)
+
+    def _plag_upload(self) -> None:
+        if self.thesis is None:
+            return
+        path_str, _ = QFileDialog.getOpenFileName(
+            self,
+            "Vyber PDF s výsledkem plagiátorství",
+            str(Path.home()),
+            "PDF soubory (*.pdf);;Všechny soubory (*.*)",
+        )
+        if not path_str:
+            return
+        try:
+            self.service.set_plagiarism_pdf(self.thesis.id, Path(path_str))
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(
+                self, "Chyba", f"Nepodařilo se uložit PDF:\n{exc}"
+            )
+            return
+        fresh = self.service.get_thesis(self.thesis.id)
+        if fresh is not None:
+            self.thesis = fresh
+        self._update_plagiarism_pdf_display()
+        # Pokud je viditelný Souhrn, přegeneruj ho
+        if self.tabs.currentIndex() == 0:
+            self._refresh_summary()
+
+    def _plag_open(self) -> None:
+        if self.thesis is None:
+            return
+        path = self.service.plagiarism_pdf_path(self.thesis.id)
+        if path is None or not path.exists():
+            QMessageBox.information(
+                self, "Otevřít PDF", "Žádné PDF není nahrané."
+            )
+            return
+        self._open_path_in_os(path)
+
+    def _plag_remove(self) -> None:
+        if self.thesis is None or not self.thesis.plagiarism_pdf_filename:
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Odebrat PDF",
+            f'Odebrat protokol „{self.thesis.plagiarism_pdf_filename}"?\n\n'
+            f"Smazat i samotný soubor ze složky?",
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.No
+            | QMessageBox.StandardButton.Cancel,
+        )
+        if confirm == QMessageBox.StandardButton.Cancel:
+            return
+        delete_file = confirm == QMessageBox.StandardButton.Yes
+        self.service.remove_plagiarism_pdf(self.thesis.id, delete_file=delete_file)
+        fresh = self.service.get_thesis(self.thesis.id)
+        if fresh is not None:
+            self.thesis = fresh
+        self._update_plagiarism_pdf_display()
+        if self.tabs.currentIndex() == 0:
+            self._refresh_summary()
+
+    @staticmethod
+    def _open_path_in_os(path: Path) -> None:
+        import os
+        import subprocess
+        import sys
+
+        target = str(path)
+        if sys.platform == "darwin":
+            subprocess.run(["open", target], check=False)
+        elif sys.platform.startswith("linux"):
+            subprocess.run(["xdg-open", target], check=False)
+        elif sys.platform == "win32":
+            try:
+                os.startfile(target)  # type: ignore[attr-defined]
+            except OSError:
+                pass
 
     def _save(self) -> None:
         if self.thesis is None:

@@ -45,6 +45,11 @@ class Thesis(BaseModel):
     notes: str = ""
     attachments: list[Attachment] = Field(default_factory=list)
 
+    # Výsledek kontroly plagiátorství
+    plagiarism_similarity_pct: float | None = None  # 0–100
+    plagiarism_comment: str = ""
+    plagiarism_pdf_filename: str | None = None  # název v thesis_documents_dir(id)
+
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

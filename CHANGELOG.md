@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-17
+
+### Added
+- **Nová záložka „🔍 Plagiátorství"** v detailu práce (pořadí: Souhrn,
+  Téma zadání, Poznámky, **Plagiátorství**, Dokumenty) s třemi poli:
+  - **Procento shody** (``QDoubleSpinBox``, 0–100 % s krokem 0.5 a
+    desetinou). Hodnota 0 zobrazí „(nezadáno)" a do JSON se zapíše jako
+    ``None``.
+  - **Komentář** k výsledku (``QPlainTextEdit``).
+  - **PDF protokol** s tlačítky *Vybrat PDF…*, *Otevřít*, *Odebrat*.
+    Soubor se kopíruje do ``~/.bpdpmanager/documents/{thesis_id}/``.
+- Souhrn práce má novou sekci **🔍 Plagiátorství**, která se zobrazí
+  jen pokud je vyplněné aspoň jedno z polí (procento / komentář / PDF).
+- ``Thesis`` model: ``plagiarism_similarity_pct: float | None``,
+  ``plagiarism_comment: str``, ``plagiarism_pdf_filename: str | None``.
+- ``ThesisService`` metody ``set_plagiarism_pdf``, ``remove_plagiarism_pdf``,
+  ``plagiarism_pdf_path``.
+
 ## [0.7.8] - 2026-05-16
 
 ### Changed
@@ -437,7 +455,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.7.8...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Safronus/bpdp-manager/compare/v0.7.8...v0.8.0
 [0.7.8]: https://github.com/Safronus/bpdp-manager/compare/v0.7.7...v0.7.8
 [0.7.7]: https://github.com/Safronus/bpdp-manager/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/Safronus/bpdp-manager/compare/v0.7.5...v0.7.6
