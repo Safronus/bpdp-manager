@@ -30,13 +30,12 @@ def _format_numbered(text: str | None) -> str:
     items = _split_items(text)
     return "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items))
 
-from PySide6.QtCore import Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QCursor
+from PySide6.QtCore import Qt, QLocale, QTimer, QUrl, Signal
+from PySide6.QtGui import QCursor, QDoubleValidator
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QComboBox,
-    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QGroupBox,
@@ -467,15 +466,16 @@ class ThesisDetail(QWidget):
         # Shoda %
         perc_row = QHBoxLayout()
         perc_row.addWidget(QLabel("Procento shody:"))
-        self.spin_plag_pct = QDoubleSpinBox()
-        self.spin_plag_pct.setRange(0.0, 100.0)
-        self.spin_plag_pct.setDecimals(1)
-        self.spin_plag_pct.setSingleStep(0.5)
-        self.spin_plag_pct.setSuffix(" %")
-        self.spin_plag_pct.setFixedWidth(140)
-        # Speciální text pro hodnotu 0.0 — "nezadáno"
-        self.spin_plag_pct.setSpecialValueText("(nezadáno)")
-        perc_row.addWidget(self.spin_plag_pct)
+        self.ed_plag_pct = QLineEdit()
+        self.ed_plag_pct.setPlaceholderText("např. 12.3")
+        validator = QDoubleValidator(0.0, 100.0, 2, self)
+        validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        # akceptuj tečku i čárku jako desetinnou
+        validator.setLocale(QLocale(QLocale.Language.English))
+        self.ed_plag_pct.setValidator(validator)
+        self.ed_plag_pct.setFixedWidth(120)
+        perc_row.addWidget(self.ed_plag_pct)
+        perc_row.addWidget(QLabel("%"))
         perc_row.addStretch()
         layout.addLayout(perc_row)
 
@@ -611,9 +611,14 @@ class ThesisDetail(QWidget):
             self.ed_notes.setPlainText(thesis.notes)
 
             # Plagiátorství
-            self.spin_plag_pct.setValue(
-                thesis.plagiarism_similarity_pct or 0.0
-            )
+            if thesis.plagiarism_similarity_pct is None:
+                self.ed_plag_pct.clear()
+            else:
+                # zobrazujeme s odstraněním nul (např. 15.0 → "15", 15.3 → "15.3")
+                pct = thesis.plagiarism_similarity_pct
+                self.ed_plag_pct.setText(
+                    f"{pct:g}".replace(",", ".")
+                )
             self.ed_plag_comment.setPlainText(thesis.plagiarism_comment or "")
             self._update_plagiarism_pdf_display()
 
@@ -646,7 +651,7 @@ class ThesisDetail(QWidget):
         self.rb_bp.toggled.connect(self._mark_dirty)
         self.rb_dp.toggled.connect(self._mark_dirty)
         self.cb_year.currentTextChanged.connect(self._mark_dirty)
-        self.spin_plag_pct.valueChanged.connect(self._mark_dirty)
+        self.ed_plag_pct.textChanged.connect(self._mark_dirty)
         self.ed_plag_comment.textChanged.connect(self._mark_dirty)
         self.cb_student.currentIndexChanged.connect(self._mark_dirty)
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
@@ -898,8 +903,10 @@ class ThesisDetail(QWidget):
             )
             plag_section = (
                 f'<h3 style="{section_header_style}">🔍 Plagiátorství:</h3>'
-                f"<p><b>Shoda:</b> {pct_str}</p>"
-                f"<p><b>Komentář:</b> {comment_html}</p>"
+                f"<p><b>Shoda:</b> {pct_str}"
+                f"{cp('plag_pct', 'Zkopírovat procento shody') if has_plag_pct else ''}</p>"
+                f"<p><b>Komentář:</b> {comment_html}"
+                f"{cp('plag_comment', 'Zkopírovat komentář k plagiátorství') if has_plag_comment else ''}</p>"
                 f"<p><b>PDF protokol:</b> {pdf_html}</p>"
             )
 
@@ -960,6 +967,12 @@ class ThesisDetail(QWidget):
             return _format_numbered(t.objectives), "body zadání"
         if field == "references":
             return _format_numbered(t.references), "literární zdroje"
+        if field == "plag_pct":
+            if t.plagiarism_similarity_pct is None:
+                return "", "shoda plagiátorství"
+            return f"{t.plagiarism_similarity_pct:g} %", "shoda plagiátorství"
+        if field == "plag_comment":
+            return t.plagiarism_comment or "", "komentář k plagiátorství"
         return None, ""
 
     # --- akce ----------------------------------------------------------------
@@ -1054,9 +1067,15 @@ class ThesisDetail(QWidget):
         self.thesis.references = self.ed_references.toPlainText()
         self.thesis.notes = self.ed_notes.toPlainText().strip()
 
-        # Plagiátorství — hodnota 0 znamená "nezadáno" (specialValueText)
-        pct = self.spin_plag_pct.value()
-        self.thesis.plagiarism_similarity_pct = pct if pct > 0 else None
+        # Plagiátorství — text z QLineEdit s validatorem
+        raw = self.ed_plag_pct.text().strip().replace(",", ".").replace("%", "").strip()
+        if not raw:
+            self.thesis.plagiarism_similarity_pct = None
+        else:
+            try:
+                self.thesis.plagiarism_similarity_pct = float(raw)
+            except ValueError:
+                self.thesis.plagiarism_similarity_pct = None
         self.thesis.plagiarism_comment = self.ed_plag_comment.toPlainText().strip()
         # attachments spravuje DocumentsWidget okamžitě skrz service,
         # zde je proto nepřepisujeme — jen znovu načteme aktuální stav.

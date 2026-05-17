@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-05-17
+
+### Changed
+- **Pole *Procento shody* je nyní ``QLineEdit``** s placeholderem
+  („např. 12.3") a ``QDoubleValidator`` (rozsah 0–100, 2 desetinná místa).
+  Žádný spinbox, který bránil přímému psaní. Klikneš, placeholder zmizí,
+  napíšeš číslo (akceptuje tečku i čárku jako desetinný oddělovač).
+  Prázdné pole = „nezadáno" (ukládá se jako ``None``).
+- Hodnota v Souhrnu se zobrazí přes ``%g`` formátování — bez zbytečných
+  nul (např. ``15`` místo ``15.0`` či ``15.30``).
+
+### Added
+- **Copy 📋 tlačítka v Souhrnu** vedle:
+  - **Shoda** → zkopíruje text typu „15.3 %"
+  - **Komentář** → zkopíruje plný text komentáře
+  Tlačítka se zobrazí jen pokud je dané pole vyplněné.
+
 ## [0.8.0] - 2026-05-17
 
 ### Added
@@ -455,7 +472,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/Safronus/bpdp-manager/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Safronus/bpdp-manager/compare/v0.7.8...v0.8.0
 [0.7.8]: https://github.com/Safronus/bpdp-manager/compare/v0.7.7...v0.7.8
 [0.7.7]: https://github.com/Safronus/bpdp-manager/compare/v0.7.6...v0.7.7
