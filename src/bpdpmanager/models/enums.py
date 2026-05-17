@@ -53,6 +53,35 @@ ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
 }
 
 
+class PlagiarismVerdict(str, Enum):
+    """Posouzení výsledku plagiátorství vedoucím."""
+
+    NOT_ASSESSED = "not_assessed"
+    PLAGIARISM = "plagiarism"
+    NOT_PLAGIARISM = "not_plagiarism"
+
+    @property
+    def label(self) -> str:
+        return PLAGIARISM_VERDICT_LABELS[self]
+
+    @property
+    def color(self) -> str:
+        return PLAGIARISM_VERDICT_COLORS[self]
+
+
+PLAGIARISM_VERDICT_LABELS: dict["PlagiarismVerdict", str] = {
+    PlagiarismVerdict.NOT_ASSESSED: "Neposouzen",
+    PlagiarismVerdict.PLAGIARISM: "Posouzen — je plagiát",
+    PlagiarismVerdict.NOT_PLAGIARISM: "Posouzen — není plagiát",
+}
+
+PLAGIARISM_VERDICT_COLORS: dict["PlagiarismVerdict", str] = {
+    PlagiarismVerdict.NOT_ASSESSED: "#9e9e9e",   # šedá
+    PlagiarismVerdict.PLAGIARISM: "#c62828",     # červená
+    PlagiarismVerdict.NOT_PLAGIARISM: "#2e7d32", # zelená
+}
+
+
 class ThesisStatus(str, Enum):
     INTERESTED = "interested"
     RESERVED = "reserved"

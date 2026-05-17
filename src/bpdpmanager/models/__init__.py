@@ -1,5 +1,12 @@
 from .academic_year import AcademicYear
-from .enums import AttachmentKind, OpponentKind, StudyForm, ThesisStatus, ThesisType
+from .enums import (
+    AttachmentKind,
+    OpponentKind,
+    PlagiarismVerdict,
+    StudyForm,
+    ThesisStatus,
+    ThesisType,
+)
 from .harmonogram import AcademicYearInfo, KeyDate, KeyDateCategory
 from .obor import Obor
 from .opponent import Opponent
@@ -17,6 +24,7 @@ __all__ = [
     "Obor",
     "Opponent",
     "OpponentKind",
+    "PlagiarismVerdict",
     "Student",
     "StudyForm",
     "Thesis",

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
-from .enums import AttachmentKind, ThesisStatus, ThesisType
+from .enums import AttachmentKind, PlagiarismVerdict, ThesisStatus, ThesisType
 
 
 class Deadline(BaseModel):
@@ -49,6 +49,7 @@ class Thesis(BaseModel):
     plagiarism_similarity_pct: float | None = None  # 0–100
     plagiarism_comment: str = ""
     plagiarism_pdf_filename: str | None = None  # název v thesis_documents_dir(id)
+    plagiarism_verdict: PlagiarismVerdict = PlagiarismVerdict.NOT_ASSESSED
 
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)

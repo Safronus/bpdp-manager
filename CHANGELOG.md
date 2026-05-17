@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-05-17
+
+### Added
+- **Verdikt plagiátorství** v záložce *🔍 Plagiátorství* — 3 možnosti
+  jako radio buttony s defaultem **Neposouzen**:
+  - ⚪ *Neposouzen* (šedá)
+  - 🔴 *Posouzen — je plagiát* (červená)
+  - 🟢 *Posouzen — není plagiát* (zelená)
+- Pod radio buttony je **velký barevný badge** s aktuální hodnotou
+  v uppercase — rychlý vizuální feedback.
+- V Souhrnu se Verdikt zobrazí jako menší barevný badge nahoře v
+  sekci 🔍 Plagiátorství (zobrazí se i pokud ostatní pole nejsou
+  vyplněná, ale verdikt je jiný než *Neposouzen*).
+- ``PlagiarismVerdict`` enum v ``models/enums.py`` s ``label`` a
+  ``color`` properties.
+- ``Thesis.plagiarism_verdict: PlagiarismVerdict`` field
+  (default ``NOT_ASSESSED``, JSON value ``"not_assessed"``).
+
 ## [0.8.1] - 2026-05-17
 
 ### Changed
@@ -472,7 +490,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/Safronus/bpdp-manager/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Safronus/bpdp-manager/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Safronus/bpdp-manager/compare/v0.7.8...v0.8.0
 [0.7.8]: https://github.com/Safronus/bpdp-manager/compare/v0.7.7...v0.7.8

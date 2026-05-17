@@ -113,7 +113,12 @@ def _setup_searchable_combo(combo: QComboBox) -> None:
         )
 
 from ..models import Thesis
-from ..models.enums import ALLOWED_TRANSITIONS, ThesisStatus, ThesisType
+from ..models.enums import (
+    ALLOWED_TRANSITIONS,
+    PlagiarismVerdict,
+    ThesisStatus,
+    ThesisType,
+)
 from ..services import ThesisService
 from ..services.thesis_service import TransitionError
 from .opponent_dialog import OpponentDialog
@@ -479,6 +484,32 @@ class ThesisDetail(QWidget):
         perc_row.addStretch()
         layout.addLayout(perc_row)
 
+        # Verdikt — 3 radio buttony + barevný badge
+        verdict_row = QHBoxLayout()
+        verdict_row.addWidget(QLabel("Verdikt:"))
+        self.rb_verdict_na = QRadioButton(PlagiarismVerdict.NOT_ASSESSED.label)
+        self.rb_verdict_pl = QRadioButton(PlagiarismVerdict.PLAGIARISM.label)
+        self.rb_verdict_np = QRadioButton(PlagiarismVerdict.NOT_PLAGIARISM.label)
+        self._verdict_group = QButtonGroup(self)
+        self._verdict_group.addButton(self.rb_verdict_na, 0)
+        self._verdict_group.addButton(self.rb_verdict_pl, 1)
+        self._verdict_group.addButton(self.rb_verdict_np, 2)
+        self.rb_verdict_na.setChecked(True)
+        verdict_row.addWidget(self.rb_verdict_na)
+        verdict_row.addWidget(self.rb_verdict_pl)
+        verdict_row.addWidget(self.rb_verdict_np)
+        verdict_row.addStretch()
+        layout.addLayout(verdict_row)
+
+        # Velký barevný badge ukazující aktuální verdikt
+        self.lbl_verdict_badge = QLabel("")
+        self.lbl_verdict_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._update_verdict_badge_style(PlagiarismVerdict.NOT_ASSESSED)
+        layout.addWidget(self.lbl_verdict_badge)
+
+        # napojení změny radio → update badge
+        self._verdict_group.buttonClicked.connect(self._on_verdict_changed)
+
         # Komentář
         lbl_c = QLabel("Komentář k výsledku plagiátorství:")
         lbl_c.setContentsMargins(0, 8, 0, 0)
@@ -620,6 +651,7 @@ class ThesisDetail(QWidget):
                     f"{pct:g}".replace(",", ".")
                 )
             self.ed_plag_comment.setPlainText(thesis.plagiarism_comment or "")
+            self._set_verdict_radio(thesis.plagiarism_verdict)
             self._update_plagiarism_pdf_display()
 
             self.documents_widget.set_thesis_id(thesis.id)
@@ -653,6 +685,9 @@ class ThesisDetail(QWidget):
         self.cb_year.currentTextChanged.connect(self._mark_dirty)
         self.ed_plag_pct.textChanged.connect(self._mark_dirty)
         self.ed_plag_comment.textChanged.connect(self._mark_dirty)
+        self.rb_verdict_na.toggled.connect(self._mark_dirty)
+        self.rb_verdict_pl.toggled.connect(self._mark_dirty)
+        self.rb_verdict_np.toggled.connect(self._mark_dirty)
         self.cb_student.currentIndexChanged.connect(self._mark_dirty)
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
@@ -885,9 +920,16 @@ class ThesisDetail(QWidget):
         has_plag_pct = thesis.plagiarism_similarity_pct is not None
         has_plag_comment = bool((thesis.plagiarism_comment or "").strip())
         has_plag_pdf = bool(thesis.plagiarism_pdf_filename)
-        if has_plag_pct or has_plag_comment or has_plag_pdf:
+        has_plag_verdict = thesis.plagiarism_verdict != PlagiarismVerdict.NOT_ASSESSED
+        if has_plag_pct or has_plag_comment or has_plag_pdf or has_plag_verdict:
+            verdict = thesis.plagiarism_verdict
+            verdict_badge = (
+                f'<span style="background-color:{verdict.color};color:white;'
+                f"padding:3px 10px;border-radius:5px;font-weight:bold;"
+                f'letter-spacing:0.5px;">{e(verdict.label.upper())}</span>'
+            )
             pct_str = (
-                f"{thesis.plagiarism_similarity_pct:.1f} %"
+                f"{thesis.plagiarism_similarity_pct:g} %"
                 if has_plag_pct
                 else "—"
             )
@@ -903,6 +945,7 @@ class ThesisDetail(QWidget):
             )
             plag_section = (
                 f'<h3 style="{section_header_style}">🔍 Plagiátorství:</h3>'
+                f"<p><b>Verdikt:</b> {verdict_badge}</p>"
                 f"<p><b>Shoda:</b> {pct_str}"
                 f"{cp('plag_pct', 'Zkopírovat procento shody') if has_plag_pct else ''}</p>"
                 f"<p><b>Komentář:</b> {comment_html}"
@@ -1077,6 +1120,7 @@ class ThesisDetail(QWidget):
             except ValueError:
                 self.thesis.plagiarism_similarity_pct = None
         self.thesis.plagiarism_comment = self.ed_plag_comment.toPlainText().strip()
+        self.thesis.plagiarism_verdict = self._current_verdict()
         # attachments spravuje DocumentsWidget okamžitě skrz service,
         # zde je proto nepřepisujeme — jen znovu načteme aktuální stav.
         fresh = self.service.get_thesis(self.thesis.id)
@@ -1084,6 +1128,33 @@ class ThesisDetail(QWidget):
             self.thesis.attachments = fresh.attachments
 
     # --- plagiátorství akce -------------------------------------------------
+
+    def _current_verdict(self) -> PlagiarismVerdict:
+        if self.rb_verdict_pl.isChecked():
+            return PlagiarismVerdict.PLAGIARISM
+        if self.rb_verdict_np.isChecked():
+            return PlagiarismVerdict.NOT_PLAGIARISM
+        return PlagiarismVerdict.NOT_ASSESSED
+
+    def _set_verdict_radio(self, verdict: PlagiarismVerdict) -> None:
+        if verdict == PlagiarismVerdict.PLAGIARISM:
+            self.rb_verdict_pl.setChecked(True)
+        elif verdict == PlagiarismVerdict.NOT_PLAGIARISM:
+            self.rb_verdict_np.setChecked(True)
+        else:
+            self.rb_verdict_na.setChecked(True)
+        self._update_verdict_badge_style(verdict)
+
+    def _update_verdict_badge_style(self, verdict: PlagiarismVerdict) -> None:
+        self.lbl_verdict_badge.setText(verdict.label.upper())
+        self.lbl_verdict_badge.setStyleSheet(
+            f"QLabel {{ background-color: {verdict.color}; color: white; "
+            f"font-weight: bold; padding: 8px 14px; border-radius: 6px; "
+            f"font-size: 13pt; letter-spacing: 0.5px; }}"
+        )
+
+    def _on_verdict_changed(self, *_args) -> None:
+        self._update_verdict_badge_style(self._current_verdict())
 
     def _update_plagiarism_pdf_display(self) -> None:
         """Aktualizuje label a stav tlačítek podle stavu PDF."""
