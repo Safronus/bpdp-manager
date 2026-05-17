@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import locale
+import unicodedata
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -17,6 +20,50 @@ from ..services import ThesisService
 
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
+
+# ── České abecední řazení ────────────────────────────────────────────────────
+_HAS_CZECH_LOCALE = False
+for _loc in ("cs_CZ.UTF-8", "cs_CZ.utf8", "cs_CZ", "Czech_Czech Republic.1250"):
+    try:
+        locale.setlocale(locale.LC_COLLATE, _loc)
+        _HAS_CZECH_LOCALE = True
+        break
+    except locale.Error:
+        continue
+
+
+def _ascii_fold(s: str) -> str:
+    """NFD-rozložení a vyhození diakritiky — fallback pro chybějící cs locale."""
+    nfd = unicodedata.normalize("NFD", s)
+    return "".join(c for c in nfd if not unicodedata.combining(c)).casefold()
+
+
+def _czech_key(s: str) -> str:
+    """Klíč pro abecední řazení češtiny (s diakritikou).
+
+    Pokud je v systému locale ``cs_CZ.UTF-8``, použije ``locale.strxfrm``
+    (správně řadí: c < č, h < ch < i, ť, ř atd.). Jinak ASCII fold —
+    diakritika se ignoruje, ale alespoň case-insensitive.
+    """
+    if not s:
+        return ""
+    if _HAS_CZECH_LOCALE:
+        return locale.strxfrm(s.casefold())
+    return _ascii_fold(s)
+
+
+def _thesis_sort_key(
+    thesis: Thesis, service: ThesisService
+) -> tuple[int, str, str]:
+    """Klíč pro řazení prací uvnitř (rok, BP/DP) skupiny.
+
+    Pořadí: práce se studentem podle příjmení (česky), pak křestního jména.
+    Práce bez studenta jdou na konec.
+    """
+    student = service.get_student(thesis.student_id) if thesis.student_id else None
+    if student is None:
+        return (1, "", "")
+    return (0, _czech_key(student.last_name), _czech_key(student.first_name))
 
 
 class ThesesTreeWidget(QTreeWidget):
@@ -105,9 +152,9 @@ class ThesesTreeWidget(QTreeWidget):
                     theses = groups[year][type_code]
                     if not theses:
                         continue
-                    theses.sort(
-                        key=lambda t: (t.status.order, t.display_title.lower())
-                    )
+                    # Řazení uvnitř skupiny: česky abecedně podle příjmení
+                    # (sekundárně podle jména); bez studenta na konci.
+                    theses.sort(key=lambda t: _thesis_sort_key(t, self.service))
 
                     type_label = ThesisType(type_code).label
                     type_item = QTreeWidgetItem(

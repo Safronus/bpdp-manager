@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-05-17
+
+### Changed
+- **Práce ve stromu se řadí česky abecedně dle příjmení studenta**
+  (dříve dle stavu a názvu). Sekundárně dle křestního jména. Práce
+  bez přiřazeného studenta jdou na konec skupiny.
+- Řazení respektuje **českou diakritiku** přes ``locale.strxfrm``
+  s ``cs_CZ.UTF-8``:
+  - ``A → B → C → Č → D → Ď → E → … → H → CH → I → … → R → Ř → S → Š → … → Ž``
+  - Příklad: *Aplikace, Cerný, Černý, Hájek, Chrást, Vrána, Vzorník, Žák*
+- Pokud cs_CZ locale není k dispozici (Windows/exotické prostředí),
+  fallback na ASCII fold přes NFD — diakritika se ignoruje, ale alespoň
+  case-insensitive řazení funguje.
+
 ## [0.8.2] - 2026-05-17
 
 ### Added
@@ -490,7 +504,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/Safronus/bpdp-manager/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/Safronus/bpdp-manager/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Safronus/bpdp-manager/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Safronus/bpdp-manager/compare/v0.7.8...v0.8.0
