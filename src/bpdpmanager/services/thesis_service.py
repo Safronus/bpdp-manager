@@ -11,6 +11,7 @@ from ..models import (
     KeyDate,
     Obor,
     Opponent,
+    OpposingThesis,
     Student,
     Thesis,
 )
@@ -426,6 +427,91 @@ class ThesisService:
         if thesis is None or not thesis.plagiarism_pdf_filename:
             return None
         return thesis_documents_dir(thesis_id) / thesis.plagiarism_pdf_filename
+
+    # --- harmonogram napříč roky --------------------------------------------
+
+    # --- oponentské posudky -------------------------------------------------
+
+    def list_opposing_theses(self) -> list[OpposingThesis]:
+        return list(self._db.opposing_theses)
+
+    def get_opposing_thesis(self, op_id: str) -> OpposingThesis | None:
+        return next(
+            (t for t in self._db.opposing_theses if t.id == op_id), None
+        )
+
+    def upsert_opposing_thesis(self, op: OpposingThesis) -> OpposingThesis:
+        op.touch()
+        existing = self.get_opposing_thesis(op.id)
+        if existing:
+            idx = self._db.opposing_theses.index(existing)
+            self._db.opposing_theses[idx] = op
+        else:
+            self._db.opposing_theses.append(op)
+        self.save()
+        return op
+
+    def delete_opposing_thesis(self, op_id: str) -> None:
+        self._db.opposing_theses = [
+            t for t in self._db.opposing_theses if t.id != op_id
+        ]
+        self.save()
+
+    def opposing_attach_document(
+        self,
+        op_id: str,
+        source_path: Path,
+        kind: AttachmentKind = AttachmentKind.OTHER,
+        label: str | None = None,
+    ) -> Attachment:
+        """Nahraje soubor k oponentskému posudku. Soubory leží v
+        ``documents/opposing-{id}/`` aby se neorganizovaly s vedením prací.
+        """
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            raise ValueError(f"Oponentský posudek {op_id} neexistuje.")
+
+        target_dir = thesis_documents_dir(f"opposing-{op_id}")
+        target_name = source_path.name
+        target_path = target_dir / target_name
+        if target_path.exists():
+            stem, suffix = target_path.stem, target_path.suffix
+            i = 2
+            while target_path.exists():
+                target_path = target_dir / f"{stem}_{i}{suffix}"
+                i += 1
+        shutil.copy2(source_path, target_path)
+
+        attachment = Attachment(
+            label=label or target_path.name,
+            url_or_path=target_path.name,
+            kind=kind,
+            is_file=True,
+        )
+        op.attachments.append(attachment)
+        self.upsert_opposing_thesis(op)
+        return attachment
+
+    def opposing_remove_document(
+        self, op_id: str, index: int, delete_file: bool = False
+    ) -> None:
+        op = self.get_opposing_thesis(op_id)
+        if op is None or not (0 <= index < len(op.attachments)):
+            return
+        attachment = op.attachments[index]
+        if delete_file and attachment.is_file:
+            target = thesis_documents_dir(f"opposing-{op_id}") / attachment.url_or_path
+            if target.exists():
+                target.unlink()
+        del op.attachments[index]
+        self.upsert_opposing_thesis(op)
+
+    def opposing_document_absolute_path(
+        self, op_id: str, attachment: Attachment
+    ) -> Path | None:
+        if not attachment.is_file:
+            return None
+        return thesis_documents_dir(f"opposing-{op_id}") / attachment.url_or_path
 
     # --- harmonogram napříč roky --------------------------------------------
 

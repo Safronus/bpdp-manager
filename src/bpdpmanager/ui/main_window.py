@@ -43,6 +43,7 @@ from .manage_dialogs import (
     StudentsManageDialog,
 )
 from .new_profile_dialog import NewProfileDialog
+from .opposing_tab import OpposingTab
 from .profile_manage_dialog import ProfileManageDialog
 from .theses_tree import ThesesTreeWidget
 from .thesis_detail import (
@@ -146,12 +147,14 @@ class MainWindow(QMainWindow):
             year_mode=YEAR_MODE_HISTORY,
         )
         self.tab_all = _ThesesTab(service, lambda t: True, year_mode=YEAR_MODE_ALL)
+        self.tab_opposing = OpposingTab(service)
         self.tab_harmonogram = HarmonogramTab(service)
 
         self.tabs.addTab(self.tab_current, f"Aktuální ({current_year})")
         self.tabs.addTab(self.tab_future, f"Budoucí ({next_year})")
         self.tabs.addTab(self.tab_history, "Historie")
         self.tabs.addTab(self.tab_all, "Vše")
+        self.tabs.addTab(self.tab_opposing, "🧐 Oponentské posudky")
         self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
 
         self.setCentralWidget(self.tabs)
@@ -534,6 +537,8 @@ class MainWindow(QMainWindow):
                 # přidal studenta/oponenta v management dialogu, ať se
                 # hned objeví v rozbalovači u Téma zadání.
                 widget.detail.refresh_combos()
+            elif isinstance(widget, OpposingTab):
+                widget.refresh()
             elif isinstance(widget, HarmonogramTab):
                 widget._refresh_year_combo()
         self._update_status()
@@ -548,9 +553,11 @@ class MainWindow(QMainWindow):
 
     def _update_status(self) -> None:
         total = len(self.service.list_theses())
+        opposing = len(self.service.list_opposing_theses())
         students = len(self.service.list_students())
         opponents = len(self.service.list_opponents())
         obory = len(self.service.list_obory())
         self.statusBar().showMessage(
-            f"Práce: {total} • Studenti: {students} • Oponenti: {opponents} • Obory: {obory}"
+            f"Vedené práce: {total} • Oponentury: {opposing} • "
+            f"Studenti: {students} • Oponenti: {opponents} • Obory: {obory}"
         )

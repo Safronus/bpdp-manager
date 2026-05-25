@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 from ..config import SCHEMA_VERSION
-from ..models import AcademicYearInfo, Obor, Opponent, Student, Thesis
+from ..models import AcademicYearInfo, Obor, Opponent, OpposingThesis, Student, Thesis
 
 
 class Database(BaseModel):
@@ -17,6 +17,7 @@ class Database(BaseModel):
     students: list[Student] = Field(default_factory=list)
     opponents: list[Opponent] = Field(default_factory=list)
     theses: list[Thesis] = Field(default_factory=list)
+    opposing_theses: list[OpposingThesis] = Field(default_factory=list)
     academic_years: list[AcademicYearInfo] = Field(default_factory=list)
 
     @model_validator(mode="before")

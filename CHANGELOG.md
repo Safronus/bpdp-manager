@@ -7,6 +7,44 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-05-17
+
+### Added
+- **Nová záložka 🧐 Oponentské posudky** — práce, kde uživatel vystupuje
+  jako **oponent** (recenzuje cizí BP/DP). Oddělená od vedených prací.
+- Datový model ``OpposingThesis`` (``models/opposing_thesis.py``):
+  - Typ (BP/DP) + akademický rok + STAG URL
+  - Inline údaje o studentovi (jméno, příjmení, obor, osobní číslo)
+  - Inline údaje o vedoucím (jméno, email)
+  - Název CZ + body zadání (volný text, čísluje se v Souhrnu)
+  - Známka vedoucího + známka oponenta (moje) — text/combo s předvyplněnými
+    hodnotami (A-F, 1-4)
+  - Dokumenty: plný text práce / posudek vedoucího / posudek oponenta /
+    jiné (přes ``Attachment``, soubory ve ``documents/opposing-{id}/``)
+- ``Database.opposing_theses: list[OpposingThesis]`` (zpětně kompatibilní,
+  default ``[]``).
+- ``ThesisService`` rozšířen o:
+  - ``list_opposing_theses() / get_opposing_thesis() / upsert_opposing_thesis() / delete_opposing_thesis()``
+  - ``opposing_attach_document() / opposing_remove_document() / opposing_document_absolute_path()``
+- ``OpposingDetail`` widget se 3 záložkami uvnitř (Souhrn / Detail / Dokumenty),
+  vlastní autosave s debounce, vlastní generovaný Souhrn.
+- ``OpposingTab`` widget — strom kategorizovaný podle akademických roků
+  (uvnitř seřazeno česky podle příjmení studenta), 5 sloupců
+  (Student / Téma / Vedoucí / Známky / Obor) + tlačítko *➕ Nový oponentský posudek*.
+- **Souhrn oponentského posudku** odvozený automaticky: velký modrý header bar
+  *„📋 OPONENTSKÝ POSUDEK"*, nadpisová řádka s typem + názvem + studentem,
+  vedoucí + jeho email, STAG link, **velké barevné badge známky**
+  (zelená A/1, žlutá C, oranžová D, červená F…), body zadání číslované,
+  seznam dokumentů.
+- Status bar zobrazí počty *Vedené práce: X · Oponentury: Y · …*.
+
+### Notes
+- Pole **STAG URL** je u oponentských posudků obzvlášť užitečné — typicky
+  budeš mít odkaz na zadání práce v IS/STAG s posudky.
+- Dokumenty oponentského posudku leží odděleně od dokumentů vedených prací
+  (``documents/opposing-{id}/`` vs ``documents/{thesis_id}/``).
+- Po výběru ve stromu se auto-přepne na *📋 Souhrn*; editace v *📝 Detail*.
+
 ## [0.10.0] - 2026-05-17
 
 ### Added
@@ -616,7 +654,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/Safronus/bpdp-manager/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Safronus/bpdp-manager/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/Safronus/bpdp-manager/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Safronus/bpdp-manager/compare/v0.9.0...v0.9.1

@@ -10,6 +10,7 @@ from .enums import (
 from .harmonogram import AcademicYearInfo, KeyDate, KeyDateCategory
 from .obor import Obor
 from .opponent import Opponent
+from .opposing_thesis import OpposingThesis
 from .profile import Profile, ProfileRegistry
 from .student import Student
 from .thesis import Attachment, Deadline, Thesis
@@ -25,6 +26,7 @@ __all__ = [
     "Obor",
     "Opponent",
     "OpponentKind",
+    "OpposingThesis",
     "PlagiarismVerdict",
     "Profile",
     "ProfileRegistry",
