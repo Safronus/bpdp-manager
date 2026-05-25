@@ -39,6 +39,15 @@ class ThesisService:
     def reload(self) -> None:
         self._db = self._repo.load()
 
+    def reset(self, repo: Repository) -> None:
+        """Nahradí podkladový repozitář a načte data z něj.
+
+        Používá se při přepnutí na jiný profil — bez nutnosti vytvářet
+        nový ThesisService a přemontovávat UI.
+        """
+        self._repo = repo
+        self._db = repo.load()
+
     def save(self) -> None:
         self._repo.save(self._db)
 

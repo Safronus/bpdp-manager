@@ -7,6 +7,63 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-17
+
+### Added
+- **Profily — pojmenované datové sady**. Místo jediné fixované cesty
+  ``~/.bpdpmanager/`` může uživatel mít víc profilů (osobní, sdílený,
+  pro různé instituce…) a kdykoli mezi nimi přepínat.
+  - Welcome dialog při prvním spuštění s 3 cestami:
+    *Import z legacy ``~/.bpdpmanager/``* (pokud detekováno) /
+    *Nový profil* / *Otevřít existující složku*.
+  - **Toolbar 👤 button** s rozbalovací nabídkou:
+    seznam profilů ● aktivní, *Nový profil*, *Otevřít existující*,
+    *Správa profilů*, *Zálohy*.
+  - **Správa profilů**: tabulka, přejmenování, otevření složky ve Finderu,
+    odebrání z registry (volitelně i smazání dat).
+  - Registry profilů uložen v user-config dir
+    (``~/Library/Application Support/BPDPManager/profiles.json`` na macOS,
+    ``~/.config/bpdpmanager/profiles.json`` na Linuxu,
+    ``%APPDATA%\BPDPManager\profiles.json`` na Windows).
+- **Rotující zálohy (10×)** v ``<data_dir>/backups/``:
+  - Vytvořeny po každém úspěšném save (autosave / manual / transition).
+  - **Dedupe podle obsahu hash** — pokud se nic nezměnilo od poslední
+    zálohy, žádný nový soubor nevznikne.
+  - **Rotace**: nejstarší se mažou, max 10 souborů.
+  - **Před každou obnovou** se vytvoří záloha aktuálního stavu jako
+    ``before-restore``, takže se dá vrátit i obnova.
+- **Dialog Zálohy** (toolbar 👤 → 💾 Zálohy…): seznam s časem, označením
+  a velikostí, akce *Obnovit / Otevřít složku / Smazat*.
+- **Lock soubor proti dvojímu otevření profilu**: ``.bpdpmanager.lock``
+  v data_dir s hostname + uživatelem + PID + timestamp + verzí.
+  - Otevření profilu z **téhož Macu** (stale lock po pádu) → automaticky
+    převzato.
+  - Otevření profilu z **jiného zařízení** → varování s detaily lock info,
+    user může pokračovat (force) nebo zrušit.
+- ``ThesisService.reset(repo)`` — umožňuje přepnout profil bez nového
+  service instance.
+- ``JsonRepository`` umí volitelně dostat ``BackupManager`` —
+  po každém save vytvoří rotující zálohu.
+
+### Changed
+- ``config.app_data_dir()`` se nyní řídí prioritou:
+  1. env ``BPDPMANAGER_DATA_DIR`` (test/power-user override) →
+  2. aktivní profil (přes ``set_active_data_dir``) →
+  3. legacy ``~/.bpdpmanager/`` (backward compat).
+- Spuštění bez ProfileManageru (env override / pytest) zůstává plně
+  funkční — `app.py` rozhodne podle ``BPDPMANAGER_DATA_DIR``.
+- Title aplikace ukazuje aktivní profil:
+  ``BPDPManager — FAI UTB (osobní)``.
+
+### Notes
+- Pro **sdílení mezi vlastními zařízeními přes iCloud Drive**: vytvoř
+  profil v iCloud složce. Lock soubor varuje, pokud je profil otevřený
+  jinde. Pokud se chceš vyhnout iCloud problémům s ``.venv``-style daty,
+  složka s daty profilu je čistě JSON + PDF + nahrané dokumenty —
+  bezpečné pro iCloud sync. (Venv aplikace dál drž mimo iCloud, viz
+  návod v README.)
+- Export profilu do ``.zip`` (snapshot pro kolegy) přijde v ``0.9.1``.
+
 ## [0.8.3] - 2026-05-17
 
 ### Changed
@@ -504,7 +561,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Safronus/bpdp-manager/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/Safronus/bpdp-manager/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/Safronus/bpdp-manager/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Safronus/bpdp-manager/compare/v0.8.0...v0.8.1

@@ -3,17 +3,29 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..config import DEFAULT_OBORY, SCHEMA_VERSION, db_backup_path, db_path
 from .repository import Database, Repository
 
+if TYPE_CHECKING:
+    from ..services.backup_manager import BackupManager
+
 
 class JsonRepository(Repository):
-    """JSON úložiště s atomickým zápisem a zálohou."""
+    """JSON úložiště s atomickým zápisem, krátkodobou zálohou ``.bak``
+    a volitelnou integrací s ``BackupManager`` (rotující zálohy 10×).
+    """
 
-    def __init__(self, path: Path | None = None, backup_path: Path | None = None) -> None:
+    def __init__(
+        self,
+        path: Path | None = None,
+        backup_path: Path | None = None,
+        backup_manager: "BackupManager | None" = None,
+    ) -> None:
         self.path = path or db_path()
         self.backup_path = backup_path or db_backup_path()
+        self.backup_manager = backup_manager
 
     def load(self) -> Database:
         if not self.path.exists():
@@ -30,6 +42,7 @@ class JsonRepository(Repository):
     def save(self, db: Database) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
+        # krátkodobá .bak záloha (vždy poslední pre-save stav)
         if self.path.exists():
             shutil.copy2(self.path, self.backup_path)
 
@@ -40,6 +53,14 @@ class JsonRepository(Repository):
             encoding="utf-8",
         )
         tmp.replace(self.path)
+
+        # rotující zálohy (dedupe podle obsahu hash)
+        if self.backup_manager is not None:
+            try:
+                self.backup_manager.create_backup(self.path, suffix="", dedupe=True)
+            except Exception:  # noqa: BLE001
+                # Záloha selhala — to není fatal, zápis prošel.
+                pass
 
     def _migrate(self, db: Database) -> Database:
         """Schema migration hook — pro budoucí verze."""

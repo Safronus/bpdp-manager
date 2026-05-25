@@ -1,32 +1,47 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QInputDialog,
     QLineEdit,
     QMainWindow,
+    QMenu,
+    QMessageBox,
     QSplitter,
     QStatusBar,
     QTabWidget,
     QToolBar,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from ..models import Thesis
 from ..models.enums import ThesisStatus, ThesisType
-from ..services import ThesisService
+from ..services import (
+    BackupManager,
+    LockStatus,
+    ProfileError,
+    ProfileManager,
+    ThesisService,
+)
+from ..storage import JsonRepository
+from .backup_dialog import BackupBrowserDialog
 from .harmonogram_tab import HarmonogramTab
 from .manage_dialogs import (
     OboryManageDialog,
     OpponentsManageDialog,
     StudentsManageDialog,
 )
+from .profile_manage_dialog import ProfileManageDialog
 from .theses_tree import ThesesTreeWidget
 from .thesis_detail import (
     YEAR_MODE_ALL,
@@ -83,10 +98,15 @@ class _ThesesTab(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, service: ThesisService) -> None:
+    def __init__(
+        self,
+        service: ThesisService,
+        profile_manager: ProfileManager | None = None,
+    ) -> None:
         super().__init__()
         self.service = service
-        self.setWindowTitle("BPDPManager — správa BP/DP")
+        self.profile_manager = profile_manager
+        self.setWindowTitle(self._compose_title())
         self.resize(1400, 960)
         self.setMinimumSize(1100, 760)
 
@@ -175,9 +195,182 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
+        # Profile switcher (pouze pokud máme ProfileManager)
+        if self.profile_manager is not None:
+            self._profile_button = QToolButton()
+            self._profile_button.setText("👤 " + (self.profile_manager.active.name if self.profile_manager.active else "Profil"))
+            self._profile_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            self._refresh_profile_menu()
+            toolbar.addWidget(self._profile_button)
+            toolbar.addSeparator()
+
         act_refresh = QAction("Obnovit", self)
         act_refresh.triggered.connect(self._refresh_all)
         toolbar.addAction(act_refresh)
+
+    # --- profil --------------------------------------------------------------
+
+    def _compose_title(self) -> str:
+        base = "BPDPManager"
+        if self.profile_manager and self.profile_manager.active:
+            return f"{base} — {self.profile_manager.active.name}"
+        return f"{base} — správa BP/DP"
+
+    def _refresh_profile_menu(self) -> None:
+        if self.profile_manager is None:
+            return
+        menu = QMenu(self._profile_button)
+        active = self.profile_manager.active
+        for p in self.profile_manager.all_profiles():
+            label = ("● " if active and p.id == active.id else "   ") + p.name
+            act = menu.addAction(label)
+            act.setData(p.id)
+            act.triggered.connect(
+                lambda _checked=False, pid=p.id: self._switch_profile(pid)
+            )
+        menu.addSeparator()
+        act_new = menu.addAction("➕ Nový profil…")
+        act_new.triggered.connect(self._action_new_profile)
+        act_open = menu.addAction("📂 Otevřít existující složku…")
+        act_open.triggered.connect(self._action_open_existing_profile)
+        menu.addSeparator()
+        act_manage = menu.addAction("🗂 Správa profilů…")
+        act_manage.triggered.connect(self._action_manage_profiles)
+        act_backups = menu.addAction("💾 Zálohy…")
+        act_backups.triggered.connect(self._action_show_backups)
+        self._profile_button.setMenu(menu)
+        # Update label
+        if active is not None:
+            self._profile_button.setText("👤 " + active.name)
+
+    def _switch_profile(self, profile_id: str) -> None:
+        if self.profile_manager is None:
+            return
+        active = self.profile_manager.active
+        if active is not None and active.id == profile_id:
+            return  # už jsme tady
+        # Flushni rozpracované změny v detail panelech
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            if isinstance(w, _ThesesTab):
+                try:
+                    w.detail.flush()
+                except Exception:
+                    pass
+
+        # Lock check
+        check = self.profile_manager.check_lock(profile_id)
+        force = False
+        if check.status == LockStatus.LOCKED_BY_OTHER:
+            if not self._confirm_locked(check):
+                return
+            force = True
+
+        self.profile_manager.close()
+        try:
+            result = self.profile_manager.open(profile_id, force=force)
+        except ProfileError as exc:
+            QMessageBox.critical(self, "Přepnutí profilu", str(exc))
+            return
+
+        # Vytvoř nový repository nad novou data_dir + bind do existující service
+        data_dir = self.profile_manager.active_data_dir()
+        new_repo = JsonRepository(
+            path=data_dir / "db.json",
+            backup_path=data_dir / "db.json.bak",
+            backup_manager=BackupManager(data_dir),
+        )
+        self.service.reset(new_repo)
+
+        # Refresh UI a window title
+        self.setWindowTitle(self._compose_title())
+        self._refresh_all()
+        self._refresh_profile_menu()
+
+    def _confirm_locked(self, check) -> bool:
+        info = check.existing
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Profil je otevřený jinde")
+        text = (
+            "Profil je zřejmě otevřený na jiném zařízení nebo uživatelem.\n\n"
+            f"Zařízení: {info.hostname if info else '?'}\n"
+            f"Uživatel:  {info.username if info else '?'}\n"
+            f"Začátek:   {info.started_at.strftime('%d.%m.%Y %H:%M:%S') if info else '?'}\n"
+            f"Aplikace:  {info.app_version if info else '?'}\n\n"
+            "Pokud víš, že tam aplikace neběží (např. po pádu), můžeš pokračovat. "
+            "Jinak je lepší zavřít aplikaci na druhém zařízení a počkat na "
+            "synchronizaci, aby si vy a druhé zařízení vzájemně nepřepsali změny."
+        )
+        msg.setText(text)
+        btn_ignore = msg.addButton("Otevřít stejně", QMessageBox.ButtonRole.DestructiveRole)
+        msg.addButton(QMessageBox.StandardButton.Cancel)
+        msg.exec()
+        return msg.clickedButton() == btn_ignore
+
+    def _action_new_profile(self) -> None:
+        if self.profile_manager is None:
+            return
+        name, ok = QInputDialog.getText(
+            self, "Nový profil", "Název profilu:"
+        )
+        if not ok or not name.strip():
+            return
+        folder = QFileDialog.getExistingDirectory(
+            self, "Vyber složku pro data profilu", str(Path.home())
+        )
+        if not folder:
+            return
+        try:
+            profile = self.profile_manager.create(name.strip(), Path(folder))
+        except ProfileError as exc:
+            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
+            return
+        self._switch_profile(profile.id)
+
+    def _action_open_existing_profile(self) -> None:
+        if self.profile_manager is None:
+            return
+        folder = QFileDialog.getExistingDirectory(
+            self, "Vyber existující složku profilu (s db.json)", str(Path.home())
+        )
+        if not folder:
+            return
+        name, ok = QInputDialog.getText(
+            self,
+            "Název profilu",
+            "Jak chceš profil pojmenovat?",
+            text=Path(folder).name,
+        )
+        if not ok or not name.strip():
+            return
+        try:
+            profile = self.profile_manager.create(name.strip(), Path(folder))
+        except ProfileError as exc:
+            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
+            return
+        self._switch_profile(profile.id)
+
+    def _action_manage_profiles(self) -> None:
+        if self.profile_manager is None:
+            return
+        dlg = ProfileManageDialog(self.profile_manager, self)
+        dlg.exec()
+        self._refresh_profile_menu()
+
+    def _action_show_backups(self) -> None:
+        if self.profile_manager is None or self.profile_manager.active is None:
+            return
+        data_dir = self.profile_manager.active_data_dir()
+        bm = BackupManager(data_dir)
+        dlg = BackupBrowserDialog(bm, data_dir / "db.json", self)
+        dlg.restored.connect(self._on_backup_restored)
+        dlg.exec()
+
+    def _on_backup_restored(self) -> None:
+        # Po obnově db.json přemontuj service nad ten samý profil
+        self.service.reload()
+        self._refresh_all()
 
     # --- akce ----------------------------------------------------------------
 

@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.8.3** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.9.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou
@@ -32,6 +32,9 @@ o budoucí témata.
 - **📅 Harmonogram fakulty**: import PDF časového plánu výuky FAI UTB, automatická extrakce klíčových termínů (odevzdání BP/DP, SZZ, promoce, zkouškové období…), žlutý panel s nadcházejícími důležitými termíny v následujících 60 dnech
 - **Termíny a poznámky** z konzultací u každé práce
 - **Autosave** na pozadí — změny v detailu práce se samy uloží 1,5 s po poslední úpravě (debounce), s 30s pojistkou, plus flush při přepnutí práce a zavření okna
+- **Profily — pojmenované datové sady**: víc datových profilů (osobní / sdílený / pro různé instituce), libovolná složka, přepínání za chodu. Welcome dialog při prvním spuštění, toolbar 👤 menu pro přepínání. Vhodné pro sdílení přes iCloud mezi více Macy téhož uživatele.
+- **Rotující zálohy (10×)** v každém profilu — vytváří se po každém uloženi (s dedupe podle hash), dialog *Zálohy* umožní obnovit libovolný stav, před každou obnovou se vytvoří záloha aktuálního stavu jako `before-restore`.
+- **Lock soubor** proti dvojímu otevření profilu na různých zařízeních — pokud detekuje souběžný přístup, varuje uživatele (s detaily kdo/kde/kdy) a nabídne pokračovat nebo zrušit.
 - **Lokální JSON úložiště** s atomickými zápisy a automatickou zálohou `db.json.bak`
 
 ## Požadavky
