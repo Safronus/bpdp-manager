@@ -35,6 +35,7 @@ class Thesis(BaseModel):
     title_en: str = ""
     annotation: str = ""
     annotation_en: str = ""
+    stag_url: str = ""  # odkaz na práci v IS/STAG
     # Body zadání a literární zdroje jsou volný text s vlastním číslováním
     # (viz oficiální zadání UTB: "1. ...\n2. ...\n..."). Dřívější verze
     # používaly list[str]; přechod ze starého formátu řeší validator.

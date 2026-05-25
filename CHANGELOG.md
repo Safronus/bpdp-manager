@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-05-17
+
+### Added
+- **STAG URL** u každé vedené BP/DP. Nové pole ``Thesis.stag_url: str``
+  (default ``""``). Editor v záložce *Téma zadání → Základní info* jako
+  samostatný řádek pod hlavní lištou. Default placeholder s ukázkou
+  ``https://stag.utb.cz/portal/studium/prohlizeni.html?...``.
+- V **Souhrnu** se odkaz zobrazí jako klikatelný ``<a>`` link nad sekcí
+  *Anotace* — kliknutí otevře v defaultním systémovém prohlížeči přes
+  ``QDesktopServices.openUrl``. 📋 tlačítko pro zkopírování URL do schránky.
+- Anchor handler v Souhrnu rozlišuje ``copy:`` (clipboard) a http/https/
+  file/mailto schémata (otevření v prohlížeči).
+
+### Notes
+- Pole je volitelné. Pokud je prázdné, v Souhrnu se vůbec neobjevuje.
+- Pro budoucí verzi (0.11.0): nová záložka „Oponentské posudky"
+  pro práce, kde uživatel vystupuje jako oponent (cizí BP/DP), s vlastním
+  datovým modelem (známky vedoucího + oponenta, dokumenty: plný text,
+  posudek vedoucího, posudek oponenta, STAG odkaz).
+
 ## [0.9.2] - 2026-05-17
 
 ### Added
@@ -596,7 +616,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/Safronus/bpdp-manager/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/Safronus/bpdp-manager/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Safronus/bpdp-manager/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Safronus/bpdp-manager/compare/v0.8.3...v0.9.0

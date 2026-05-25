@@ -343,6 +343,18 @@ class ThesisDetail(QWidget):
         row.addWidget(self.btn_new_opponent)
 
         layout.addLayout(row)
+
+        # 2. řádek: STAG URL
+        stag_row = QHBoxLayout()
+        stag_row.setSpacing(10)
+        stag_row.addWidget(QLabel("STAG:"))
+        self.ed_stag_url = QLineEdit()
+        self.ed_stag_url.setPlaceholderText(
+            "odkaz na práci v IS/STAG (volitelné, např. "
+            "https://stag.utb.cz/portal/studium/prohlizeni.html?…)"
+        )
+        stag_row.addWidget(self.ed_stag_url, stretch=1)
+        layout.addLayout(stag_row)
         return box
 
     def _build_listing_section(self) -> QGroupBox:
@@ -632,6 +644,7 @@ class ThesisDetail(QWidget):
 
             self._set_combo_to_id(self.cb_student, thesis.student_id)
             self._set_combo_to_id(self.cb_opponent, thesis.opponent_id)
+            self.ed_stag_url.setText(thesis.stag_url or "")
 
             self.ed_title_cs.setText(thesis.title_cs)
             self.ed_annotation.setPlainText(thesis.annotation)
@@ -683,6 +696,7 @@ class ThesisDetail(QWidget):
         self.rb_bp.toggled.connect(self._mark_dirty)
         self.rb_dp.toggled.connect(self._mark_dirty)
         self.cb_year.currentTextChanged.connect(self._mark_dirty)
+        self.ed_stag_url.textChanged.connect(self._mark_dirty)
         self.ed_plag_pct.textChanged.connect(self._mark_dirty)
         self.ed_plag_comment.textChanged.connect(self._mark_dirty)
         self.rb_verdict_na.toggled.connect(self._mark_dirty)
@@ -805,6 +819,7 @@ class ThesisDetail(QWidget):
 
         annotation = thesis.annotation.strip() if thesis.annotation else ""
         annotation_en = thesis.annotation_en.strip() if thesis.annotation_en else ""
+        stag_url = (thesis.stag_url or "").strip()
         objectives_text = (thesis.objectives or "").strip()
         references_text = (thesis.references or "").strip()
 
@@ -953,12 +968,24 @@ class ThesisDetail(QWidget):
                 f"<p><b>PDF protokol:</b> {pdf_html}</p>"
             )
 
+        # ── STAG link ──────────────────────────────────────────────────────
+        stag_html = ""
+        if stag_url:
+            stag_html = (
+                f'<p style="margin:6px 0 12px 0;color:#666;">'
+                f'<b>🔗 STAG:</b> '
+                f'<a href="{e(stag_url)}" style="color:#1976d2;">{e(stag_url)}</a>'
+                f"{cp('stag_url', 'Zkopírovat STAG URL')}"
+                f"</p>"
+            )
+
         return (
             "<html><body>"
             f"{status_bar}"
             f"{readiness_html}"
             f"{header_line}"
             f"{en_line}"
+            f"{stag_html}"
             f'<h3 style="{section_header_style}">Anotace:'
             f"{cp('annotation', 'Zkopírovat anotaci')}</h3>"
             f"{anot_html}"
@@ -974,24 +1001,27 @@ class ThesisDetail(QWidget):
         )
 
     def _on_summary_anchor_clicked(self, url: QUrl) -> None:
-        """Click na 'copy:<field>' v Souhrnu → zkopíruje hodnotu do schránky."""
+        """Click v Souhrnu — buď 'copy:<field>' (clipboard), nebo http(s) URL (otevřít)."""
         s = url.toString()
-        if not s.startswith("copy:"):
-            return
-        field = s[len("copy:"):]
-        if self.thesis is None:
+        if s.startswith("copy:"):
+            field = s[len("copy:"):]
+            if self.thesis is None:
+                return
+            text, label = self._summary_field_value(field)
+            if text is None:
+                return
+            QApplication.clipboard().setText(text)
+            QToolTip.showText(
+                QCursor.pos(),
+                f"📋  Zkopírováno: {label}",
+                self.summary_view,
+            )
             return
 
-        text, label = self._summary_field_value(field)
-        if text is None:
-            return
-
-        QApplication.clipboard().setText(text)
-        QToolTip.showText(
-            QCursor.pos(),
-            f"📋  Zkopírováno: {label}",
-            self.summary_view,
-        )
+        # http/https/file/mailto → otevřít systémovým prohlížečem
+        if url.scheme() in ("http", "https", "file", "mailto"):
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(url)
 
     def _summary_field_value(self, field: str) -> tuple[str | None, str]:
         """Vrátí (text-do-schránky, popisek-pro-tooltip) pro daný field."""
@@ -1002,6 +1032,8 @@ class ThesisDetail(QWidget):
             return t.title_cs or "", "název (CZ)"
         if field == "title_en":
             return t.title_en or "", "název (EN)"
+        if field == "stag_url":
+            return t.stag_url or "", "STAG URL"
         if field == "annotation":
             return t.annotation or "", "anotace"
         if field == "annotation_en":
@@ -1100,6 +1132,7 @@ class ThesisDetail(QWidget):
         assert self.thesis is not None
         self.thesis.type = ThesisType.BP if self.rb_bp.isChecked() else ThesisType.DP
         self.thesis.academic_year = self.cb_year.currentText().strip()
+        self.thesis.stag_url = self.ed_stag_url.text().strip()
         self.thesis.student_id = self._resolve_combo_id(self.cb_student)
         self.thesis.opponent_id = self._resolve_combo_id(self.cb_opponent)
         self.thesis.title_cs = self.ed_title_cs.text().strip()
