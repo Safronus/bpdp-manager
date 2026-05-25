@@ -41,6 +41,7 @@ from .manage_dialogs import (
     OpponentsManageDialog,
     StudentsManageDialog,
 )
+from .new_profile_dialog import NewProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
 from .theses_tree import ThesesTreeWidget
 from .thesis_detail import (
@@ -311,22 +312,10 @@ class MainWindow(QMainWindow):
     def _action_new_profile(self) -> None:
         if self.profile_manager is None:
             return
-        name, ok = QInputDialog.getText(
-            self, "Nový profil", "Název profilu:"
-        )
-        if not ok or not name.strip():
+        dlg = NewProfileDialog(self.profile_manager, self)
+        if not dlg.exec() or dlg.created is None:
             return
-        folder = QFileDialog.getExistingDirectory(
-            self, "Vyber složku pro data profilu", str(Path.home())
-        )
-        if not folder:
-            return
-        try:
-            profile = self.profile_manager.create(name.strip(), Path(folder))
-        except ProfileError as exc:
-            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
-            return
-        self._switch_profile(profile.id)
+        self._switch_profile(dlg.created.id)
 
     def _action_open_existing_profile(self) -> None:
         if self.profile_manager is None:

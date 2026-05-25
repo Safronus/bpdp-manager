@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-05-17
+
+### Added
+- **Import dat z jiného profilu při vytváření nového**. Toolbar
+  👤 → ➕ Nový profil otevře vylepšený dialog s polem
+  *Importovat data z* — combobox s nabídkou existujících profilů
+  („žádný" = prázdná databáze, jinak výběr libovolného existujícího).
+  - Voliteľně **přibalit dokumenty** (posudky, text práce, prezentace)
+    a **PDF harmonogramy**.
+  - Po vytvoření se ukáže potvrzení s počty zkopírovaných položek.
+- ``ProfileManager.copy_data_into_profile(source_id, target_id, …)``
+  — kopíruje ``db.json``, volitelně ``documents/`` a ``harmonograms/``.
+  Nekopíruje ``backups/`` (každý profil má vlastní historii) ani
+  ``.bpdpmanager.lock``.
+
 ## [0.9.0] - 2026-05-17
 
 ### Added
@@ -561,7 +576,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/Safronus/bpdp-manager/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Safronus/bpdp-manager/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/Safronus/bpdp-manager/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/Safronus/bpdp-manager/compare/v0.8.1...v0.8.2

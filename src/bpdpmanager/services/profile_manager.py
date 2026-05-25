@@ -213,6 +213,82 @@ class ProfileManager:
                 pass
         self._save_registry()
 
+    # --- import dat z jiného profilu ------------------------------------
+
+    def copy_data_into_profile(
+        self,
+        source_id: str,
+        target_id: str,
+        *,
+        include_documents: bool = True,
+        include_harmonograms: bool = True,
+        overwrite: bool = True,
+    ) -> dict[str, int]:
+        """Zkopíruje data ze zdrojového profilu do cílového.
+
+        Co se kopíruje:
+        - ``db.json`` (přepíše cílový, pokud ``overwrite=True``)
+        - ``documents/`` (volitelně, merge per-thesis složky)
+        - ``harmonograms/`` (volitelně)
+
+        Co se NEKOPÍRUJE:
+        - ``db.json.bak`` (krátkodobá záloha — vznikne při dalším save)
+        - ``backups/`` (rotující zálohy — každý profil má vlastní historii)
+        - ``.bpdpmanager.lock`` (zámek je per-zařízení)
+
+        Vrací statistiku: ``{"db": 0|1, "documents": N, "harmonograms": M}``.
+        """
+        src = self.get(source_id)
+        tgt = self.get(target_id)
+        if src is None:
+            raise ProfileError(f"Zdrojový profil {source_id} neexistuje.")
+        if tgt is None:
+            raise ProfileError(f"Cílový profil {target_id} neexistuje.")
+        if src.id == tgt.id:
+            raise ProfileError("Zdroj a cíl jsou stejný profil.")
+
+        src_dir = Path(src.data_dir)
+        tgt_dir = Path(tgt.data_dir)
+        if not src_dir.exists():
+            raise ProfileError(f"Zdrojová složka neexistuje: {src_dir}")
+        tgt_dir.mkdir(parents=True, exist_ok=True)
+
+        stats = {"db": 0, "documents": 0, "harmonograms": 0}
+
+        # db.json
+        src_db = src_dir / "db.json"
+        tgt_db = tgt_dir / "db.json"
+        if src_db.exists() and (overwrite or not tgt_db.exists()):
+            shutil.copy2(src_db, tgt_db)
+            stats["db"] = 1
+
+        # documents/
+        if include_documents:
+            src_docs = src_dir / "documents"
+            if src_docs.exists() and src_docs.is_dir():
+                tgt_docs = tgt_dir / "documents"
+                tgt_docs.mkdir(parents=True, exist_ok=True)
+                for child in src_docs.iterdir():
+                    target = tgt_docs / child.name
+                    if child.is_dir():
+                        shutil.copytree(child, target, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(child, target)
+                    stats["documents"] += 1
+
+        # harmonograms/
+        if include_harmonograms:
+            src_harm = src_dir / "harmonograms"
+            if src_harm.exists() and src_harm.is_dir():
+                tgt_harm = tgt_dir / "harmonograms"
+                tgt_harm.mkdir(parents=True, exist_ok=True)
+                for child in src_harm.iterdir():
+                    if child.is_file():
+                        shutil.copy2(child, tgt_harm / child.name)
+                        stats["harmonograms"] += 1
+
+        return stats
+
     # --- lock helpers ---------------------------------------------------
 
     def check_lock(self, profile_id: str) -> LockCheckResult:
