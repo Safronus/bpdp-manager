@@ -36,6 +36,7 @@ from ..services import (
 from ..storage import JsonRepository
 from .backup_dialog import BackupBrowserDialog
 from .harmonogram_tab import HarmonogramTab
+from .import_into_current_dialog import ImportIntoCurrentDialog
 from .manage_dialogs import (
     OboryManageDialog,
     OpponentsManageDialog,
@@ -234,6 +235,15 @@ class MainWindow(QMainWindow):
         act_new.triggered.connect(self._action_new_profile)
         act_open = menu.addAction("📂 Otevřít existující složku…")
         act_open.triggered.connect(self._action_open_existing_profile)
+        act_import = menu.addAction("📥 Importovat z jiného profilu do aktuálního…")
+        act_import.triggered.connect(self._action_import_into_current)
+        # Disable pokud není jiný profil
+        other_count = sum(
+            1
+            for p in self.profile_manager.all_profiles()
+            if active is None or p.id != active.id
+        )
+        act_import.setEnabled(other_count > 0 and active is not None)
         menu.addSeparator()
         act_manage = menu.addAction("🗂 Správa profilů…")
         act_manage.triggered.connect(self._action_manage_profiles)
@@ -339,6 +349,68 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
             return
         self._switch_profile(profile.id)
+
+    def _action_import_into_current(self) -> None:
+        """Import dat z jiného profilu do aktuálního (přepíše db, doplní soubory).
+
+        Vždy předem vytvoří 'before-import' zálohu pro recovery.
+        """
+        if self.profile_manager is None or self.profile_manager.active is None:
+            return
+
+        dlg = ImportIntoCurrentDialog(self.profile_manager, self)
+        if not dlg.exec() or dlg.source_id is None:
+            return
+
+        active = self.profile_manager.active
+        data_dir = self.profile_manager.active_data_dir()
+        db_path = data_dir / "db.json"
+
+        # 1) Flush pending changes ve všech detail panelech
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            if isinstance(w, _ThesesTab):
+                try:
+                    w.detail.flush()
+                except Exception:
+                    pass
+
+        # 2) Bezpečnostní záloha aktuálního stavu PŘED přepsáním
+        bm = BackupManager(data_dir)
+        try:
+            bm.create_backup(db_path, suffix="before-import", dedupe=False)
+        except Exception:  # noqa: BLE001
+            # Záloha selhala (např. db.json neexistuje) — pokračujeme bez ní
+            pass
+
+        # 3) Provést kopii
+        try:
+            stats = self.profile_manager.copy_data_into_profile(
+                source_id=dlg.source_id,
+                target_id=active.id,
+                include_documents=dlg.include_documents,
+                include_harmonograms=dlg.include_harmonograms,
+                overwrite=True,
+            )
+        except ProfileError as exc:
+            QMessageBox.critical(self, "Import selhal", str(exc))
+            return
+
+        # 4) Reload service nad přepsanou DB + refresh UI
+        self.service.reload()
+        self._refresh_all()
+
+        QMessageBox.information(
+            self,
+            "Import dokončen",
+            f"Data importována z profilu „{self.profile_manager.get(dlg.source_id).name}“ "
+            f"do „{active.name}“.\n\n"
+            f"db.json: {stats['db']}\n"
+            f"dokumenty (složek): {stats['documents']}\n"
+            f"harmonogramy (souborů): {stats['harmonograms']}\n\n"
+            "Pokud bys chtěl předchozí stav vrátit, je k dispozici v "
+            "👤 → 💾 Zálohy (značka „before-import“).",
+        )
 
     def _action_manage_profiles(self) -> None:
         if self.profile_manager is None:

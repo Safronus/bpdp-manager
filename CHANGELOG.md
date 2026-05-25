@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-05-17
+
+### Added
+- **Akce „📥 Importovat z jiného profilu do aktuálního"** v toolbar
+  👤 menu. Otevře dialog ``ImportIntoCurrentDialog``:
+  - Výběr zdroje (combobox s ostatními profily, aktivní vyloučen)
+  - Volitelné checkboxy: ☑ Dokumenty, ☑ Harmonogramy (db.json je vždy)
+  - Žluté varování s vysvětlením, že aktuální data budou přepsána
+- **Automatická záloha „before-import"** se vytvoří v ``backups/``
+  PŘED přepsáním. Dá se tak vrátit přes 👤 → 💾 Zálohy.
+- Po importu: flush rozdělaných změn → záloha → kopie → reload service
+  → refresh UI → potvrzení se statistikou zkopírovaných položek.
+
+### Notes
+- Menu položka je disabled, pokud neexistuje žádný jiný profil
+  (kromě aktivního).
+- Tato akce **přepisuje** aktuální data; není to merge (sloučení).
+  Pro merge bys potřeboval rozhodovat o konfliktech ID/timestampů
+  jednotlivých prací — to zůstává opt-in pro budoucí verze.
+
 ## [0.9.1] - 2026-05-17
 
 ### Added
@@ -576,7 +596,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/Safronus/bpdp-manager/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Safronus/bpdp-manager/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Safronus/bpdp-manager/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/Safronus/bpdp-manager/compare/v0.8.2...v0.8.3
