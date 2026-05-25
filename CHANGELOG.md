@@ -7,6 +7,31 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-05-17
+
+### Added
+- **Registr vedoucích** pro oponentské posudky. Nový model
+  ``Supervisor`` (``models/supervisor.py``) s poli *Jméno*, *Email*,
+  *Pracoviště*, *Telefon*, *Poznámka*. Drží se v ``Database.supervisors``.
+- **Toolbar tlačítko *Vedoucí*** vedle *Oponenti* — otevírá
+  ``SupervisorsManageDialog`` (4 sloupce: Jméno / Pracoviště / Email /
+  Telefon, řazeno česky podle příjmení s ignorováním akademických titulů).
+- ``SupervisorDialog`` pro vytvoření/úpravu jednoho vedoucího.
+- **OpposingDetail integruje registry**: pole *Vedoucí* je nyní
+  searchable ``QComboBox`` s našeptáváním z registru. Po výběru se
+  **automaticky doplní email** z registry. Tlačítko `+` vedle vytvoří
+  nového vedoucího a hned ho předvybere.
+- Service: ``list_supervisors / get_supervisor / get_supervisor_by_name
+  / upsert_supervisor / delete_supervisor``.
+
+### Notes
+- Inline pole ``OpposingThesis.supervisor_name`` a ``supervisor_email``
+  zůstávají — jsou to *kopie*, ne FK. Smazání vedoucího z registry tedy
+  neovlivní existující posudky.
+- Vedoucí a oponenti jsou v dvou oddělených registrech (i když v praxi
+  může jít o tutéž osobu v různých rolích) — zachovává to roli
+  z perspektivy uživatele.
+
 ## [0.11.0] - 2026-05-17
 
 ### Added
@@ -654,7 +679,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 - Fiktivní demo data v `examples/seed_demo.json`.
 - MIT licence, README, CLAUDE.md (pokyny pro budoucí Claude práci v repu).
 
-[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/Safronus/bpdp-manager/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/Safronus/bpdp-manager/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/Safronus/bpdp-manager/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Safronus/bpdp-manager/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/Safronus/bpdp-manager/compare/v0.9.1...v0.9.2

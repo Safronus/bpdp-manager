@@ -13,6 +13,7 @@ from .opponent import Opponent
 from .opposing_thesis import OpposingThesis
 from .profile import Profile, ProfileRegistry
 from .student import Student
+from .supervisor import Supervisor
 from .thesis import Attachment, Deadline, Thesis
 
 __all__ = [
@@ -32,6 +33,7 @@ __all__ = [
     "ProfileRegistry",
     "Student",
     "StudyForm",
+    "Supervisor",
     "Thesis",
     "ThesisStatus",
     "ThesisType",

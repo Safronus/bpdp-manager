@@ -39,12 +39,13 @@ def _opponent_sort_key(name: str | None) -> str:
     stripped = _TITLE_PREFIX_RE.sub("", name).strip()
     return stripped.lower()
 
-from ..models import Obor, Opponent, Student, Thesis
+from ..models import Obor, Opponent, Student, Supervisor, Thesis
 from ..models.enums import OpponentKind, ThesisStatus, ThesisType
 from ..services import ThesisService
 from .obor_dialog import OborDialog
 from .opponent_dialog import OpponentDialog
 from .student_dialog import StudentDialog
+from .supervisor_dialog import SupervisorDialog
 
 # Stavy, ve kterých má student „aktivní" práci
 _ACTIVE_STATES = {
@@ -712,4 +713,131 @@ class OboryManageDialog(QDialog):
         confirm = QMessageBox.question(self, "Smazat obor", msg)
         if confirm == QMessageBox.StandardButton.Yes:
             self.service.remove_obor(obor.name)
+            self._refresh()
+
+
+class SupervisorsManageDialog(QDialog):
+    """Správa registru vedoucích (pro oponentské posudky).
+
+    Sloupce: Jméno | Pracoviště | Email | Telefon. Řazeno česky podle
+    příjmení (ignoruje akademické tituly).
+    """
+
+    def __init__(self, service: ThesisService, parent=None) -> None:
+        super().__init__(parent)
+        self.service = service
+        self.setWindowTitle("Vedoucí (pro oponentské posudky)")
+        self.setMinimumSize(820, 520)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(
+            QLabel(
+                "Registr vedoucích cizích BP/DP. Používá se pro našeptávání "
+                "při vyplňování oponentských posudků. Dvojklik upraví detail."
+            )
+        )
+
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(4)
+        self.tree.setHeaderLabels(["Jméno", "Pracoviště", "Email", "Telefon"])
+        self.tree.setAlternatingRowColors(True)
+        self.tree.setRootIsDecorated(False)
+        self.tree.itemDoubleClicked.connect(self._edit)
+        h = self.tree.header()
+        h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setStretchLastSection(False)
+        layout.addWidget(self.tree, stretch=1)
+
+        self.lbl_info = QLabel("")
+        self.lbl_info.setStyleSheet("color: #888; font-size: 11px;")
+        layout.addWidget(self.lbl_info)
+
+        row = QHBoxLayout()
+        btn_new = QPushButton("Nový…")
+        btn_edit = QPushButton("Upravit…")
+        btn_delete = QPushButton("Smazat")
+        btn_close = QPushButton("Zavřít")
+        btn_new.clicked.connect(self._new)
+        btn_edit.clicked.connect(self._edit)
+        btn_delete.clicked.connect(self._delete)
+        btn_close.clicked.connect(self.accept)
+        row.addWidget(btn_new)
+        row.addWidget(btn_edit)
+        row.addWidget(btn_delete)
+        row.addStretch()
+        row.addWidget(btn_close)
+        layout.addLayout(row)
+
+        self._refresh()
+
+    def _refresh(self) -> None:
+        selected_id = self._selected_id()
+        self.tree.clear()
+        sups = sorted(
+            self.service.list_supervisors(),
+            key=lambda s: _opponent_sort_key(s.name),
+        )
+        for sup in sups:
+            item = QTreeWidgetItem(
+                [
+                    sup.name,
+                    sup.affiliation or "",
+                    sup.email or "",
+                    sup.phone or "",
+                ]
+            )
+            item.setData(0, Qt.ItemDataRole.UserRole, sup)
+            self.tree.addTopLevelItem(item)
+        self.lbl_info.setText(f"Vedoucích celkem: {len(sups)}")
+        if selected_id:
+            self._select_id(selected_id)
+
+    def _current(self) -> Supervisor | None:
+        item = self.tree.currentItem()
+        if item is None:
+            return None
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        return data if isinstance(data, Supervisor) else None
+
+    def _selected_id(self) -> str | None:
+        s = self._current()
+        return s.id if s else None
+
+    def _select_id(self, sup_id: str) -> bool:
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            data = item.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(data, Supervisor) and data.id == sup_id:
+                self.tree.setCurrentItem(item)
+                return True
+        return False
+
+    def _new(self) -> None:
+        dlg = SupervisorDialog(self.service, parent=self)
+        if dlg.exec():
+            self._refresh()
+
+    def _edit(self) -> None:
+        s = self._current()
+        if s is None:
+            return
+        dlg = SupervisorDialog(self.service, s, parent=self)
+        if dlg.exec():
+            self._refresh()
+
+    def _delete(self) -> None:
+        s = self._current()
+        if s is None:
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Smazat vedoucího",
+            f'Opravdu smazat „{s.name}"? Oponentské posudky, které ho odkazují, '
+            f"si jeho jméno + email zachovají (jsou kopií, ne FK).",
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            self.service.delete_supervisor(s.id)
             self._refresh()

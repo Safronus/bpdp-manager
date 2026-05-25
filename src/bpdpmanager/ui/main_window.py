@@ -41,6 +41,7 @@ from .manage_dialogs import (
     OboryManageDialog,
     OpponentsManageDialog,
     StudentsManageDialog,
+    SupervisorsManageDialog,
 )
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
@@ -193,6 +194,11 @@ class MainWindow(QMainWindow):
         act_opponents = QAction("Oponenti", self)
         act_opponents.triggered.connect(self._manage_opponents)
         toolbar.addAction(act_opponents)
+
+        act_supervisors = QAction("Vedoucí", self)
+        act_supervisors.setToolTip("Registr vedoucích cizích BP/DP — pro oponentské posudky")
+        act_supervisors.triggered.connect(self._manage_supervisors)
+        toolbar.addAction(act_supervisors)
 
         act_obory = QAction("Obory", self)
         act_obory.triggered.connect(self._manage_obory)
@@ -523,6 +529,10 @@ class MainWindow(QMainWindow):
         OpponentsManageDialog(self.service, self).exec()
         self._refresh_all()
 
+    def _manage_supervisors(self) -> None:
+        SupervisorsManageDialog(self.service, self).exec()
+        self._refresh_all()
+
     def _manage_obory(self) -> None:
         OboryManageDialog(self.service, self).exec()
         self._refresh_all()
@@ -539,6 +549,7 @@ class MainWindow(QMainWindow):
                 widget.detail.refresh_combos()
             elif isinstance(widget, OpposingTab):
                 widget.refresh()
+                widget.refresh_combos()
             elif isinstance(widget, HarmonogramTab):
                 widget._refresh_year_combo()
         self._update_status()

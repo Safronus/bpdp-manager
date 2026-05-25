@@ -48,10 +48,12 @@ from PySide6.QtWidgets import (
 from ..models import Attachment, OpposingThesis
 from ..models.enums import AttachmentKind, ThesisType
 from ..services import ThesisService
+from .supervisor_dialog import SupervisorDialog
 from .thesis_detail import (
     YEAR_MODE_ALL,
     _academic_year_choices,
     _format_numbered,
+    _setup_searchable_combo,
     _split_items,
 )
 
@@ -218,16 +220,27 @@ class OpposingDetail(QWidget):
         sl.addWidget(self.ed_student_uni_id, stretch=0)
         v.addWidget(box_student)
 
-        # Sekce: Vedoucí
+        # Sekce: Vedoucí (combo se searchable našeptáváním z registru)
         box_sup = QGroupBox("Vedoucí")
         spl = QHBoxLayout(box_sup)
         spl.setContentsMargins(8, 12, 8, 8)
-        self.ed_sup_name = QLineEdit()
-        self.ed_sup_name.setPlaceholderText("Jméno (např. doc. Ing. Petr Novák, Ph.D.)")
+        self.cb_sup_name = QComboBox()
+        _setup_searchable_combo(self.cb_sup_name)
+        if self.cb_sup_name.lineEdit() is not None:
+            self.cb_sup_name.lineEdit().setPlaceholderText(
+                "Jméno (např. doc. Ing. Petr Novák, Ph.D.)"
+            )
+        self.cb_sup_name.activated.connect(self._on_supervisor_picked)
+        self.btn_new_supervisor = QPushButton("+")
+        self.btn_new_supervisor.setFixedWidth(28)
+        self.btn_new_supervisor.setToolTip("Nový vedoucí v registru")
+        self.btn_new_supervisor.clicked.connect(self._new_supervisor)
         self.ed_sup_email = QLineEdit()
         self.ed_sup_email.setPlaceholderText("email@utb.cz")
         self.ed_sup_email.setMaximumWidth(280)
-        spl.addWidget(self.ed_sup_name, stretch=2)
+        spl.addWidget(self.cb_sup_name, stretch=2)
+        spl.addWidget(self.btn_new_supervisor)
+        spl.addSpacing(8)
         spl.addWidget(self.ed_sup_email, stretch=1)
         v.addWidget(box_sup)
 
@@ -270,6 +283,54 @@ class OpposingDetail(QWidget):
 
         scroll.setWidget(inner)
         return scroll
+
+    def _refresh_supervisors_combo(self) -> None:
+        """Naplní combo aktuálním registrem vedoucích (zachová text v editLine)."""
+        prev_text = self.cb_sup_name.currentText() if self.cb_sup_name.isEditable() else ""
+        was_loading = self._loading
+        self._loading = True
+        try:
+            self.cb_sup_name.clear()
+            for sup in self.service.list_supervisors():
+                self.cb_sup_name.addItem(sup.name, sup.id)
+            # Obnov text, kdyby byl něčím vyplněn (např. ručně zadané jméno)
+            if prev_text:
+                idx = self.cb_sup_name.findText(prev_text)
+                if idx >= 0:
+                    self.cb_sup_name.setCurrentIndex(idx)
+                else:
+                    if self.cb_sup_name.lineEdit() is not None:
+                        self.cb_sup_name.lineEdit().setText(prev_text)
+            else:
+                self.cb_sup_name.setCurrentIndex(-1)
+        finally:
+            self._loading = was_loading
+
+    def _on_supervisor_picked(self, index: int) -> None:
+        """Když uživatel vybere vedoucího ze suggestion / dropdownu, auto-vyplň email."""
+        if index < 0:
+            return
+        sup_id = self.cb_sup_name.itemData(index)
+        if not sup_id:
+            return
+        sup = self.service.get_supervisor(sup_id)
+        if sup is None:
+            return
+        # Pokud má email a uživatel zatím nemá nic / má jiný → auto-fill
+        if sup.email and self.ed_sup_email.text().strip() != sup.email:
+            self.ed_sup_email.setText(sup.email)
+
+    def _new_supervisor(self) -> None:
+        """Otevři dialog pro vytvoření nového vedoucího + ihned ho vyber."""
+        dlg = SupervisorDialog(self.service, parent=self)
+        if not dlg.exec():
+            return
+        self._refresh_supervisors_combo()
+        # vyber nově vytvořeného
+        idx = self.cb_sup_name.findData(dlg.supervisor.id)
+        if idx >= 0:
+            self.cb_sup_name.setCurrentIndex(idx)
+            self._on_supervisor_picked(idx)
 
     @staticmethod
     def _make_grade_combo() -> QComboBox:
@@ -364,7 +425,20 @@ class OpposingDetail(QWidget):
             self.ed_student_obor.setText(op.student_obor or "")
             self.ed_student_uni_id.setText(op.student_university_id or "")
 
-            self.ed_sup_name.setText(op.supervisor_name or "")
+            self._refresh_supervisors_combo()
+            # Nastav text vedoucího — pokud sedí s registrem, vybere se daná
+            # položka (auto-fill emailu pro pohodlí), jinak zůstane jen v textu.
+            if op.supervisor_name:
+                idx = self.cb_sup_name.findText(op.supervisor_name)
+                if idx >= 0:
+                    self.cb_sup_name.setCurrentIndex(idx)
+                else:
+                    if self.cb_sup_name.lineEdit() is not None:
+                        self.cb_sup_name.lineEdit().setText(op.supervisor_name)
+            else:
+                self.cb_sup_name.setCurrentIndex(-1)
+                if self.cb_sup_name.lineEdit() is not None:
+                    self.cb_sup_name.lineEdit().clear()
             self.ed_sup_email.setText(op.supervisor_email or "")
 
             self.ed_title_cs.setText(op.title_cs or "")
@@ -390,10 +464,11 @@ class OpposingDetail(QWidget):
     def _connect_dirty_signals(self) -> None:
         for w in (
             self.ed_stag_url, self.ed_student_first, self.ed_student_last,
-            self.ed_student_obor, self.ed_student_uni_id, self.ed_sup_name,
+            self.ed_student_obor, self.ed_student_uni_id,
             self.ed_sup_email, self.ed_title_cs,
         ):
             w.textChanged.connect(self._mark_dirty)
+        self.cb_sup_name.currentTextChanged.connect(self._mark_dirty)
         self.cb_year.currentTextChanged.connect(self._mark_dirty)
         self.cb_grade_sup.currentTextChanged.connect(self._mark_dirty)
         self.cb_grade_opp.currentTextChanged.connect(self._mark_dirty)
@@ -460,7 +535,7 @@ class OpposingDetail(QWidget):
         self.op.student_last_name = self.ed_student_last.text().strip()
         self.op.student_obor = self.ed_student_obor.text().strip()
         self.op.student_university_id = self.ed_student_uni_id.text().strip()
-        self.op.supervisor_name = self.ed_sup_name.text().strip()
+        self.op.supervisor_name = self.cb_sup_name.currentText().strip()
         self.op.supervisor_email = self.ed_sup_email.text().strip()
         self.op.title_cs = self.ed_title_cs.text().strip()
         self.op.objectives = self.ed_objectives.toPlainText()

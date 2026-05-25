@@ -13,6 +13,7 @@ from ..models import (
     Opponent,
     OpposingThesis,
     Student,
+    Supervisor,
     Thesis,
 )
 from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus
@@ -105,6 +106,42 @@ class ThesisService:
             if t.opponent_id == opponent_id:
                 t.opponent_id = None
                 t.touch()
+        self.save()
+
+    # --- vedoucí (pro oponentské posudky) -----------------------------------
+
+    def list_supervisors(self) -> list[Supervisor]:
+        return sorted(self._db.supervisors, key=lambda s: s.name.lower())
+
+    def get_supervisor(self, supervisor_id: str) -> Supervisor | None:
+        return next(
+            (s for s in self._db.supervisors if s.id == supervisor_id), None
+        )
+
+    def get_supervisor_by_name(self, name: str) -> Supervisor | None:
+        """Najde vedoucího podle přesné shody jména (case-sensitive)."""
+        if not name:
+            return None
+        return next(
+            (s for s in self._db.supervisors if s.name == name), None
+        )
+
+    def upsert_supervisor(self, supervisor: Supervisor) -> Supervisor:
+        existing = self.get_supervisor(supervisor.id)
+        if existing:
+            idx = self._db.supervisors.index(existing)
+            self._db.supervisors[idx] = supervisor
+        else:
+            self._db.supervisors.append(supervisor)
+        self.save()
+        return supervisor
+
+    def delete_supervisor(self, supervisor_id: str) -> None:
+        """Smaže vedoucího z registry. Inline údaje v oponentských posudcích
+        zůstávají (jsou kopií, ne FK)."""
+        self._db.supervisors = [
+            s for s in self._db.supervisors if s.id != supervisor_id
+        ]
         self.save()
 
     # --- obory ---------------------------------------------------------------

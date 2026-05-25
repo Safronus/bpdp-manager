@@ -148,6 +148,13 @@ class OpposingTab(QWidget):
 
     # --- načtení / refresh --------------------------------------------------
 
+    def refresh_combos(self) -> None:
+        """Re-naplnění comba vedoucích v detail panelu (po správě registry)."""
+        try:
+            self.detail._refresh_supervisors_combo()
+        except Exception:
+            pass
+
     def refresh(self) -> None:
         selected_id = self._selected_id()
         self.tree.blockSignals(True)
