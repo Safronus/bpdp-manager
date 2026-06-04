@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-06-04
+
+### Fixed
+- **Opravena testovací suite** — dva pre-existing failing testy v
+  `tests/test_storage.py` a `tests/test_management.py`:
+  - `test_creates_db_on_first_load` nyní porovnává názvy oborů přes
+    `{o.name for o in db.obory}`, protože `Database.obory` je
+    `list[Obor]`, nikoli `list[str]`.
+  - `test_list_obor_objects_sorted_by_name` nyní filtruje výsledek
+    `list_obor_objects()` jen na přidané obory (ALPHA / MIKE / ZULU)
+    a teprve nad nimi kontroluje abecední řazení — default obory
+    (`NSWI-P`, `NIB-K`, `NAI-K`, …) z fixture DB jinak rozbíjely
+    porovnání prvních tří položek.
+- Produkční kód se nemění, oprava se týká pouze testů.
+
 ## [0.13.0] - 2026-06-04
 
 ### Added

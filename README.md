@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.13.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.13.1** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou

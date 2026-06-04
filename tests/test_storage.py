@@ -20,7 +20,7 @@ def test_creates_db_on_first_load(repo: JsonRepository) -> None:
     db = repo.load()
     assert isinstance(db, Database)
     assert db.version == 1
-    assert "NSWI-P" in db.obory
+    assert "NSWI-P" in {o.name for o in db.obory}
     assert repo.path.exists()
 
 

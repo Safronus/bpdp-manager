@@ -76,8 +76,8 @@ def test_list_obor_objects_sorted_by_name(service: ThesisService) -> None:
     service.add_obor("ALPHA")
     service.add_obor("MIKE")
     names = [o.name for o in service.list_obor_objects()]
-    # default fixture obory don't exist (empty DB), so first three are these
-    assert names[:3] == ["ALPHA", "MIKE", "ZULU"]
+    added = [n for n in names if n in {"ALPHA", "MIKE", "ZULU"}]
+    assert added == ["ALPHA", "MIKE", "ZULU"]
 
 
 def test_old_obory_strings_migrate_to_objects(tmp_path) -> None:
