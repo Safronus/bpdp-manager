@@ -317,6 +317,167 @@ class ThesisService:
         self._db.theses = [t for t in self._db.theses if t.id != thesis_id]
         self.save()
 
+    def rollback_thesis(self, thesis_id: str) -> dict[str, int]:
+        """Kompletně smaže práci z DB **i** všechny její soubory na disku.
+
+        Použití: oprava chybného importu, omyl při zakládání, ...
+        Studenta/oponenta v registru nemažeme — mohou být provázáni s jinými
+        pracemi a tady nemáme dost kontextu na rozhodnutí.
+
+        Vrací statistiky: ``{"files_deleted": N, "plagiarism_pdf": 0|1,
+        "documents_dir_removed": 0|1}``.
+        """
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return {"files_deleted": 0, "plagiarism_pdf": 0, "documents_dir_removed": 0}
+
+        stats = {"files_deleted": 0, "plagiarism_pdf": 0, "documents_dir_removed": 0}
+        docs_dir = thesis_documents_dir(thesis_id)
+
+        # 1) Smaž každý záznam přílohy explicitně (kvůli statistice). Adresář
+        #    poté smažeme rekurzivně — chytí i orphan soubory bez záznamu.
+        for att in list(thesis.attachments):
+            try:
+                p = docs_dir / att.url_or_path
+                if p.is_file():
+                    p.unlink()
+                    stats["files_deleted"] += 1
+            except OSError:
+                pass
+
+        # 2) Plagiátorský PDF protokol
+        if thesis.plagiarism_pdf_filename:
+            try:
+                p = docs_dir / thesis.plagiarism_pdf_filename
+                if p.is_file():
+                    p.unlink()
+                    stats["plagiarism_pdf"] = 1
+            except OSError:
+                pass
+
+        # 3) Smaž celou složku ``documents/{id}/`` rekurzivně (chytí orphany)
+        try:
+            if docs_dir.exists():
+                shutil.rmtree(docs_dir, ignore_errors=True)
+                stats["documents_dir_removed"] = 1
+        except OSError:
+            pass
+
+        # 4) Vyřaď z DB
+        self._db.theses = [t for t in self._db.theses if t.id != thesis_id]
+        self.save()
+        return stats
+
+    def rollback_opposing_thesis(self, op_id: str) -> dict[str, int]:
+        """Analog ``rollback_thesis`` pro oponentský posudek."""
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return {"files_deleted": 0, "documents_dir_removed": 0}
+
+        stats = {"files_deleted": 0, "documents_dir_removed": 0}
+        docs_dir = thesis_documents_dir(f"opposing-{op_id}")
+
+        for att in list(op.attachments):
+            try:
+                p = docs_dir / att.url_or_path
+                if p.is_file():
+                    p.unlink()
+                    stats["files_deleted"] += 1
+            except OSError:
+                pass
+
+        try:
+            if docs_dir.exists():
+                shutil.rmtree(docs_dir, ignore_errors=True)
+                stats["documents_dir_removed"] = 1
+        except OSError:
+            pass
+
+        self._db.opposing_theses = [
+            t for t in self._db.opposing_theses if t.id != op_id
+        ]
+        self.save()
+        return stats
+
+    def rollback_preview(self, thesis_id: str) -> dict:
+        """Spočítá, co by ``rollback_thesis`` smazalo — pro confirmation dialog.
+
+        Vrací: ``{"thesis": Thesis, "attachments": [(label, path, exists)],
+        "plagiarism_pdf": (filename, exists) | None, "extra_files": [path],
+        "total_bytes": int}``.
+        """
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return {"thesis": None, "attachments": [], "plagiarism_pdf": None,
+                    "extra_files": [], "total_bytes": 0}
+
+        docs_dir = thesis_documents_dir(thesis_id)
+        atts: list[tuple[str, Path, bool, int]] = []
+        tracked_paths: set[Path] = set()
+        for att in thesis.attachments:
+            p = docs_dir / att.url_or_path
+            size = p.stat().st_size if p.is_file() else 0
+            atts.append((att.label or att.url_or_path, p, p.is_file(), size))
+            tracked_paths.add(p.resolve())
+
+        plagiarism = None
+        if thesis.plagiarism_pdf_filename:
+            p = docs_dir / thesis.plagiarism_pdf_filename
+            plagiarism = (thesis.plagiarism_pdf_filename, p, p.is_file(),
+                          p.stat().st_size if p.is_file() else 0)
+            tracked_paths.add(p.resolve())
+
+        # Orphan soubory ve složce — vše ostatní co tam je
+        extra: list[tuple[Path, int]] = []
+        if docs_dir.exists():
+            for p in docs_dir.rglob("*"):
+                if p.is_file() and p.resolve() not in tracked_paths:
+                    extra.append((p, p.stat().st_size))
+
+        total = (
+            sum(s for _, _, _, s in atts)
+            + (plagiarism[3] if plagiarism else 0)
+            + sum(s for _, s in extra)
+        )
+        return {
+            "thesis": thesis,
+            "attachments": atts,
+            "plagiarism_pdf": plagiarism,
+            "extra_files": extra,
+            "total_bytes": total,
+            "documents_dir": docs_dir,
+        }
+
+    def rollback_opposing_preview(self, op_id: str) -> dict:
+        """Preview pro ``rollback_opposing_thesis``."""
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return {"opposing": None, "attachments": [], "extra_files": [], "total_bytes": 0}
+
+        docs_dir = thesis_documents_dir(f"opposing-{op_id}")
+        atts: list[tuple[str, Path, bool, int]] = []
+        tracked_paths: set[Path] = set()
+        for att in op.attachments:
+            p = docs_dir / att.url_or_path
+            size = p.stat().st_size if p.is_file() else 0
+            atts.append((att.label or att.url_or_path, p, p.is_file(), size))
+            tracked_paths.add(p.resolve())
+
+        extra: list[tuple[Path, int]] = []
+        if docs_dir.exists():
+            for p in docs_dir.rglob("*"):
+                if p.is_file() and p.resolve() not in tracked_paths:
+                    extra.append((p, p.stat().st_size))
+
+        total = sum(s for _, _, _, s in atts) + sum(s for _, s in extra)
+        return {
+            "opposing": op,
+            "attachments": atts,
+            "extra_files": extra,
+            "total_bytes": total,
+            "documents_dir": docs_dir,
+        }
+
     def transition(self, thesis_id: str, target: ThesisStatus) -> Thesis:
         thesis = self.get_thesis(thesis_id)
         if thesis is None:

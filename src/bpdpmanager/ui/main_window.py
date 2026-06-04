@@ -46,6 +46,7 @@ from .manage_dialogs import (
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
 from .profile_manage_dialog import ProfileManageDialog
+from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
 from .stag_import_dialog import StagImportDialog
 from .theses_tree import ThesesTreeWidget
 from .thesis_detail import (
@@ -91,12 +92,28 @@ class _ThesesTab(QWidget):
         layout.addWidget(splitter)
 
         self.tree.thesis_selected.connect(self._on_thesis_selected)
+        self.tree.rollback_requested.connect(self._on_rollback_requested)
         self.detail.saved.connect(lambda _: self.tree.refresh())
         self.detail.deleted.connect(lambda _: self.tree.refresh())
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
         self.detail.set_thesis(thesis)
+
+    def _on_rollback_requested(self, thesis_id: str) -> None:
+        """Otevře rollback dialog pro vybranou práci."""
+        # Flushni rozpracované změny v detail panelu pro tuto práci,
+        # aby autosave po našem mazání nezapsal něco zpět.
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        dlg = RollbackThesisDialog(self.service, thesis_id, self)
+        dlg.exec()
+        if dlg.executed:
+            # Práce už neexistuje — vyprázdni detail panel + refresh stromu
+            self.detail.set_thesis(None)
+            self.tree.refresh()
 
     def refresh(self) -> None:
         self.tree.refresh()

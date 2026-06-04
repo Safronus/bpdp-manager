@@ -5,7 +5,8 @@ from __future__ import annotations
 import locale
 import unicodedata
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QMenu,
     QPushButton,
     QSplitter,
     QTreeWidget,
@@ -131,6 +133,9 @@ class OpposingTab(QWidget):
         h.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
+        # Kontextové menu — pravý klik na posudek → Roll-back
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._on_context_menu)
         splitter.addWidget(self.tree)
 
         self.detail = OpposingDetail(service)
@@ -244,6 +249,39 @@ class OpposingTab(QWidget):
             return
         op = self.service.get_opposing_thesis(op_id)
         self.detail.set_opposing(op)
+
+    def _on_context_menu(self, pos: QPoint) -> None:
+        """Kontextové menu — pravý klik na posudek → Roll-back."""
+        item = self.tree.itemAt(pos)
+        if item is None:
+            return
+        op_id = item.data(0, ROLE_ID)
+        if not op_id:
+            return  # year header — nemá menu
+
+        # Import zde, ne na vrcholu (kruhový import s main_window)
+        from .rollback_dialog import RollbackOpposingDialog
+
+        menu = QMenu(self.tree)
+        act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self.tree)
+        act_rollback.setToolTip(
+            "Nenávratně smaže posudek z databáze a všechny jeho soubory."
+        )
+
+        def _do_rollback() -> None:
+            try:
+                self.detail.flush()
+            except Exception:
+                pass
+            dlg = RollbackOpposingDialog(self.service, op_id, self)
+            dlg.exec()
+            if dlg.executed:
+                self.detail.set_opposing(None)
+                self.refresh()
+
+        act_rollback.triggered.connect(_do_rollback)
+        menu.addAction(act_rollback)
+        menu.exec(self.tree.viewport().mapToGlobal(pos))
 
     # --- akce ---------------------------------------------------------------
 

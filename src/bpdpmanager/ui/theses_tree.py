@@ -5,11 +5,12 @@ from __future__ import annotations
 import locale
 import unicodedata
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtGui import QAction, QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
+    QMenu,
     QTreeWidget,
     QTreeWidgetItem,
 )
@@ -75,6 +76,8 @@ class ThesesTreeWidget(QTreeWidget):
     """
 
     thesis_selected = Signal(str)
+    # Vyžádané smazání práce přes kontextové menu — connect z _ThesesTab
+    rollback_requested = Signal(str)
 
     HEADERS = ["Student / Skupina", "Téma", "Stav", "Oponent", "Obor"]
     COL_STUDENT = 0
@@ -106,6 +109,10 @@ class ThesesTreeWidget(QTreeWidget):
         h.setStretchLastSection(False)
 
         self.itemSelectionChanged.connect(self._on_selection)
+
+        # Kontextové menu (pravý klik na práci → Roll-back)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._on_context_menu)
 
     # --- veřejné API ---------------------------------------------------------
 
@@ -263,3 +270,30 @@ class ThesesTreeWidget(QTreeWidget):
         tid = self.selected_thesis_id()
         if tid:
             self.thesis_selected.emit(tid)
+
+    def _on_context_menu(self, pos: QPoint) -> None:
+        """Kontextové menu nad práci — Roll-back / kompletní smazání.
+
+        Sekční řádky (rok, typ) menu nemají — jen list reprezentující práci.
+        """
+        item = self.itemAt(pos)
+        if item is None:
+            return
+        kind = item.data(0, ROLE_KIND)
+        if kind != "thesis":
+            return
+        thesis_id = item.data(0, ROLE_THESIS_ID)
+        if not thesis_id:
+            return
+
+        menu = QMenu(self)
+        act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self)
+        act_rollback.setToolTip(
+            "Nenávratně smaže záznam práce z databáze a všechny její soubory. "
+            "Vhodné po chybném importu nebo omylu při zakládání."
+        )
+        act_rollback.triggered.connect(
+            lambda _checked=False, tid=thesis_id: self.rollback_requested.emit(tid)
+        )
+        menu.addAction(act_rollback)
+        menu.exec(self.viewport().mapToGlobal(pos))

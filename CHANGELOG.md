@@ -7,6 +7,70 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-06-04
+
+### Changed
+- **Smart per-řádkový default stavu v STAG importu**. Místo globálního
+  „Obhájeno" dialog teď zvolí stav podle datumů v CSV per řádek:
+  - ``datumObhajoby`` vyplněno → ``Obhájeno``
+  - ``datumOdevzdani`` vyplněno (ale ne obhajoba) → ``V řešení``
+  - ``datumZadani`` vyplněno (ale ne odevzdání) → ``Schválené téma``
+  - jinak → fallback z formuláře (default *Schválené téma*).
+
+  Tooltip nad combo boxem stavu vysvětluje, proč se daný stav zvolil.
+  Uživatel může samozřejmě každý řádek ručně přepsat. Tím se BP/DP
+  s neukončenou obhajobou už nezařazují do *Historie*, ale správně do
+  *Aktuální* podle akademického roku.
+- Hlavička dialogu: pole *„Default stav"* přejmenováno na *„Fallback stav"*
+  + krátký help text, že reálný stav per řádek určí heuristika z dat CSV.
+
+### Added (Roll-back nad pracemi)
+- **Kontextové menu nad pracemi v stromu** — pravý klik na práci ve
+  všech čtyřech vedených záložkách (*Aktuální / Budoucí / Historie / Vše*)
+  i v záložce *🧐 Oponentské posudky* nabídne akci
+  **🗑 Roll-back — smazat kompletně…**.
+- Nový dialog ``RollbackThesisDialog`` (a varianta
+  ``RollbackOpposingDialog``):
+  - **Fáze 1 (Preview):** ukáže záznam práce (typ, rok, stav, student,
+    oponent, název) + tabulku všech evidovaných příloh
+    (štítek / název souboru / velikost / *exists*-flag), plagiátorský
+    PDF protokol pokud existuje, a *orphan* soubory ve složce
+    ``documents/{thesis_id}/`` (= soubory na disku, na které žádný
+    záznam v DB neukazuje — typický artefakt z neúspěšného importu).
+    Celková velikost k odstranění je sumarizována.
+  - **Druhotné potvrzení** — *„Opravdu nenávratně smazat?"* yes/no.
+  - **Fáze 2 (Summary):** počty smazaných souborů, info, že záznam
+    z ``db.json`` byl odstraněn; student / oponent / vedoucí
+    v registrech zůstávají (mohou být provázáni s jinými pracemi).
+- Nové service API:
+  - ``ThesisService.rollback_thesis(thesis_id)`` — smaže záznam +
+    rekurzivně celou složku ``documents/{thesis_id}/``. Vrací
+    statistiky (počet souborů, plagiat PDF, removal flag).
+  - ``ThesisService.rollback_opposing_thesis(op_id)`` — analog pro
+    oponentské posudky (``documents/opposing-{id}/``).
+  - ``ThesisService.rollback_preview(thesis_id)`` a
+    ``rollback_opposing_preview(op_id)`` — read-only pre-flight pro
+    UI dialog (přílohy, plagiat PDF, orphan soubory, celková velikost).
+- ``ThesesTreeWidget`` má nový signál ``rollback_requested`` (str)
+  emitovaný z kontextového menu; ``_ThesesTab`` ho po flushi detailu
+  obslouží otevřením příslušného dialogu.
+
+### Verified (bez změny)
+- Klíč ``temaHlavniAn`` v STAG CSV je již správně použit pro
+  ``title_en`` — ověřeno smoke testem nad reálnými CSV soubory
+  (DP i BP). Pokud existující importovaná data mají prázdný EN
+  název, šlo o starší verzi importéru — nový import dat doplní.
+
+### Notes
+- Roll-back **neodstraní** studenta/oponenta/vedoucího z registru
+  ani obor — tyto entity mohou být provázány s dalšími pracemi.
+  Pokud chceš jejich úklid, spusť dialogy *Studenti / Oponenti /
+  Vedoucí / Obory* a smaž jednotlivě.
+- Transitní pravidla stavů (``ALLOWED_TRANSITIONS``) zůstávají
+  beze změny — ``Obhájeno`` je terminální stav (neumožňuje
+  vrácení na předchozí). Pro nápravu chybného stavu použij
+  Roll-back a importuj/založ práci znovu.
+
 ## [0.14.0] - 2026-06-04
 
 ### Added

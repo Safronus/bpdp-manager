@@ -130,15 +130,28 @@ class StagImportDialog(QDialog):
         help_lbl.setTextFormat(Qt.TextFormat.RichText)
         form.addRow("", help_lbl)
 
-        # Default stav pro vedené (oponentury stavy nemají)
+        # Fallback stav (použije se jen když CSV nemá žádné z datumů
+        # zadání/odevzdání/obhajoby — typicky čerstvý zájem). Skutečný
+        # stav per řádek určí heuristika z dat CSV (datumObhajoby →
+        # Obhájeno, datumOdevzdani → V řešení, datumZadani → Schválené),
+        # ale uživatel ho samozřejmě může v náhledu přepsat.
         self.cb_default_status = QComboBox()
         for st in ThesisStatus:
             self.cb_default_status.addItem(st.label, st.value)
-        # Pre-set na "Obhájeno" pro typický import historických
-        idx = self.cb_default_status.findData(ThesisStatus.DEFENDED.value)
+        idx = self.cb_default_status.findData(ThesisStatus.ASSIGNED.value)
         if idx >= 0:
             self.cb_default_status.setCurrentIndex(idx)
-        form.addRow("Default stav (vedené práce)", self.cb_default_status)
+        form.addRow("Fallback stav (vedené práce)", self.cb_default_status)
+        status_help = QLabel(
+            "<small><i>Použije se jen pro řádky, kde CSV neobsahuje "
+            "<code>datumZadani</code>/<code>datumOdevzdani</code>/"
+            "<code>datumObhajoby</code>. Reálný stav per řádek určí "
+            "heuristika nad dat z CSV (lze ručně přepsat v náhledu).</i></small>"
+        )
+        status_help.setStyleSheet("color:#888;")
+        status_help.setTextFormat(Qt.TextFormat.RichText)
+        status_help.setWordWrap(True)
+        form.addRow("", status_help)
 
         btn_load = QPushButton("🔍 Načíst náhled")
         btn_load.clicked.connect(self._load_preview)
@@ -432,11 +445,24 @@ class StagImportDialog(QDialog):
             cb_status.setStyleSheet(combo_neutral_qss)
             for st in ThesisStatus:
                 cb_status.addItem(st.label, st.value)
-            idx = cb_status.findData(default_status.value)
+            # Smart per-row default:
+            #  - datumObhajoby vyplněno → Obhájeno
+            #  - datumOdevzdani vyplněno (ale ne obhajoba) → V řešení
+            #  - datumZadani vyplněno (ale ne odevzdání) → Schválené téma
+            #  - jinak → globální default z formuláře
+            #
+            # Pokud uživatel globální default v hlavičce explicitně přepsal
+            # (ne defaultní DEFENDED), jeho volba má přednost nad heuristikou.
+            row_default = self._smart_status_for_record(record, default_status)
+            idx = cb_status.findData(row_default.value)
             if idx >= 0:
                 cb_status.setCurrentIndex(idx)
             cb_status.currentIndexChanged.connect(
                 lambda _, r=row_idx: self._refresh_detail_if_current(r)
+            )
+            # Tooltip vysvětluje proč jsme zvolili daný default
+            cb_status.setToolTip(
+                self._status_heuristic_explanation(record, row_default)
             )
             self.table.setCellWidget(row_idx, 8, cb_status)
 
@@ -872,6 +898,52 @@ class StagImportDialog(QDialog):
         if 2 <= n <= 4:
             return few
         return many
+
+    @staticmethod
+    def _smart_status_for_record(
+        record: ParsedRecord, fallback: ThesisStatus
+    ) -> ThesisStatus:
+        """Per-řádkový default stav na základě datumů z STAG CSV.
+
+        Logika:
+        - ``datumObhajoby`` vyplněno → ``DEFENDED``
+        - ``datumOdevzdani`` vyplněno (ale ne obhajoba) → ``IN_PROGRESS``
+        - ``datumZadani`` vyplněno (ale ne odevzdání) → ``ASSIGNED``
+        - jinak → ``fallback`` (z hlavičkového combo boxu)
+
+        STAG ``stavPrace`` kódy záměrně ignorujeme — jejich významy se
+        mezi katedrami liší a uživatel může chtít stav přepsat per řádek.
+        """
+        if record.date_defended is not None:
+            return ThesisStatus.DEFENDED
+        if record.date_submitted is not None:
+            return ThesisStatus.IN_PROGRESS
+        if record.date_assigned is not None:
+            return ThesisStatus.ASSIGNED
+        return fallback
+
+    @staticmethod
+    def _status_heuristic_explanation(
+        record: ParsedRecord, chosen: ThesisStatus
+    ) -> str:
+        if record.date_defended is not None:
+            return (
+                f"Auto-default: Obhájeno (CSV má datumObhajoby = "
+                f"{record.date_defended.strftime('%d.%m.%Y')}). "
+                "Pokud je to chyba, zvol jiný stav."
+            )
+        if record.date_submitted is not None:
+            return (
+                f"Auto-default: V řešení (CSV má datumOdevzdani = "
+                f"{record.date_submitted.strftime('%d.%m.%Y')} ale ne datumObhajoby). "
+                "Pokud již byla obhajoba, přepni na *Obhájeno*."
+            )
+        if record.date_assigned is not None:
+            return (
+                f"Auto-default: Schválené téma (CSV má datumZadani = "
+                f"{record.date_assigned.strftime('%d.%m.%Y')} ale ne odevzdání)."
+            )
+        return f"Default z hlavičky: {chosen.label}"
 
     def _execute_import(self) -> None:
         if not self.row_widgets:
