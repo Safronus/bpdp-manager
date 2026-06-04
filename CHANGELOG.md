@@ -7,6 +7,37 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-06-04
+
+### Added
+- **Auto-detekce metadat z XLSX při přidávání šablony**. V dialogu
+  *Nová šablona posudku* po výběru souboru aplikace okamžitě naskenuje:
+  - **Typ + role + jazyk** z A6 titulu (např. „POSUDEK VEDOUCÍHO
+    DIPLOMOVÉ PRÁCE" → DP / supervisor / cs)
+  - **Studijní program** (B10) a **specializaci** (B11)
+  - **Akademický rok** (B12)
+  - **Kód oboru** heuristicky z programu/specializace
+    (regex mapování *Softwarové inženýrství* → `SWI`,
+    *Kybernetická bezpečnost* → `KYB`, *Učitelství informatiky* → `UI`,
+    EN ekvivalenty atd.)
+  - **Schema kritérií** (řádek/váha/skóre/cell mapping) + speciální pole
+    (assignment_fulfilled, plagiarism_*, overall_comment, place_date)
+- **Auto-pojmenování** šablony — generuje návrh typu
+  *„Vedoucí DP — SWI — 2025/2026"* / *„Supervisor BP — SWI — 2025/2026"*.
+  Pokud má uživatel ručně nastavený jiný název, respektuje to.
+- **Auto-předvyplnění form polí** (typ, role, jazyk, obor, rok)
+  na základě detekce. Uživatel může všechno opravit ručně před uložením.
+- **Eager schema cache** — při registraci šablony se schema (criteria
+  + field_cells) **uloží hned**, ne lazy. ReviewEditor nemusí už nikdy
+  rescanovat (rychlejší otevření, žádná latence při psaní posudku).
+
+### Notes
+- Ověřeno na všech 14 FAI UTB šablonách — auto-detekce trefuje
+  obor (SWI/KYB/UI), typ (BP/DP), roli (supervisor/opponent), jazyk
+  (cs/en) i rok korektně.
+- Custom obor (např. pro neznámou specializaci) se přidá do combo
+  jako editable text — uživatel ho může ručně vyplnit.
+
 ## [0.19.0] - 2026-06-04
 
 ### Added

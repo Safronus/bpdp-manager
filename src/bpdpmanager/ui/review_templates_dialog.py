@@ -86,6 +86,8 @@ class ReviewTemplateEditDialog(QDialog):
         self.created: ReviewTemplate | None = None
         # Pro nové šablony — zdroj XLSX, který se zkopíruje
         self.selected_source: Path | None = None
+        # Cached metadata z předskenu XLSX (vyplní _autofill_from_xlsx)
+        self._detected_meta: dict | None = None
 
         self.setWindowTitle("Nová šablona posudku" if self.is_new else "Šablona posudku")
         self.setMinimumWidth(560)
@@ -199,12 +201,97 @@ class ReviewTemplateEditDialog(QDialog):
             self, "Vyber XLSX šablonu posudku", start,
             "Excel soubory (*.xlsx);;Všechny soubory (*.*)",
         )
-        if path:
-            self.selected_source = Path(path)
-            self.ed_source.setText(path)
-            # Předvyplň název podle souboru, pokud je prázdné
-            if not self.ed_name.text().strip():
-                self.ed_name.setText(self.selected_source.stem)
+        if not path:
+            return
+        self.selected_source = Path(path)
+        self.ed_source.setText(path)
+        self._autofill_from_xlsx(self.selected_source)
+
+    def _autofill_from_xlsx(self, xlsx_path: Path) -> None:
+        """Otevře XLSX, vytáhne meta (typ/role/jazyk/obor/rok) a předvyplní form.
+
+        Předvyplňuje JEN pole, která má uživatel zatím prázdná — vlastní
+        explicitní volbu (např. opravený obor) nepřepisujeme.
+        """
+        from ..services.review_schema import extract_template_metadata
+
+        try:
+            meta = extract_template_metadata(xlsx_path)
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.warning(
+                self, "Skenování šablony",
+                f"Šablona se nepodařilo proskenovat:\n{exc}\n\n"
+                "Vyplň pole ručně.",
+            )
+            return
+
+        # Cache pro registraci (zabráníme druhému scanu)
+        self._detected_meta = meta
+
+        # Název (jen pokud uživatel ještě nic ručně nevyplnil)
+        if not self.ed_name.text().strip():
+            self.ed_name.setText(meta.get("suggested_name") or xlsx_path.stem)
+
+        # Typ (BP/DP)
+        type_hint = meta.get("type")
+        if type_hint:
+            idx = self.cb_type.findData(type_hint)
+            if idx >= 0:
+                self.cb_type.setCurrentIndex(idx)
+
+        # Role
+        role_hint = meta.get("role")
+        if role_hint:
+            idx = self.cb_role.findData(role_hint)
+            if idx >= 0:
+                self.cb_role.setCurrentIndex(idx)
+
+        # Jazyk
+        lang_hint = meta.get("language")
+        if lang_hint:
+            idx = self.cb_lang.findData(lang_hint)
+            if idx >= 0:
+                self.cb_lang.setCurrentIndex(idx)
+
+        # Obor — pro nový template vždy přebereme detekci (uživatel může opravit
+        # ručně). Pro editaci existující šablony se _autofill_from_xlsx volá
+        # jen z _browse_source — uživatel explicitně mění zdroj, takže obor
+        # z nového XLSX dává smysl.
+        obor_code = meta.get("obor_code") or ""
+        if obor_code:
+            idx = self.cb_obor.findData(obor_code)
+            if idx < 0:
+                self.cb_obor.addItem(obor_code, obor_code)
+                idx = self.cb_obor.findData(obor_code)
+            if idx >= 0:
+                self.cb_obor.setCurrentIndex(idx)
+
+        # Akademický rok
+        year = meta.get("academic_year") or ""
+        if year and not self.ed_year.text().strip():
+            self.ed_year.setText(year)
+
+        # Info hint o nascanovaných kritériích / polích — uživatel ví, že
+        # se z šablony udělal i strukturální scan.
+        n_crit = len(meta.get("criteria") or [])
+        max_pts = sum(c["default_weight"] for c in (meta.get("criteria") or [])) * 5
+        bits = [
+            f"typ={meta.get('type') or '?'}",
+            f"role={meta.get('role') or '?'}",
+            f"jazyk={meta.get('language') or '?'}",
+        ]
+        if obor_code:
+            bits.append(f"obor={obor_code}")
+        if year:
+            bits.append(f"rok={year}")
+        if n_crit:
+            bits.append(f"{n_crit} kritérií (max {max_pts:g} b.)")
+        QMessageBox.information(
+            self, "Auto-detekce",
+            f"✓ Šablonu se podařilo proskenovat.\n\nDetekováno: "
+            + ", ".join(bits)
+            + ".\n\nMůžeš upravit pole ručně, pokud bys něco chtěl změnit.",
+        )
 
     def _on_accept(self) -> None:
         name = self.ed_name.text().strip()
@@ -232,6 +319,19 @@ class ReviewTemplateEditDialog(QDialog):
             except Exception as exc:  # noqa: BLE001
                 QMessageBox.critical(self, "Přidání selhalo", str(exc))
                 return
+            # Eager schema cache — pokud máme metadata z předskenu, uložíme je
+            # přímo (vyhneme se druhému scan). Jinak ensure_template_schema
+            # otevře XLSX znovu a doplní z disku.
+            if self._detected_meta:
+                from ..models import TemplateCriterion
+
+                tmpl.criteria = [
+                    TemplateCriterion(**c) for c in self._detected_meta["criteria"]
+                ]
+                tmpl.field_cells = dict(self._detected_meta["field_cells"])
+                self.service.update_review_template(tmpl)
+            else:
+                self.service.ensure_template_schema(tmpl)
             self.created = tmpl
         else:
             assert self.template is not None

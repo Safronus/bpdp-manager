@@ -50,6 +50,64 @@ def _is_numeric(value: Any) -> bool:
     return False
 
 
+# ── Title patterns (pro detekci typu + role + jazyka z A6) ──────────────────
+# A6 obsahuje hlavičku jako "POSUDEK VEDOUCÍHO BAKALÁŘSKÉ PRÁCE",
+# "POSUDEK OPONENTA DIPLOMOVÉ PRÁCE", "SUPERVISOR'S REPORT ON BACHELOR THESIS"
+# atd. Z toho dovodíme type / role / language.
+
+_TITLE_TYPE_ROLE_LANG: list[tuple[re.Pattern[str], dict]] = [
+    # CZ
+    (re.compile(r"posudek\s+vedouciho\s+bakalarske"),
+     {"type": "BP", "role": "supervisor", "language": "cs"}),
+    (re.compile(r"posudek\s+oponenta\s+bakalarske"),
+     {"type": "BP", "role": "opponent", "language": "cs"}),
+    (re.compile(r"posudek\s+vedouciho\s+diplomove"),
+     {"type": "DP", "role": "supervisor", "language": "cs"}),
+    (re.compile(r"posudek\s+oponenta\s+diplomove"),
+     {"type": "DP", "role": "opponent", "language": "cs"}),
+    # EN
+    (re.compile(r"supervisor.*report.*bachelor"),
+     {"type": "BP", "role": "supervisor", "language": "en"}),
+    (re.compile(r"opponent.*report.*bachelor"),
+     {"type": "BP", "role": "opponent", "language": "en"}),
+    (re.compile(r"supervisor.*report.*master"),
+     {"type": "DP", "role": "supervisor", "language": "en"}),
+    (re.compile(r"opponent.*report.*master"),
+     {"type": "DP", "role": "opponent", "language": "en"}),
+]
+
+# Mapování specializace / studijního programu → krátký kód oboru, který
+# používáme v ReviewTemplate.obor. Pro DP je kód v specializaci (B11),
+# pro BP v programu (B10).
+_PROGRAM_TO_OBOR: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"softwar[oóô]v[ée]\s+in[zžZ]en[ýy]rstv[ií]", re.IGNORECASE), "SWI"),
+    (re.compile(r"software\s+engineering", re.IGNORECASE), "SWI"),
+    (re.compile(r"kybernetick[áa]\s+bezpe[čc]nost", re.IGNORECASE), "KYB"),
+    (re.compile(r"cyber\s+security", re.IGNORECASE), "KYB"),
+    (re.compile(r"u[čc]itelstv[ií]\s+informatiky", re.IGNORECASE), "UI"),
+    (re.compile(r"informatics\s+teaching", re.IGNORECASE), "UI"),
+    (re.compile(r"informa[čc]n[ií]\s+technologie\s+v\s+administrativ", re.IGNORECASE), "ITA"),
+    (re.compile(r"aplikovan[áa]\s+informatika.*pr[ůu]myslov", re.IGNORECASE), "AIPA"),
+    (re.compile(r"bezpe[čc]nostn[ií]\s+technologie", re.IGNORECASE), "BTSM"),
+    (re.compile(r"automatick[ée]\s+[řr][ií]zen[ií]", re.IGNORECASE), "ARI"),
+]
+
+
+def _guess_obor_code(specialization: str, study_program: str) -> str:
+    """Z popisu specializace / programu odhadne krátký kód (SWI, KYB, UI, ...).
+
+    Zkouší se nejdřív specialization (B11), pak study_program (B10) — protože
+    pro DP je obor v specializaci, pro BP v programu.
+    """
+    for text in (specialization, study_program):
+        if not text or not text.strip() or text.strip() == "-":
+            continue
+        for pattern, code in _PROGRAM_TO_OBOR:
+            if pattern.search(text):
+                return code
+    return ""
+
+
 # Patterns pro speciální pole (CZ + EN, normalized lowercase + ASCII-fold)
 _FIELD_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"^\s*splneni\s+vsech\s+bodu\s+zadani"), "assignment_fulfilled"),
@@ -151,3 +209,103 @@ def extract_template_schema(template_path: Path) -> dict:
                     break
 
     return {"criteria": criteria, "field_cells": field_cells}
+
+
+def extract_template_metadata(template_path: Path) -> dict:
+    """Vrátí kompletní metadata + schema šablony — pro auto-vyplnění
+    při registraci.
+
+    Returns:
+        ``{
+            "type": "BP"|"DP"|"",            # heuristika z A6 titulu
+            "role": "supervisor"|"opponent"|"",
+            "language": "cs"|"en"|"",
+            "study_program": str,            # B10
+            "specialization": str,           # B11
+            "academic_year": str,            # B12
+            "obor_code": str,                # heuristika: SWI/KYB/UI/...
+            "suggested_name": str,           # např. "Vedoucí DP — SWI — 2025/2026"
+            "criteria": [...],               # z extract_template_schema
+            "field_cells": {...},
+        }``
+
+    Všechna pole jsou best-effort; cokoli, co nelze detekovat, je prázdný
+    string / prázdný list / prázdný dict.
+    """
+    try:
+        import openpyxl  # type: ignore
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("openpyxl není nainstalován.") from exc
+
+    # Schema (criteria + field_cells)
+    base = extract_template_schema(template_path)
+
+    # Headers (typ/role/language z A6, study_program z B10 atd.)
+    wb = openpyxl.load_workbook(template_path, data_only=False)
+    ws = wb.active
+
+    title = (ws["A6"].value or "")
+    if not isinstance(title, str):
+        title = ""
+    title_norm = _ascii_fold_lower(title)
+
+    type_role_lang = {"type": "", "role": "", "language": ""}
+    for pattern, hint in _TITLE_TYPE_ROLE_LANG:
+        if pattern.search(title_norm):
+            type_role_lang = hint
+            break
+
+    study_program = (ws["B10"].value or "")
+    specialization = (ws["B11"].value or "")
+    academic_year = (ws["B12"].value or "")
+
+    # Normalize na string
+    study_program = str(study_program).strip() if study_program else ""
+    specialization = str(specialization).strip() if specialization else ""
+    academic_year = str(academic_year).strip() if academic_year else ""
+    # B11 obvykle obsahuje "-" pokud nemá specializaci → normalizuj na prázdné
+    if specialization == "-":
+        specialization = ""
+
+    obor_code = _guess_obor_code(specialization, study_program)
+
+    # Sestav suggested_name typu „Vedoucí DP — SWI — 2025/2026"
+    role_cs = {"supervisor": "Vedoucí", "opponent": "Oponent"}.get(
+        type_role_lang["role"], ""
+    )
+    role_en = {"supervisor": "Supervisor", "opponent": "Opponent"}.get(
+        type_role_lang["role"], ""
+    )
+    parts: list[str] = []
+    if type_role_lang["language"] == "en":
+        if role_en:
+            parts.append(role_en)
+        if type_role_lang["type"]:
+            parts.append(type_role_lang["type"])
+        if obor_code:
+            parts.append("— " + obor_code)
+        if academic_year:
+            parts.append("— " + academic_year)
+    else:
+        if role_cs:
+            parts.append(role_cs)
+        if type_role_lang["type"]:
+            parts.append(type_role_lang["type"])
+        if obor_code:
+            parts.append("— " + obor_code)
+        if academic_year:
+            parts.append("— " + academic_year)
+    suggested_name = " ".join(parts).strip() or Path(template_path).stem
+
+    return {
+        "type": type_role_lang["type"],
+        "role": type_role_lang["role"],
+        "language": type_role_lang["language"],
+        "study_program": study_program,
+        "specialization": specialization,
+        "academic_year": academic_year,
+        "obor_code": obor_code,
+        "suggested_name": suggested_name,
+        "criteria": base["criteria"],
+        "field_cells": base["field_cells"],
+    }
