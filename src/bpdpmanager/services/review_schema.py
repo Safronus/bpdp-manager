@@ -269,6 +269,10 @@ def extract_template_metadata(template_path: Path) -> dict:
 
     obor_code = _guess_obor_code(specialization, study_program)
 
+    # Načti list „Konfigurace" — nabídka platných hodnot pro combo boxy,
+    # když auto-detekce nechá pole prázdné.
+    available = _read_konfigurace(wb)
+
     # Sestav suggested_name typu „Vedoucí DP — SWI — 2025/2026"
     role_cs = {"supervisor": "Vedoucí", "opponent": "Oponent"}.get(
         type_role_lang["role"], ""
@@ -308,4 +312,49 @@ def extract_template_metadata(template_path: Path) -> dict:
         "suggested_name": suggested_name,
         "criteria": base["criteria"],
         "field_cells": base["field_cells"],
+        # Platné volby z listu „Konfigurace" (pro combo boxy v dialogu,
+        # když auto-detekce nechá pole prázdné):
+        "available_programs": available["programs"],
+        "available_specializations": available["specializations"],
+        "available_years": available["years"],
     }
+
+
+def _read_konfigurace(wb) -> dict:
+    """Načte list ``Konfigurace`` (pokud existuje) — nabídka platných hodnot.
+
+    Layout:
+      A=studijní programy (CZ), B=programy (EN),
+      C=specializace (CZ), D=specializace (EN),
+      E=akademické roky
+
+    Hodnoty „-" / prázdné / hlavičkový řádek se odfiltrují.
+
+    Returns ``{"programs": [...], "specializations": [...], "years": [...]}``.
+    """
+    out: dict[str, list[str]] = {"programs": [], "specializations": [], "years": []}
+    if "Konfigurace" not in wb.sheetnames:
+        return out
+    ws = wb["Konfigurace"]
+
+    def _clean(col_idx: int) -> list[str]:
+        vals: list[str] = []
+        for r, row in enumerate(ws.iter_rows(values_only=True), start=1):
+            if r == 1:  # hlavička
+                continue
+            if col_idx >= len(row):
+                continue
+            v = row[col_idx]
+            if v is None:
+                continue
+            s = str(v).strip()
+            if not s or s == "-":
+                continue
+            if s not in vals:
+                vals.append(s)
+        return vals
+
+    out["programs"] = _clean(0)        # col A (CZ programy)
+    out["specializations"] = _clean(2) # col C (CZ specializace)
+    out["years"] = _clean(4)           # col E (roky)
+    return out

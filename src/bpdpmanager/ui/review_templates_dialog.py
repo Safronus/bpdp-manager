@@ -159,12 +159,21 @@ class ReviewTemplateEditDialog(QDialog):
             idx = self.cb_obor.findData(template.obor)
             if idx >= 0:
                 self.cb_obor.setCurrentIndex(idx)
-        form.addRow("Obor (volitelné)", self.cb_obor)
+        form.addRow("Obor / specializace", self.cb_obor)
+        self.lbl_obor_hint = QLabel("")
+        self.lbl_obor_hint.setStyleSheet("color:#888;font-size:11px;")
+        self.lbl_obor_hint.setWordWrap(True)
+        form.addRow("", self.lbl_obor_hint)
 
-        # Akademický rok
-        self.ed_year = QLineEdit(template.academic_year if template else "")
-        self.ed_year.setPlaceholderText("např. 2025/2026 (volitelné)")
-        form.addRow("Akademický rok", self.ed_year)
+        # Akademický rok — editable combo, naplněno z listu Konfigurace
+        # (po výběru XLSX), aby šlo vybrat z platných hodnot, ne psát ručně.
+        self.cb_year = QComboBox()
+        self.cb_year.setEditable(True)
+        self.cb_year.setPlaceholderText("např. 2025/2026 (volitelné)")
+        if template and template.academic_year:
+            self.cb_year.addItem(template.academic_year, template.academic_year)
+            self.cb_year.setCurrentText(template.academic_year)
+        form.addRow("Akademický rok", self.cb_year)
 
         # Poznámka
         self.ed_note = QPlainTextEdit(template.note if template else "")
@@ -272,10 +281,25 @@ class ReviewTemplateEditDialog(QDialog):
             if idx >= 0:
                 self.cb_lang.setCurrentIndex(idx)
 
-        # Obor — pro nový template vždy přebereme detekci (uživatel může opravit
-        # ručně). Pro editaci existující šablony se _autofill_from_xlsx volá
-        # jen z _browse_source — uživatel explicitně mění zdroj, takže obor
-        # z nového XLSX dává smysl.
+        # Obor / specializace.
+        # 1) Obohať combo o specializace z listu Konfigurace (s odvozeným
+        #    kódem) — tak uživatel vidí, co šablona podporuje, i když
+        #    auto-detekce nechala obor prázdný.
+        from ..services.review_schema import _guess_obor_code
+
+        avail_specs = meta.get("available_specializations") or []
+        existing_data = {
+            self.cb_obor.itemData(i) for i in range(self.cb_obor.count())
+        }
+        for spec in avail_specs:
+            code = _guess_obor_code(spec, "")
+            if code and code not in existing_data:
+                self.cb_obor.addItem(f"{code} — {spec}", code)
+                existing_data.add(code)
+
+        # 2) Pro nový template vždy přebereme detekovaný obor (uživatel
+        #    může opravit). Pokud detekce selhala (prázdný obor) a máme
+        #    nabídku specializací, ukážeme hint.
         obor_code = meta.get("obor_code") or ""
         if obor_code:
             idx = self.cb_obor.findData(obor_code)
@@ -284,11 +308,27 @@ class ReviewTemplateEditDialog(QDialog):
                 idx = self.cb_obor.findData(obor_code)
             if idx >= 0:
                 self.cb_obor.setCurrentIndex(idx)
+            self.lbl_obor_hint.setText("")
+        elif avail_specs:
+            self.lbl_obor_hint.setText(
+                "⚠ Specializace nebyla v šabloně vyplněna. Vyber obor z nabídky "
+                "(odvozeno z listu Konfigurace) nebo nech prázdné."
+            )
+        else:
+            self.lbl_obor_hint.setText("")
 
-        # Akademický rok
+        # Akademický rok — naplň combo z Konfigurace + předvyplň detekovaný
+        avail_years = meta.get("available_years") or []
+        current_years = {
+            self.cb_year.itemData(i) for i in range(self.cb_year.count())
+        }
+        for y in avail_years:
+            if y not in current_years:
+                self.cb_year.addItem(y, y)
+                current_years.add(y)
         year = meta.get("academic_year") or ""
-        if year and not self.ed_year.text().strip():
-            self.ed_year.setText(year)
+        if year and not self.cb_year.currentText().strip():
+            self.cb_year.setCurrentText(year)
 
         # Info hint o nascanovaných kritériích / polích — uživatel ví, že
         # se z šablony udělal i strukturální scan.
@@ -321,8 +361,17 @@ class ReviewTemplateEditDialog(QDialog):
         thesis_type = ThesisType(self.cb_type.currentData())
         role = self.cb_role.currentData()
         language = self.cb_lang.currentData()
-        obor = (self.cb_obor.currentData() or self.cb_obor.currentText() or "").strip()
-        year = self.ed_year.text().strip()
+        # Obor: preferuj data (kód) vybrané položky; pokud uživatel napsal
+        # vlastní text, vezmi ho (ale ne enriched label „KÓD — název").
+        obor_data = self.cb_obor.currentData()
+        if obor_data:
+            obor = str(obor_data).strip()
+        else:
+            obor_text = (self.cb_obor.currentText() or "").strip()
+            # Pokud text vypadá jako enriched „SWI — Softwarové inženýrství",
+            # vezmi jen kód před „ — ".
+            obor = obor_text.split(" — ")[0].strip() if " — " in obor_text else obor_text
+        year = self.cb_year.currentText().strip()
         note = self.ed_note.toPlainText().strip()
 
         if self.is_new:
@@ -392,16 +441,17 @@ class ReviewTemplatesDialog(QDialog):
         outer.itemAt(outer.count() - 1).widget().setWordWrap(True)
         outer.itemAt(outer.count() - 1).widget().setTextFormat(Qt.TextFormat.RichText)
 
+        # Strom: BP/DP → obor → jednotlivé šablony (s ikonou role + jazyk).
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(6)
-        self.tree.setHeaderLabels(["Název", "Typ", "Role", "Jazyk", "Obor", "Ak. rok"])
+        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["Šablona", "Role", "Ak. rok"])
         self.tree.setAlternatingRowColors(True)
-        self.tree.setRootIsDecorated(False)
+        self.tree.setRootIsDecorated(True)
         self.tree.itemDoubleClicked.connect(self._edit)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for i in range(1, 6):
-            h.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         outer.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
@@ -429,35 +479,99 @@ class ReviewTemplatesDialog(QDialog):
         self._refresh()
 
     def _refresh(self) -> None:
+        from PySide6.QtGui import QBrush, QColor, QFont
+
         selected_id = self._current_id()
         self.tree.clear()
-        for tmpl in self.service.list_review_templates():
-            item = QTreeWidgetItem([
-                tmpl.name,
-                tmpl.type.value,
-                tmpl.role_label,
-                tmpl.language_label,
-                tmpl.obor or "—",
-                tmpl.academic_year or "—",
-            ])
-            item.setData(0, Qt.ItemDataRole.UserRole, tmpl.id)
-            # Tooltip s detaily souboru
-            fp = self.service.review_template_file_path(tmpl)
-            tooltip_lines = [tmpl.name]
-            if tmpl.note:
-                tooltip_lines.append(f"\n{tmpl.note}")
-            if fp:
-                tooltip_lines.append(f"\nSoubor: {fp}")
-                if not fp.is_file():
-                    tooltip_lines.append("⚠ Soubor neexistuje!")
-                    for col in range(self.tree.columnCount()):
-                        from PySide6.QtGui import QBrush, QColor
 
-                        item.setForeground(col, QBrush(QColor("#c62828")))
-            item.setToolTip(0, "\n".join(tooltip_lines))
-            self.tree.addTopLevelItem(item)
+        # Seskup: type (BP/DP) → obor → [templates]
+        groups: dict[str, dict[str, list]] = {}
+        for tmpl in self.service.list_review_templates():
+            type_key = tmpl.type.value  # "BP" / "DP"
+            obor_key = tmpl.obor.strip() or "— bez oboru —"
+            groups.setdefault(type_key, {}).setdefault(obor_key, []).append(tmpl)
+
+        # Type pořadí: BP, DP, ostatní abecedně
+        type_order = sorted(groups.keys(), key=lambda k: {"BP": 0, "DP": 1}.get(k, 2))
+
+        for type_key in type_order:
+            type_label = {"BP": "📘 Bakalářské práce (BP)",
+                          "DP": "📗 Diplomové práce (DP)"}.get(type_key, type_key)
+            type_item = QTreeWidgetItem([type_label, "", ""])
+            f = type_item.font(0)
+            f.setBold(True)
+            type_item.setFont(0, f)
+            type_item.setFirstColumnSpanned(True)
+            self.tree.addTopLevelItem(type_item)
+
+            obor_map = groups[type_key]
+            # Obory abecedně, „bez oboru" na konec
+            obor_keys = sorted(
+                obor_map.keys(),
+                key=lambda o: (1, "") if o == "— bez oboru —" else (0, o.lower()),
+            )
+            for obor_key in obor_keys:
+                obor_item = QTreeWidgetItem([f"🗂 {obor_key}", "", ""])
+                of = obor_item.font(0)
+                of.setBold(True)
+                obor_item.setFont(0, of)
+                obor_item.setForeground(0, QBrush(QColor("#888")))
+                type_item.addChild(obor_item)
+
+                # Šablony v rámci oboru abecedně podle názvu
+                tmpls = sorted(obor_map[obor_key], key=lambda t: t.name.lower())
+                for tmpl in tmpls:
+                    # Ikona role + jazyk indikace v názvu
+                    role_icon = "🎓" if tmpl.role == "supervisor" else "🧐"
+                    lang_tag = " 🇬🇧 EN" if tmpl.language == "en" else ""
+                    label = f"{role_icon} {tmpl.name}{lang_tag}"
+                    leaf = QTreeWidgetItem([
+                        label,
+                        tmpl.role_label + (" · EN" if tmpl.language == "en" else ""),
+                        tmpl.academic_year or "—",
+                    ])
+                    leaf.setData(0, Qt.ItemDataRole.UserRole, tmpl.id)
+
+                    # Tooltip s detaily souboru
+                    fp = self.service.review_template_file_path(tmpl)
+                    tooltip_lines = [tmpl.name]
+                    if tmpl.note:
+                        tooltip_lines.append(f"\n{tmpl.note}")
+                    if fp:
+                        tooltip_lines.append(f"\nSoubor: {fp}")
+                        if not fp.is_file():
+                            tooltip_lines.append("⚠ Soubor neexistuje!")
+                            for col in range(self.tree.columnCount()):
+                                leaf.setForeground(col, QBrush(QColor("#c62828")))
+                    # Počet kritérií v tooltipu
+                    if tmpl.criteria:
+                        max_pts = sum(c.default_weight for c in tmpl.criteria) * 5
+                        tooltip_lines.append(
+                            f"\n{len(tmpl.criteria)} kritérií · max {max_pts:g} bodů"
+                        )
+                    leaf.setToolTip(0, "\n".join(tooltip_lines))
+                    obor_item.addChild(leaf)
+
+            type_item.setExpanded(True)
+
+        # Rozbal všechny obor uzly
+        for i in range(self.tree.topLevelItemCount()):
+            ti = self.tree.topLevelItem(i)
+            ti.setExpanded(True)
+            for j in range(ti.childCount()):
+                ti.child(j).setExpanded(True)
+
         if selected_id:
             self._select_id(selected_id)
+
+    def _iter_leaf_items(self):
+        """Generátor přes všechny leaf (template) položky stromu."""
+        for i in range(self.tree.topLevelItemCount()):
+            ti = self.tree.topLevelItem(i)
+            for j in range(ti.childCount()):
+                oi = ti.child(j)
+                for k in range(oi.childCount()):
+                    yield oi.child(k)
 
     def _current_id(self) -> str | None:
         item = self.tree.currentItem()
@@ -470,10 +584,9 @@ class ReviewTemplatesDialog(QDialog):
         return self.service.get_review_template(tid) if tid else None
 
     def _select_id(self, template_id: str) -> None:
-        for i in range(self.tree.topLevelItemCount()):
-            item = self.tree.topLevelItem(i)
-            if item.data(0, Qt.ItemDataRole.UserRole) == template_id:
-                self.tree.setCurrentItem(item)
+        for leaf in self._iter_leaf_items():
+            if leaf.data(0, Qt.ItemDataRole.UserRole) == template_id:
+                self.tree.setCurrentItem(leaf)
                 return
 
     def _add(self) -> None:

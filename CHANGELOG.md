@@ -7,6 +7,45 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-06-04
+
+### Added
+- **Nabídka voleb z listu „Konfigurace" při prázdných polích**. Když
+  šablona nemá vyplněnou specializaci (B11 = „-"), dialog *Nová šablona*
+  nabídne:
+  - **Obor combo** obohacený o specializace z listu *Konfigurace*
+    šablony (s odvozeným kódem, např. „SWI — Softwarové inženýrství",
+    „KYB — Kybernetická bezpečnost", „BTSM — Bezpečnostní technologie").
+    Hint upozorní, že specializace nebyla vyplněna a uživatel má vybrat.
+  - **Akademický rok** je nyní editable combo box naplněný platnými
+    roky z *Konfigurace* (např. 2025/2026 … 2028/2029) — nemusíš psát
+    ručně, ale můžeš.
+- ``extract_template_metadata`` čte list *Konfigurace* a vrací
+  ``available_programs`` / ``available_specializations`` /
+  ``available_years``.
+
+### Changed
+- **Správce šablon posudků — hierarchické grupování**. Místo ploché
+  tabulky je strom:
+  - **Úroveň 0**: 📘 Bakalářské práce (BP) / 📗 Diplomové práce (DP)
+  - **Úroveň 1**: 🗂 obor (abecedně, „— bez oboru —" na konci)
+  - **Úroveň 2**: jednotlivé šablony (abecedně podle názvu)
+  - **Role ikona**: 🎓 vedoucí / 🧐 oponent
+  - **Jazyk indikace**: anglické šablony mají v názvu „🇬🇧 EN"
+    + sloupec Role ukazuje „· EN"
+  - Tooltip nad šablonou: poznámka, cesta k souboru, počet kritérií
+    + max bodů
+  - Sloupce zredukovány na *Šablona · Role · Ak. rok* (typ a obor
+    jsou nyní v grupovacích uzlech).
+
+### Notes
+- Heuristika kódu oboru rozšířena o ``BTSM`` (Bezpečnostní technologie),
+  ``AIPA`` (Aplikovaná informatika v průmyslové automatizaci) a
+  ``ARI`` (Automatické řízení a informatika v průmyslu).
+- Editable obor combo: pokud vybereš nabídnutou položku ve formátu
+  „KÓD — název", uloží se jen krátký kód. Ručně psaný text se uloží
+  tak, jak je.
+
 ## [0.19.3] - 2026-06-04
 
 ### Added
