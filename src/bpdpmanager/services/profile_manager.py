@@ -407,6 +407,59 @@ class ProfileManager:
             self.set_user_name(profile.id, user_name)
         return profile, result
 
+    def merge_zip_into_profile(
+        self,
+        source_zip: Path,
+        target_profile_id: str,
+    ) -> dict:
+        """Add-only merge ZIP balíku do existujícího profilu.
+
+        Cíl: ``target_profile_id`` musí být registrovaný profil.
+        Konflikty (entity / soubory, které v cíli existují) se přeskočí —
+        target verze se nemění.
+
+        Po úspěchu se vrátí statistiky merge (kolik entity / souborů
+        přidáno, kolik přeskočeno). Pro preview *před* merge se používá
+        ``profile_export.compute_merge_preview()``.
+        """
+        from .profile_export import (
+            ProfileExportError,
+            compute_merge_preview,
+            merge_zip_into_profile,
+        )
+
+        profile = self.get(target_profile_id)
+        if profile is None:
+            raise ProfileError(f"Cílový profil {target_profile_id} neexistuje.")
+
+        try:
+            return merge_zip_into_profile(
+                source_zip=Path(source_zip),
+                target_data_dir=Path(profile.data_dir),
+            )
+        except ProfileExportError as exc:
+            raise ProfileError(str(exc)) from exc
+
+    def compute_merge_preview(
+        self, source_zip: Path, target_profile_id: str
+    ):
+        """Vrátí ``(MergePreview, src_db_dict)`` — bez modifikace cíle."""
+        from .profile_export import (
+            ProfileExportError,
+            compute_merge_preview,
+        )
+
+        profile = self.get(target_profile_id)
+        if profile is None:
+            raise ProfileError(f"Cílový profil {target_profile_id} neexistuje.")
+        try:
+            return compute_merge_preview(
+                source_zip=Path(source_zip),
+                target_data_dir=Path(profile.data_dir),
+            )
+        except ProfileExportError as exc:
+            raise ProfileError(str(exc)) from exc
+
     # --- lock helpers ---------------------------------------------------
 
     def check_lock(self, profile_id: str) -> LockCheckResult:

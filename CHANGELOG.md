@@ -7,6 +7,61 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-06-04
+
+### Added
+- **Merge ZIPu do existujícího profilu** (add-only sémantika).
+  ``ImportProfileDialog`` má nyní radio výběr cíle:
+  - 🆕 *Vytvořit nový profil* (default, jako dosud)
+  - 🔀 *Sloučit s existujícím profilem* — combo box s vyberem registrovaného
+    profilu (aktivní zvýrazněn `●`)
+  
+  Merge sémantika: do cílového profilu se přidají entity, které tam nejsou
+  (podle identity klíče); existující se **nemění**. Soubory se kopírují,
+  pokud cílový název ještě neexistuje.
+
+  Identity klíče per entita:
+  - **Student**: ``id`` nebo ``university_id`` (univerzitní číslo)
+  - **Opponent** / **Supervisor** / **Obor**: ``name``
+  - **Thesis** / **OpposingThesis** / **ReviewTemplate**: ``id``
+  - **AcademicYearInfo**: ``label``
+
+- **Pre-merge confirmation dialog** s detailním preview:
+  - Tabulka „Entita → Přidá se → Konflikty"
+  - Per typ entity počet **přidaných** (zelené `+N`) a **přeskočených**
+    (šedé `N přeskočeno`)
+  - Souhrn: *„Celkem: +N nových položek, M přeskočeno"*
+  - Pokud `total_new == 0` → varování „Žádná data k přidání, merge
+    nepřinese změnu" a tlačítko *Provést merge* je disabled
+  - Před zápisem se vytvoří záloha ``before-merge`` v cílovém profilu
+- **Závěrečný sumární dialog** po úspěšném merge — rich-text tabulka
+  s počty přidaných/přeskočených entit a souborů (vč. byte size).
+  Po zavření se aplikace přepne na sloučený profil; pokud je už
+  aktivní, provede ``service.reload()`` + ``_refresh_all()`` (uživatel
+  ihned vidí přidané položky).
+
+### Added (API)
+- ``services/profile_export.py``:
+  - ``compute_merge_preview(source_zip, target_data_dir) → (MergePreview, src_db_dict)``
+  - ``merge_zip_into_profile(source_zip, target_data_dir) → dict``
+  - Nový dataclass ``MergePreview`` s počty per entita + soubory
+- ``ProfileManager``:
+  - ``merge_zip_into_profile(source_zip, target_profile_id) → dict``
+  - ``compute_merge_preview(source_zip, target_profile_id) → tuple``
+
+### Notes
+- **Add-only nikdy nepřepíše**, takže merge ZIPu z jednoho zdroje
+  vícekrát je idempotentní — druhý merge nic nepřidá (vše už tam je).
+- **Konflikty se počítají per identity klíče** — pokud má ZIP studenta
+  se stejným ``university_id`` ale jiným jménem, merge ho přeskočí
+  (target verze zůstane). Pro overwrite-merge by bylo potřeba samostatný
+  mód (zatím není v plánu).
+- **Path-traversal ochrana** při kopírování souborů: každý entry
+  z ZIPu se validuje, že stay-within cílového ``target_data_dir``
+  (defenze proti adversariálním ZIPům).
+- Bezpečnostní záloha ``before-merge`` se vytvoří automaticky před
+  zápisem db.json — pro případný rollback z dialogu *Zálohy*.
+
 ## [0.17.2] - 2026-06-04
 
 ### Fixed

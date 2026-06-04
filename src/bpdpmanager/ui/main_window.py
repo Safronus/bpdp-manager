@@ -561,14 +561,29 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def _action_import_profile_zip(self) -> None:
-        """Import profilu ze ZIPu — vytvoří nový profil a přepne na něj."""
+        """Import profilu ze ZIPu — vytvoří nový profil nebo provede merge.
+
+        Po dokončení (oba módy) přepne aplikaci na cílový profil.
+        Pokud je cílový profil už aktivní (merge), provede se reload
+        dat (service.reload + refresh UI) — uživatel ihned vidí přidané
+        položky.
+        """
         if self.profile_manager is None:
             return
         dlg = ImportProfileDialog(self.profile_manager, self)
         if not dlg.exec() or dlg.created is None:
             return
-        self._switch_profile(dlg.created.id)
-        self._refresh_profile_menu()
+
+        # Pokud se merguje do aktuálního profilu, _switch_profile by ho
+        # přeskočil. Místo toho udělej reload + refresh.
+        active = self.profile_manager.active
+        if active is not None and active.id == dlg.created.id:
+            self.service.reload()
+            self._refresh_all()
+            self._refresh_profile_menu()
+        else:
+            self._switch_profile(dlg.created.id)
+            self._refresh_profile_menu()
 
     def _action_manage_profiles(self) -> None:
         if self.profile_manager is None:

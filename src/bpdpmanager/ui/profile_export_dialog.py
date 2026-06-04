@@ -23,15 +23,19 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
+    QComboBox,
     QDialog,
     QFileDialog,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QTextBrowser,
     QVBoxLayout,
 )
@@ -370,11 +374,29 @@ class ImportProfileDialog(QDialog):
         )
         outer.addWidget(self.manifest_view, stretch=1)
 
-        # ── Cíl: název + cesta ──────────────────────────────────────────
-        form = QFormLayout()
+        # ── Cíl importu: nový profil VS sloučit s existujícím ───────────
+        target_box = QGroupBox("Cíl importu")
+        target_layout = QVBoxLayout(target_box)
+
+        self.rb_new = QRadioButton(
+            "🆕 Vytvořit nový profil"
+        )
+        self.rb_new.setChecked(True)
+        self.rb_merge = QRadioButton(
+            "🔀 Sloučit s existujícím profilem (add-only merge)"
+        )
+        self._target_group = QButtonGroup(self)
+        self._target_group.addButton(self.rb_new)
+        self._target_group.addButton(self.rb_merge)
+        target_layout.addWidget(self.rb_new)
+
+        # — pole pro „nový profil"
+        new_form = QFormLayout()
         self.ed_name = QLineEdit()
-        self.ed_name.setPlaceholderText("Název profilu v registry — předvyplní se z manifestu")
-        form.addRow("Název profilu", self.ed_name)
+        self.ed_name.setPlaceholderText(
+            "Název profilu v registry — předvyplní se z manifestu"
+        )
+        new_form.addRow("    Název profilu", self.ed_name)
 
         target_row = QHBoxLayout()
         self.ed_target = QLineEdit()
@@ -384,14 +406,40 @@ class ImportProfileDialog(QDialog):
         btn_target_browse.clicked.connect(self._browse_target)
         target_row.addWidget(self.ed_target, stretch=1)
         target_row.addWidget(btn_target_browse)
-        form.addRow("Cílová složka", target_row)
+        new_form.addRow("    Cílová složka", target_row)
 
         self.chk_overwrite = QCheckBox(
             "⚠ Přepsat existující data v cílové složce"
         )
         self.chk_overwrite.setStyleSheet("color:#c62828;")
-        form.addRow("", self.chk_overwrite)
-        outer.addLayout(form)
+        new_form.addRow("", self.chk_overwrite)
+        target_layout.addLayout(new_form)
+
+        target_layout.addWidget(self.rb_merge)
+
+        # — pole pro „merge"
+        merge_form = QFormLayout()
+        self.cb_target_profile = QComboBox()
+        self._populate_target_combo()
+        merge_form.addRow("    Cílový profil", self.cb_target_profile)
+        self.lbl_merge_help = QLabel(
+            "<small><i>Add-only: do cílového profilu se přidají entity "
+            "(studenti / oponenti / práce / šablony…), které tam nejsou; "
+            "existující se <b>nemění</b>. Soubory se zkopírují, pokud cílový "
+            "název ještě neexistuje. Před zápisem uvidíš preview, co se "
+            "přidá a co se přeskočí.</i></small>"
+        )
+        self.lbl_merge_help.setWordWrap(True)
+        self.lbl_merge_help.setTextFormat(Qt.TextFormat.RichText)
+        self.lbl_merge_help.setStyleSheet("color:#888;")
+        merge_form.addRow("", self.lbl_merge_help)
+        target_layout.addLayout(merge_form)
+
+        outer.addWidget(target_box)
+
+        # Toggle visibility podle radio výběru
+        self.rb_new.toggled.connect(self._update_target_visibility)
+        self._update_target_visibility()
 
         # ── Tlačítka ────────────────────────────────────────────────────
         btn_row = QHBoxLayout()
@@ -417,6 +465,32 @@ class ImportProfileDialog(QDialog):
         base = Path.home() / "BPDPManager-Profiles"
         target = base / f"imported-{_dt.now().strftime('%Y%m%d-%H%M%S')}"
         self.ed_target.setText(str(target))
+
+    def _populate_target_combo(self) -> None:
+        """Naplní combo s registrovanými profily (jako cíl pro merge)."""
+        self.cb_target_profile.clear()
+        active_id = self.pm.active.id if self.pm.active else None
+        for p in self.pm.all_profiles():
+            label = ("● " if active_id and p.id == active_id else "   ") + p.name
+            self.cb_target_profile.addItem(label, p.id)
+        # Disable merge radio pokud žádný profil neexistuje
+        has_any = self.cb_target_profile.count() > 0
+        self.rb_merge.setEnabled(has_any)
+        if not has_any:
+            self.rb_merge.setToolTip(
+                "Žádný profil v registru — nejdřív vytvoř profil "
+                'nebo zvol „Vytvořit nový profil".'
+            )
+
+    def _update_target_visibility(self) -> None:
+        """Skryj / ukaž pole podle zvoleného režimu."""
+        is_new = self.rb_new.isChecked()
+        # „nový profil" pole
+        self.ed_name.setEnabled(is_new)
+        self.ed_target.setEnabled(is_new)
+        self.chk_overwrite.setEnabled(is_new)
+        # „merge" pole
+        self.cb_target_profile.setEnabled(not is_new)
 
     def _browse_zip(self) -> None:
         current = self.ed_zip.text().strip() or str(Path.home() / "Downloads")
@@ -511,6 +585,14 @@ class ImportProfileDialog(QDialog):
         zip_str = self.ed_zip.text().strip()
         if not zip_str:
             return
+
+        if self.rb_merge.isChecked():
+            self._do_merge_import(zip_str)
+        else:
+            self._do_new_profile_import(zip_str)
+
+    def _do_new_profile_import(self, zip_str: str) -> None:
+        """Vytvoří nový profil z ZIPu (jako dosud)."""
         target_str = self.ed_target.text().strip()
         if not target_str:
             QMessageBox.warning(
@@ -541,6 +623,212 @@ class ImportProfileDialog(QDialog):
         self.created = profile
         self.target_data_dir = Path(result["target_data_dir"])
         self._show_done_dialog(profile, result)
+
+    def _do_merge_import(self, zip_str: str) -> None:
+        """Merge ZIPu do existujícího vybraného profilu."""
+        target_id = self.cb_target_profile.currentData()
+        if not target_id:
+            QMessageBox.warning(
+                self, "Chybí cíl", "Vyber cílový profil v combo boxu."
+            )
+            return
+        target_profile = self.pm.get(target_id)
+        if target_profile is None:
+            QMessageBox.warning(self, "Chybí cíl", "Cílový profil neexistuje.")
+            return
+
+        # 1) Spočti preview bez modifikace
+        try:
+            merge_prev, _ = self.pm.compute_merge_preview(
+                Path(zip_str), target_id
+            )
+        except ProfileError as exc:
+            QMessageBox.critical(self, "Preview selhalo", str(exc))
+            return
+
+        # 2) Confirmation dialog s preview
+        if not self._confirm_merge(target_profile, merge_prev):
+            return
+
+        # 3) Vytvoř bezpečnostní zálohu cíle (před zápisem)
+        try:
+            from ..services import BackupManager  # lazy
+
+            target_db = Path(target_profile.data_dir) / "db.json"
+            if target_db.is_file():
+                BackupManager(Path(target_profile.data_dir)).create_backup(
+                    target_db, suffix="before-merge", dedupe=False
+                )
+        except Exception:  # noqa: BLE001
+            # Záloha selhala — nepovinné, pokračujeme.
+            pass
+
+        # 4) Provést merge
+        try:
+            result = self.pm.merge_zip_into_profile(
+                source_zip=Path(zip_str),
+                target_profile_id=target_id,
+            )
+        except ProfileError as exc:
+            QMessageBox.critical(self, "Merge selhal", str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(
+                self, "Neočekávaná chyba", f"Merge skončil chybou:\n{exc}"
+            )
+            return
+
+        self.created = target_profile  # signalizace pro MainWindow, kam přepnout
+        self.target_data_dir = Path(target_profile.data_dir)
+        self._show_merge_done_dialog(target_profile, result)
+
+    def _confirm_merge(self, target_profile, prev) -> bool:
+        """Pre-merge confirmation dialog s detailním preview."""
+        rows: list[str] = []
+
+        def _add_row(label: str, new_count: int, skipped_count: int) -> None:
+            new_str = f"<b style='color:#2e7d32;'>+{new_count}</b>" if new_count else "—"
+            skipped_str = (
+                f"<span style='color:#888;'>{skipped_count} přeskočeno</span>"
+                if skipped_count else ""
+            )
+            rows.append(
+                f"<tr><td>{escape(label)}</td>"
+                f"<td>{new_str}</td><td>{skipped_str}</td></tr>"
+            )
+
+        _add_row("👨‍🎓 Studenti", prev.new_students, prev.skipped_students)
+        _add_row("🧐 Oponenti", prev.new_opponents, prev.skipped_opponents)
+        _add_row("🎓 Vedoucí (registr)", prev.new_supervisors, prev.skipped_supervisors)
+        _add_row("🗂 Obory", prev.new_obory, prev.skipped_obory)
+        _add_row("📚 Vedené práce", prev.new_theses, prev.skipped_theses)
+        _add_row("🧐 Oponentské posudky", prev.new_opposing, prev.skipped_opposing)
+        _add_row("📝 Šablony posudků", prev.new_templates, prev.skipped_templates)
+        _add_row("📅 Akademické roky", prev.new_academic_years, prev.skipped_academic_years)
+        rows.append(
+            f"<tr><td>📎 Soubory</td>"
+            f"<td><b style='color:#2e7d32;'>+{prev.new_files}</b></td>"
+            f"<td><span style='color:#888;'>{prev.skipped_files} přeskočeno</span> · "
+            f"{_fmt_bytes(prev.new_files_bytes)}</td></tr>"
+        )
+
+        total_new = (
+            prev.new_students + prev.new_opponents + prev.new_supervisors
+            + prev.new_obory + prev.new_theses + prev.new_opposing
+            + prev.new_templates + prev.new_academic_years + prev.new_files
+        )
+        total_skip = (
+            prev.skipped_students + prev.skipped_opponents + prev.skipped_supervisors
+            + prev.skipped_obory + prev.skipped_theses + prev.skipped_opposing
+            + prev.skipped_templates + prev.skipped_academic_years + prev.skipped_files
+        )
+
+        body = (
+            f"<p>Merge bude proveden do profilu "
+            f"<b>{escape(target_profile.name)}</b>. Sémantika "
+            f"<b>add-only</b> — žádná existující data v cílovém profilu "
+            f"se nezmění. Konflikty se přeskočí.</p>"
+            f"<hr>"
+            f"<table style='border-collapse:collapse;'>"
+            f"<tr style='color:#888;'>"
+            f"<th style='text-align:left;'>Entita</th>"
+            f"<th style='text-align:left;padding-left:14px;'>Přidá se</th>"
+            f"<th style='text-align:left;padding-left:14px;'>Konflikty</th>"
+            f"</tr>"
+            f"{''.join(rows)}"
+            f"</table>"
+            f"<p style='margin-top:10px;'>"
+            f"Celkem: <b>+{total_new}</b> nových položek, "
+            f"<span style='color:#888;'>{total_skip} přeskočeno</span>.</p>"
+            f"<p style='color:#666;font-size:11px;'>"
+            f"Před zápisem se vytvoří záloha <code>before-merge</code> "
+            f"v profilu pro případný rollback.</p>"
+        )
+
+        if total_new == 0:
+            body += (
+                "<p style='color:#c62828;'><b>⚠ Žádná data k přidání</b> — "
+                "cíl už obsahuje vše, co ZIP nabízí. Merge nepřinese změnu.</p>"
+            )
+
+        # Vlastní dialog s rich textem
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Potvrdit merge")
+        dlg.setMinimumSize(620, 520)
+        outer = QVBoxLayout(dlg)
+        header = QLabel("🔀 Potvrdit merge")
+        header.setStyleSheet("font-size:14px;font-weight:bold;")
+        outer.addWidget(header)
+        body_view = QTextBrowser()
+        body_view.setHtml(body)
+        outer.addWidget(body_view, stretch=1)
+
+        btn_row = QHBoxLayout()
+        btn_cancel = QPushButton("Zrušit")
+        btn_cancel.clicked.connect(dlg.reject)
+        btn_go = QPushButton("🔀 Provést merge")
+        btn_go.setEnabled(total_new > 0)
+        bf = btn_go.font()
+        bf.setBold(True)
+        btn_go.setFont(bf)
+        btn_go.setDefault(True)
+        btn_go.clicked.connect(dlg.accept)
+        btn_row.addStretch()
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_go)
+        outer.addLayout(btn_row)
+
+        return dlg.exec() == QDialog.DialogCode.Accepted
+
+    def _show_merge_done_dialog(self, profile, result: dict) -> None:
+        """Sumární dialog po úspěšném merge."""
+        body = f"""
+        <p style='color:#2e7d32;font-weight:bold;'>✓ Merge dokončen.</p>
+        <p>Sloučeno do profilu <b>{escape(profile.name)}</b>.</p>
+        <table style='border-collapse:collapse;'>
+          <tr><td>👨‍🎓 Studenti:</td>
+              <td><b>+{result['new_students']}</b>
+              <span style='color:#888;'>· {result['skipped_students']} přeskočeno</span></td></tr>
+          <tr><td>🧐 Oponenti:</td>
+              <td><b>+{result['new_opponents']}</b>
+              <span style='color:#888;'>· {result['skipped_opponents']} přeskočeno</span></td></tr>
+          <tr><td>🎓 Vedoucí:</td>
+              <td><b>+{result['new_supervisors']}</b>
+              <span style='color:#888;'>· {result['skipped_supervisors']} přeskočeno</span></td></tr>
+          <tr><td>🗂 Obory:</td>
+              <td><b>+{result['new_obory']}</b>
+              <span style='color:#888;'>· {result['skipped_obory']} přeskočeno</span></td></tr>
+          <tr><td>📚 Vedené práce:</td>
+              <td><b>+{result['new_theses']}</b>
+              <span style='color:#888;'>· {result['skipped_theses']} přeskočeno</span></td></tr>
+          <tr><td>🧐 Oponentské posudky:</td>
+              <td><b>+{result['new_opposing']}</b>
+              <span style='color:#888;'>· {result['skipped_opposing']} přeskočeno</span></td></tr>
+          <tr><td>📝 Šablony posudků:</td>
+              <td><b>+{result['new_templates']}</b>
+              <span style='color:#888;'>· {result['skipped_templates']} přeskočeno</span></td></tr>
+          <tr><td>📅 Akademické roky:</td>
+              <td><b>+{result['new_academic_years']}</b>
+              <span style='color:#888;'>· {result['skipped_academic_years']} přeskočeno</span></td></tr>
+          <tr><td>📎 Soubory:</td>
+              <td><b>+{result['files_copied']}</b>
+              <span style='color:#888;'>· {result['files_skipped']} přeskočeno · </span>
+              {_fmt_bytes(result['bytes_copied'])}</td></tr>
+        </table>
+        <p style='color:#666;'>
+          Po zavření dialogu se aplikace přepne na sloučený profil (pokud
+          ještě není aktivní). Zálohu před merge najdeš v <i>👤 → 💾 Zálohy</i>
+          se značkou <code>before-merge</code>.
+        </p>
+        """
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Merge dokončen")
+        msg.setTextFormat(Qt.TextFormat.RichText)
+        msg.setText(body)
+        msg.addButton(QMessageBox.StandardButton.Close)
+        msg.exec()
+        self.accept()
 
     def _show_done_dialog(self, profile: Profile, result: dict) -> None:
         stats = result.get("manifest", {}).get("stats") or {}
