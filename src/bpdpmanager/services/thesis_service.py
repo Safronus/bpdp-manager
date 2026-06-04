@@ -597,6 +597,7 @@ class ThesisService:
         source_path: Path,
         kind: AttachmentKind = AttachmentKind.OTHER,
         label: str | None = None,
+        delete_source: bool = False,
     ) -> Attachment:
         """Nahraje soubor do ``~/.bpdpmanager/documents/{thesis_id}/{podsložka}/``.
 
@@ -641,6 +642,16 @@ class ThesisService:
         )
         thesis.attachments.append(attachment)
         self.upsert_thesis(thesis)
+
+        # Pokud uživatel zaškrtl „smazat originál po nahrání", odstraníme
+        # zdrojový soubor — kopie už je bezpečně v ``target_path``.
+        # Selhání unlink (např. permission denied) tichá — nemáme co řešit.
+        if delete_source:
+            try:
+                if source_path.is_file():
+                    source_path.unlink()
+            except OSError:
+                pass
         return attachment
 
     def remove_document(self, thesis_id: str, index: int, delete_file: bool = False) -> None:
@@ -752,6 +763,7 @@ class ThesisService:
         source_path: Path,
         kind: AttachmentKind = AttachmentKind.OTHER,
         label: str | None = None,
+        delete_source: bool = False,
     ) -> Attachment:
         """Nahraje soubor k oponentskému posudku.
 
@@ -790,6 +802,13 @@ class ThesisService:
         )
         op.attachments.append(attachment)
         self.upsert_opposing_thesis(op)
+
+        if delete_source:
+            try:
+                if source_path.is_file():
+                    source_path.unlink()
+            except OSError:
+                pass
         return attachment
 
     def opposing_remove_document(

@@ -7,6 +7,47 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-06-04
+
+### Added
+- **Smazat originál po nahrání** — odstraní zdrojový soubor z původního
+  umístění (typicky `~/Downloads`), aby na disku nezůstával nepořádek
+  s duplikáty. Default zapnuto, čitelná opt-out cesta:
+  - ``DocumentsWidget`` má vedle tlačítek upload/URL nový checkbox
+    *🗑 Smazat originál po nahrání*. Sticky per session, default ✓.
+  - ``StagImportDialog`` má v hlavičkovém formuláři checkbox
+    *🗑 Po dokončení importu smazat originální CSV*. Default ✓.
+    Smazání proběhne jednorázově až *po* úspěšném dokončení všech
+    příloh (CSV se zkopíruje do každé importované práce).
+  - Service API: nové parametry ``attach_document(delete_source=False)``
+    a ``opposing_attach_document(delete_source=False)``.
+    Implementace: copy2 → upsert → optional unlink (kopie je safe-first,
+    smaže až poté co target existuje).
+- **Auto-select první práce po startu aplikace**. ``MainWindow`` po
+  inicializaci najde první (top-most) práci v Aktuální záložce a vybere
+  ji — detail panel se rovnou zobrazí, nemusíš klikat. Pokud je Aktuální
+  prázdná, zkusí Budoucí, pak Historie. Žádná práce v žádné záložce →
+  nic neděláme.
+- **Sloupec *Posudky* v stromu prací**. Mezi *Stav* a *Oponent*
+  přibyl nový sloupec, který indikuje nahrané posudky:
+  - `📘 V · 📕 O` — oba posudky (vedoucí + oponent)
+  - `📘 V` — jen vedoucí
+  - `📕 O` — jen oponent
+  - `—` — žádný posudek nahrán
+  
+  Tooltip ukazuje **počet verzí** každého typu (např. „📘 Posudek
+  vedoucího (2×)" pokud máš dva pokusy obhajoby). Kritérium: existuje
+  alespoň jedna příloha daného `AttachmentKind` (i superseded).
+
+### Notes
+- Smazání originálu je **silent** (žádný confirm dialog), protože
+  checkbox sám slouží jako explicit opt-in. Selhání unlink (např.
+  permission denied) je tichá — kopie je už v `documents/`, tak
+  o data nepřijdeš.
+- Tooltip nad checkboxem v `DocumentsWidget` vysvětluje proč to
+  default zapnuté je („typicky nechce duplikáty mezi Downloads
+  a documents/…").
+
 ## [0.16.0] - 2026-06-04
 
 ### Added

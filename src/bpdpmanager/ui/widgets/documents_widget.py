@@ -91,6 +91,19 @@ class DocumentsWidget(QWidget):
         self.btn_url.clicked.connect(self._add_url)
         row.addWidget(self.btn_url)
 
+        # Po dokončení uploadu: smazat originální soubor (default zapnuto —
+        # uživatel typicky nechce, aby zdroj zůstal v Downloads a duplikoval
+        # se s kopií v documents/).
+        self.chk_delete_source = QCheckBox("🗑 Smazat originál po nahrání")
+        self.chk_delete_source.setChecked(True)
+        self.chk_delete_source.setToolTip(
+            "Po úspěšném nahrání soubor odstraní z původního umístění "
+            "(typicky Downloads). Kopie je bezpečně uložená v documents/ "
+            "konkrétní práce, takže o nic nepřijdeš. Pro testování / "
+            "opakované nahrávání odškrtni."
+        )
+        row.addWidget(self.chk_delete_source)
+
         row.addStretch()
 
         self.btn_open = QPushButton("Otevřít")
@@ -227,11 +240,13 @@ class DocumentsWidget(QWidget):
         if guessed is not None and not self._user_changed_kind:
             kind = guessed
             self._select_kind(kind)
+        delete_source = self.chk_delete_source.isChecked()
         try:
             self.service.attach_document(
                 self.thesis_id,
                 Path(path_str),
                 kind=kind,
+                delete_source=delete_source,
             )
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Chyba", f"Nepodařilo se nahrát soubor:\n{exc}")

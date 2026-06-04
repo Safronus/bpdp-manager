@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import Thesis
-from ..models.enums import ThesisType
+from ..models.enums import AttachmentKind, ThesisType
 from ..services import ThesisService
 
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
@@ -79,12 +79,13 @@ class ThesesTreeWidget(QTreeWidget):
     # Vyžádané smazání práce přes kontextové menu — connect z _ThesesTab
     rollback_requested = Signal(str)
 
-    HEADERS = ["Student / Skupina", "Téma", "Stav", "Oponent", "Obor"]
+    HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Oponent", "Obor"]
     COL_STUDENT = 0
     COL_TITLE = 1
     COL_STATUS = 2
-    COL_OPPONENT = 3
-    COL_OBOR = 4
+    COL_REVIEWS = 3
+    COL_OPPONENT = 4
+    COL_OBOR = 5
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -104,6 +105,7 @@ class ThesesTreeWidget(QTreeWidget):
         h.setSectionResizeMode(self.COL_STUDENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_TITLE, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(self.COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(self.COL_REVIEWS, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OPPONENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OBOR, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
@@ -227,8 +229,55 @@ class ThesesTreeWidget(QTreeWidget):
         opponent_name = opponent.name if opponent else "—"
         obor = student.obor if student and student.obor else "—"
 
+        # Posudky — máme nahrány?
+        # Stačí *jakákoli* příloha daného kind (i ne-current), uživatel obvykle
+        # zajímá, jestli existuje. Stejné kritérium používá Souhrn pro shrnutí.
+        has_supervisor_review = any(
+            a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in thesis.attachments
+        )
+        has_opponent_review = any(
+            a.kind == AttachmentKind.OPPONENT_REVIEW for a in thesis.attachments
+        )
+        if has_supervisor_review and has_opponent_review:
+            reviews_text = "📘 V · 📕 O"
+        elif has_supervisor_review:
+            reviews_text = "📘 V"
+        elif has_opponent_review:
+            reviews_text = "📕 O"
+        else:
+            reviews_text = "—"
+
         leaf = QTreeWidgetItem(
-            [student_name, title, f"  {thesis.status.label}  ", opponent_name, obor]
+            [
+                student_name,
+                title,
+                f"  {thesis.status.label}  ",
+                reviews_text,
+                opponent_name,
+                obor,
+            ]
+        )
+
+        # Tooltip vysvětlující ikony
+        if has_supervisor_review or has_opponent_review:
+            parts = []
+            if has_supervisor_review:
+                n = sum(
+                    1 for a in thesis.attachments
+                    if a.kind == AttachmentKind.SUPERVISOR_REVIEW
+                )
+                parts.append(f"📘 Posudek vedoucího ({n}×)")
+            if has_opponent_review:
+                n = sum(
+                    1 for a in thesis.attachments
+                    if a.kind == AttachmentKind.OPPONENT_REVIEW
+                )
+                parts.append(f"📕 Posudek oponenta ({n}×)")
+            leaf.setToolTip(self.COL_REVIEWS, "\n".join(parts))
+        else:
+            leaf.setToolTip(self.COL_REVIEWS, "Žádný posudek zatím nahrán")
+        leaf.setTextAlignment(
+            self.COL_REVIEWS, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )
         leaf.setData(0, ROLE_KIND, "thesis")
         leaf.setData(0, ROLE_THESIS_ID, thesis.id)

@@ -180,6 +180,47 @@ class MainWindow(QMainWindow):
 
         self._build_toolbar(current_year, next_year)
         self._update_status()
+        # Po startu otevři první práci v Aktuálním seznamu (pokud existuje) —
+        # uživatel rovnou vidí, na čem aktuálně dělá, nemusí klikat.
+        self._auto_select_first_in_current()
+
+    def _auto_select_first_in_current(self) -> None:
+        """Po startu vybere první práci v Aktuální záložce.
+
+        Pokud Aktuální je prázdná, zkusí Budoucí, pak Historie — vždy první
+        v dané záložce. Žádná práce v žádném tabu → nic neděláme.
+        """
+        for tab in (self.tab_current, self.tab_future, self.tab_history):
+            first_id = self._first_thesis_id_in_tab(tab)
+            if first_id:
+                # Přepneme se na danou záložku a vybereme práci
+                index = self.tabs.indexOf(tab)
+                if index >= 0:
+                    self.tabs.setCurrentIndex(index)
+                tab.tree.select_thesis(first_id)
+                return
+
+    @staticmethod
+    def _first_thesis_id_in_tab(tab: "_ThesesTab") -> str | None:
+        """Najde první (top-most) ID práce v stromu daného tabu.
+
+        Strom je hierarchický: rok → typ → práce. Procházíme top-down
+        a vrátíme první leaf, který reprezentuje thesis.
+        """
+        from .theses_tree import ROLE_KIND, ROLE_THESIS_ID
+
+        tree = tab.tree
+        for i in range(tree.topLevelItemCount()):
+            year_item = tree.topLevelItem(i)
+            for j in range(year_item.childCount()):
+                type_item = year_item.child(j)
+                for k in range(type_item.childCount()):
+                    leaf = type_item.child(k)
+                    if leaf.data(0, ROLE_KIND) == "thesis":
+                        tid = leaf.data(0, ROLE_THESIS_ID)
+                        if tid:
+                            return tid
+        return None
 
     # --- toolbar -------------------------------------------------------------
 

@@ -182,6 +182,19 @@ class StagImportDialog(QDialog):
         status_help.setWordWrap(True)
         form.addRow("", status_help)
 
+        # Po úspěchu importu smazat originální CSV (default: ON — typicky
+        # nechce na disku zůstat nepořádek se stáhnutým CSV ze STAG)
+        self.chk_delete_csv = QCheckBox(
+            "🗑 Po dokončení importu smazat originální CSV"
+        )
+        self.chk_delete_csv.setChecked(True)
+        self.chk_delete_csv.setToolTip(
+            "Po úspěšném importu (rollback se nepočítá) původní CSV soubor "
+            "odstraní z disku. Kopie zůstává jako příloha typu *STAG export* "
+            "u každé importované práce."
+        )
+        form.addRow("", self.chk_delete_csv)
+
         btn_load = QPushButton("🔍 Načíst náhled")
         btn_load.clicked.connect(self._load_preview)
         form.addRow("", btn_load)
@@ -1158,12 +1171,32 @@ class StagImportDialog(QDialog):
             )
             return
 
-        # 4) Úspěch — zapamatuj focus a ukaž sumář
+        # 4) Úspěch — zapamatuj focus, mazání originálu, sumář
         self.imported_thesis_ids = affected_thesis_ids
         self.imported_opposing_ids = affected_opposing_ids
         self.focus_thesis_id = last_thesis_id
         self.focus_opposing_id = last_opposing_id
+        self._maybe_delete_source_csv(csv_source, stats)
         self._show_summary_dialog(stats, errors)
+
+    def _maybe_delete_source_csv(self, csv_source: Path | None, stats: dict) -> None:
+        """Po úspěšném importu smaže originální CSV soubor, je-li zaškrtnuto.
+
+        Důvod proč až tady (a ne uvnitř ``attach_document(delete_source=True)``):
+        CSV se připojí ke každé importované práci — pokud bychom smazali
+        po prvním attach, druhý attach by selhal s ``FileNotFoundError``.
+        Mazáme tedy jednorázově po dokončení všech přiloh.
+        """
+        stats.setdefault("source_csv_deleted", 0)
+        if not self.chk_delete_csv.isChecked():
+            return
+        if csv_source is None or not csv_source.is_file():
+            return
+        try:
+            csv_source.unlink()
+            stats["source_csv_deleted"] = 1
+        except OSError:
+            stats["source_csv_deleted"] = 0
 
     # --- pomocné helpers k importu --------------------------------------
 
@@ -1263,6 +1296,7 @@ class StagImportDialog(QDialog):
         self.imported_opposing_ids = affected_opposing_ids
         self.focus_thesis_id = last_thesis_id
         self.focus_opposing_id = last_opposing_id
+        self._maybe_delete_source_csv(csv_source, stats)
         self._show_summary_dialog(stats, errors)
 
     def _show_summary_dialog(self, stats: dict, errors: list[str]) -> None:
@@ -1296,6 +1330,11 @@ class StagImportDialog(QDialog):
             f"<tr><td>📎 CSV přiloženo k pracem</td>"
             f"<td colspan='2'>{stats['attached_csv']}</td></tr>"
         )
+        if stats.get("source_csv_deleted"):
+            rows.append(
+                "<tr><td>🗑 Originální CSV smazán</td>"
+                "<td colspan='2'>✓</td></tr>"
+            )
         rows.append(
             f"<tr><td>✗ Přeskočeno</td>"
             f"<td colspan='2'>{stats['skipped']}</td></tr>"
