@@ -465,6 +465,15 @@ class GenerateReviewDialog(QDialog):
         self.chk_all.toggled.connect(self._refresh_list)
         outer.addWidget(self.chk_all)
 
+        # Po vyplnění hned otevřít v Excelu (default ON — user workflow:
+        # klik → vyplnit → editovat). Když OFF, ukáže se sumární dialog
+        # s ručními akcemi.
+        self.chk_auto_open = QCheckBox(
+            "🚀 Po vyplnění hned otevřít v Excelu (přeskočit sumární dialog)"
+        )
+        self.chk_auto_open.setChecked(True)
+        outer.addWidget(self.chk_auto_open)
+
         # ── Tabulka šablon ──────────────────────────────────────────────
         self.tree = QTreeWidget()
         self.tree.setColumnCount(5)
@@ -577,6 +586,22 @@ class GenerateReviewDialog(QDialog):
             return
         self.generated_path = out_path
         self.generated_attachment = attachment
+
+        # Auto-open režim: rovnou otevři v Excelu a zavři dialog (krátký toast).
+        if self.chk_auto_open.isChecked():
+            _open_in_app(out_path)
+            QMessageBox.information(
+                self,
+                "Posudek vygenerován",
+                f"✓ Posudek byl vyplněn a otevřen v Excelu.\n\n"
+                f"Verze: v{attachment.version}\n"
+                f"Typ přílohy: {attachment.kind.label}\n\n"
+                f"Soubor je připojen jako příloha k práci — všechny "
+                f"další úpravy uložené v Excelu se promítnou tam.",
+            )
+            self.accept()
+            return
+
         self._show_done_dialog(out_path, attachment)
 
     def _show_done_dialog(self, out_path: Path, attachment) -> None:

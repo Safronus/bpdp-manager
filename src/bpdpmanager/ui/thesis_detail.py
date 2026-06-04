@@ -136,6 +136,10 @@ class ThesisDetail(QWidget):
 
     saved = Signal(str)  # thesis id
     deleted = Signal(str)
+    # Vyžádané napsání posudku — MainWindow přepošle do GenerateReviewDialog.
+    # Detail panel sám dialog neumí instancovat (kruhový import), proto
+    # signal a MainWindow ho odchytí.
+    generate_review_requested = Signal(str)  # thesis id
 
     AUTOSAVE_DEBOUNCE_MS = 1500
     AUTOSAVE_SAFETY_MS = 30_000
@@ -199,6 +203,18 @@ class ThesisDetail(QWidget):
         self.lbl_save_state = QLabel("")
         self.lbl_save_state.setStyleSheet("color: #888; font-size: 11px;")
         header.addWidget(self.lbl_save_state)
+
+        # Prominent action: napsat posudek z šablony (otevře wizard
+        # s auto-filtrem dle typu + oboru práce, vyplní šablonu a po
+        # potvrzení rovnou otevře v Excelu).
+        self.btn_generate_review = QPushButton("📝 Napsat posudek…")
+        self.btn_generate_review.setToolTip(
+            "Vybere se šablona z knihovny (auto-filtr dle typu a oboru), "
+            "vyplní se daty z této práce a otevře se v Excelu k vyplnění "
+            "bodů hodnocení. Posudek se připojí jako příloha."
+        )
+        self.btn_generate_review.clicked.connect(self._generate_review)
+        header.addWidget(self.btn_generate_review)
 
         self.btn_delete = QPushButton("Smazat")
         self.btn_delete.clicked.connect(self._delete)
@@ -581,10 +597,14 @@ class ThesisDetail(QWidget):
     def _show_empty(self) -> None:
         self.placeholder.setVisible(True)
         self.container.setVisible(False)
+        self.btn_generate_review.setEnabled(False)
+        self.btn_delete.setEnabled(False)
 
     def _show_form(self) -> None:
         self.placeholder.setVisible(False)
         self.container.setVisible(True)
+        self.btn_generate_review.setEnabled(True)
+        self.btn_delete.setEnabled(True)
 
     def refresh_combos(self) -> None:
         """Znovu načti seznamy studentů a oponentů z DB.
@@ -1300,6 +1320,15 @@ class ThesisDetail(QWidget):
             self.service.delete_thesis(tid)
             self.set_thesis(None)
             self.deleted.emit(tid)
+
+    def _generate_review(self) -> None:
+        """Klik na „📝 Napsat posudek…" → emit signal, MainWindow otevře dialog."""
+        if self.thesis is None:
+            return
+        # Flushni pending změny (autosave debounce), aby šablona dostala
+        # aktuální data (např. čerstvě zadaný titul EN).
+        self.flush()
+        self.generate_review_requested.emit(self.thesis.id)
 
     def _transition(self, target: ThesisStatus) -> None:
         if self.thesis is None:

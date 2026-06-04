@@ -7,6 +7,37 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-06-04
+
+### Added
+- **Tlačítko *📝 Napsat posudek…* přímo v hlavičce detail panelu práce**
+  (vedle *Smazat*). Klik → ``GenerateReviewDialog`` → vyber šablonu
+  → vyplnit & otevřít. Jeden klik z aktuálně otevřené práce, bez
+  pravého kliknutí ve stromu. Tlačítko se automaticky deaktivuje
+  v prázdném stavu (žádná práce vybrána).
+- **Auto-open režim v *GenerateReviewDialog***. Nový checkbox
+  *🚀 Po vyplnění hned otevřít v Excelu (přeskočit sumární dialog)*
+  default zapnuto. Workflow:
+  1. Klik na *📝 Napsat posudek…* v detail panelu
+  2. Vyber šablonu (auto-filtr dle typu + oboru)
+  3. *📝 Vyplnit a připojit k práci*
+  4. Vyplněný XLSX se rovnou otevře v Excelu — můžeš začít vyplňovat
+     body hodnocení. Krátká informace v dialogu potvrdí, že soubor
+     je připojen jako příloha (všechny změny v Excelu se ukládají
+     přímo do něj).
+  
+  Pokud checkbox odškrtneš, ukáže se původní sumární dialog s ručními
+  tlačítky *📄 Otevřít v Excelu* / *📂 Ukázat ve Finderu*.
+
+### Changed
+- ``ThesisDetail`` má nové attributy ``btn_generate_review`` (button v
+  header rowi) a signal ``generate_review_requested``. ``MainWindow``
+  signál odchytí stejným handlerem jako u kontextového menu z stromu —
+  jeden code path pro oba vstupní body.
+- Před emitnutím signálu se volá ``self.flush()`` aby šablona dostala
+  i čerstvě zadaná data (např. právě dopsaný *Název EN*) bez nutnosti
+  čekat na autosave debounce.
+
 ## [0.17.0] - 2026-06-04
 
 ### Added

@@ -102,6 +102,9 @@ class _ThesesTab(QWidget):
         self.tree.thesis_selected.connect(self._on_thesis_selected)
         self.tree.rollback_requested.connect(self._on_rollback_requested)
         self.tree.generate_review_requested.connect(self._on_generate_review_requested)
+        # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
+        # stejný signal a my ho zpracujeme jednou handlerem.
+        self.detail.generate_review_requested.connect(self._on_generate_review_requested)
         self.detail.saved.connect(lambda _: self.tree.refresh())
         self.detail.deleted.connect(lambda _: self.tree.refresh())
 
