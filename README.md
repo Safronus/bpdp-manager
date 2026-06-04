@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.12.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.13.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 > **Pozor — soukromí:** Repozitář obsahuje pouze zdrojový kód a fiktivní ukázková data.
 > Reálná data o studentech a pracích zůstávají lokálně v `~/.bpdpmanager/` a nikdy nejsou
@@ -31,6 +31,7 @@ o budoucí témata.
 - **Pohledy**: *Aktuální rok*, *Budoucí zájemci*, *Historie*, *Vše* — vertikální rozvržení: nahoře strom prací grupovaný *Akademický rok → BP/DP* s sloupci (Student / Téma / Stav / Oponent / Obor) a barevně odlišenými stavy, dole detail vybrané práce
 - **🧐 Oponentské posudky** — samostatná záložka pro práce, kde vystupuješ jako oponent (recenzuješ cizí BP/DP). Vlastní datový model — typ, rok, STAG odkaz, student + vedoucí (vedoucí přes registr s našeptáváním a auto-doplněním emailu), název CZ, body zadání, **známky vedoucího + oponenta s barevným badge**, dokumenty (plný text práce, posudek vedoucího, můj posudek oponenta), automaticky generovaný Souhrn.
 - **Registr vedoucích** (toolbar *Vedoucí*) pro oponentské posudky — analogický k registru oponentů, používá se pro našeptávání při vyplňování.
+- **📥 Import ze STAG CSV** — toolbar *Import ze STAG…* načte CSV export `getKvalifikacniPrace*.csv` (encoding cp1250/utf-8 auto-detect), parsuje HTML body zadání `<ol><li>` na plain text a v náhledové tabulce zobrazí každý řádek s **auto-detekovanou rolí** (Vedu / Oponuji — podle jména uživatele v `vedouciJmeno` / `oponentJmeno`), mapováním STAG kódu oboru (`knIT-KYB`) na lokální obor, výchozím stavem práce a akcí (Vytvořit / Aktualizovat / Přeskočit). Před importem se vytvoří záloha `before-stag-import`. Pro auto-detekci se používá *Tvoje jméno* z profilu (`Profile.user_name`); STAG kód oboru lze evidovat v dialogu *Obor*.
 - **📅 Harmonogram fakulty**: import PDF časového plánu výuky FAI UTB, automatická extrakce klíčových termínů (odevzdání BP/DP, SZZ, promoce, zkouškové období…), žlutý panel s nadcházejícími důležitými termíny v následujících 60 dnech
 - **Termíny a poznámky** z konzultací u každé práce
 - **Autosave** na pozadí — změny v detailu práce se samy uloží 1,5 s po poslední úpravě (debounce), s 30s pojistkou, plus flush při přepnutí práce a zavření okna

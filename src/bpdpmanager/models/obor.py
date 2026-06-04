@@ -7,6 +7,7 @@ class Obor(BaseModel):
     """Studijní obor s volitelným kontaktem na sekretářku oboru."""
 
     name: str
+    stag_code: str | None = None  # např. "knIT-KYB" — pro import ze STAG
     secretary_name: str | None = None
     secretary_email: str | None = None
     secretary_phone: str | None = None

@@ -46,6 +46,7 @@ from .manage_dialogs import (
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
 from .profile_manage_dialog import ProfileManageDialog
+from .stag_import_dialog import StagImportDialog
 from .theses_tree import ThesesTreeWidget
 from .thesis_detail import (
     YEAR_MODE_ALL,
@@ -203,6 +204,16 @@ class MainWindow(QMainWindow):
         act_obory = QAction("Obory", self)
         act_obory.triggered.connect(self._manage_obory)
         toolbar.addAction(act_obory)
+
+        toolbar.addSeparator()
+
+        act_stag_import = QAction("📥 Import ze STAG…", self)
+        act_stag_import.setToolTip(
+            "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
+            "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky."
+        )
+        act_stag_import.triggered.connect(self._import_from_stag)
+        toolbar.addAction(act_stag_import)
 
         toolbar.addSeparator()
 
@@ -536,6 +547,20 @@ class MainWindow(QMainWindow):
     def _manage_obory(self) -> None:
         OboryManageDialog(self.service, self).exec()
         self._refresh_all()
+
+    def _import_from_stag(self) -> None:
+        """Otevře wizard pro import dat z STAG CSV exportu."""
+        # Flushni rozpracované změny v detail panelech, aby je import nepřepsal
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            if isinstance(w, _ThesesTab):
+                try:
+                    w.detail.flush()
+                except Exception:
+                    pass
+        dlg = StagImportDialog(self.service, self.profile_manager, self)
+        if dlg.exec():
+            self._refresh_all()
 
     def _refresh_all(self) -> None:
         self.service.reload()

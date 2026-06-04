@@ -14,6 +14,7 @@ class Profile(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
     data_dir: str  # absolutní cesta ke složce s db.json, documents/, harmonograms/
+    user_name: str = ""  # jméno uživatele profilu (pro STAG import auto-detect role)
     created_at: datetime = Field(default_factory=datetime.now)
     last_opened_at: datetime | None = None
 

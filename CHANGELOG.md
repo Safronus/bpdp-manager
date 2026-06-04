@@ -7,6 +7,51 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-06-04
+
+### Added
+- **Import dat ze STAG CSV exportu**. Toolbar tlačítko *📥 Import ze
+  STAG…* otevře wizard:
+  - Načte CSV soubor (`getKvalifikacniPrace*.csv`) s automatickým
+    fallbackem encodingů (`utf-8-sig`, `utf-8`, `cp1250`, `windows-1250`,
+    `iso-8859-2`) a delimiterem `;`.
+  - Parsuje HTML `<ol><li>…</li></ol>` z polí `zasady` a `seznamLiter`
+    na plain text (každý bod na samostatný řádek), dekóduje HTML entity
+    včetně `&#x202f;` / `&nbsp;`.
+  - **Auto-detekce role** uživatele per řádek: pokud se *Tvoje jméno*
+    najde v `vedouciJmeno` → role *Vedu* (vytvoří/aktualizuje
+    `Thesis`), pokud v `oponentJmeno` → *Oponuji* (vytvoří/aktualizuje
+    `OpposingThesis`). Token-based match ignoruje akademické tituly
+    a interpunkci.
+  - **Náhledová tabulka** s 8 sloupci (Role / Student / Typ / Rok /
+    Téma / Obor mapování / Stav / Akce). Per řádek lze přepsat roli,
+    mapování oboru (kombo s lokálními obory + *Nemapováno* + *Nový obor…*),
+    výchozí stav i akci (*Vytvořit* / *Aktualizovat* / *Přeskočit*).
+    Akce se předvyplňuje podle toho, jestli práce s daným `adipidno`
+    už existuje.
+  - **Bezpečnostní záloha `before-stag-import`** se vytvoří před
+    samotným zápisem — případný špatný import lze vrátit z dialogu
+    👤 → 💾 Zálohy.
+  - Při importu se automaticky vytvoří/aktualizují související entity
+    (`Student`, `Opponent`, `Supervisor`, `Obor`), pokud chybí.
+- Nový pydantic model field **`Profile.user_name`** — uložené jméno pro
+  detekci role v STAG importu (per profil, např. „Petr Žáček").
+- Nový pydantic model field **`Obor.stag_code`** — STAG kód oboru
+  (např. `knIT-KYB`). `OborDialog` má nové pole *STAG kód*, používá se
+  pro automatické mapování STAG oboru na lokální obor během importu.
+- Service: `get_obor_by_stag_code()` pro lookup oboru podle STAG kódu.
+- Nové soubory: `services/stag_csv_importer.py` (parser + dataclasses
+  `ParsedRecord`, `ImportFile`, enum `ImportRole`), `ui/stag_import_dialog.py`
+  (UI wizard).
+
+### Notes
+- Import je idempotentní — při akci *Aktualizovat* se v existujícím
+  záznamu přepisují pouze prázdná pole nebo pole, která STAG dodal.
+  Existující dokumenty, poznámky a stav pracovního flow se nemění.
+- STAG export typicky nevrací stav práce v textu, ale jako kód
+  (`DBPOO`, …). Uživatel zvolí stav per řádek (default *Obhájeno* pro
+  typický historický import).
+
 ## [0.12.0] - 2026-05-17
 
 ### Added

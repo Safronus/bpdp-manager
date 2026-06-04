@@ -40,6 +40,11 @@ class OborDialog(QDialog):
         self.ed_name = QLineEdit(self.obor.name)
         self.ed_name.setPlaceholderText("např. NSWI-P")
         base_form.addRow("Název oboru", self.ed_name)
+        self.ed_stag_code = QLineEdit(self.obor.stag_code or "")
+        self.ed_stag_code.setPlaceholderText(
+            "STAG kód (pro import — např. knIT-KYB, volitelné)"
+        )
+        base_form.addRow("STAG kód", self.ed_stag_code)
         layout.addLayout(base_form)
 
         # Sekretářka
@@ -84,6 +89,7 @@ class OborDialog(QDialog):
                 self.obor = existing
 
         self.obor.name = new_name
+        self.obor.stag_code = self.ed_stag_code.text().strip() or None
         self.obor.secretary_name = self.ed_sec_name.text().strip() or None
         self.obor.secretary_email = self.ed_sec_email.text().strip() or None
         self.obor.secretary_phone = self.ed_sec_phone.text().strip() or None

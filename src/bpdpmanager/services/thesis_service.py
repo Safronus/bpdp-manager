@@ -157,6 +157,17 @@ class ThesisService:
     def get_obor(self, name: str) -> Obor | None:
         return next((o for o in self._db.obory if o.name == name), None)
 
+    def get_obor_by_stag_code(self, stag_code: str) -> Obor | None:
+        """Najde obor podle STAG kódu (např. ``knIT-KYB``). Pro auto-mapping
+        při importu ze STAG CSV. Vrací ``None``, pokud kód není zadaný nebo
+        neodpovídá žádnému evidovanému oboru.
+        """
+        if not stag_code:
+            return None
+        return next(
+            (o for o in self._db.obory if (o.stag_code or "") == stag_code), None
+        )
+
     def add_obor(self, name: str) -> Obor | None:
         """Přidá obor (pokud neexistuje). Vrací příslušný Obor."""
         name = name.strip()
