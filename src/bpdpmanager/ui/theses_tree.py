@@ -78,6 +78,8 @@ class ThesesTreeWidget(QTreeWidget):
     thesis_selected = Signal(str)
     # Vyžádané smazání práce přes kontextové menu — connect z _ThesesTab
     rollback_requested = Signal(str)
+    # Vyžádané generování posudku z šablony — connect z _ThesesTab
+    generate_review_requested = Signal(str)
 
     HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Oponent", "Obor"]
     COL_STUDENT = 0
@@ -336,6 +338,19 @@ class ThesesTreeWidget(QTreeWidget):
             return
 
         menu = QMenu(self)
+
+        act_generate = QAction("📝 Generovat posudek z šablony…", self)
+        act_generate.setToolTip(
+            "Vybere se šablona z knihovny, vyplní se daty z této práce "
+            "a připojí se jako příloha."
+        )
+        act_generate.triggered.connect(
+            lambda _checked=False, tid=thesis_id: self.generate_review_requested.emit(tid)
+        )
+        menu.addAction(act_generate)
+
+        menu.addSeparator()
+
         act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self)
         act_rollback.setToolTip(
             "Nenávratně smaže záznam práce z databáze a všechny její soubory. "
@@ -345,4 +360,5 @@ class ThesesTreeWidget(QTreeWidget):
             lambda _checked=False, tid=thesis_id: self.rollback_requested.emit(tid)
         )
         menu.addAction(act_rollback)
+
         menu.exec(self.viewport().mapToGlobal(pos))

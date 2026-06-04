@@ -111,6 +111,8 @@ class ExportProfileDialog(QDialog):
         self.chk_docs.setChecked(True)
         self.chk_harm = QCheckBox("📅 Naimportované PDF harmonogramy")
         self.chk_harm.setChecked(True)
+        self.chk_templates = QCheckBox("📝 Šablony posudků (XLSX knihovna)")
+        self.chk_templates.setChecked(True)
         self.chk_bak = QCheckBox("💾 Krátkodobá záloha db.json.bak")
         self.chk_bak.setChecked(True)
         self.chk_backups = QCheckBox(
@@ -118,7 +120,7 @@ class ExportProfileDialog(QDialog):
         )
         self.chk_backups.setChecked(False)
 
-        for w in (self.chk_docs, self.chk_harm, self.chk_bak, self.chk_backups):
+        for w in (self.chk_docs, self.chk_harm, self.chk_templates, self.chk_bak, self.chk_backups):
             w.toggled.connect(self._refresh_preview)
             outer.addWidget(w)
 
@@ -190,6 +192,7 @@ class ExportProfileDialog(QDialog):
             include_harmonograms=self.chk_harm.isChecked(),
             include_db_bak=self.chk_bak.isChecked(),
             include_backups=self.chk_backups.isChecked(),
+            include_templates=self.chk_templates.isChecked(),
         )
 
     def _refresh_preview(self) -> None:
@@ -218,6 +221,12 @@ class ExportProfileDialog(QDialog):
                 f"<tr><td>📅 harmonogramy:</td>"
                 f"<td>{prev.harmonograms_count} souborů · "
                 f"{_fmt_bytes(prev.harmonograms_bytes)}</td></tr>"
+            )
+        if opts.include_templates:
+            rows.append(
+                f"<tr><td>📝 šablony posudků:</td>"
+                f"<td>{prev.templates_count} souborů · "
+                f"{_fmt_bytes(prev.templates_bytes)}</td></tr>"
             )
         if opts.include_backups:
             rows.append(
@@ -262,6 +271,7 @@ class ExportProfileDialog(QDialog):
                 include_harmonograms=opts.include_harmonograms,
                 include_db_bak=opts.include_db_bak,
                 include_backups=opts.include_backups,
+                include_templates=opts.include_templates,
             )
         except ProfileError as exc:
             QMessageBox.critical(self, "Export selhal", str(exc))

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bpdp-manager"
-version = "0.16.1"
+version = "0.17.0"
 description = "PySide6 GUI aplikace pro správu vedení bakalářských a diplomových prací."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -27,6 +27,7 @@ dependencies = [
     "PySide6>=6.6",
     "pydantic>=2.6",
     "pypdf>=4.0",
+    "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]

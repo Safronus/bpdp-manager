@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 
-from ..config import harmonograms_dir, thesis_documents_dir
+from ..config import app_data_dir, harmonograms_dir, thesis_documents_dir
 from ..models import (
     AcademicYearInfo,
     Attachment,
@@ -14,18 +14,21 @@ from ..models import (
     Obor,
     Opponent,
     OpposingThesis,
+    ReviewTemplate,
     Student,
     Supervisor,
     Thesis,
 )
-from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus
+from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus, ThesisType
 from ..storage import Database, Repository
 from .file_naming import (
     build_plagiarism_name,
     build_target_name,
+    sanitize_for_fs,
     subdir_for,
 )
 from .harmonogram_parser import parse_pdf
+from .review_template_filler import fill_template
 
 
 class TransitionError(ValueError):
@@ -841,3 +844,256 @@ class ThesisService:
             for kd in info.upcoming(from_date, days):
                 out.append((info.label, kd))
         return sorted(out, key=lambda x: x[1].sort_key())
+
+    # --- knihovna šablon posudků (review templates) -----------------------
+
+    @staticmethod
+    def _templates_dir() -> Path:
+        """Cesta k podsložce s šablonami v aktuální data_dir."""
+        path = app_data_dir() / "templates"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def list_review_templates(
+        self,
+        *,
+        type_filter: ThesisType | None = None,
+        role_filter: str | None = None,
+        language_filter: str | None = None,
+        obor_filter: str | None = None,
+    ) -> list[ReviewTemplate]:
+        """Vrátí šablony, volitelně filtrované podle metadat.
+
+        Filtry jsou inkluzivní — None znamená „nezohledňovat".
+        """
+        items = list(self._db.review_templates)
+        if type_filter is not None:
+            items = [t for t in items if t.type == type_filter]
+        if role_filter is not None:
+            items = [t for t in items if t.role == role_filter]
+        if language_filter is not None:
+            items = [t for t in items if t.language == language_filter]
+        if obor_filter is not None and obor_filter.strip():
+            # Match: prázdný obor v šabloně = univerzální, jinak shoda
+            items = [t for t in items if not t.obor or t.obor == obor_filter]
+        return sorted(
+            items,
+            key=lambda t: (t.type.value, t.role, t.language, t.obor, t.academic_year, t.name),
+        )
+
+    def get_review_template(self, template_id: str) -> ReviewTemplate | None:
+        return next(
+            (t for t in self._db.review_templates if t.id == template_id), None
+        )
+
+    def review_template_file_path(self, template: ReviewTemplate) -> Path | None:
+        """Absolutní cesta k XLSX souboru šablony."""
+        if not template.filename:
+            return None
+        return self._templates_dir() / template.filename
+
+    def register_review_template(
+        self,
+        name: str,
+        type: ThesisType,
+        role: str,
+        language: str,
+        obor: str,
+        academic_year: str,
+        source_path: Path,
+        note: str = "",
+    ) -> ReviewTemplate:
+        """Zaregistruje XLSX soubor jako šablonu posudku.
+
+        Source soubor se zkopíruje do ``profile_dir/templates/`` pod novým,
+        FS-bezpečným názvem, který zahrnuje ID šablony pro odolnost vůči
+        duplicitám. Originál se nemodifikuje.
+        """
+        source_path = Path(source_path)
+        if not source_path.is_file():
+            raise ValueError(f"Zdrojový soubor neexistuje: {source_path}")
+        if source_path.suffix.lower() != ".xlsx":
+            raise ValueError(f"Šablona musí být .xlsx (got {source_path.suffix})")
+
+        # Vytvoř ReviewTemplate s předem alokovaným ID, aby cílový název mohl
+        # obsahovat krátký prefix ID (robustnější než plný UUID v názvu).
+        tmpl = ReviewTemplate(
+            name=name.strip() or source_path.stem,
+            type=type,
+            role=role,
+            language=language,
+            obor=obor.strip(),
+            academic_year=academic_year.strip(),
+            note=note.strip(),
+        )
+
+        # FS-safe filename: {short_id}_{sanitized name}.xlsx
+        short_id = tmpl.id.split("-")[0]
+        safe_name = sanitize_for_fs(tmpl.name)[:80] or "template"
+        target_name = f"{short_id}_{safe_name}.xlsx"
+        target_path = self._templates_dir() / target_name
+        # Pokud koliduje (extrémně nepravděpodobné), připoj counter
+        n = 2
+        while target_path.exists():
+            target_name = f"{short_id}_{safe_name}_v{n}.xlsx"
+            target_path = self._templates_dir() / target_name
+            n += 1
+        shutil.copy2(source_path, target_path)
+
+        tmpl.filename = target_name
+        self._db.review_templates.append(tmpl)
+        self.save()
+        return tmpl
+
+    def update_review_template(self, template: ReviewTemplate) -> ReviewTemplate:
+        """Re-save metadata existující šablony (nemění filename)."""
+        existing = self.get_review_template(template.id)
+        if existing is None:
+            self._db.review_templates.append(template)
+        else:
+            idx = self._db.review_templates.index(existing)
+            self._db.review_templates[idx] = template
+        self.save()
+        return template
+
+    def delete_review_template(
+        self, template_id: str, *, delete_file: bool = True
+    ) -> None:
+        """Odstraní šablonu z knihovny + (volitelně) její XLSX soubor."""
+        tmpl = self.get_review_template(template_id)
+        if tmpl is None:
+            return
+        if delete_file:
+            fp = self.review_template_file_path(tmpl)
+            if fp and fp.is_file():
+                try:
+                    fp.unlink()
+                except OSError:
+                    pass
+        self._db.review_templates = [
+            t for t in self._db.review_templates if t.id != template_id
+        ]
+        self.save()
+
+    def generate_review_from_template(
+        self,
+        template_id: str,
+        thesis_id: str,
+        *,
+        attach_as_kind: AttachmentKind | None = None,
+    ) -> tuple[Path, Attachment]:
+        """Vyplní šablonu daty z práce a připojí ji jako přílohu.
+
+        Vrací ``(absolute_xlsx_path, Attachment)`` — UI může soubor rovnou
+        otevřít v Excelu/Numbers.
+
+        ``attach_as_kind`` default odvozen z ``template.role``:
+          - supervisor → AttachmentKind.SUPERVISOR_REVIEW
+          - opponent → AttachmentKind.OPPONENT_REVIEW
+        """
+        tmpl = self.get_review_template(template_id)
+        if tmpl is None:
+            raise ValueError(f"Šablona {template_id} neexistuje.")
+        tmpl_path = self.review_template_file_path(tmpl)
+        if tmpl_path is None or not tmpl_path.is_file():
+            raise ValueError(
+                f"Soubor šablony chybí na disku: {tmpl_path}. "
+                "Smaž šablonu z knihovny a přidej znovu."
+            )
+
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            raise ValueError(f"Práce {thesis_id} neexistuje.")
+
+        # Sestav fields
+        student = (
+            self.get_student(thesis.student_id) if thesis.student_id else None
+        )
+        opponent = (
+            self.get_opponent(thesis.opponent_id) if thesis.opponent_id else None
+        )
+        user_name = self._guess_user_name()
+
+        if attach_as_kind is None:
+            attach_as_kind = (
+                AttachmentKind.SUPERVISOR_REVIEW
+                if tmpl.role == "supervisor"
+                else AttachmentKind.OPPONENT_REVIEW
+            )
+
+        student_label = student.full_name if student else ""
+
+        # Při vyplňování: pokud uživatel je oponent, „opponent" je on (user_name),
+        # „supervisor" je oponent.name z práce (= cizí vedoucí). Ale tady jsme
+        # u vedených prací (Thesis), takže supervisor=user_name, opponent=opp.name.
+        fields = {
+            "student": student_label,
+            "supervisor": user_name if tmpl.role == "supervisor" else "",
+            "opponent": user_name if tmpl.role == "opponent" else (
+                opponent.name if opponent else ""
+            ),
+            "title_cs": thesis.title_cs,
+            "title_en": thesis.title_en,
+            "academic_year": thesis.academic_year,
+        }
+
+        # Cíl: do documents/{thesis_id}/posudky/ pod jednotným názvem
+        surname = self._student_surname_for_thesis(thesis)
+        subdir = subdir_for(attach_as_kind)
+        target_dir = thesis_documents_dir(thesis_id) / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+        existing = {p.name for p in target_dir.iterdir() if p.is_file()}
+        target_name = build_target_name(
+            surname, attach_as_kind, tmpl_path, existing_names=existing
+        )
+        target_path = target_dir / target_name
+
+        # Vyplnění + zápis
+        fill_template(tmpl_path, target_path, fields)
+
+        # Zaregistruj jako Attachment přes attach_document-like flow,
+        # ale soubor už jsme zapsali přímo do cílové cesty — proto použijeme
+        # přímo append + auto-versioning ručně.
+        same_kind = [a for a in thesis.attachments if a.kind == attach_as_kind]
+        next_version = max((a.version for a in same_kind), default=0) + 1
+        for a in same_kind:
+            a.is_current = False
+
+        rel_path = f"{subdir}/{target_name}"
+        attachment = Attachment(
+            label=target_name,
+            url_or_path=rel_path,
+            kind=attach_as_kind,
+            is_file=True,
+            version=next_version,
+            is_current=True,
+        )
+        thesis.attachments.append(attachment)
+        self.upsert_thesis(thesis)
+        return target_path, attachment
+
+    def _guess_user_name(self) -> str:
+        """Nejlepší dostupný 'user_name' (z profile přes config callback).
+
+        ProfileManager není zde dostupný (services nezávisí na UI), takže
+        bereme to z ``ProfileRegistry`` přes config indirection. Pokud
+        není nastaveno, vrátí prázdný string a UI to vyřeší vlastním
+        defaultem.
+        """
+        # Profile_manager je v UI vrstvě — bezpečnější přes lazy proxy:
+        # přečteme registry souboru přímo (read-only).
+        try:
+            from ..config import profiles_registry_path
+
+            import json
+
+            p = profiles_registry_path()
+            if p.is_file():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                last_id = data.get("last_opened")
+                for prof in data.get("profiles", []) or []:
+                    if isinstance(prof, dict) and prof.get("id") == last_id:
+                        return (prof.get("user_name") or "").strip()
+        except Exception:  # noqa: BLE001
+            pass
+        return ""

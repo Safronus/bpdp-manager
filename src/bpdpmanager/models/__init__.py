@@ -12,6 +12,7 @@ from .obor import Obor
 from .opponent import Opponent
 from .opposing_thesis import OpposingThesis
 from .profile import Profile, ProfileRegistry
+from .review_template import ReviewTemplate
 from .student import Student
 from .supervisor import Supervisor
 from .thesis import Attachment, Deadline, Thesis
@@ -31,6 +32,7 @@ __all__ = [
     "PlagiarismVerdict",
     "Profile",
     "ProfileRegistry",
+    "ReviewTemplate",
     "Student",
     "StudyForm",
     "Supervisor",

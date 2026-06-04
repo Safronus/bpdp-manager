@@ -319,11 +319,13 @@ class ProfileManager:
         include_harmonograms: bool = True,
         include_db_bak: bool = True,
         include_backups: bool = False,
+        include_templates: bool = True,
     ) -> dict:
         """Vyexportuje profil jako přenosný ZIP balík.
 
-        Manifest + db.json + (volitelně) documents/, harmonograms/, backups/.
-        Použití na druhém zařízení: ``import_profile_from_zip``.
+        Manifest + db.json + (volitelně) documents/, harmonograms/,
+        templates/, backups/. Použití na druhém zařízení:
+        ``import_profile_from_zip``.
         """
         # Lazy import — vyhneme se kruhové závislosti se ``__init__``.
         from .profile_export import ExportOptions, export_profile_to_zip
@@ -340,6 +342,7 @@ class ProfileManager:
                 include_harmonograms=include_harmonograms,
                 include_db_bak=include_db_bak,
                 include_backups=include_backups,
+                include_templates=include_templates,
             ),
         )
 

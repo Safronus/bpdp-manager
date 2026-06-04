@@ -7,6 +7,70 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-06-04
+
+### Added
+- **📝 Knihovna šablon posudků** v rámci profilu. Toolbar *Šablony
+  posudků* otevře ``ReviewTemplatesDialog`` s tabulkou registrovaných
+  XLSX šablon (Název / Typ / Role / Jazyk / Obor / Ak. rok). Akce:
+  *Přidat / Upravit / Otevřít v Excelu / Ukázat ve Finderu / Smazat*.
+- **📝 Generovat posudek z šablony** — pravým klikem na práci ve stromu
+  → *Generovat posudek z šablony…*. ``GenerateReviewDialog`` nabídne
+  auto-filtrovaný seznam šablon pasujících k práci (typ BP/DP + obor
+  studenta). Toggle *Zobrazit všechny šablony* zruší filtr.
+- **Heuristický XLSX filler** (`services/review_template_filler.py`):
+  - Otevře šablonu přes ``openpyxl``, projde sloupec A, hledá popisky:
+    *Student* / *Vedoucí práce* / *Oponent práce* / *Téma bakalářské /
+    diplomové práce* / *Akademický rok* (+ EN ekvivalenty *Supervisor* /
+    *Opponent* / *Thesis Topic* / *Academic Year*).
+  - Pro každý match vyplní sloupec B na stejném řádku.
+  - **Respektuje předvyplněné defaulty** šablony (např. *Studijní program:
+    Informační technologie*) — přepisuje JEN prázdné buňky. Výjimka:
+    *Akademický rok* se vždy přepíše hodnotou z práce (volatile).
+  - Ověřeno na všech 14 FAI UTB šablonách (BP + DP, CZ + EN, varianty
+    KYB/SWI/UI).
+- Vygenerovaný XLSX se ukládá jako příloha přes
+  ``attach_document(kind=SUPERVISOR_REVIEW|OPPONENT_REVIEW)`` s
+  auto-versioning (druhý pokus posudku → v2, předchozí je
+  *superseded*). Po dokončení dialog nabídne tlačítka
+  *📄 Otevřít v Excelu* / *📂 Ukázat ve Finderu*.
+- Nový model ``models/review_template.py`` (``ReviewTemplate``) +
+  service metody ``list_review_templates / get_review_template /
+  register_review_template / update_review_template /
+  delete_review_template / generate_review_from_template``.
+- **Šablony jsou součástí profilu** — fyzicky leží v
+  ``profile_dir/templates/`` a jdou s profilem v ZIP exportu (default
+  zapnuto, lze odškrtnout v *Export profilu*). Manifest obsahuje
+  ``stats.templates_count`` a ``contents.templates``.
+
+### Changed
+- ``SCHEMA_VERSION`` bumped na **v3**: ``Database.review_templates``
+  (default prázdný list). Stará data se automaticky migrují přidáním
+  prázdného pole.
+- Toolbar má nové tlačítko *📝 Šablony posudků* vedle *Studenti / Oponenti
+  / Vedoucí / Obory*.
+- Kontextové menu na práci ve stromu má novou položku
+  *📝 Generovat posudek z šablony…* (nad *Roll-back*).
+
+### Added (dependencies)
+- Nová runtime dependency: ``openpyxl >= 3.1`` (pro čtení/zápis XLSX
+  šablon). Standardní balík, snadno instalovatelný přes ``pip``.
+
+### Notes
+- **Filename šablon**: aplikace generuje FS-safe název typu
+  ``{8-znak-id}_{name}.xlsx`` (např.
+  ``0442b3cb_Vedoucí_DP_—_SWI_20252026.xlsx``). Stejný XLSX lze přidat
+  vícekrát s různými metadaty (např. CZ + EN varianta, BP + DP).
+- **Versioning posudků**: každý další generated posudek stejného typu
+  (vedoucí / oponent) k téže práci dostane vyšší verzi a stane se
+  *current*. Předchozí verze zůstává viditelná pod toggle „Zobrazit
+  starší verze" v Dokumenty widget (od 0.15.0).
+- **Co heuristika neumí**: pokud šablona má hodnoty v jiném sloupci než B,
+  nebo používá merged buňky atypicky, filler nemusí trefit cíl. Pro tyto
+  případy lze šablonu otevřít přímo v Excelu a hodnoty doplnit ručně
+  (Generovat → otevři v Excelu → uprav → ulož = stejný soubor zůstává
+  jako příloha v0.17.0+).
+
 ## [0.16.1] - 2026-06-04
 
 ### Added

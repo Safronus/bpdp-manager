@@ -53,6 +53,7 @@ from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
 from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
+from .review_templates_dialog import GenerateReviewDialog, ReviewTemplatesDialog
 from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
 from .stag_import_dialog import StagImportDialog
 from .theses_tree import ThesesTreeWidget
@@ -100,12 +101,29 @@ class _ThesesTab(QWidget):
 
         self.tree.thesis_selected.connect(self._on_thesis_selected)
         self.tree.rollback_requested.connect(self._on_rollback_requested)
+        self.tree.generate_review_requested.connect(self._on_generate_review_requested)
         self.detail.saved.connect(lambda _: self.tree.refresh())
         self.detail.deleted.connect(lambda _: self.tree.refresh())
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
         self.detail.set_thesis(thesis)
+
+    def _on_generate_review_requested(self, thesis_id: str) -> None:
+        """Otevře dialog pro výběr šablony + generování posudku."""
+        # Flushni rozpracované změny, aby data byla aktuální
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        thesis = self.service.get_thesis(thesis_id)
+        if thesis is None:
+            return
+        dlg = GenerateReviewDialog(self.service, thesis, self)
+        if dlg.exec() and dlg.generated_attachment is not None:
+            # Refresh detail panelu (nová příloha už je viditelná v tabulce)
+            self.detail.set_thesis(self.service.get_thesis(thesis_id))
+            self.tree.refresh()
 
     def _on_rollback_requested(self, thesis_id: str) -> None:
         """Otevře rollback dialog pro vybranou práci."""
@@ -270,6 +288,16 @@ class MainWindow(QMainWindow):
         act_obory = QAction("Obory", self)
         act_obory.triggered.connect(self._manage_obory)
         toolbar.addAction(act_obory)
+
+        toolbar.addSeparator()
+
+        act_templates = QAction("📝 Šablony posudků", self)
+        act_templates.setToolTip(
+            "Knihovna XLSX šablon posudků (vedoucího / oponenta) — "
+            "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek."
+        )
+        act_templates.triggered.connect(self._manage_review_templates)
+        toolbar.addAction(act_templates)
 
         toolbar.addSeparator()
 
@@ -676,6 +704,9 @@ class MainWindow(QMainWindow):
     def _manage_obory(self) -> None:
         OboryManageDialog(self.service, self).exec()
         self._refresh_all()
+
+    def _manage_review_templates(self) -> None:
+        ReviewTemplatesDialog(self.service, self).exec()
 
     def _import_from_stag(self) -> None:
         """Otevře wizard pro import dat z STAG CSV exportu.

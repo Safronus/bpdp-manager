@@ -57,6 +57,7 @@ class ExportOptions:
     include_harmonograms: bool = True
     include_db_bak: bool = True
     include_backups: bool = False  # rotující 10× zálohy se typicky neexportují
+    include_templates: bool = True  # XLSX šablony posudků (v0.17.0+)
 
 
 @dataclass
@@ -71,6 +72,8 @@ class ExportPreview:
     harmonograms_bytes: int
     backups_count: int
     backups_bytes: int
+    templates_count: int = 0
+    templates_bytes: int = 0
 
     @property
     def total_bytes(self) -> int:
@@ -80,6 +83,7 @@ class ExportPreview:
             + self.documents_bytes
             + self.harmonograms_bytes
             + self.backups_bytes
+            + self.templates_bytes
         )
 
 
@@ -157,10 +161,12 @@ def compute_export_preview(source_data_dir: Path, opts: ExportOptions) -> Export
     docs_dir = source_data_dir / "documents"
     harm_dir = source_data_dir / "harmonograms"
     backups_dir = source_data_dir / "backups"
+    templates_dir = source_data_dir / "templates"
 
     docs_n, docs_b = _dir_size(docs_dir) if opts.include_documents else (0, 0)
     harm_n, harm_b = _dir_size(harm_dir) if opts.include_harmonograms else (0, 0)
     backups_n, backups_b = _dir_size(backups_dir) if opts.include_backups else (0, 0)
+    tmpl_n, tmpl_b = _dir_size(templates_dir) if opts.include_templates else (0, 0)
 
     return ExportPreview(
         db_json_size=db_path.stat().st_size if db_path.is_file() else 0,
@@ -171,6 +177,8 @@ def compute_export_preview(source_data_dir: Path, opts: ExportOptions) -> Export
         harmonograms_bytes=harm_b,
         backups_count=backups_n,
         backups_bytes=backups_b,
+        templates_count=tmpl_n,
+        templates_bytes=tmpl_b,
     )
 
 
@@ -230,11 +238,13 @@ def export_profile_to_zip(
             "documents": opts.include_documents,
             "harmonograms": opts.include_harmonograms,
             "backups": opts.include_backups,
+            "templates": opts.include_templates,
         },
         "stats": {
             "documents_count": preview.documents_count,
             "harmonograms_count": preview.harmonograms_count,
             "backups_count": preview.backups_count,
+            "templates_count": preview.templates_count,
             "total_uncompressed_bytes": preview.total_bytes,
         },
     }
@@ -275,6 +285,8 @@ def export_profile_to_zip(
                 _add_tree("harmonograms")
             if opts.include_backups:
                 _add_tree("backups")
+            if opts.include_templates:
+                _add_tree("templates")
 
         tmp_zip.replace(target_zip)
     except Exception:

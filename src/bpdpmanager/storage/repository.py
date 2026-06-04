@@ -11,6 +11,7 @@ from ..models import (
     Obor,
     Opponent,
     OpposingThesis,
+    ReviewTemplate,
     Student,
     Supervisor,
     Thesis,
@@ -28,6 +29,8 @@ class Database(BaseModel):
     theses: list[Thesis] = Field(default_factory=list)
     opposing_theses: list[OpposingThesis] = Field(default_factory=list)
     academic_years: list[AcademicYearInfo] = Field(default_factory=list)
+    # v3+ (0.17.0): knihovna XLSX šablon posudků v rámci profilu.
+    review_templates: list[ReviewTemplate] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod

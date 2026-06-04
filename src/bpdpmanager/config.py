@@ -7,7 +7,8 @@ from pathlib import Path
 APP_NAME = "bpdpmanager"
 # v2: ThesisStatus.ASSIGNED sloučeno do IN_PROGRESS;
 #     Attachment dostal pole version + is_current.
-SCHEMA_VERSION = 2
+# v3: Database.review_templates (knihovna XLSX šablon posudků v profilu).
+SCHEMA_VERSION = 3
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 DEFAULT_OBORY: list[str] = [
