@@ -213,6 +213,14 @@ class ProfileManager:
         self._registry.last_stag_import_dir = (path or "").strip()
         self._save_registry()
 
+    @property
+    def last_template_import_dir(self) -> str:
+        return self._registry.last_template_import_dir or ""
+
+    def set_last_template_import_dir(self, path: str) -> None:
+        self._registry.last_template_import_dir = (path or "").strip()
+        self._save_registry()
+
     def remove(self, profile_id: str, *, delete_files: bool = False) -> None:
         """Odebere profil z registry. Pokud ``delete_files=True``, smaže i složku."""
         profile = self.get(profile_id)

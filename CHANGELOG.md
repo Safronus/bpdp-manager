@@ -7,6 +7,25 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.19.3] - 2026-06-04
+
+### Added
+- **File picker pro import šablony posudku si pamatuje poslední složku.**
+  Při přidávání nové šablony (*Šablony posudků → + Přidat šablonu… →
+  Procházet…*) se dialog otevře v poslední použité složce — typicky tam,
+  kde máš celou sadu XLSX šablon (např. „Šablony 2026"). Po výběru se
+  cesta uloží pro příště.
+- Nové pole ``ProfileRegistry.last_template_import_dir`` (persistované
+  v ``profiles.json``, napříč profily — stejně jako
+  ``last_stag_import_dir`` pro STAG import). Metody
+  ``ProfileManager.last_template_import_dir`` / ``set_last_template_import_dir``.
+
+### Notes
+- ``ReviewTemplatesDialog`` + ``ReviewTemplateEditDialog`` nově přijímají
+  volitelný ``profile_manager`` pro přístup k uloženým UI předvolbám.
+  Pokud není dostupný (např. v testech), graceful fallback na domovský
+  adresář.
+
 ## [0.19.2] - 2026-06-04
 
 ### Fixed

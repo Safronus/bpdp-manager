@@ -724,7 +724,9 @@ class MainWindow(QMainWindow):
         self._refresh_all()
 
     def _manage_review_templates(self) -> None:
-        ReviewTemplatesDialog(self.service, self).exec()
+        ReviewTemplatesDialog(
+            self.service, self, profile_manager=self.profile_manager
+        ).exec()
 
     def _import_from_stag(self) -> None:
         """Otevře wizard pro import dat z STAG CSV exportu.

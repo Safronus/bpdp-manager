@@ -78,9 +78,11 @@ class ReviewTemplateEditDialog(QDialog):
         service: ThesisService,
         template: ReviewTemplate | None = None,
         parent=None,
+        profile_manager=None,
     ) -> None:
         super().__init__(parent)
         self.service = service
+        self.profile_manager = profile_manager
         self.template = template
         self.is_new = template is None
         self.created: ReviewTemplate | None = None
@@ -196,7 +198,16 @@ class ReviewTemplateEditDialog(QDialog):
         outer.addWidget(buttons)
 
     def _browse_source(self) -> None:
-        start = os.path.expanduser("~")
+        # Začni v poslední použité složce importu šablon (per profil registry),
+        # jinak v domovském adresáři.
+        start = ""
+        if self.profile_manager is not None:
+            remembered = self.profile_manager.last_template_import_dir
+            if remembered and Path(remembered).is_dir():
+                start = remembered
+        if not start:
+            start = os.path.expanduser("~")
+
         path, _ = QFileDialog.getOpenFileName(
             self, "Vyber XLSX šablonu posudku", start,
             "Excel soubory (*.xlsx);;Všechny soubory (*.*)",
@@ -205,6 +216,14 @@ class ReviewTemplateEditDialog(QDialog):
             return
         self.selected_source = Path(path)
         self.ed_source.setText(path)
+        # Zapamatuj složku pro příště
+        if self.profile_manager is not None:
+            try:
+                self.profile_manager.set_last_template_import_dir(
+                    str(Path(path).parent)
+                )
+            except Exception:
+                pass
         self._autofill_from_xlsx(self.selected_source)
 
     def _autofill_from_xlsx(self, xlsx_path: Path) -> None:
@@ -353,9 +372,10 @@ class ReviewTemplateEditDialog(QDialog):
 class ReviewTemplatesDialog(QDialog):
     """Správa knihovny šablon posudků."""
 
-    def __init__(self, service: ThesisService, parent=None) -> None:
+    def __init__(self, service: ThesisService, parent=None, profile_manager=None) -> None:
         super().__init__(parent)
         self.service = service
+        self.profile_manager = profile_manager
         self.setWindowTitle("Šablony posudků")
         self.setMinimumSize(900, 540)
 
@@ -457,7 +477,9 @@ class ReviewTemplatesDialog(QDialog):
                 return
 
     def _add(self) -> None:
-        dlg = ReviewTemplateEditDialog(self.service, None, self)
+        dlg = ReviewTemplateEditDialog(
+            self.service, None, self, profile_manager=self.profile_manager
+        )
         if dlg.exec() and dlg.created:
             self._refresh()
             self._select_id(dlg.created.id)
@@ -466,7 +488,9 @@ class ReviewTemplatesDialog(QDialog):
         tmpl = self._current_template()
         if tmpl is None:
             return
-        dlg = ReviewTemplateEditDialog(self.service, tmpl, self)
+        dlg = ReviewTemplateEditDialog(
+            self.service, tmpl, self, profile_manager=self.profile_manager
+        )
         if dlg.exec():
             self._refresh()
 

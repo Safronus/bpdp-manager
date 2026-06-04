@@ -29,3 +29,4 @@ class ProfileRegistry(BaseModel):
     profiles: list[Profile] = Field(default_factory=list)
     # UI předvolby napříč profily (poslední cesty pro file dialogy atp.)
     last_stag_import_dir: str = ""
+    last_template_import_dir: str = ""
