@@ -42,29 +42,38 @@ class ProfileManageDialog(QDialog):
         layout.addWidget(hdr)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(4)
-        self.tree.setHeaderLabels(["Profil", "Cesta", "Poslední otevření", "Status"])
+        self.tree.setColumnCount(5)
+        self.tree.setHeaderLabels(
+            ["Profil", "Tvoje jméno", "Cesta", "Poslední otevření", "Status"]
+        )
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
         self.tree.itemDoubleClicked.connect(self._rename)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         layout.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
         self.btn_rename = QPushButton("Přejmenovat…")
+        self.btn_user_name = QPushButton("👤 Tvoje jméno…")
+        self.btn_user_name.setToolTip(
+            "Jméno uživatele profilu — pro auto-detekci role při STAG importu"
+        )
         self.btn_open_folder = QPushButton("📂 Otevřít složku")
         self.btn_remove = QPushButton("Odebrat z registry…")
         self.btn_close = QPushButton("Zavřít")
         self.btn_rename.clicked.connect(self._rename)
+        self.btn_user_name.clicked.connect(self._edit_user_name)
         self.btn_open_folder.clicked.connect(self._open_folder)
         self.btn_remove.clicked.connect(self._remove)
         self.btn_close.clicked.connect(self.accept)
         row.addWidget(self.btn_rename)
+        row.addWidget(self.btn_user_name)
         row.addWidget(self.btn_open_folder)
         row.addWidget(self.btn_remove)
         row.addStretch()
@@ -87,7 +96,8 @@ class ProfileManageDialog(QDialog):
             data_dir_exists = Path(p.data_dir).exists()
             if not data_dir_exists:
                 status = (status + "  ·  ⚠ složka neexistuje").strip()
-            item = QTreeWidgetItem([p.name, p.data_dir, last, status])
+            user_name = (p.user_name or "").strip() or "—"
+            item = QTreeWidgetItem([p.name, user_name, p.data_dir, last, status])
             item.setData(0, Qt.ItemDataRole.UserRole, p)
             if is_active:
                 f = item.font(0)
@@ -120,6 +130,31 @@ class ProfileManageDialog(QDialog):
             self.pm.rename(profile.id, new_name.strip())
         except ProfileError as exc:
             QMessageBox.warning(self, "Přejmenování selhalo", str(exc))
+            return
+        self._refresh()
+
+    def _edit_user_name(self) -> None:
+        profile = self._current()
+        if profile is None:
+            QMessageBox.information(
+                self,
+                "Vyber profil",
+                "Vyber v seznamu profil, kterému chceš nastavit jméno.",
+            )
+            return
+        new_user_name, ok = QInputDialog.getText(
+            self,
+            "Tvoje jméno v profilu",
+            "Jméno uživatele tohoto profilu\n"
+            "(používá se k auto-detekci role při importu ze STAG):",
+            text=profile.user_name or "",
+        )
+        if not ok:
+            return
+        try:
+            self.pm.set_user_name(profile.id, new_user_name)
+        except ProfileError as exc:
+            QMessageBox.warning(self, "Uložení selhalo", str(exc))
             return
         self._refresh()
 

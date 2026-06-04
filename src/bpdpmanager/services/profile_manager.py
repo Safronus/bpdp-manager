@@ -194,6 +194,25 @@ class ProfileManager:
         self._save_registry()
         return profile
 
+    def set_user_name(self, profile_id: str, user_name: str) -> Profile:
+        """Nastaví jméno uživatele profilu (pro STAG import auto-detect role)."""
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        profile.user_name = (user_name or "").strip()
+        self._save_registry()
+        return profile
+
+    # --- UI předvolby (perzistentní mezi spuštěními) --------------------
+
+    @property
+    def last_stag_import_dir(self) -> str:
+        return self._registry.last_stag_import_dir or ""
+
+    def set_last_stag_import_dir(self, path: str) -> None:
+        self._registry.last_stag_import_dir = (path or "").strip()
+        self._save_registry()
+
     def remove(self, profile_id: str, *, delete_files: bool = False) -> None:
         """Odebere profil z registry. Pokud ``delete_files=True``, smaže i složku."""
         profile = self.get(profile_id)

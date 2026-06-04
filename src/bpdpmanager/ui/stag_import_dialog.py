@@ -28,8 +28,10 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -72,7 +74,7 @@ class StagImportDialog(QDialog):
         self.row_widgets: list[dict] = []  # každý řádek má { role, obor, status, action }
 
         self.setWindowTitle("Import dat ze STAG CSV")
-        self.setMinimumSize(1100, 720)
+        self.setMinimumSize(1240, 820)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
@@ -126,20 +128,36 @@ class StagImportDialog(QDialog):
 
         outer.addLayout(form)
 
-        # ── Náhled tabulky ──────────────────────────────────────────────────
+        # ── Náhled tabulky + detail panel ──────────────────────────────────
         self.lbl_info = QLabel("Načti CSV soubor pro náhled.")
         self.lbl_info.setStyleSheet("color:#888;")
         outer.addWidget(self.lbl_info)
 
-        self.table = QTableWidget(0, 8)
+        # Splitter: nahoře tabulka řádků, dole detail vybraného řádku
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.setChildrenCollapsible(False)
+
+        self.table = QTableWidget(0, 10)
         self.table.setHorizontalHeaderLabels(
-            ["Role", "Student", "Typ", "Rok", "Téma", "Obor (STAG → cíl)",
-             "Stav", "Akce"]
+            [
+                "Role",
+                "Student",
+                "Typ",
+                "Rok",
+                "Téma",
+                "Vedoucí",
+                "Oponent",
+                "Obor (STAG → cíl)",
+                "Stav",
+                "Akce",
+            ]
         )
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setMinimumHeight(180)
         h = self.table.horizontalHeader()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -149,7 +167,34 @@ class StagImportDialog(QDialog):
         h.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
-        outer.addWidget(self.table, stretch=1)
+        h.setSectionResizeMode(8, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
+        # Při změně výběru řádku obnov detail panel
+        self.table.itemSelectionChanged.connect(self._on_row_selected)
+        splitter.addWidget(self.table)
+
+        # Detail panel — HTML zobrazení všech parsovaných polí
+        detail_box = QWidget()
+        detail_layout = QVBoxLayout(detail_box)
+        detail_layout.setContentsMargins(0, 6, 0, 0)
+        detail_layout.setSpacing(4)
+        detail_header = QLabel("🔎 Detail vybraného řádku")
+        detail_header.setStyleSheet("font-weight:bold;")
+        detail_layout.addWidget(detail_header)
+        self.detail_view = QTextBrowser()
+        self.detail_view.setOpenExternalLinks(True)
+        self.detail_view.setMinimumHeight(220)
+        self.detail_view.setHtml(
+            "<p style='color:#888;'>Po načtení náhledu vyber v tabulce řádek "
+            "— ukáže se kompletní obsah parsovaného STAG záznamu.</p>"
+        )
+        detail_layout.addWidget(self.detail_view, stretch=1)
+        splitter.addWidget(detail_box)
+
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+        splitter.setSizes([360, 280])
+        outer.addWidget(splitter, stretch=1)
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
@@ -169,14 +214,39 @@ class StagImportDialog(QDialog):
     # --- akce ----------------------------------------------------------------
 
     def _browse(self) -> None:
+        # Začni v poslední použité složce (nebo v adresáři aktuálně vybraného
+        # souboru, pokud uživatel už něco vyplnil ručně).
+        start_dir = ""
+        current = self.ed_path.text().strip()
+        if current:
+            p = Path(current).expanduser()
+            if p.is_dir():
+                start_dir = str(p)
+            elif p.parent.exists():
+                start_dir = str(p.parent)
+        if not start_dir and self.profile_manager is not None:
+            remembered = self.profile_manager.last_stag_import_dir
+            if remembered and Path(remembered).exists():
+                start_dir = remembered
+        if not start_dir:
+            start_dir = str(Path.home())
+
         path_str, _ = QFileDialog.getOpenFileName(
             self,
             "Vyber STAG CSV soubor",
-            str(Path.home()),
+            start_dir,
             "CSV soubory (*.csv);;Všechny soubory (*.*)",
         )
         if path_str:
             self.ed_path.setText(path_str)
+            # Zapamatuj si složku pro příště
+            if self.profile_manager is not None:
+                try:
+                    self.profile_manager.set_last_stag_import_dir(
+                        str(Path(path_str).parent)
+                    )
+                except Exception:
+                    pass
 
     def _load_preview(self) -> None:
         path_str = self.ed_path.text().strip()
@@ -197,9 +267,10 @@ class StagImportDialog(QDialog):
             and user_name
             and self.profile_manager.active.user_name != user_name
         ):
-            self.profile_manager.active.user_name = user_name
             try:
-                self.profile_manager._save_registry()
+                self.profile_manager.set_user_name(
+                    self.profile_manager.active.id, user_name
+                )
             except Exception:
                 pass
 
@@ -229,6 +300,16 @@ class StagImportDialog(QDialog):
         existing_theses = self.service.list_theses()
         existing_opposing = self.service.list_opposing_theses()
 
+        # Styl pro combo s neutrálním pozadím — sjednotí read na světlém i tmavém
+        # tématu OS (default QComboBox je transparentní → na alternujícím
+        # pozadí splývá s řádkem, špatně čitelné).
+        combo_neutral_qss = (
+            "QComboBox { background-color: palette(base); color: palette(text); "
+            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px 4px; }"
+            "QComboBox QAbstractItemView { background-color: palette(base); "
+            "color: palette(text); }"
+        )
+
         for record in self.import_file.records:
             row_idx = self.table.rowCount()
             self.table.insertRow(row_idx)
@@ -244,8 +325,23 @@ class StagImportDialog(QDialog):
             )
             cb_role.setCurrentIndex(0 if initial == ImportRole.SUPERVISOR.value else 1)
             if record.role == ImportRole.UNKNOWN:
-                # Vizuálně varuj
-                cb_role.setStyleSheet("QComboBox { background-color: #fff3e0; }")
+                # Neutrální QSS pro čitelnost + jednoznačné jantarové varování
+                cb_role.setStyleSheet(
+                    "QComboBox { background-color: #fff3e0; color: #5d4037; "
+                    "border: 1px solid #ffb74d; border-radius: 3px; padding: 2px 4px; "
+                    "font-weight: bold; }"
+                    "QComboBox QAbstractItemView { background-color: #fffaf2; "
+                    "color: #5d4037; }"
+                )
+                cb_role.setToolTip(
+                    "⚠ Roli se nepodařilo auto-detekovat — překontroluj ji."
+                )
+            else:
+                cb_role.setStyleSheet(combo_neutral_qss)
+            # Po změně role aktualizuj detail panel
+            cb_role.currentIndexChanged.connect(
+                lambda _, r=row_idx: self._refresh_detail_if_current(r)
+            )
             self.table.setCellWidget(row_idx, 0, cb_role)
 
             # === Student ===
@@ -270,9 +366,20 @@ class StagImportDialog(QDialog):
             theme_item.setToolTip(record.title_cs or "")
             self.table.setItem(row_idx, 4, theme_item)
 
+            # === Vedoucí ===
+            sup_item = QTableWidgetItem(record.supervisor_name or "—")
+            sup_item.setToolTip(record.supervisor_name or "")
+            self.table.setItem(row_idx, 5, sup_item)
+
+            # === Oponent ===
+            opp_item = QTableWidgetItem(record.opponent_name or "—")
+            opp_item.setToolTip(record.opponent_name or "")
+            self.table.setItem(row_idx, 6, opp_item)
+
             # === Obor mapping ===
             cb_obor = QComboBox()
             cb_obor.setEditable(False)
+            cb_obor.setStyleSheet(combo_neutral_qss)
             # Volby:
             #  - mapping na existující obor (auto-detekce přes stag_code)
             #  - "(zachovat STAG kód jako jméno)"
@@ -300,16 +407,20 @@ class StagImportDialog(QDialog):
             obor_layout.setSpacing(4)
             obor_layout.addWidget(stag_label)
             obor_layout.addWidget(cb_obor, stretch=1)
-            self.table.setCellWidget(row_idx, 5, obor_widget)
+            self.table.setCellWidget(row_idx, 7, obor_widget)
 
             # === Stav (jen pro Vedené práce) ===
             cb_status = QComboBox()
+            cb_status.setStyleSheet(combo_neutral_qss)
             for st in ThesisStatus:
                 cb_status.addItem(st.label, st.value)
             idx = cb_status.findData(default_status.value)
             if idx >= 0:
                 cb_status.setCurrentIndex(idx)
-            self.table.setCellWidget(row_idx, 6, cb_status)
+            cb_status.currentIndexChanged.connect(
+                lambda _, r=row_idx: self._refresh_detail_if_current(r)
+            )
+            self.table.setCellWidget(row_idx, 8, cb_status)
 
             # === Akce ===
             existing_label = self._find_existing_label(
@@ -317,13 +428,14 @@ class StagImportDialog(QDialog):
                 role=ImportRole(initial),
             )
             cb_action = QComboBox()
+            cb_action.setStyleSheet(combo_neutral_qss)
             if existing_label:
                 cb_action.addItem(f"🔄 Aktualizovat ({existing_label})", ACTION_UPDATE)
                 cb_action.addItem("✗ Přeskočit", ACTION_SKIP)
             else:
                 cb_action.addItem("✓ Vytvořit novou", ACTION_CREATE)
                 cb_action.addItem("✗ Přeskočit", ACTION_SKIP)
-            self.table.setCellWidget(row_idx, 7, cb_action)
+            self.table.setCellWidget(row_idx, 9, cb_action)
 
             self.row_widgets.append({
                 "record": record,
@@ -333,6 +445,11 @@ class StagImportDialog(QDialog):
                 "cb_action": cb_action,
             })
 
+        # Předvyber první řádek a ukaž detail
+        if self.row_widgets:
+            self.table.selectRow(0)
+            self._render_record_detail(0)
+
         self.lbl_info.setText(
             f"📊 Řádků: {len(self.import_file.records)} "
             f"(přeskočeno při parsingu: {self.import_file.skipped})  ·  "
@@ -340,12 +457,141 @@ class StagImportDialog(QDialog):
         )
         self.btn_import.setEnabled(True)
 
+    # --- detail panel --------------------------------------------------------
+
+    def _on_row_selected(self) -> None:
+        rows = self.table.selectionModel().selectedRows()
+        if not rows:
+            return
+        row_idx = rows[0].row()
+        self._render_record_detail(row_idx)
+
+    def _refresh_detail_if_current(self, row_idx: int) -> None:
+        """Aktualizuje detail panel, pokud uživatel právě má vybraný tento řádek."""
+        rows = self.table.selectionModel().selectedRows()
+        if rows and rows[0].row() == row_idx:
+            self._render_record_detail(row_idx)
+
+    def _render_record_detail(self, row_idx: int) -> None:
+        if row_idx < 0 or row_idx >= len(self.row_widgets):
+            return
+        ws = self.row_widgets[row_idx]
+        record: ParsedRecord = ws["record"]
+        cb_role: QComboBox = ws["cb_role"]
+        cb_obor: QComboBox = ws["cb_obor"]
+        cb_status: QComboBox = ws["cb_status"]
+        cb_action: QComboBox = ws["cb_action"]
+
+        role_value = cb_role.currentData()
+        role_label = (
+            "🎓 Vedu (Thesis)"
+            if role_value == ImportRole.SUPERVISOR.value
+            else "🧐 Oponuji (OpposingThesis)"
+        )
+        status_label = cb_status.currentText()
+        action_label = cb_action.currentText()
+        obor_data = cb_obor.currentData()
+        if obor_data == "__keep__":
+            obor_target = (
+                f"⚠ Nemapováno (uložit jako '{record.student_obor_stag}')"
+            )
+        elif obor_data == "__new__":
+            obor_target = "➕ Nový obor (zatím nevytvořen)"
+        else:
+            obor_target = obor_data or "—"
+
+        def esc(value: str | None) -> str:
+            from html import escape
+
+            if not value:
+                return "<span style='color:#aaa;'>—</span>"
+            return escape(str(value))
+
+        def multiline(value: str | None) -> str:
+            from html import escape
+
+            if not value:
+                return "<span style='color:#aaa;'>—</span>"
+            lines = [escape(ln) for ln in str(value).splitlines() if ln.strip()]
+            if not lines:
+                return "<span style='color:#aaa;'>—</span>"
+            items = "".join(f"<li>{ln}</li>" for ln in lines)
+            return f"<ol style='margin:0 0 0 18px;padding:0;'>{items}</ol>"
+
+        def fmt_date(d) -> str:
+            if d is None:
+                return "<span style='color:#aaa;'>—</span>"
+            return d.strftime("%d.%m.%Y")
+
+        student_line = (
+            f"{esc(record.student_title_pre)} "
+            f"<b>{esc(record.student_first)} {esc(record.student_last)}</b> "
+            f"{esc(record.student_title_post)}"
+        ).strip()
+        uni = f" <code>[{esc(record.student_uni_id)}]</code>" if record.student_uni_id else ""
+
+        html = f"""
+        <style>
+          h3 {{ margin: 8px 0 4px 0; font-size: 13px; color: #444; }}
+          table.kv {{ border-collapse: collapse; }}
+          table.kv td {{ padding: 2px 8px 2px 0; vertical-align: top; }}
+          table.kv td.k {{ color: #666; white-space: nowrap; }}
+          .badge {{ background-color: #e8f0fe; color: #1565c0; padding: 1px 6px;
+                    border-radius: 6px; font-weight: bold; }}
+          .small {{ color: #888; font-size: 11px; }}
+        </style>
+        <table class='kv'>
+          <tr><td class='k'>Role</td><td><span class='badge'>{esc(role_label)}</span></td></tr>
+          <tr><td class='k'>Akce</td><td>{esc(action_label)}</td></tr>
+          <tr><td class='k'>Student</td><td>{student_line}{uni}</td></tr>
+          <tr><td class='k'>Obor (STAG)</td><td>{esc(record.student_obor_stag)} →
+              <b>{esc(obor_target)}</b></td></tr>
+          <tr><td class='k'>Typ / Rok</td><td>{esc(record.type_code)} ·
+              {esc(record.academic_year)}</td></tr>
+          <tr><td class='k'>STAG ID práce</td>
+              <td><code>{esc(record.adipidno)}</code></td></tr>
+          <tr><td class='k'>Stav (zvolený)</td><td>{esc(status_label)}</td></tr>
+          <tr><td class='k'>Stav (STAG kód)</td>
+              <td><code>{esc(record.stag_state_code)}</code></td></tr>
+          <tr><td class='k'>Vedoucí</td><td>{esc(record.supervisor_name)}</td></tr>
+          <tr><td class='k'>Oponent</td><td>{esc(record.opponent_name)}</td></tr>
+          <tr><td class='k'>Známky</td>
+              <td>vedoucí: <b>{esc(record.grade_supervisor)}</b> ·
+                  oponent: <b>{esc(record.grade_opponent)}</b></td></tr>
+          <tr><td class='k'>Datumy</td>
+              <td>zadáno: {fmt_date(record.date_assigned)} ·
+                  odevzdáno: {fmt_date(record.date_submitted)} ·
+                  obhajoba: {fmt_date(record.date_defended)}</td></tr>
+        </table>
+
+        <h3>Název CZ</h3>
+        <div>{esc(record.title_cs)}</div>
+        <h3>Název EN</h3>
+        <div>{esc(record.title_en)}</div>
+
+        <h3>Anotace CZ</h3>
+        <div style='white-space:pre-wrap;'>{esc(record.annotation_cs)}</div>
+        <h3>Anotace EN</h3>
+        <div style='white-space:pre-wrap;'>{esc(record.annotation_en)}</div>
+
+        <h3>Zásady pro vypracování (body zadání)</h3>
+        {multiline(record.objectives_text)}
+
+        <h3>Seznam doporučené literatury</h3>
+        {multiline(record.references_text)}
+        """
+        self.detail_view.setHtml(html)
+
+    # --- obor mapping --------------------------------------------------------
+
     def _on_obor_combo_changed(self, row_idx: int) -> None:
         if row_idx >= len(self.row_widgets):
             return
         cb_obor: QComboBox = self.row_widgets[row_idx]["cb_obor"]
         data = cb_obor.currentData()
         if data != "__new__":
+            # každopádně aktualizuj detail (zobrazený cíl mapování se mění)
+            self._refresh_detail_if_current(row_idx)
             return
         # Otevři nový obor dialog
         record: ParsedRecord = self.row_widgets[row_idx]["record"]
@@ -358,6 +604,7 @@ class StagImportDialog(QDialog):
         else:
             # Cancel — vrať zpět na první volbu (Nemapováno)
             cb_obor.setCurrentIndex(0)
+        self._refresh_detail_if_current(row_idx)
 
     def _reload_obor_options(self, cb_obor: QComboBox, prefer_name: str = "") -> None:
         all_obory = self.service.list_obor_objects()

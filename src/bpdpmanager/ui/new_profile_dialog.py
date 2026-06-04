@@ -56,6 +56,13 @@ class NewProfileDialog(QDialog):
         self.ed_name.setPlaceholderText("např. „FAI UTB — osobní“")
         form.addRow("Název", self.ed_name)
 
+        # Jméno uživatele profilu (pro STAG import auto-detect role)
+        self.ed_user_name = QLineEdit()
+        self.ed_user_name.setPlaceholderText(
+            "např. Petr Žáček — slouží k auto-detekci role při STAG importu"
+        )
+        form.addRow("Tvoje jméno", self.ed_user_name)
+
         # Cesta + Procházet
         self.ed_path = QLineEdit()
         self.ed_path.setPlaceholderText("vyber složku, kam se uloží db.json a další")
@@ -138,6 +145,14 @@ class NewProfileDialog(QDialog):
         except ProfileError as exc:
             QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
             return
+
+        # Propíše Tvoje jméno (volitelné — používá se v STAG importu)
+        user_name = self.ed_user_name.text().strip()
+        if user_name:
+            try:
+                self.pm.set_user_name(profile.id, user_name)
+            except ProfileError:
+                pass
 
         source_id = self.cb_source.currentData()
         if source_id:

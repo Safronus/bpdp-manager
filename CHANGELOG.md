@@ -7,6 +7,42 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-06-04
+
+### Added (STAG import — doladění UX)
+- **„Tvoje jméno" je editovatelné v profilu**:
+  - Pole *Tvoje jméno* v ``NewProfileDialog`` (vyplní se při vytváření
+    nového profilu — používá se v STAG importu k auto-detekci role).
+  - V ``ProfileManageDialog`` nový sloupec *Tvoje jméno* + tlačítko
+    *👤 Tvoje jméno…* pro úpravu u existujícího profilu.
+  - Nová metoda ``ProfileManager.set_user_name(profile_id, user_name)`` —
+    veřejné API místo dosavadního ručního zápisu přes ``_save_registry``.
+- **Pamatování poslední složky importu**:
+  - Nové pole ``ProfileRegistry.last_stag_import_dir`` (persistované
+    v ``profiles.json``). File dialog v STAG importu otevírá tuto
+    složku, místo aby vždy začínal v ``~``. Po výběru se uloží.
+- **Rozšířený náhled v STAG dialogu** — pod tabulkou je teď
+  *Detail vybraného řádku* (``QSplitter``, ``QTextBrowser``), který
+  pro aktuálně vybraný řádek ukáže kompletní obsah parsovaného
+  záznamu: role, akce, student (vč. titulů a osobního čísla), obor
+  STAG → cíl, typ + rok, STAG ID práce, zvolený stav + STAG kód
+  stavu, vedoucí, oponent, známky vedoucího + oponenta, datumy
+  (zadání / odevzdání / obhajoba), název CZ + EN, anotace CZ + EN,
+  číslovaný seznam *Zásady pro vypracování* a *Seznam doporučené
+  literatury*. Detail se obnoví při změně řádku, role, stavu i mapování
+  oboru.
+- **Nové sloupce v tabulce náhledu**: *Vedoucí* a *Oponent*
+  (zobrazují parsované hodnoty z STAG; pro rychlou kontrolu, že
+  auto-detekce role sedí na správnou osobu).
+
+### Changed
+- **Combo boxy v tabulce** mají nově neutrální čitelný styling
+  s explicitními ``palette(base)`` / ``palette(text)`` barvami —
+  předtím transparentní pozadí kolidovalo se zebra-rows i s tmavými
+  systémovými tématy. *Role* s nedetekovanou hodnotou si zachovává
+  jantarové varovné odlišení (``#fff3e0`` + hnědý text + tlustý
+  rámeček), ale text je nyní viditelně tmavší (``#5d4037``).
+
 ## [0.13.1] - 2026-06-04
 
 ### Fixed
