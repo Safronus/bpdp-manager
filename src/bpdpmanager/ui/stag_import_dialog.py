@@ -44,7 +44,7 @@ from ..models import (
     Supervisor,
     Thesis,
 )
-from ..models.enums import OpponentKind, ThesisStatus, ThesisType
+from ..models.enums import AttachmentKind, OpponentKind, ThesisStatus, ThesisType
 from ..services import BackupManager, ProfileManager, ThesisService
 from ..services.stag_csv_importer import (
     ImportFile,
@@ -60,6 +60,18 @@ ACTION_UPDATE = "update"
 ACTION_SKIP = "skip"
 
 
+class _ImportHadErrors(Exception):
+    """Vnitřní sentinel pro vyhození batche když nastaly per-řádkové chyby.
+
+    Důvod: rozhodnutí o rollback/keep dělá uživatel po batchi, ale
+    batch už mezitím musí být zrušen (data ještě nepersistována).
+    """
+
+    def __init__(self, errors: list[str]) -> None:
+        super().__init__(f"{len(errors)} chyb při importu")
+        self.errors = errors
+
+
 class StagImportDialog(QDialog):
     def __init__(
         self,
@@ -72,6 +84,12 @@ class StagImportDialog(QDialog):
         self.profile_manager = profile_manager
         self.import_file: ImportFile | None = None
         self.row_widgets: list[dict] = []  # každý řádek má { role, obor, status, action }
+        # Po úspěšném importu MainWindow přečte tyto atributy a přepne se na
+        # příslušnou práci v UI (Aktuální / Budoucí / Historie nebo Oponentury).
+        self.imported_thesis_ids: list[str] = []
+        self.imported_opposing_ids: list[str] = []
+        self.focus_thesis_id: str | None = None      # poslední vytvořená/aktualizovaná vedená
+        self.focus_opposing_id: str | None = None    # poslední vytvořený/aktualizovaný posudek
 
         self.setWindowTitle("Import dat ze STAG CSV")
         self.setMinimumSize(1240, 820)
@@ -671,22 +689,210 @@ class StagImportDialog(QDialog):
                     return f"existuje: {o.display_title[:40]}"
             return ""
 
-    # --- vlastní import ------------------------------------------------------
+    # --- vlastní import (transakční) ----------------------------------------
+
+    def _collect_active_rows(self) -> list[dict]:
+        """Vrátí řádky, které se mají importovat (akce není „Přeskočit")."""
+        active = []
+        for ws in self.row_widgets:
+            if ws["cb_action"].currentData() != ACTION_SKIP:
+                active.append(ws)
+        return active
+
+    def _scan_missing_entities(self, active_rows: list[dict]) -> dict[str, list]:
+        """Pre-flight scan — zjistí, které entity zatím v registrech nejsou.
+
+        Vrací slovník:
+          ``students``: [(label, uni_id, obor_name), …]
+          ``opponents``: [name, …]    (deduplikováno)
+          ``supervisors``: [name, …]   (deduplikováno)
+          ``obory``: [stag_code, …]    (řádky s mapováním „Nemapováno",
+                     kde lokální obor neexistuje pod tímtéž jménem)
+        """
+        existing_students_by_uni = {
+            s.university_id: s for s in self.service.list_students() if s.university_id
+        }
+        existing_opponent_names = {o.name for o in self.service.list_opponents()}
+        existing_supervisor_names = {s.name for s in self.service.list_supervisors()}
+        existing_obor_names = {o.name for o in self.service.list_obor_objects()}
+
+        new_students: list[tuple[str, str, str]] = []
+        new_opponents: set[str] = set()
+        new_supervisors: set[str] = set()
+        new_obory: set[str] = set()
+        seen_uni: set[str] = set()
+
+        for ws in active_rows:
+            record: ParsedRecord = ws["record"]
+            role = ImportRole(ws["cb_role"].currentData())
+            obor_choice = ws["cb_obor"].currentData()
+            obor_name = (
+                obor_choice
+                if obor_choice not in ("__keep__", "__new__")
+                else (record.student_obor_stag or "")
+            )
+
+            # Student je relevantní jen pro SUPERVISOR role
+            # (pro OPPOSING ukládáme inline jméno, ne entitu Student).
+            if role == ImportRole.SUPERVISOR:
+                uni_id = record.student_uni_id.strip()
+                if uni_id and uni_id not in existing_students_by_uni and uni_id not in seen_uni:
+                    seen_uni.add(uni_id)
+                    label = f"{record.student_last}, {record.student_first}"
+                    new_students.append((label, uni_id, obor_name))
+
+            # Vedoucí — registr (jen pro OPPOSING role je relevantní cizí vedoucí)
+            if role == ImportRole.OPPONENT and record.supervisor_name:
+                if record.supervisor_name not in existing_supervisor_names:
+                    new_supervisors.add(record.supervisor_name)
+
+            # Oponent — registr (jen pro SUPERVISOR role je relevantní cizí oponent)
+            if role == ImportRole.SUPERVISOR and record.opponent_name:
+                if record.opponent_name not in existing_opponent_names:
+                    new_opponents.add(record.opponent_name)
+
+            # Obor — jen pokud uživatel zvolil „Nemapováno" a ten název ještě neexistuje
+            if obor_choice == "__keep__" and obor_name and obor_name not in existing_obor_names:
+                new_obory.add(obor_name)
+
+        return {
+            "students": new_students,
+            "opponents": sorted(new_opponents),
+            "supervisors": sorted(new_supervisors),
+            "obory": sorted(new_obory),
+        }
+
+    def _show_preflight_dialog(self, missing: dict[str, list], total_rows: int) -> bool:
+        """Pre-flight potvrzení — ukáže, co se bude vytvářet. Vrací True pro pokračování."""
+        from html import escape as _esc
+
+        any_new = any(missing.values())
+        rows_count = total_rows
+
+        body_parts: list[str] = [
+            f"<p>Připraveno k importu: <b>{rows_count}</b> "
+            f"{self._cs_plural(rows_count, 'řádek', 'řádky', 'řádků')}.</p>",
+        ]
+
+        if any_new:
+            body_parts.append(
+                "<p><b>Tyto entity zatím nejsou v registru a budou "
+                "automaticky založeny:</b></p>"
+            )
+
+            if missing["students"]:
+                items = "".join(
+                    f"<li>{_esc(label)} <code>[{_esc(uni)}]</code>"
+                    + (f" · {_esc(obor)}" if obor else "")
+                    + "</li>"
+                    for label, uni, obor in missing["students"]
+                )
+                body_parts.append(
+                    f"<p>👨‍🎓 <b>Studenti</b> ({len(missing['students'])}):</p>"
+                    f"<ul style='margin-top:0;'>{items}</ul>"
+                )
+
+            if missing["opponents"]:
+                items = "".join(f"<li>{_esc(name)}</li>" for name in missing["opponents"])
+                body_parts.append(
+                    f"<p>🧐 <b>Oponenti</b> ({len(missing['opponents'])}):"
+                    f" <span style='color:#888;font-size:11px;'>"
+                    f"založí se jako <i>interní</i> — kind a kontakt lze upravit dodatečně"
+                    f"</span></p>"
+                    f"<ul style='margin-top:0;'>{items}</ul>"
+                )
+
+            if missing["supervisors"]:
+                items = "".join(f"<li>{_esc(name)}</li>" for name in missing["supervisors"])
+                body_parts.append(
+                    f"<p>🎓 <b>Vedoucí</b> ({len(missing['supervisors'])}):"
+                    f" <span style='color:#888;font-size:11px;'>"
+                    f"do registru vedoucích (pro oponentské posudky)"
+                    f"</span></p>"
+                    f"<ul style='margin-top:0;'>{items}</ul>"
+                )
+
+            if missing["obory"]:
+                items = "".join(f"<li><code>{_esc(name)}</code></li>" for name in missing["obory"])
+                body_parts.append(
+                    f"<p>🗂 <b>Obory</b> ({len(missing['obory'])}):"
+                    f" <span style='color:#888;font-size:11px;'>"
+                    f"uloženo pod STAG kódem (lze přejmenovat / přiřadit sekretářku v <i>Obory</i>)"
+                    f"</span></p>"
+                    f"<ul style='margin-top:0;'>{items}</ul>"
+                )
+        else:
+            body_parts.append(
+                "<p style='color:#2e7d32;'>✓ Všechny související entity již "
+                "v registru existují — nic nového se zakládat nebude.</p>"
+            )
+
+        body_parts.append(
+            "<hr>"
+            "<p style='color:#666;font-size:11px;'>"
+            "Změny se zapíšou na disk až po úspěšném dokončení importu. "
+            "Před zápisem se navíc vytvoří záloha <code>before-stag-import</code>. "
+            "Pokud kdykoli dojde k chybě, vše se rolluje zpět a aktuální data "
+            "zůstanou nedotčená.</p>"
+        )
+
+        # Vlastní dialog s rich textem (QMessageBox omezuje formatting)
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Souhrn před importem")
+        dlg.setMinimumSize(640, 480)
+        outer = QVBoxLayout(dlg)
+        header = QLabel("📋 Souhrn před importem")
+        header.setStyleSheet("font-weight:bold;font-size:14px;")
+        outer.addWidget(header)
+        body = QTextBrowser()
+        body.setOpenExternalLinks(False)
+        body.setHtml("".join(body_parts))
+        outer.addWidget(body, stretch=1)
+
+        btn_row = QHBoxLayout()
+        btn_cancel = QPushButton("Zrušit")
+        btn_cancel.clicked.connect(dlg.reject)
+        btn_go = QPushButton("✓ Provést import")
+        f = btn_go.font()
+        f.setBold(True)
+        btn_go.setFont(f)
+        btn_go.setDefault(True)
+        btn_go.clicked.connect(dlg.accept)
+        btn_row.addStretch()
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_go)
+        outer.addLayout(btn_row)
+
+        return dlg.exec() == QDialog.DialogCode.Accepted
+
+    @staticmethod
+    def _cs_plural(n: int, one: str, few: str, many: str) -> str:
+        if n == 1:
+            return one
+        if 2 <= n <= 4:
+            return few
+        return many
 
     def _execute_import(self) -> None:
         if not self.row_widgets:
             return
-        confirm = QMessageBox.question(
-            self,
-            "Provést import",
-            f"Importovat {len(self.row_widgets)} řádků?\n\n"
-            "Před importem se automaticky vytvoří záloha aktuálního stavu "
-            "se značkou „before-stag-import“.",
-        )
-        if confirm != QMessageBox.StandardButton.Yes:
+
+        active_rows = self._collect_active_rows()
+        if not active_rows:
+            QMessageBox.information(
+                self,
+                "Nic k importu",
+                'Všechny řádky mají akci „Přeskočit". Nastav alespoň jeden řádek '
+                "na *Vytvořit* nebo *Aktualizovat*.",
+            )
             return
 
-        # 1) Backup před importem
+        # 1) Pre-flight scan — co je nutné založit
+        missing = self._scan_missing_entities(active_rows)
+        if not self._show_preflight_dialog(missing, len(active_rows)):
+            return  # uživatel zrušil
+
+        # 2) Backup před importem (na případ selhání rollbacku)
         if self.profile_manager and self.profile_manager.active:
             data_dir = self.profile_manager.active_data_dir()
             try:
@@ -698,69 +904,320 @@ class StagImportDialog(QDialog):
             except Exception:
                 pass
 
-        # 2) Provést import řádek po řádku
+        # 3) Transakční blok — všechno se zapíše jednou na konci, nebo nic
         stats = {
             "created_thesis": 0, "updated_thesis": 0,
             "created_opposing": 0, "updated_opposing": 0,
             "created_student": 0, "created_opponent": 0,
             "created_supervisor": 0, "skipped": 0,
+            "attached_csv": 0,
         }
         errors: list[str] = []
+        affected_thesis_ids: list[str] = []
+        affected_opposing_ids: list[str] = []
+        last_thesis_id: str | None = None
+        last_opposing_id: str | None = None
 
-        for widget_set in self.row_widgets:
-            record: ParsedRecord = widget_set["record"]
-            cb_role: QComboBox = widget_set["cb_role"]
-            cb_obor: QComboBox = widget_set["cb_obor"]
-            cb_status: QComboBox = widget_set["cb_status"]
-            cb_action: QComboBox = widget_set["cb_action"]
+        csv_source = Path(self.ed_path.text().strip()) if self.ed_path.text().strip() else None
 
-            action = cb_action.currentData()
-            if action == ACTION_SKIP:
-                stats["skipped"] += 1
-                continue
+        try:
+            with self.service.batch():
+                # 3a) Per-row apply
+                for widget_set in active_rows:
+                    record: ParsedRecord = widget_set["record"]
+                    cb_role: QComboBox = widget_set["cb_role"]
+                    cb_obor: QComboBox = widget_set["cb_obor"]
+                    cb_status: QComboBox = widget_set["cb_status"]
 
-            role = ImportRole(cb_role.currentData())
-            obor_choice = cb_obor.currentData()
-            obor_name = obor_choice if obor_choice not in ("__keep__", "__new__") else None
-            if obor_choice == "__keep__":
-                obor_name = record.student_obor_stag or ""
-            elif obor_choice == "__new__":
-                # Uživatel nevyrobil — fallback na STAG kód
-                obor_name = record.student_obor_stag or ""
-
-            status = ThesisStatus(cb_status.currentData())
-
-            try:
-                if role == ImportRole.SUPERVISOR:
-                    created_new = self._apply_supervisor_role(
-                        record, obor_name, status, stats
+                    role = ImportRole(cb_role.currentData())
+                    obor_choice = cb_obor.currentData()
+                    obor_name = (
+                        obor_choice
+                        if obor_choice not in ("__keep__", "__new__")
+                        else (record.student_obor_stag or "")
                     )
-                else:
-                    created_new = self._apply_opponent_role(record, obor_name, stats)
-                if created_new:
-                    pass  # už zahrnuto ve stats per metoda
-            except Exception as exc:  # noqa: BLE001
-                errors.append(
-                    f"{record.student_last} {record.student_first}: {exc}"
-                )
+                    status = ThesisStatus(cb_status.currentData())
 
-        # 3) Sumář
-        self.service.save()  # explicitní save (i když upsert už uložil)
-        msg = (
-            f"Vedené práce: {stats['created_thesis']} vytvořeno, "
-            f"{stats['updated_thesis']} aktualizováno\n"
-            f"Oponentury: {stats['created_opposing']} vytvořeno, "
-            f"{stats['updated_opposing']} aktualizováno\n"
-            f"Noví studenti: {stats['created_student']}\n"
-            f"Noví oponenti v registru: {stats['created_opponent']}\n"
-            f"Noví vedoucí v registru: {stats['created_supervisor']}\n"
-            f"Přeskočeno: {stats['skipped']}"
+                    try:
+                        if role == ImportRole.SUPERVISOR:
+                            thesis_id, _is_new = self._apply_supervisor_role(
+                                record, obor_name, status, stats
+                            )
+                            affected_thesis_ids.append(thesis_id)
+                            last_thesis_id = thesis_id
+                        else:
+                            op_id, _is_new = self._apply_opponent_role(
+                                record, obor_name, stats
+                            )
+                            affected_opposing_ids.append(op_id)
+                            last_opposing_id = op_id
+                    except Exception as exc:  # noqa: BLE001
+                        errors.append(
+                            f"{record.student_last} {record.student_first}: {exc}"
+                        )
+
+                # 3b) Připoj CSV jako STAG_EXPORT k všem dotčeným pracem
+                if csv_source and csv_source.exists():
+                    for tid in affected_thesis_ids:
+                        try:
+                            self.service.attach_document(
+                                tid,
+                                csv_source,
+                                kind=AttachmentKind.STAG_EXPORT,
+                            )
+                            stats["attached_csv"] += 1
+                        except Exception as exc:  # noqa: BLE001
+                            errors.append(
+                                f"Přiložení CSV k práci {tid[:8]}: {exc}"
+                            )
+                    for oid in affected_opposing_ids:
+                        try:
+                            self.service.opposing_attach_document(
+                                oid,
+                                csv_source,
+                                kind=AttachmentKind.STAG_EXPORT,
+                            )
+                            stats["attached_csv"] += 1
+                        except Exception as exc:  # noqa: BLE001
+                            errors.append(
+                                f"Přiložení CSV k posudku {oid[:8]}: {exc}"
+                            )
+
+                # 3c) Pokud se cokoli nepovedlo a uživatel je dotazuje, dej mu
+                #     šanci rollback udělat výjimkou z bloku.
+                if errors:
+                    raise _ImportHadErrors(errors)
+        except _ImportHadErrors as bundle:
+            # Nabídni rollback při chybě
+            choice = self._ask_continue_with_errors(bundle.errors, stats)
+            if choice == "rollback":
+                # Restartuj batch BEZ chyb — vše už bylo zahozeno, jen dej vědět uživateli
+                QMessageBox.warning(
+                    self,
+                    "Import zrušen",
+                    "Žádné změny nebyly uloženy. Pokud chceš, můžeš upravit data "
+                    "v náhledu a zkusit znovu, nebo zavřít dialog.",
+                )
+                # Reset focus + counters
+                self.imported_thesis_ids = []
+                self.imported_opposing_ids = []
+                self.focus_thesis_id = None
+                self.focus_opposing_id = None
+                return
+            else:
+                # Uživatel chce přesto uložit → zopakuj v dalším batch BEZ raise
+                # POZOR: po předchozím raise je _db reloadnutý z disku, takže
+                # musíme všechno provést znova. Pro jednoduchost: 2× run.
+                self._execute_import_retry_silent(
+                    active_rows, csv_source, stats, errors
+                )
+        except Exception as exc:  # noqa: BLE001
+            # Jakákoli jiná neočekávaná chyba — rollback už proběhl
+            QMessageBox.critical(
+                self,
+                "Import selhal",
+                f"Při importu došlo k neočekávané chybě, žádné změny nebyly "
+                f"uloženy:\n\n{exc}",
+            )
+            return
+
+        # 4) Úspěch — zapamatuj focus a ukaž sumář
+        self.imported_thesis_ids = affected_thesis_ids
+        self.imported_opposing_ids = affected_opposing_ids
+        self.focus_thesis_id = last_thesis_id
+        self.focus_opposing_id = last_opposing_id
+        self._show_summary_dialog(stats, errors)
+
+    # --- pomocné helpers k importu --------------------------------------
+
+    def _ask_continue_with_errors(
+        self, errors: list[str], stats: dict
+    ) -> str:
+        """Při chybách v batch — uživatel se rozhodne mezi rollback a continue.
+
+        Vrací: ``"rollback"`` nebo ``"keep"``.
+        """
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Při importu nastaly chyby")
+        msg.setText(
+            f"Při importu nastalo {len(errors)} "
+            f"{self._cs_plural(len(errors), 'chyba', 'chyby', 'chyb')}."
+        )
+        details = "\n".join(f"• {e}" for e in errors[:30])
+        if len(errors) > 30:
+            details += f"\n… a {len(errors) - 30} dalších"
+        msg.setDetailedText(details)
+        msg.setInformativeText(
+            "Žádná data zatím nebyla uložena. Co chceš udělat?"
+        )
+        btn_rollback = msg.addButton(
+            "↩ Zrušit import (rollback)", QMessageBox.ButtonRole.RejectRole
+        )
+        btn_keep = msg.addButton(
+            "✓ Uložit i tak (jen úspěšné řádky)", QMessageBox.ButtonRole.AcceptRole
+        )
+        msg.setDefaultButton(btn_rollback)
+        msg.exec()
+        return "rollback" if msg.clickedButton() == btn_rollback else "keep"
+
+    def _execute_import_retry_silent(
+        self,
+        active_rows: list[dict],
+        csv_source: Path | None,
+        stats: dict,
+        prev_errors: list[str],
+    ) -> None:
+        """Zopakuje import po rollbacku — pro variantu „Uložit i tak"."""
+        # Reset stats — předchozí pokus je zahozený
+        for k in stats:
+            stats[k] = 0
+        errors: list[str] = []
+        affected_thesis_ids: list[str] = []
+        affected_opposing_ids: list[str] = []
+        last_thesis_id: str | None = None
+        last_opposing_id: str | None = None
+
+        with self.service.batch():
+            for widget_set in active_rows:
+                record: ParsedRecord = widget_set["record"]
+                role = ImportRole(widget_set["cb_role"].currentData())
+                obor_choice = widget_set["cb_obor"].currentData()
+                obor_name = (
+                    obor_choice
+                    if obor_choice not in ("__keep__", "__new__")
+                    else (record.student_obor_stag or "")
+                )
+                status = ThesisStatus(widget_set["cb_status"].currentData())
+                try:
+                    if role == ImportRole.SUPERVISOR:
+                        tid, _ = self._apply_supervisor_role(
+                            record, obor_name, status, stats
+                        )
+                        affected_thesis_ids.append(tid)
+                        last_thesis_id = tid
+                    else:
+                        oid, _ = self._apply_opponent_role(record, obor_name, stats)
+                        affected_opposing_ids.append(oid)
+                        last_opposing_id = oid
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(
+                        f"{record.student_last} {record.student_first}: {exc}"
+                    )
+            if csv_source and csv_source.exists():
+                for tid in affected_thesis_ids:
+                    try:
+                        self.service.attach_document(
+                            tid, csv_source, kind=AttachmentKind.STAG_EXPORT
+                        )
+                        stats["attached_csv"] += 1
+                    except Exception:
+                        pass
+                for oid in affected_opposing_ids:
+                    try:
+                        self.service.opposing_attach_document(
+                            oid, csv_source, kind=AttachmentKind.STAG_EXPORT
+                        )
+                        stats["attached_csv"] += 1
+                    except Exception:
+                        pass
+
+        self.imported_thesis_ids = affected_thesis_ids
+        self.imported_opposing_ids = affected_opposing_ids
+        self.focus_thesis_id = last_thesis_id
+        self.focus_opposing_id = last_opposing_id
+        self._show_summary_dialog(stats, errors)
+
+    def _show_summary_dialog(self, stats: dict, errors: list[str]) -> None:
+        """Závěrečný sumář s tlačítky pro přepnutí na práci."""
+        from html import escape as _esc
+
+        rows: list[str] = []
+        rows.append(
+            f"<tr><td>📚 <b>Vedené práce</b></td>"
+            f"<td>{stats['created_thesis']} vytvořeno</td>"
+            f"<td>{stats['updated_thesis']} aktualizováno</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>🧐 <b>Oponentské posudky</b></td>"
+            f"<td>{stats['created_opposing']} vytvořeno</td>"
+            f"<td>{stats['updated_opposing']} aktualizováno</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>👨‍🎓 Noví studenti</td>"
+            f"<td colspan='2'>{stats['created_student']}</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>🧐 Noví oponenti</td>"
+            f"<td colspan='2'>{stats['created_opponent']}</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>🎓 Noví vedoucí</td>"
+            f"<td colspan='2'>{stats['created_supervisor']}</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>📎 CSV přiloženo k pracem</td>"
+            f"<td colspan='2'>{stats['attached_csv']}</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>✗ Přeskočeno</td>"
+            f"<td colspan='2'>{stats['skipped']}</td></tr>"
+        )
+
+        html = (
+            "<style>"
+            "table.summary { border-collapse: collapse; }"
+            "table.summary td { padding: 4px 12px 4px 0; }"
+            "</style>"
+            "<p style='color:#2e7d32;'>✓ Import dokončen.</p>"
+            f"<table class='summary'>{''.join(rows)}</table>"
         )
         if errors:
-            msg += "\n\n⚠ Chyby:\n" + "\n".join(f"  • {e}" for e in errors[:10])
-            if len(errors) > 10:
-                msg += f"\n  … a {len(errors) - 10} dalších"
-        QMessageBox.information(self, "Import dokončen", msg)
+            err_items = "".join(f"<li>{_esc(e)}</li>" for e in errors[:15])
+            extra = f"<p style='color:#888;'>… a {len(errors) - 15} dalších</p>" if len(errors) > 15 else ""
+            html += (
+                f"<hr><p><b>⚠ Chyby ({len(errors)}):</b></p>"
+                f"<ul>{err_items}</ul>{extra}"
+            )
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Import dokončen")
+        dlg.setMinimumSize(560, 420)
+        outer = QVBoxLayout(dlg)
+        header = QLabel("📥 Import ze STAG dokončen")
+        header.setStyleSheet("font-weight:bold;font-size:14px;")
+        outer.addWidget(header)
+        body = QTextBrowser()
+        body.setHtml(html)
+        outer.addWidget(body, stretch=1)
+
+        btn_row = QHBoxLayout()
+        btn_close = QPushButton("Zavřít")
+        btn_close.clicked.connect(dlg.accept)
+
+        # Pokud byl importován pouze jeden záznam, nabídni „Přepnout na práci".
+        # Pokud více, ukaž tlačítko jen pokud je k tomu jediný thesis_id / opposing_id.
+        has_focus = bool(self.focus_thesis_id or self.focus_opposing_id)
+
+        btn_row.addStretch()
+        btn_row.addWidget(btn_close)
+        if has_focus:
+            btn_focus = QPushButton("👁 Zobrazit práci")
+            btn_focus.setDefault(True)
+            f = btn_focus.font()
+            f.setBold(True)
+            btn_focus.setFont(f)
+            # Klik = zavře dialog s navigací; MainWindow přečte focus_*_id atributy.
+            btn_focus.clicked.connect(dlg.accept)
+            btn_row.addWidget(btn_focus)
+        else:
+            # Bez focusu — zruš auto-navigaci
+            self.focus_thesis_id = None
+            self.focus_opposing_id = None
+
+        outer.addLayout(btn_row)
+        dlg.exec()
+        # Dialog (StagImportDialog) potvrď — MainWindow přečte focus_*_id
         self.accept()
 
     # --- per-role logic ------------------------------------------------------
@@ -771,8 +1228,11 @@ class StagImportDialog(QDialog):
         obor_name: str,
         status: ThesisStatus,
         stats: dict,
-    ) -> bool:
-        """Vytvoří/aktualizuje vedenou Thesis."""
+    ) -> tuple[str, bool]:
+        """Vytvoří/aktualizuje vedenou Thesis.
+
+        Vrací ``(thesis_id, is_new)``.
+        """
         # 1) Student
         student = self._ensure_student(record, obor_name, stats)
 
@@ -808,15 +1268,18 @@ class StagImportDialog(QDialog):
             stats["created_thesis"] += 1
         else:
             stats["updated_thesis"] += 1
-        return is_new
+        return thesis.id, is_new
 
     def _apply_opponent_role(
         self,
         record: ParsedRecord,
         obor_name: str,
         stats: dict,
-    ) -> bool:
-        """Vytvoří/aktualizuje OpposingThesis."""
+    ) -> tuple[str, bool]:
+        """Vytvoří/aktualizuje OpposingThesis.
+
+        Vrací ``(opposing_id, is_new)``.
+        """
         # Vedoucí v registru
         supervisor = self._ensure_supervisor(record.supervisor_name, stats) \
             if record.supervisor_name else None
@@ -850,7 +1313,7 @@ class StagImportDialog(QDialog):
             stats["created_opposing"] += 1
         else:
             stats["updated_opposing"] += 1
-        return is_new
+        return op.id, is_new
 
     # --- entity ensure helpers -----------------------------------------------
 

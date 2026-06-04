@@ -7,6 +7,54 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-06-04
+
+### Added
+- **Transakční STAG import** — celý import probíhá nově v rámci
+  ``ThesisService.batch()`` context manageru. Žádná data se nezapíšou
+  na disk dokud import úspěšně nedokončí. Při výjimce v jakémkoli kroku
+  se in-memory změny zahodí a databáze se znovu načte z disku
+  (rollback). Pokud při per-řádkovém importu nastanou chyby, uživatel
+  se rozhodne mezi *Zrušit import (rollback)* a *Uložit i tak (jen
+  úspěšné řádky)*.
+- **Pre-flight souhrn před importem** — před vlastním zápisem se ukáže
+  dialog se seznamem nových entit, které se založí (studenti, oponenti,
+  vedoucí, obory) i s jejich detaily (osobní číslo, obor, info, že
+  oponent jde do registru jako *interní*, atd.). Uživatel může zrušit.
+- **STAG CSV se připojí ke každé dotčené práci** jako příloha typu
+  *STAG export*. Nový ``AttachmentKind.STAG_EXPORT`` (label „STAG
+  export (CSV)"), uložení do podsložky ``stag/``, soubor pojmenovaný
+  ``{Příjmení}_stag-export_{YYYY-MM-DD}.csv``. Funguje pro vedené práce
+  i pro oponentské posudky.
+- **Auto-navigace po importu** — po úspěšném importu se aplikace
+  rovnou přepne na poslední importovanou práci v GUI (vedenou nebo
+  oponentský posudek). Sumární dialog má tlačítko *👁 Zobrazit práci*.
+- **Závěrečný sumář** v rich-textovém dialogu — tabulka s počty
+  vytvořených/aktualizovaných prací, posudků, studentů, oponentů,
+  vedoucích, přiložených CSV a přeskočených řádků. Chyby (pokud
+  uživatel zvolil *Uložit i tak*) v seznamu pod tabulkou.
+
+### Added (API)
+- ``ThesisService.batch()`` — context manager pro transakční zápis.
+  Save se odkládá na ``__exit__``, při výjimce se zahodí in-memory
+  ``_db`` a znovu načte z disku. Bezpečné pro vnořené volání
+  (depth counter).
+- Nový ``AttachmentKind.STAG_EXPORT`` (+ mapování v ``file_naming``:
+  kód ``stag-export``, podsložka ``stag``).
+
+### Notes
+- *Orphan souborové soubory:* pokud import skončí rollbackem až po
+  připojení CSV (např. neočekávaná výjimka mezi kroky), CSV soubor
+  zůstane fyzicky v ``documents/{thesis_id}/stag/`` ale bez záznamu
+  v ``_db``. Aplikace ho neuvidí — z hlediska uživatele je
+  neexistující. Promazání těchto orphanů je out-of-scope (nekritické,
+  místa zabírají málo).
+- Při importu *jednoho* řádku se aplikace přepne přímo na danou
+  práci. Pokud řádků více, přepne se na *poslední* úspěšně
+  importovanou — pro hromadné importy je to očekávané chování
+  (uživatel chce verifikovat, že vše proběhlo, a pak prochází
+  v seznamu).
+
 ## [0.13.3] - 2026-06-04
 
 ### Changed (správce oborů)

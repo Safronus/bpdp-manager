@@ -28,6 +28,7 @@ KIND_TO_CODE: dict[AttachmentKind, str] = {
     AttachmentKind.SUPERVISOR_REVIEW: "posudek-vedouciho",
     AttachmentKind.OPPONENT_REVIEW: "posudek-oponenta",
     AttachmentKind.PRESENTATION: "prezentace",
+    AttachmentKind.STAG_EXPORT: "stag-export",
     AttachmentKind.OTHER: "jine",
 }
 
@@ -41,6 +42,7 @@ KIND_TO_SUBDIR: dict[AttachmentKind, str] = {
     AttachmentKind.SUPERVISOR_REVIEW: "posudky",
     AttachmentKind.OPPONENT_REVIEW: "posudky",
     AttachmentKind.PRESENTATION: "prezentace",
+    AttachmentKind.STAG_EXPORT: "stag",
     AttachmentKind.OTHER: "ostatni",
 }
 

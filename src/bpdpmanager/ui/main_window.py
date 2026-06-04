@@ -549,7 +549,11 @@ class MainWindow(QMainWindow):
         self._refresh_all()
 
     def _import_from_stag(self) -> None:
-        """Otevře wizard pro import dat z STAG CSV exportu."""
+        """Otevře wizard pro import dat z STAG CSV exportu.
+
+        Po úspěšném importu se aplikace přepne na poslední importovanou
+        práci (resp. oponentský posudek) — uživatel ji rovnou vidí.
+        """
         # Flushni rozpracované změny v detail panelech, aby je import nepřepsal
         for i in range(self.tabs.count()):
             w = self.tabs.widget(i)
@@ -558,9 +562,31 @@ class MainWindow(QMainWindow):
                     w.detail.flush()
                 except Exception:
                     pass
+
         dlg = StagImportDialog(self.service, self.profile_manager, self)
-        if dlg.exec():
-            self._refresh_all()
+        if not dlg.exec():
+            return  # zrušeno před zápisem
+
+        # Refresh všeho — data, registry, stromy, comba
+        self._refresh_all()
+
+        # Auto-navigate na importovanou práci/posudek
+        if dlg.focus_thesis_id:
+            self._focus_thesis(dlg.focus_thesis_id)
+        elif dlg.focus_opposing_id:
+            self._focus_opposing_thesis(dlg.focus_opposing_id)
+
+    def _focus_opposing_thesis(self, opposing_id: str) -> None:
+        """Přepne se na záložku Oponentské posudky a vybere konkrétní záznam."""
+        for i in range(self.tabs.count()):
+            widget = self.tabs.widget(i)
+            if isinstance(widget, OpposingTab):
+                self.tabs.setCurrentIndex(i)
+                try:
+                    widget._select_id(opposing_id)
+                except Exception:
+                    pass
+                return
 
     def _refresh_all(self) -> None:
         self.service.reload()

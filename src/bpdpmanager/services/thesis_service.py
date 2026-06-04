@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import shutil
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 
@@ -36,6 +38,10 @@ class ThesisService:
     def __init__(self, repo: Repository) -> None:
         self._repo = repo
         self._db: Database = repo.load()
+        # Hloubka aktivní transakce. Když > 0, ``save()`` se odkládá až na konec
+        # nejvyšší úrovně. Při výjimce uvnitř ``batch()`` se ``_db`` znovu načte
+        # z disku — všechny rozdělané změny jsou zahozeny.
+        self._batch_depth: int = 0
 
     # --- načítání / ukládání -------------------------------------------------
 
@@ -56,7 +62,37 @@ class ThesisService:
         self._db = repo.load()
 
     def save(self) -> None:
+        """Persist ``_db`` na disk. V rámci ``batch()`` se zápis odkládá."""
+        if self._batch_depth > 0:
+            return  # odložit; reálné save proběhne na konci batche
         self._repo.save(self._db)
+
+    @contextmanager
+    def batch(self) -> Iterator[None]:
+        """Transakční blok — všechny ``upsert_*`` / ``delete_*`` uvnitř
+        nepíšou na disk. Save proběhne až na konci, atomicky.
+
+        Při výjimce uvnitř se ``_db`` znovu načte z disku → všechny změny
+        provedené v rámci tohoto bloku se zahodí (rollback).
+
+        Pozor: copy souborů (``attach_document`` apod.) je *durable* —
+        soubory zůstanou na disku i po rollbacku, ale bez záznamu v ``_db``
+        se z hlediska aplikace stávají neviditelnými („orphan files").
+        Mazání orphanu je out-of-scope této transakce.
+        """
+        self._batch_depth += 1
+        try:
+            yield
+        except Exception:
+            self._batch_depth -= 1
+            if self._batch_depth == 0:
+                # Zahoď in-memory změny, vrať na poslední uložený stav
+                self._db = self._repo.load()
+            raise
+        else:
+            self._batch_depth -= 1
+            if self._batch_depth == 0:
+                self._repo.save(self._db)
 
     # --- studenti ------------------------------------------------------------
 

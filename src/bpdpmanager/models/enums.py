@@ -38,6 +38,7 @@ class AttachmentKind(str, Enum):
     SUPERVISOR_REVIEW = "supervisor_review"
     OPPONENT_REVIEW = "opponent_review"
     PRESENTATION = "presentation"
+    STAG_EXPORT = "stag_export"
     OTHER = "other"
 
     @property
@@ -53,6 +54,7 @@ ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
     AttachmentKind.SUPERVISOR_REVIEW: "Posudek vedoucího",
     AttachmentKind.OPPONENT_REVIEW: "Posudek oponenta",
     AttachmentKind.PRESENTATION: "Prezentace",
+    AttachmentKind.STAG_EXPORT: "STAG export (CSV)",
     AttachmentKind.OTHER: "Jiné",
 }
 
