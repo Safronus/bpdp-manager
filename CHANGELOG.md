@@ -7,6 +7,29 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-06-04
+
+### Added
+- **Welcome dialog (první spuštění) má novou volbu *📥 Importovat .zip…***.
+  Fresh installation na novém zařízení nyní podporuje rovnou import
+  exportovaného ZIPu — bez nutnosti nejdřív vytvořit prázdný profil
+  a teprve potom otevřít *Importovat profil ze ZIPu…* z toolbar menu.
+  
+  Welcome workflow nyní:
+  1. 🔍 Nalezena stávající data (legacy ``~/.bpdpmanager/``, pokud existuje)
+  2. 🆕 Nový prázdný profil
+  3. 📂 Otevřít existující profil (složka s db.json)
+  4. **📥 Importovat ze ZIP balíku** ← nová volba
+  
+  V tomto kontextu se v ``ImportProfileDialog`` automaticky disabluje
+  radio *🔀 Sloučit s existujícím profilem* (žádné profily k mergi
+  zatím nejsou) — uživatel rovnou vidí jen variantu *Vytvořit nový profil*.
+
+### Notes
+- Migrace na nový laptop má nyní 2-click flow: spustit appku → klik
+  *Importovat .zip…* → vybrat soubor + cílová složka → hotovo. Aplikace
+  se otevře s plně funkčním importovaným profilem.
+
 ## [0.18.0] - 2026-06-04
 
 ### Added

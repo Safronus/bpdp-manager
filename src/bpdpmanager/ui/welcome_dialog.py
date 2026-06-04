@@ -108,6 +108,24 @@ class WelcomeDialog(QDialog):
         open_layout.addWidget(btn_open)
         outer.addWidget(open_box)
 
+        # Import ze ZIPu — typický flow pro nového uživatele na novém zařízení
+        zip_box = QGroupBox("📥 Importovat ze ZIP balíku")
+        zip_layout = QVBoxLayout(zip_box)
+        zip_text = QLabel(
+            "Máš na disku <code>.zip</code> exportovaný přes "
+            "<i>Export profilu</i> z jiného zařízení? Otevři ho zde — "
+            "rozbalí se data + dokumenty + šablony do nového profilu "
+            "a aplikace ho rovnou aktivuje."
+        )
+        zip_text.setWordWrap(True)
+        zip_text.setTextFormat(Qt.TextFormat.RichText)
+        zip_layout.addWidget(zip_text)
+        btn_zip = QPushButton("📥  Importovat .zip…")
+        btn_zip.setMinimumHeight(36)
+        btn_zip.clicked.connect(self._import_zip)
+        zip_layout.addWidget(btn_zip)
+        outer.addWidget(zip_box)
+
         # Zrušit
         row = QHBoxLayout()
         row.addStretch()
@@ -117,6 +135,23 @@ class WelcomeDialog(QDialog):
         outer.addLayout(row)
 
     # --- akce -----------------------------------------------------------
+
+    def _import_zip(self) -> None:
+        """Otevře ``ImportProfileDialog`` v módu „nový profil"
+        (na čerstvém zařízení dává smysl jen tahle varianta — žádné
+        existující profily k mergi nejsou).
+        """
+        # Lazy import (cyklický import s main_window přes profile_export_dialog)
+        from .profile_export_dialog import ImportProfileDialog
+
+        dlg = ImportProfileDialog(self.pm, self)
+        # Nemáme do čeho slučovat → schovej radio výběr na merge
+        dlg.rb_merge.setEnabled(False)
+        dlg.rb_new.setChecked(True)
+        if not dlg.exec() or dlg.created is None:
+            return
+        self.selected_profile = dlg.created
+        self.accept()
 
     def _import_legacy(self) -> None:
         try:
