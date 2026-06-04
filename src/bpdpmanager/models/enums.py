@@ -31,10 +31,12 @@ class OpponentKind(str, Enum):
 
 
 class AttachmentKind(str, Enum):
+    THESIS_TEXT = "thesis_text"
+    THESIS_APPENDIX = "thesis_appendix"
+    WORK_JOURNAL = "work_journal"
+    ASSIGNMENT = "assignment"
     SUPERVISOR_REVIEW = "supervisor_review"
     OPPONENT_REVIEW = "opponent_review"
-    THESIS_TEXT = "thesis_text"
-    ASSIGNMENT = "assignment"
     PRESENTATION = "presentation"
     OTHER = "other"
 
@@ -44,10 +46,12 @@ class AttachmentKind(str, Enum):
 
 
 ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
+    AttachmentKind.THESIS_TEXT: "Text práce",
+    AttachmentKind.THESIS_APPENDIX: "Přílohy práce",
+    AttachmentKind.WORK_JOURNAL: "Pracovní deník",
+    AttachmentKind.ASSIGNMENT: "Oficiální zadání",
     AttachmentKind.SUPERVISOR_REVIEW: "Posudek vedoucího",
     AttachmentKind.OPPONENT_REVIEW: "Posudek oponenta",
-    AttachmentKind.THESIS_TEXT: "Text práce",
-    AttachmentKind.ASSIGNMENT: "Oficiální zadání",
     AttachmentKind.PRESENTATION: "Prezentace",
     AttachmentKind.OTHER: "Jiné",
 }

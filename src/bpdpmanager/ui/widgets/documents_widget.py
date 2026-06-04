@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from ...models import Attachment, AttachmentKind
 from ...services import ThesisService
+from ...services.file_naming import guess_kind_from_filename
 
 
 class DocumentsWidget(QWidget):
@@ -62,6 +63,10 @@ class DocumentsWidget(QWidget):
         self.cb_kind = QComboBox()
         for k in AttachmentKind:
             self.cb_kind.addItem(k.label, k.value)
+        # Sleduje, jestli uživatel ručně přepnul typ — pak heuristika
+        # při uploadu nepřepisuje jeho volbu.
+        self._user_changed_kind = False
+        self.cb_kind.activated.connect(self._on_kind_activated)
         row.addWidget(self.cb_kind)
 
         self.btn_upload = QPushButton("📎 Nahrát soubor…")
@@ -88,6 +93,9 @@ class DocumentsWidget(QWidget):
 
     def set_thesis_id(self, thesis_id: str | None) -> None:
         self.thesis_id = thesis_id
+        # Při přepnutí na jinou práci resetujeme „uživatel si vybral typ",
+        # aby heuristika v rámci nové práce mohla zase navrhovat.
+        self._user_changed_kind = False
         self.refresh()
 
     def refresh(self) -> None:
@@ -144,17 +152,44 @@ class DocumentsWidget(QWidget):
         )
         if not path_str:
             return
+        # Auto-detekce typu z původního názvu — jen pokud heuristika něco vrátí
+        # a uživatel ještě explicitně nepřepnul ComboBox (typicky výchozí
+        # ``THESIS_TEXT`` nebo ``OTHER``). Když si vybral něco jiného, jeho
+        # volbu respektujeme a nepřepisujeme ji.
+        kind = self._current_kind()
+        guessed = guess_kind_from_filename(Path(path_str).name)
+        if guessed is not None and not self._user_changed_kind:
+            kind = guessed
+            self._select_kind(kind)
         try:
             self.service.attach_document(
                 self.thesis_id,
                 Path(path_str),
-                kind=self._current_kind(),
+                kind=kind,
             )
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Chyba", f"Nepodařilo se nahrát soubor:\n{exc}")
             return
         self.refresh()
         self.changed.emit()
+
+    def _select_kind(self, kind: AttachmentKind) -> None:
+        """Najde položku v ComboBoxu podle ``AttachmentKind`` a vybere ji.
+
+        Programové přepnutí (z heuristiky) **neoznačí** typ jako ručně zvolený.
+        """
+        for i in range(self.cb_kind.count()):
+            if self.cb_kind.itemData(i) == kind.value:
+                self.cb_kind.blockSignals(True)
+                try:
+                    self.cb_kind.setCurrentIndex(i)
+                finally:
+                    self.cb_kind.blockSignals(False)
+                return
+
+    def _on_kind_activated(self, _index: int) -> None:
+        """Uživatel vybral typ ručně — od teď heuristika nezasahuje."""
+        self._user_changed_kind = True
 
     def _add_url(self) -> None:
         if not self.thesis_id:

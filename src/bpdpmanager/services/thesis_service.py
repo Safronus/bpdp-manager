@@ -18,6 +18,11 @@ from ..models import (
 )
 from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus
 from ..storage import Database, Repository
+from .file_naming import (
+    build_plagiarism_name,
+    build_target_name,
+    subdir_for,
+)
 from .harmonogram_parser import parse_pdf
 
 
@@ -158,10 +163,6 @@ class ThesisService:
         return next((o for o in self._db.obory if o.name == name), None)
 
     def get_obor_by_stag_code(self, stag_code: str) -> Obor | None:
-        """Najde obor podle STAG kódu (např. ``knIT-KYB``). Pro auto-mapping
-        při importu ze STAG CSV. Vrací ``None``, pokud kód není zadaný nebo
-        neodpovídá žádnému evidovanému oboru.
-        """
         if not stag_code:
             return None
         return next(
@@ -395,26 +396,33 @@ class ThesisService:
         kind: AttachmentKind = AttachmentKind.OTHER,
         label: str | None = None,
     ) -> Attachment:
-        """Nahraje soubor do ~/.bpdpmanager/documents/{thesis_id}/ a přidá ho k práci."""
+        """Nahraje soubor do ``~/.bpdpmanager/documents/{thesis_id}/{podsložka}/``.
+
+        Cílový název se generuje podle schématu
+        ``{Příjmení}_{typ}_{YYYY-MM-DD}[_vN].{ext}`` (viz ``file_naming``).
+        Pokud práce nemá přiřazeného studenta, použije se fallback ``Bez-prijmeni``.
+        """
         thesis = self.get_thesis(thesis_id)
         if thesis is None:
             raise ValueError(f"Práce {thesis_id} neexistuje.")
 
-        target_dir = thesis_documents_dir(thesis_id)
-        target_name = source_path.name
+        surname = self._student_surname_for_thesis(thesis)
+        subdir = subdir_for(kind)
+        target_dir = thesis_documents_dir(thesis_id) / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        existing = {p.name for p in target_dir.iterdir() if p.is_file()}
+        target_name = build_target_name(surname, kind, source_path, existing_names=existing)
         target_path = target_dir / target_name
-        if target_path.exists():
-            # přidej suffix _2, _3, … aby se nepřepisovalo
-            stem, suffix = target_path.stem, target_path.suffix
-            i = 2
-            while target_path.exists():
-                target_path = target_dir / f"{stem}_{i}{suffix}"
-                i += 1
         shutil.copy2(source_path, target_path)
 
+        # ``url_or_path`` ukládáme jako relativní cestu vč. podsložky, aby
+        # ``document_absolute_path`` fungovala beze změny pro nové i starší záznamy
+        # (starší byly v rootu ``documents/{thesis_id}/``, tj. bez podadresáře).
+        rel_path = f"{subdir}/{target_name}"
         attachment = Attachment(
-            label=label or target_path.name,
-            url_or_path=target_path.name,
+            label=label or target_name,
+            url_or_path=rel_path,
             kind=kind,
             is_file=True,
         )
@@ -439,25 +447,45 @@ class ThesisService:
             return None
         return thesis_documents_dir(thesis_id) / attachment.url_or_path
 
+    def _student_surname_for_thesis(self, thesis: Thesis) -> str | None:
+        """Pomocná funkce — dohledá příjmení studenta navázaného na práci.
+
+        Vrací ``None``, pokud práce nemá studenta nebo student neexistuje
+        (``build_target_name`` si pak zařídí fallback).
+        """
+        if not thesis.student_id:
+            return None
+        student = self.get_student(thesis.student_id)
+        return student.last_name if student else None
+
     # --- plagiátorství ------------------------------------------------------
 
     def set_plagiarism_pdf(self, thesis_id: str, source_path: Path) -> str:
-        """Zkopíruje PDF s výsledkem plagiátorství do data složky a uloží filename."""
+        """Zkopíruje PDF s výsledkem plagiátorství do ``plagiat/`` podsložky.
+
+        Uložené ``plagiarism_pdf_filename`` je relativní cesta vč. podadresáře
+        (``plagiat/Příjmení_protokol-plagiat_YYYY-MM-DD.pdf``), takže
+        ``plagiarism_pdf_path`` funguje stejně pro staré (flat) i nové záznamy.
+        """
+        from .file_naming import PLAGIARISM_SUBDIR
+
         thesis = self.get_thesis(thesis_id)
         if thesis is None:
             raise ValueError(f"Práce {thesis_id} neexistuje.")
-        target_dir = thesis_documents_dir(thesis_id)
-        target_path = target_dir / source_path.name
-        if target_path.exists():
-            stem, suffix = target_path.stem, target_path.suffix
-            i = 2
-            while target_path.exists():
-                target_path = target_dir / f"{stem}_{i}{suffix}"
-                i += 1
+
+        surname = self._student_surname_for_thesis(thesis)
+        target_dir = thesis_documents_dir(thesis_id) / PLAGIARISM_SUBDIR
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        existing = {p.name for p in target_dir.iterdir() if p.is_file()}
+        target_name = build_plagiarism_name(surname, source_path, existing_names=existing)
+        target_path = target_dir / target_name
         shutil.copy2(source_path, target_path)
-        thesis.plagiarism_pdf_filename = target_path.name
+
+        rel_path = f"{PLAGIARISM_SUBDIR}/{target_name}"
+        thesis.plagiarism_pdf_filename = rel_path
         self.upsert_thesis(thesis)
-        return target_path.name
+        return rel_path
 
     def remove_plagiarism_pdf(self, thesis_id: str, delete_file: bool = False) -> None:
         thesis = self.get_thesis(thesis_id)
@@ -512,27 +540,29 @@ class ThesisService:
         kind: AttachmentKind = AttachmentKind.OTHER,
         label: str | None = None,
     ) -> Attachment:
-        """Nahraje soubor k oponentskému posudku. Soubory leží v
-        ``documents/opposing-{id}/`` aby se neorganizovaly s vedením prací.
+        """Nahraje soubor k oponentskému posudku.
+
+        Soubory leží v ``documents/opposing-{id}/{podsložka}/`` se stejným
+        schématem názvu jako u vedených prací — viz ``attach_document``.
         """
         op = self.get_opposing_thesis(op_id)
         if op is None:
             raise ValueError(f"Oponentský posudek {op_id} neexistuje.")
 
-        target_dir = thesis_documents_dir(f"opposing-{op_id}")
-        target_name = source_path.name
+        surname = op.student_last_name or None
+        subdir = subdir_for(kind)
+        target_dir = thesis_documents_dir(f"opposing-{op_id}") / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        existing = {p.name for p in target_dir.iterdir() if p.is_file()}
+        target_name = build_target_name(surname, kind, source_path, existing_names=existing)
         target_path = target_dir / target_name
-        if target_path.exists():
-            stem, suffix = target_path.stem, target_path.suffix
-            i = 2
-            while target_path.exists():
-                target_path = target_dir / f"{stem}_{i}{suffix}"
-                i += 1
         shutil.copy2(source_path, target_path)
 
+        rel_path = f"{subdir}/{target_name}"
         attachment = Attachment(
-            label=label or target_path.name,
-            url_or_path=target_path.name,
+            label=label or target_name,
+            url_or_path=rel_path,
             kind=kind,
             is_file=True,
         )

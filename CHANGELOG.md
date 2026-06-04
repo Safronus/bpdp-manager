@@ -52,6 +52,35 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
   (`DBPOO`, …). Uživatel zvolí stav per řádek (default *Obhájeno* pro
   typický historický import).
 
+### Added (organizace dokumentů)
+- **Automatické pojmenování a roztřídění souborů** do podsložek.
+  Nový modul ``services/file_naming.py`` generuje cílový název
+  ``{Příjmení}_{typ}_{YYYY-MM-DD}[_vN].{přípona}`` (např.
+  ``Novák_posudek-vedouciho_2026-05-30.pdf``) a roztřídí soubory podle
+  ``AttachmentKind`` do podsložek (``text-prace/``, ``prilohy/``,
+  ``denik/``, ``zadani/``, ``posudky/``, ``prezentace/``, ``plagiat/``,
+  ``ostatni/``). Versioning suffixem ``_v2``, ``_v3`` při kolizi
+  ve stejný den. Diakritika v příjmení zůstává; strippují se jen
+  znaky problematické na souborových systémech.
+- **Auto-detekce typu při uploadu** podle původního názvu souboru
+  (např. ``posudek-vedoucího.pdf`` → ``Posudek vedoucího``). Pokud
+  uživatel ručně přepne ComboBox typu, jeho volba se respektuje.
+- Nové ``AttachmentKind`` hodnoty: **``THESIS_APPENDIX``** (*Přílohy
+  práce*) a **``WORK_JOURNAL``** (*Pracovní deník*). Pořadí enumerace
+  upraveno na chronologii pracovního flow (text → přílohy → deník →
+  zadání → posudky → prezentace → jiné).
+- ``ThesisService.attach_document()`` a ``set_plagiarism_pdf()`` nově
+  ukládají soubory pod novým názvem a do podsložky; ``url_or_path``
+  resp. ``plagiarism_pdf_filename`` se ukládá vč. relativní cesty
+  podsložky. Stará data (flat layout) zůstávají kompatibilní —
+  ``document_absolute_path`` / ``plagiarism_pdf_path`` fungují
+  pro oba způsoby zápisu.
+
+### Notes (organizace dokumentů)
+- Historické záznamy se neeskaluje — nové názvy a podsložky platí
+  pouze pro nově nahrané soubory. Stávající soubory zůstávají
+  v původním rozložení a pod původními názvy.
+
 ## [0.12.0] - 2026-05-17
 
 ### Added
