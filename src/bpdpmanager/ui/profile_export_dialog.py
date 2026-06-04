@@ -138,8 +138,17 @@ class ExportProfileDialog(QDialog):
         # ── Preview velikosti ───────────────────────────────────────────
         self.lbl_preview = QLabel()
         self.lbl_preview.setTextFormat(Qt.TextFormat.RichText)
+        # Theme-aware pozadí — Qt palette respektuje system dark/light mode.
+        # ``palette(base)`` je editovatelné pozadí (světlé na light, tmavé
+        # na dark), ``palette(text)`` je hlavní text. Border z ``palette(mid)``.
         self.lbl_preview.setStyleSheet(
-            "background:#f5f5f5;border:1px solid #ddd;padding:8px;border-radius:3px;"
+            "QLabel {"
+            " background-color: palette(base);"
+            " color: palette(text);"
+            " border: 1px solid palette(mid);"
+            " padding: 8px;"
+            " border-radius: 3px;"
+            "}"
         )
         outer.addWidget(self.lbl_preview)
         self._refresh_preview()

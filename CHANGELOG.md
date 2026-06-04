@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-06-04
+
+### Fixed
+- **Dark-mode čitelnost preview boxu v Export profilu** — sumární
+  tabulka „db.json / dokumenty / harmonogramy / …" měla natvrdo
+  zafixované světlé pozadí ``#f5f5f5`` + světlý border ``#ddd``,
+  takže v dark theme bylo světlý text na světlém pozadí (špatně
+  čitelné). Přepnuto na ``palette(base)`` / ``palette(text)`` /
+  ``palette(mid)`` — Qt nyní automaticky volí barvy podle systémového
+  light/dark módu.
+
 ## [0.17.1] - 2026-06-04
 
 ### Added
