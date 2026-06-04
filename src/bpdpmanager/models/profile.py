@@ -15,6 +15,7 @@ class Profile(BaseModel):
     name: str
     data_dir: str  # absolutní cesta ke složce s db.json, documents/, harmonograms/
     user_name: str = ""  # jméno uživatele profilu (pro STAG import auto-detect role)
+    review_place: str = "Zlín"  # místo pro podpisový blok posudku (Místo, datum)
     created_at: datetime = Field(default_factory=datetime.now)
     last_opened_at: datetime | None = None
 

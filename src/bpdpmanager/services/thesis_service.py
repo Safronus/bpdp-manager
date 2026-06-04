@@ -1102,6 +1102,38 @@ class ThesisService:
             pass
         return ""
 
+    def _guess_review_place(self) -> str:
+        """Místo pro podpisový blok posudku z aktivního profilu.
+
+        Default „Zlín", pokud profil nemá nastaveno.
+        """
+        try:
+            from ..config import profiles_registry_path
+
+            import json
+
+            p = profiles_registry_path()
+            if p.is_file():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                last_id = data.get("last_opened")
+                for prof in data.get("profiles", []) or []:
+                    if isinstance(prof, dict) and prof.get("id") == last_id:
+                        place = (prof.get("review_place") or "").strip()
+                        return place or "Zlín"
+        except Exception:  # noqa: BLE001
+            pass
+        return "Zlín"
+
+    @staticmethod
+    def build_place_date(place: str) -> str:
+        """Sestaví „Místo, D. M. YYYY" s aktuálním datem (české formátování)."""
+        from datetime import date as _date
+
+        today = _date.today()
+        date_str = f"{today.day}. {today.month}. {today.year}"
+        place = (place or "Zlín").strip()
+        return f"{place}, {date_str}"
+
     # --- review (strukturovaný posudek) -----------------------------------
 
     def ensure_template_schema(self, tmpl: ReviewTemplate) -> ReviewTemplate:

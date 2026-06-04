@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -50,6 +51,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QTabWidget,
     QTextBrowser,
+    QToolButton,
     QToolTip,
     QVBoxLayout,
     QWidget,
@@ -538,10 +540,31 @@ class ThesisDetail(QWidget):
         # napojení změny radio → update badge
         self._verdict_group.buttonClicked.connect(self._on_verdict_changed)
 
-        # Komentář
+        # Komentář — label + tlačítko doporučeného komentáře
+        comment_hdr = QHBoxLayout()
         lbl_c = QLabel("Komentář k výsledku plagiátorství:")
         lbl_c.setContentsMargins(0, 8, 0, 0)
-        layout.addWidget(lbl_c)
+        comment_hdr.addWidget(lbl_c)
+        comment_hdr.addStretch()
+
+        self.btn_plag_suggest = QToolButton()
+        self.btn_plag_suggest.setText("💡 Doporučený komentář")
+        self.btn_plag_suggest.setToolTip(
+            "Vloží doporučené znění podle verdiktu a procenta shody. "
+            "Lze libovolně upravit. Rozbalovací šipka nabízí konkrétní varianty."
+        )
+        self.btn_plag_suggest.setPopupMode(
+            QToolButton.ToolButtonPopupMode.MenuButtonPopup
+        )
+        # Hlavní klik = smart default dle aktuálního verdiktu + %
+        self.btn_plag_suggest.clicked.connect(self._insert_suggested_plag_comment)
+        # Menu s konkrétními variantami — rebuilduje se podle aktuálního %
+        self._plag_suggest_menu = QMenu(self.btn_plag_suggest)
+        self._plag_suggest_menu.aboutToShow.connect(self._rebuild_plag_suggest_menu)
+        self.btn_plag_suggest.setMenu(self._plag_suggest_menu)
+        comment_hdr.addWidget(self.btn_plag_suggest)
+        layout.addLayout(comment_hdr)
+
         self.ed_plag_comment = QPlainTextEdit()
         self.ed_plag_comment.setPlaceholderText(
             "Např. „Drobné shody v citacích a standardních formulacích, žádné podezření.\""
@@ -1229,6 +1252,58 @@ class ThesisDetail(QWidget):
 
     def _on_verdict_changed(self, *_args) -> None:
         self._update_verdict_badge_style(self._current_verdict())
+
+    def _plag_pct_value(self) -> float | None:
+        """Aktuální procento shody z pole (None pokud prázdné/neplatné)."""
+        txt = self.ed_plag_pct.text().strip().replace(",", ".")
+        if not txt:
+            return None
+        try:
+            return float(txt)
+        except ValueError:
+            return None
+
+    def _insert_suggested_plag_comment(self) -> None:
+        """Smart default — vloží doporučený komentář dle verdiktu + %."""
+        from ..services.plagiarism_comments import suggest_comment
+
+        verdict = self._current_verdict()
+        if verdict == PlagiarismVerdict.NOT_ASSESSED:
+            QMessageBox.information(
+                self,
+                "Doporučený komentář",
+                "Nejdřív zvol verdikt (Posouzen — je / není plagiát). "
+                "Pro „Neposouzen\" se komentář negeneruje.",
+            )
+            return
+        text = suggest_comment(verdict, self._plag_pct_value())
+        self._apply_plag_comment(text)
+
+    def _rebuild_plag_suggest_menu(self) -> None:
+        """Naplní menu konkrétními variantami komentáře (s aktuálním %)."""
+        from ..services.plagiarism_comments import comment_variants
+
+        self._plag_suggest_menu.clear()
+        for label, text in comment_variants(self._plag_pct_value()):
+            act = self._plag_suggest_menu.addAction(label)
+            act.triggered.connect(
+                lambda _checked=False, t=text: self._apply_plag_comment(t)
+            )
+
+    def _apply_plag_comment(self, text: str) -> None:
+        """Vloží text do komentáře. Pokud už něco je, zeptá se na přepis."""
+        current = self.ed_plag_comment.toPlainText().strip()
+        if current and current != text:
+            confirm = QMessageBox.question(
+                self,
+                "Přepsat komentář",
+                "Komentář už obsahuje text. Přepsat doporučeným zněním?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if confirm != QMessageBox.StandardButton.Yes:
+                return
+        self.ed_plag_comment.setPlainText(text)
 
     def _update_plagiarism_pdf_display(self) -> None:
         """Aktualizuje label a stav tlačítek podle stavu PDF."""

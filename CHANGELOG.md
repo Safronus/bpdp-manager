@@ -7,6 +7,45 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-06-04
+
+### Added
+- **Doporučené komentáře ke kontrole plagiátorství**. V záložce
+  *🔍 Plagiátorství* je tlačítko *💡 Doporučený komentář* (rozbalovací):
+  - **Hlavní klik** vloží doporučené znění podle aktuálního verdiktu
+    + procenta shody.
+  - **Rozbalovací menu** nabízí konkrétní varianty:
+    - *Nízká shoda — není plagiát*:
+      „Práce byla posouzena na plagiátorství s maximální shodou X %
+      a nejedná se o plagiát."
+    - *Vyšší shoda — není plagiát (očekávané soubory)*:
+      „… Vyšší míra shody je zapříčiněná soubory, u kterých se shoda
+      dá očekávat (citace, šablony, běžné odborné formulace)."
+    - *Je plagiát*: „… Na základě posouzení se jedná o plagiát."
+  - Procento se interpoluje z pole shody. Práh pro delší vysvětlení
+    je 20 % (``HIGH_SIMILARITY_THRESHOLD``). Komentář je plně
+    editovatelný; pokud už něco obsahuje, ptá se na přepis.
+- **Plagiátorství se předvyplní do posudku**. Při tvorbě posudku
+  (vedoucího) se z práce načte verdikt + komentář:
+  - ``thesis.plagiarism_verdict`` → text verdiktu v editoru
+  - ``thesis.plagiarism_comment`` → zdůvodnění plagiátorství
+- **Místo a datum podpisu se předvyplní**:
+  - **Místo** z profilu (nové pole ``Profile.review_place``,
+    default „Zlín"). Nastavitelné v *🗂 Správa profilů… → 📍 Místo
+    posudku…*.
+  - **Datum** dnešní, české formátování „D. M. YYYY".
+  - Výsledek: ``place_date = "Zlín, 4. 6. 2026"``.
+- Service: ``_guess_review_place()`` + ``build_place_date(place)``.
+  ``ProfileManager.set_review_place()``.
+
+### Notes
+- Modul ``services/plagiarism_comments.py`` (``suggest_comment`` +
+  ``comment_variants``) je bez závislosti na PySide6 — snadno
+  testovatelný, znění lze upravit na jednom místě.
+- Předvyplnění plagiátorství i místa/data se aplikuje jen na *nový*
+  posudek. Při editaci existujícího se data zachovají (uživatel je
+  mezitím mohl upravit).
+
 ## [0.20.0] - 2026-06-04
 
 ### Added

@@ -62,7 +62,12 @@ class ProfileManageDialog(QDialog):
         self.btn_rename = QPushButton("Přejmenovat…")
         self.btn_user_name = QPushButton("👤 Tvoje jméno…")
         self.btn_user_name.setToolTip(
-            "Jméno uživatele profilu — pro auto-detekci role při STAG importu"
+            "Jméno uživatele profilu — pro auto-detekci role při STAG importu "
+            "a podpis v posudcích"
+        )
+        self.btn_review_place = QPushButton("📍 Místo posudku…")
+        self.btn_review_place.setToolTip(
+            'Místo pro podpisový blok posudku (Místo, datum). Default „Zlín".'
         )
         self.btn_export = QPushButton("📤 Export…")
         self.btn_export.setToolTip(
@@ -73,12 +78,14 @@ class ProfileManageDialog(QDialog):
         self.btn_close = QPushButton("Zavřít")
         self.btn_rename.clicked.connect(self._rename)
         self.btn_user_name.clicked.connect(self._edit_user_name)
+        self.btn_review_place.clicked.connect(self._edit_review_place)
         self.btn_export.clicked.connect(self._export_zip)
         self.btn_open_folder.clicked.connect(self._open_folder)
         self.btn_remove.clicked.connect(self._remove)
         self.btn_close.clicked.connect(self.accept)
         row.addWidget(self.btn_rename)
         row.addWidget(self.btn_user_name)
+        row.addWidget(self.btn_review_place)
         row.addWidget(self.btn_export)
         row.addWidget(self.btn_open_folder)
         row.addWidget(self.btn_remove)
@@ -159,6 +166,30 @@ class ProfileManageDialog(QDialog):
             return
         try:
             self.pm.set_user_name(profile.id, new_user_name)
+        except ProfileError as exc:
+            QMessageBox.warning(self, "Uložení selhalo", str(exc))
+            return
+        self._refresh()
+
+    def _edit_review_place(self) -> None:
+        profile = self._current()
+        if profile is None:
+            QMessageBox.information(
+                self,
+                "Vyber profil",
+                "Vyber v seznamu profil, kterému chceš nastavit místo posudku.",
+            )
+            return
+        new_place, ok = QInputDialog.getText(
+            self,
+            "Místo posudku",
+            "Místo pro podpisový blok posudku (Místo, datum):",
+            text=profile.review_place or "Zlín",
+        )
+        if not ok:
+            return
+        try:
+            self.pm.set_review_place(profile.id, new_place)
         except ProfileError as exc:
             QMessageBox.warning(self, "Uložení selhalo", str(exc))
             return

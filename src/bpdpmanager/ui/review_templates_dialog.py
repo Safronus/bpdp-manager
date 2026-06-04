@@ -844,6 +844,24 @@ class GenerateReviewDialog(QDialog):
         if existing is not None and existing.template_id == tmpl.id:
             review = existing
         else:
+            # Předvyplnění plagiátorství z práce (vedoucí ho v posudku uvádí).
+            # Mapování PlagiarismVerdict → text v editoru posudku.
+            from ..models.enums import PlagiarismVerdict
+
+            plag_map = {
+                PlagiarismVerdict.NOT_PLAGIARISM: "Práce není plagiát",
+                PlagiarismVerdict.PLAGIARISM: "Práce je plagiát",
+                PlagiarismVerdict.NOT_ASSESSED: "Práce nebyla posouzena",
+            }
+            plag_verdict_text = plag_map.get(
+                self.thesis.plagiarism_verdict, "Práce není plagiát"
+            )
+            plag_justification = self.thesis.plagiarism_comment or ""
+
+            # Místo + datum: místo z profilu (default Zlín), datum dnešní.
+            place = self.service._guess_review_place()
+            place_date = self.service.build_place_date(place)
+
             review = Review(
                 template_id=tmpl.id,
                 template_name=tmpl.name,
@@ -856,6 +874,9 @@ class GenerateReviewDialog(QDialog):
                 title_cs=self.thesis.title_cs,
                 title_en=self.thesis.title_en,
                 academic_year=self.thesis.academic_year,
+                plagiarism_verdict=plag_verdict_text,
+                plagiarism_justification=plag_justification,
+                place_date=place_date,
                 criteria=[
                     CriterionScore(
                         row=c.row, label=c.label, weight=c.default_weight,

@@ -203,6 +203,15 @@ class ProfileManager:
         self._save_registry()
         return profile
 
+    def set_review_place(self, profile_id: str, review_place: str) -> Profile:
+        """Nastaví místo pro podpisový blok posudku (Místo, datum)."""
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        profile.review_place = (review_place or "").strip()
+        self._save_registry()
+        return profile
+
     # --- UI předvolby (perzistentní mezi spuštěními) --------------------
 
     @property
