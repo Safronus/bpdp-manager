@@ -575,27 +575,38 @@ class OpponentsManageDialog(QDialog):
 
 
 class OboryManageDialog(QDialog):
-    """Správa číselníku studijních oborů (jméno + sekretářka)."""
+    """Správa číselníku studijních oborů — agregováno podle sekretářky.
+
+    Tree má dvě úrovně:
+    - **parent** = skupina podle sekretářky (jméno + email + telefon).
+      Obory bez sekretářky padají do skupiny „— bez sekretářky —" na konci.
+    - **child** = jednotlivý obor (jméno, STAG zkratka, počet studentů).
+    """
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
         self.setWindowTitle("Studijní obory")
-        self.setMinimumSize(720, 480)
+        self.setMinimumSize(820, 540)
 
         layout = QVBoxLayout(self)
         layout.addWidget(
             QLabel(
                 "Seznam studijních oborů (např. NSWI-P, NKYB-K). U každého lze evidovat "
-                "sekretářku oboru — dvojklik upraví detail."
+                "STAG zkratku pro import (např. <code>knIT-KYB</code>) a sekretářku oboru. "
+                "Položky jsou agregovány podle sekretářky — dvojklik na obor upraví detail.",
+                textFormat=Qt.TextFormat.RichText,
             )
         )
 
         self.tree = QTreeWidget()
         self.tree.setColumnCount(4)
-        self.tree.setHeaderLabels(["Obor", "Studentů", "Sekretářka", "Kontakt"])
-        self.tree.setRootIsDecorated(False)
+        self.tree.setHeaderLabels(
+            ["Obor / Sekretářka", "STAG zkratka", "Studentů", "Kontakt"]
+        )
+        self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
+        self.tree.setUniformRowHeights(False)
         self.tree.itemDoubleClicked.connect(self._edit)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
@@ -612,14 +623,17 @@ class OboryManageDialog(QDialog):
         btn_new = QPushButton("+ Přidat…")
         btn_edit = QPushButton("Upravit…")
         btn_delete = QPushButton("Smazat")
+        btn_expand = QPushButton("↕ Sbalit / rozbalit vše")
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
         btn_delete.clicked.connect(self._delete)
+        btn_expand.clicked.connect(self._toggle_expand)
         btn_close.clicked.connect(self.accept)
         row.addWidget(btn_new)
         row.addWidget(btn_edit)
         row.addWidget(btn_delete)
+        row.addWidget(btn_expand)
         row.addStretch()
         row.addWidget(btn_close)
         layout.addLayout(row)
@@ -629,27 +643,99 @@ class OboryManageDialog(QDialog):
 
     # --- načtení / akce -----------------------------------------------------
 
+    @staticmethod
+    def _secretary_group_key(obor: Obor) -> tuple[str, str, str]:
+        """Klíč pro seskupení podle sekretářky (jméno + email + telefon).
+
+        Prázdné/None hodnoty se normalizují na prázdný string, aby všechny
+        obory „bez sekretářky" padly do jedné skupiny.
+        """
+        return (
+            (obor.secretary_name or "").strip(),
+            (obor.secretary_email or "").strip(),
+            (obor.secretary_phone or "").strip(),
+        )
+
+    @staticmethod
+    def _secretary_contact_label(name: str, email: str, phone: str) -> str:
+        parts = []
+        if email:
+            parts.append(f"✉ {email}")
+        if phone:
+            parts.append(f"☎ {phone}")
+        return "   ".join(parts)
+
+    @staticmethod
+    def _cs_plural(count: int, one: str, few: str, many: str) -> str:
+        """Česká plurál: 1 → ``one``, 2-4 → ``few``, 0 nebo 5+ → ``many``."""
+        if count == 1:
+            return one
+        if 2 <= count <= 4:
+            return few
+        return many
+
     def _refresh(self) -> None:
         selected_name = self._current_name()
         self.tree.clear()
+
+        # 1) Seskup obory podle sekretářky
+        groups: dict[tuple[str, str, str], list[Obor]] = {}
         for obor in self.service.list_obor_objects():
-            count = self.service.obor_usage_count(obor.name)
-            contact_parts = []
-            if obor.secretary_email:
-                contact_parts.append(f"✉ {obor.secretary_email}")
-            if obor.secretary_phone:
-                contact_parts.append(f"☎ {obor.secretary_phone}")
-            contact = "   ".join(contact_parts) if contact_parts else ""
-            item = QTreeWidgetItem(
-                [
-                    obor.name,
-                    str(count),
-                    obor.secretary_name or "—",
-                    contact or "—",
-                ]
+            key = self._secretary_group_key(obor)
+            groups.setdefault(key, []).append(obor)
+
+        # 2) Seřaď klíče: nejdřív skupiny s vyplněnou sekretářkou (abecedně
+        #    podle jména), na konci skupina „bez sekretářky".
+        def _group_sort_key(k: tuple[str, str, str]) -> tuple[int, str]:
+            name = k[0]
+            return (1, "") if not name else (0, name.lower())
+
+        empty_indicator = ("", "", "")
+        for key in sorted(groups.keys(), key=_group_sort_key):
+            obory = sorted(groups[key], key=lambda o: o.name.lower())
+            sec_name, sec_email, sec_phone = key
+            total_count = sum(
+                self.service.obor_usage_count(o.name) for o in obory
             )
-            item.setData(0, Qt.ItemDataRole.UserRole, obor)
-            self.tree.addTopLevelItem(item)
+            if key == empty_indicator:
+                header_label = "— bez sekretářky —"
+                contact_label = ""
+            else:
+                header_label = f"👤 {sec_name}"
+                contact_label = self._secretary_contact_label(
+                    sec_name, sec_email, sec_phone
+                )
+            count_label = (
+                f"{len(obory)} {self._cs_plural(len(obory), 'obor', 'obory', 'oborů')} · "
+                f"{total_count} "
+                f"{self._cs_plural(total_count, 'student', 'studenti', 'studentů')}"
+            )
+            parent = QTreeWidgetItem(
+                [header_label, "", count_label, contact_label or "—"]
+            )
+            # Vizuálně odliš parent — bold + světle šedé pozadí na 0. sloupci
+            font = parent.font(0)
+            font.setBold(True)
+            for col in range(self.tree.columnCount()):
+                parent.setFont(col, font)
+            parent.setData(0, Qt.ItemDataRole.UserRole, ("__group__", key))
+            self.tree.addTopLevelItem(parent)
+
+            for obor in obory:
+                count = self.service.obor_usage_count(obor.name)
+                stag = obor.stag_code or "—"
+                child = QTreeWidgetItem(
+                    [obor.name, stag, str(count), ""]
+                )
+                child.setData(0, Qt.ItemDataRole.UserRole, obor)
+                # STAG kód v monospace pro lepší čitelnost
+                stag_font = child.font(1)
+                stag_font.setFamily("Menlo, Monaco, Courier New, monospace")
+                child.setFont(1, stag_font)
+                parent.addChild(child)
+
+            parent.setExpanded(True)
+
         if selected_name:
             self._select_by_name(selected_name)
         self._update_info()
@@ -658,7 +744,8 @@ class OboryManageDialog(QDialog):
         item = self.tree.currentItem()
         if item is None:
             return None
-        return item.data(0, Qt.ItemDataRole.UserRole)
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        return data if isinstance(data, Obor) else None
 
     def _current_name(self) -> str | None:
         obor = self._current_obor()
@@ -666,11 +753,14 @@ class OboryManageDialog(QDialog):
 
     def _select_by_name(self, name: str) -> None:
         for i in range(self.tree.topLevelItemCount()):
-            item = self.tree.topLevelItem(i)
-            obor = item.data(0, Qt.ItemDataRole.UserRole)
-            if isinstance(obor, Obor) and obor.name == name:
-                self.tree.setCurrentItem(item)
-                return
+            parent = self.tree.topLevelItem(i)
+            for j in range(parent.childCount()):
+                child = parent.child(j)
+                obor = child.data(0, Qt.ItemDataRole.UserRole)
+                if isinstance(obor, Obor) and obor.name == name:
+                    self.tree.setCurrentItem(child)
+                    parent.setExpanded(True)
+                    return
 
     def _update_info(self) -> None:
         obor = self._current_obor()
@@ -683,11 +773,25 @@ class OboryManageDialog(QDialog):
             parts.append(f"Obor „{obor.name}\" není přiřazen žádnému studentovi.")
         else:
             parts.append(f"Obor „{obor.name}\" je přiřazen u {count} studentů.")
+        if obor.stag_code:
+            parts.append(f"STAG: {obor.stag_code}")
         if obor.has_secretary:
-            parts.append(f"Sekretářka evidovaná.")
+            parts.append("Sekretářka evidovaná.")
         else:
             parts.append("Sekretářka neuvedena.")
         self.lbl_info.setText("   ·   ".join(parts))
+
+    def _toggle_expand(self) -> None:
+        """Sbal / rozbal všechny skupiny najednou."""
+        # Pokud je aspoň jeden parent rozbalený, vše sbal; jinak vše rozbal.
+        any_expanded = False
+        for i in range(self.tree.topLevelItemCount()):
+            if self.tree.topLevelItem(i).isExpanded():
+                any_expanded = True
+                break
+        new_state = not any_expanded
+        for i in range(self.tree.topLevelItemCount()):
+            self.tree.topLevelItem(i).setExpanded(new_state)
 
     def _new(self) -> None:
         dlg = OborDialog(self.service, parent=self)

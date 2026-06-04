@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-06-04
+
+### Changed (správce oborů)
+- **``OboryManageDialog`` agreguje obory podle sekretářky**. Tree
+  má dvě úrovně: parent = skupina podle sekretářky (jméno + email
+  + telefon), child = jednotlivé obory. Skupina „— bez sekretářky —"
+  padá na konec. V hlavičce skupiny je 👤 jméno sekretářky, sumární
+  počet oborů a studentů (česká plurály: *1 obor / 2-4 obory / 5+
+  oborů*; *1 student / 2-4 studenti / 5+ studentů*) a kontakt
+  (✉ email · ☎ telefon).
+- **Nový sloupec *STAG zkratka*** vedle jména oboru — ukazuje
+  ``Obor.stag_code`` (např. ``knIT-KYB``) v monospace fontu pro
+  čitelnost. Obory bez vyplněného STAG kódu mají „—".
+- Nové tlačítko **↕ Sbalit / rozbalit vše** pro hromadné rozbalení
+  všech skupin sekretářek.
+- Status bar pod tabulkou navíc zobrazuje STAG kód aktuálně
+  vybraného oboru.
+
 ## [0.13.2] - 2026-06-04
 
 ### Added (STAG import — doladění UX)
