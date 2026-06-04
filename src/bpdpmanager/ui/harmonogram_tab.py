@@ -98,10 +98,13 @@ class HarmonogramTab(QWidget):
 
         layout.addLayout(filter_row)
 
-        # přehled nadcházejících (60 dní)
+        # přehled nadcházejících (60 dní) — žlutý info panel.
+        # Explicitní tmavý text, aby byl čitelný i v dark theme
+        # (jinak by se zdědil světlý palette(text) na světle žlutém pozadí).
         self.upcoming_label = QLabel("")
         self.upcoming_label.setStyleSheet(
-            "QLabel { background: #fff9c4; padding: 8px; border-radius: 6px; }"
+            "QLabel { background: #fff9c4; color: #5d4037; "
+            "padding: 8px; border-radius: 6px; }"
         )
         self.upcoming_label.setWordWrap(True)
         layout.addWidget(self.upcoming_label)

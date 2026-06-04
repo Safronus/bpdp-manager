@@ -557,7 +557,10 @@ class GenerateReviewDialog(QDialog):
         )
         ctx.setTextFormat(Qt.TextFormat.RichText)
         ctx.setWordWrap(True)
-        ctx.setStyleSheet("background:#f5f5f5;padding:8px;border-radius:3px;")
+        ctx.setStyleSheet(
+            "background-color: palette(base); color: palette(text); "
+            "border: 1px solid palette(mid); padding: 8px; border-radius: 3px;"
+        )
         outer.addWidget(ctx)
 
         # ── Filtr ──────────────────────────────────────────────────────

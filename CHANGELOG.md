@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-06-04
+
+### Fixed
+- **Dark-mode čitelnost v dialogu *Generovat posudek z šablony***
+  — kontextový panel s informacemi o práci (typ · rok · student ·
+  téma) měl natvrdo světlé pozadí ``#f5f5f5`` → na dark theme světlý
+  text na světlém pozadí. Přepnuto na ``palette(base)`` /
+  ``palette(text)`` / ``palette(mid)``.
+- **Žlutý panel nadcházejících termínů v Harmonogramu** měl světlé
+  žluté pozadí ``#fff9c4`` bez explicitní barvy textu → na dark theme
+  zděděný světlý ``palette(text)`` na světle žlutém pozadí (špatně
+  čitelné). Přidán explicitní tmavě hnědý text ``#5d4037``, který
+  je čitelný na žluté v obou tématech.
+
+### Notes
+- Proběhl audit všech hardcoded barev pozadí v ``ui/``. Zbylé dva
+  výskyty jsou záměrné a čitelné: červené destructive tlačítko
+  (rollback, bílý text) a jantarový warning combo pro nedetekovanou
+  roli v STAG importu (explicitní tmavý text).
+
 ## [0.19.1] - 2026-06-04
 
 ### Added
