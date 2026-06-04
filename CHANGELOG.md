@@ -7,6 +7,78 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-06-04
+
+### Added
+- **Strukturovaný editor posudku** — workflow „Napsat posudek" je
+  nyní plnohodnotný formulář s body hodnocení per kritérium, ne jen
+  předvyplnění XLSX. Klik na *📝 Napsat posudek…* → vyber šablonu
+  → **ReviewEditorDialog** se sekcemi:
+  - **Splnění bodů zadání** (combo: splnil(a) / nesplnil(a) / EN ekvivalenty)
+  - **Kritéria hodnocení** — tabulka dle šablony s váhou (read-only)
+    a spin boxem pro skóre 0–5 (krok 0,5)
+  - **Live souhrn**: vážené body / max / % / navržená známka (ECTS stupnice
+    barevně podle hodnoty) — okamžitý feedback při změně
+  - **Plagiátorství** (jen vedoucího): verdikt + zdůvodnění
+  - **Celkové hodnocení, připomínky a dotazy** — text area
+  - **Místo, datum** — string pro podpisový blok
+- **Strukturovaný model ``Review``** v ``models/review.py``:
+  - `CriterionScore`: `row`, `label`, `weight`, `score`, `weight_cell`,
+    `score_cell` — propaguje identitu mezi XLSX cells a JSON
+  - `Review`: id, template_id, role, language, basic fields, criteria,
+    assignment_fulfilled, plagiarism_*, overall_comment, place_date,
+    xlsx_filename, pdf_filename, version, is_current
+  - Auto-counted properties: `total_weighted_points`, `max_points`,
+    `percentage`, `suggested_grade` (ECTS A/B/C/D/E/FX|F dle BP/DP)
+- **Auto-extrakce schématu šablony** — ``services/review_schema.py``:
+  - Walk XLSX, najde řádky s pattern A=label + C=numeric (váha)
+    + D=numeric (skóre)
+  - Detekuje speciální pole (assignment_fulfilled, plagiarism_*,
+    overall_comment, place_date) heuristicky z popisků
+  - Cachuje schéma do ``ReviewTemplate.criteria`` + ``field_cells``
+    (zero-config pro standardní FAI UTB šablony)
+- **PDF generování přes LibreOffice headless** —
+  ``soffice --headless --convert-to pdf``. Detekce na běžných cestách:
+  - Linux/macOS PATH (``shutil.which("soffice")``)
+  - macOS app bundle (``/Applications/LibreOffice.app/Contents/MacOS/soffice``)
+  - Linux distro (``/usr/bin/soffice``)
+  
+  Pokud LibreOffice chybí → tlačítko v editoru se přejmenuje na
+  *„Uložit & vyrobit XLSX (PDF chybí soffice)"* a generuje jen XLSX.
+- **Service metody** v ``ThesisService``:
+  - ``ensure_template_schema(tmpl)`` — lazy schema extraction
+  - ``list_reviews / get_current_review / upsert_review / delete_review``
+  - ``generate_review_files(thesis_id, review, *, opposing, also_pdf)``
+    — XLSX i PDF, auto-versioning attachmentů
+  - ``libreoffice_available`` property
+- **Visibility constraint na tlačítku „Napsat posudek"**: aktivní
+  pouze pro práci se stavem ``IN_PROGRESS`` (Aktuální tab). Pro Budoucí
+  i Historii deaktivováno s tooltipem vysvětlujícím proč.
+
+### Changed
+- ``SCHEMA_VERSION`` bumped na **v4** (přidáno
+  ``Thesis.reviews``, ``OpposingThesis.reviews``, ``ReviewTemplate.criteria``
+  + ``field_cells``). Auto-migrace na load — staré profily se otevřou
+  bez problémů, jen prázdné `reviews` listy.
+- ``GenerateReviewDialog._generate()`` nyní místo přímého fillu otevírá
+  ``ReviewEditorDialog``. Pokud pro danou práci + roli už existuje
+  current Review se stejnou šablonou, editor se otevře *pre-filled*
+  s předchozími body — uživatel může postupně doplňovat.
+- ``ReviewEditorDialog`` po Save & Generate ukáže done dialog
+  s tlačítky *📄 Otevřít XLSX* a *📕 Otevřít PDF* (pokud bylo vygenerováno).
+
+### Notes
+- **Workflow editace**: data v JSON jsou *zdrojem pravdy*. XLSX/PDF
+  lze kdykoli regenerovat. Pokud uživatel ručně upraví XLSX v Excelu,
+  další generování z editoru ho přepíše — pro průběžnou editaci proto
+  doporučujeme editor (data zůstanou v JSON, XLSX/PDF se přegeneruje).
+- **Multiple reviews per thesis**: Review má `version` a `is_current`
+  pole jako Attachment. Druhý pokus obhajoby → nový Review v2 (`is_current=True`),
+  předchozí v1 (`is_current=False`). Historie zůstává v JSON pro audit.
+- **LibreOffice na macOS**: nainstaluj přes ``brew install --cask libreoffice``
+  nebo dmg z libreoffice.org. PDF generace bez něj nefunguje, ale
+  XLSX cesta funguje samostatně.
+
 ## [0.18.1] - 2026-06-04
 
 ### Added

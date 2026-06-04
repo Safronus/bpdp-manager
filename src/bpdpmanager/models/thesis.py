@@ -7,6 +7,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, model_validator
 
 from .enums import AttachmentKind, PlagiarismVerdict, ThesisStatus, ThesisType
+from .review import Review
 
 
 class Deadline(BaseModel):
@@ -52,6 +53,8 @@ class Thesis(BaseModel):
     deadlines: list[Deadline] = Field(default_factory=list)
     notes: str = ""
     attachments: list[Attachment] = Field(default_factory=list)
+    # v4+ (0.19.0): strukturované posudky (zdroj pravdy pro XLSX/PDF výstupy).
+    reviews: list[Review] = Field(default_factory=list)
 
     # Výsledek kontroly plagiátorství
     plagiarism_similarity_pct: float | None = None  # 0–100

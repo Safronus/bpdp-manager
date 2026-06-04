@@ -14,6 +14,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .enums import ThesisType
+from .review import Review
 from .thesis import Attachment
 
 
@@ -49,6 +50,8 @@ class OpposingThesis(BaseModel):
 
     # Dokumenty: plný text práce, posudek vedoucího, posudek oponenta + příp. další
     attachments: list[Attachment] = Field(default_factory=list)
+    # v4+ (0.19.0): strukturované posudky.
+    reviews: list[Review] = Field(default_factory=list)
 
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)

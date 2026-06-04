@@ -603,8 +603,29 @@ class ThesisDetail(QWidget):
     def _show_form(self) -> None:
         self.placeholder.setVisible(False)
         self.container.setVisible(True)
-        self.btn_generate_review.setEnabled(True)
+        # Posudek je relevantní jen pro aktivní (V řešení) práce.
+        # Pro Budoucí (vypsané/zájemce) ani Historie (obhájeno/nedokončeno)
+        # nemá smysl psát posudek — výjimky řeší přechod stavu.
+        self.btn_generate_review.setEnabled(
+            self.thesis is not None
+            and self.thesis.status == ThesisStatus.IN_PROGRESS
+        )
+        self._update_review_button_tooltip()
         self.btn_delete.setEnabled(True)
+
+    def _update_review_button_tooltip(self) -> None:
+        if self.thesis is None:
+            return
+        if self.thesis.status == ThesisStatus.IN_PROGRESS:
+            self.btn_generate_review.setToolTip(
+                "Otevře editor posudku (auto-filtr šablon dle typu a oboru), "
+                "vyplní body hodnocení a vygeneruje XLSX + PDF jako přílohu."
+            )
+        else:
+            self.btn_generate_review.setToolTip(
+                'Posudek lze psát jen pro práci ve stavu „V řešení". '
+                "Aktuálně: " + self.thesis.status.label
+            )
 
     def refresh_combos(self) -> None:
         """Znovu načti seznamy studentů a oponentů z DB.

@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..models import ReviewTemplate, Thesis
+from ..models import CriterionScore, Review, ReviewTemplate, Thesis
 from ..models.enums import ThesisType
 from ..services import ThesisService
 
@@ -465,14 +465,8 @@ class GenerateReviewDialog(QDialog):
         self.chk_all.toggled.connect(self._refresh_list)
         outer.addWidget(self.chk_all)
 
-        # Po vyplnění hned otevřít v Excelu (default ON — user workflow:
-        # klik → vyplnit → editovat). Když OFF, ukáže se sumární dialog
-        # s ručními akcemi.
-        self.chk_auto_open = QCheckBox(
-            "🚀 Po vyplnění hned otevřít v Excelu (přeskočit sumární dialog)"
-        )
-        self.chk_auto_open.setChecked(True)
-        outer.addWidget(self.chk_auto_open)
+        # (chk_auto_open zrušeno v 0.19.0 — editor sám nabízí
+        # otevření XLSX/PDF přes tlačítka po dokončení.)
 
         # ── Tabulka šablon ──────────────────────────────────────────────
         self.tree = QTreeWidget()
@@ -575,34 +569,79 @@ class GenerateReviewDialog(QDialog):
         template_id = item.data(0, Qt.ItemDataRole.UserRole)
         if not template_id:
             return
+        tmpl = self.service.get_review_template(template_id)
+        if tmpl is None:
+            QMessageBox.warning(self, "Šablona", "Šablona nebyla nalezena.")
+            return
+
+        # Doplň schema (lazy) — kritéria + speciální pole
         try:
-            out_path, attachment = self.service.generate_review_from_template(
-                template_id, self.thesis.id
-            )
+            tmpl = self.service.ensure_template_schema(tmpl)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(
-                self, "Generování selhalo", f"Nepodařilo se vygenerovat posudek:\n{exc}"
+            QMessageBox.warning(
+                self, "Schema",
+                f"Schema kritérií se nepodařilo nascanovat:\n{exc}\n\n"
+                "Můžeš pokračovat — editor zobrazí jen základní pole bez bodování.",
             )
-            return
-        self.generated_path = out_path
-        self.generated_attachment = attachment
 
-        # Auto-open režim: rovnou otevři v Excelu a zavři dialog (krátký toast).
-        if self.chk_auto_open.isChecked():
-            _open_in_app(out_path)
-            QMessageBox.information(
-                self,
-                "Posudek vygenerován",
-                f"✓ Posudek byl vyplněn a otevřen v Excelu.\n\n"
-                f"Verze: v{attachment.version}\n"
-                f"Typ přílohy: {attachment.kind.label}\n\n"
-                f"Soubor je připojen jako příloha k práci — všechny "
-                f"další úpravy uložené v Excelu se promítnou tam.",
+        # Sestav scaffold Review z thesis dat + template kritérií
+        student = (
+            self.service.get_student(self.thesis.student_id)
+            if self.thesis.student_id else None
+        )
+        opponent_entity = (
+            self.service.get_opponent(self.thesis.opponent_id)
+            if self.thesis.opponent_id else None
+        )
+        user_name = self.service._guess_user_name()
+
+        # Zjisti, jestli pro tuto práci a roli existuje uložený Review →
+        # předáme ho do editoru k úpravě (zachová body z minula).
+        existing = self.service.get_current_review(
+            self.thesis.id, tmpl.role, opposing=False
+        )
+
+        if existing is not None and existing.template_id == tmpl.id:
+            review = existing
+        else:
+            review = Review(
+                template_id=tmpl.id,
+                template_name=tmpl.name,
+                role=tmpl.role,
+                language=tmpl.language,
+                student_name=student.full_name if student else "",
+                user_name=user_name if tmpl.role == "supervisor" else (
+                    user_name if tmpl.role == "opponent" else ""
+                ),
+                title_cs=self.thesis.title_cs,
+                title_en=self.thesis.title_en,
+                academic_year=self.thesis.academic_year,
+                criteria=[
+                    CriterionScore(
+                        row=c.row, label=c.label, weight=c.default_weight,
+                        weight_cell=c.weight_cell, score_cell=c.score_cell,
+                        score=5.0,  # default plný počet, uživatel sníží
+                    ) for c in tmpl.criteria
+                ],
             )
-            self.accept()
+            # Pokud uživatel není supervisor, je oponent — v poli „opponent"
+            # je user_name. Pole „supervisor" zůstává prázdné (cizí).
+            if tmpl.role == "opponent" and not review.user_name:
+                review.user_name = user_name
+
+        # Otevři editor
+        from .review_editor_dialog import ReviewEditorDialog
+
+        editor = ReviewEditorDialog(
+            self.service, self.thesis.id, review, opposing=False, parent=self
+        )
+        if not editor.exec() or not editor.saved:
             return
 
-        self._show_done_dialog(out_path, attachment)
+        self.generated_path = editor.generated_xlsx
+        # ``generated_attachment`` zůstává None — Attachment je interní
+        # detail, MainWindow se zajímá hlavně o focus.
+        self.accept()
 
     def _show_done_dialog(self, out_path: Path, attachment) -> None:
         body = f"""

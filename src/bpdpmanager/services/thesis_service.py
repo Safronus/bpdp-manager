@@ -10,13 +10,16 @@ from ..config import app_data_dir, harmonograms_dir, thesis_documents_dir
 from ..models import (
     AcademicYearInfo,
     Attachment,
+    CriterionScore,
     KeyDate,
     Obor,
     Opponent,
     OpposingThesis,
+    Review,
     ReviewTemplate,
     Student,
     Supervisor,
+    TemplateCriterion,
     Thesis,
 )
 from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus, ThesisType
@@ -28,6 +31,7 @@ from .file_naming import (
     subdir_for,
 )
 from .harmonogram_parser import parse_pdf
+from .review_schema import extract_template_schema
 from .review_template_filler import fill_template
 
 
@@ -1097,3 +1101,326 @@ class ThesisService:
         except Exception:  # noqa: BLE001
             pass
         return ""
+
+    # --- review (strukturovaný posudek) -----------------------------------
+
+    def ensure_template_schema(self, tmpl: ReviewTemplate) -> ReviewTemplate:
+        """Pokud šablona nemá nascanované schema kritérií, doplní ho.
+
+        Persistuje update do db.json.
+        """
+        if tmpl.criteria:
+            return tmpl  # už máme
+        fp = self.review_template_file_path(tmpl)
+        if fp is None or not fp.is_file():
+            return tmpl
+        try:
+            schema = extract_template_schema(fp)
+        except Exception:  # noqa: BLE001
+            return tmpl
+        tmpl.criteria = [TemplateCriterion(**c) for c in schema["criteria"]]
+        tmpl.field_cells = schema["field_cells"]
+        self.update_review_template(tmpl)
+        return tmpl
+
+    def list_reviews(
+        self, thesis_id: str, *, opposing: bool = False
+    ) -> list[Review]:
+        """Vrátí všechny ``Review`` k dané práci (nebo oponentskému posudku)."""
+        if opposing:
+            op = self.get_opposing_thesis(thesis_id)
+            return list(op.reviews) if op else []
+        t = self.get_thesis(thesis_id)
+        return list(t.reviews) if t else []
+
+    def get_current_review(
+        self, thesis_id: str, role: str, *, opposing: bool = False
+    ) -> Review | None:
+        """Vrátí aktuální (is_current) ``Review`` daného role pro práci."""
+        reviews = self.list_reviews(thesis_id, opposing=opposing)
+        for r in sorted(reviews, key=lambda x: x.version, reverse=True):
+            if r.role == role and r.is_current:
+                return r
+        return None
+
+    def upsert_review(
+        self,
+        thesis_id: str,
+        review: Review,
+        *,
+        opposing: bool = False,
+    ) -> Review:
+        """Vloží/aktualizuje ``Review`` v Thesis nebo OpposingThesis.
+
+        Verzování: pokud Review s daným ``id`` existuje → update in-place.
+        Jinak append + setify is_current na aktuální (pro daný role).
+        """
+        review.touch()
+        if opposing:
+            op = self.get_opposing_thesis(thesis_id)
+            if op is None:
+                raise ValueError(f"Oponentský posudek {thesis_id} neexistuje.")
+            container_list = op.reviews
+        else:
+            t = self.get_thesis(thesis_id)
+            if t is None:
+                raise ValueError(f"Práce {thesis_id} neexistuje.")
+            container_list = t.reviews
+
+        # Update or insert
+        existing = next((r for r in container_list if r.id == review.id), None)
+        if existing is not None:
+            idx = container_list.index(existing)
+            container_list[idx] = review
+        else:
+            container_list.append(review)
+            # Auto-versioning: pokud je is_current=True, ostatní téhož role
+            # se přepnou na False (nová verze nahrazuje předchozí current).
+            if review.is_current:
+                for r in container_list:
+                    if r.id != review.id and r.role == review.role:
+                        r.is_current = False
+
+        if opposing:
+            self.upsert_opposing_thesis(op)
+        else:
+            self.upsert_thesis(t)
+        return review
+
+    def delete_review(
+        self, thesis_id: str, review_id: str, *, opposing: bool = False
+    ) -> None:
+        """Odstraní ``Review`` z DB (soubory XLSX/PDF zůstávají jako Attachment)."""
+        if opposing:
+            op = self.get_opposing_thesis(thesis_id)
+            if op is None:
+                return
+            op.reviews = [r for r in op.reviews if r.id != review_id]
+            self.upsert_opposing_thesis(op)
+        else:
+            t = self.get_thesis(thesis_id)
+            if t is None:
+                return
+            t.reviews = [r for r in t.reviews if r.id != review_id]
+            self.upsert_thesis(t)
+
+    def generate_review_files(
+        self,
+        thesis_id: str,
+        review: Review,
+        *,
+        opposing: bool = False,
+        also_pdf: bool = True,
+    ) -> tuple[Path, Path | None]:
+        """Vyrenderuje XLSX a (volitelně) PDF z ``Review`` dat + šablony.
+
+        - Otevře šablonu, vyplní základní pole + kritéria + extra pole
+        - Uloží jako příloha typu SUPERVISOR_REVIEW / OPPONENT_REVIEW
+          (auto-versioning v Attachment + Review)
+        - Pokud ``also_pdf=True`` a LibreOffice je k dispozici, vyrobí
+          i PDF a uloží jako další přílohu téhož kindu
+
+        Returns ``(xlsx_path, pdf_path_or_None)``.
+        """
+        tmpl = self.get_review_template(review.template_id) if review.template_id else None
+        if tmpl is None:
+            raise ValueError(
+                "Šablona posudku nebyla nalezena. Pravděpodobně byla smazána "
+                "z knihovny — přidej ji znovu nebo zvol jinou."
+            )
+        tmpl = self.ensure_template_schema(tmpl)
+        tmpl_path = self.review_template_file_path(tmpl)
+        if tmpl_path is None or not tmpl_path.is_file():
+            raise ValueError(f"Soubor šablony chybí na disku: {tmpl_path}")
+
+        # Cíl
+        if opposing:
+            container_id = f"opposing-{thesis_id}"
+            opp = self.get_opposing_thesis(thesis_id)
+            if opp is None:
+                raise ValueError(f"Oponentský posudek {thesis_id} neexistuje.")
+            surname = opp.student_last_name or None
+        else:
+            container_id = thesis_id
+            t = self.get_thesis(thesis_id)
+            if t is None:
+                raise ValueError(f"Práce {thesis_id} neexistuje.")
+            surname = self._student_surname_for_thesis(t)
+
+        kind = (
+            AttachmentKind.SUPERVISOR_REVIEW
+            if review.role == "supervisor"
+            else AttachmentKind.OPPONENT_REVIEW
+        )
+        subdir = subdir_for(kind)
+        target_dir = thesis_documents_dir(container_id) / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        existing = {p.name for p in target_dir.iterdir() if p.is_file()}
+        target_name = build_target_name(
+            surname, kind, tmpl_path, existing_names=existing
+        )
+        target_path = target_dir / target_name
+
+        # 1) Heuristický fill základních polí
+        basic_fields = {
+            "student": review.student_name,
+            "supervisor": review.user_name if review.role == "supervisor" else "",
+            "opponent": review.user_name if review.role == "opponent" else "",
+            "title_cs": review.title_cs,
+            "title_en": review.title_en,
+            "academic_year": review.academic_year,
+        }
+        fill_template(tmpl_path, target_path, basic_fields)
+
+        # 2) Druhý průchod přes openpyxl — zapsat criteria + extra pole
+        import openpyxl  # type: ignore
+
+        wb = openpyxl.load_workbook(target_path, data_only=False)
+        ws = wb.active
+
+        # Criteria scores
+        for cs in review.criteria:
+            if cs.score_cell:
+                try:
+                    ws[cs.score_cell] = float(cs.score)
+                except Exception:  # noqa: BLE001
+                    pass
+            if cs.weight_cell:
+                try:
+                    ws[cs.weight_cell] = float(cs.weight)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        # Extra pole — assignment_fulfilled, plagiarism_*, overall_comment, place_date
+        extras = {
+            "assignment_fulfilled": review.assignment_fulfilled,
+            "plagiarism_verdict": review.plagiarism_verdict,
+            "plagiarism_justification": review.plagiarism_justification,
+            "overall_comment": review.overall_comment,
+            "place_date": review.place_date,
+        }
+        for key, value in extras.items():
+            cell = tmpl.field_cells.get(key)
+            if cell and value:
+                try:
+                    ws[cell] = value
+                except Exception:  # noqa: BLE001
+                    pass
+
+        wb.save(target_path)
+
+        # 3) Připoj XLSX jako Attachment (auto-versioning)
+        same_kind = []
+        if opposing:
+            same_kind = [a for a in opp.attachments if a.kind == kind]
+        else:
+            same_kind = [a for a in t.attachments if a.kind == kind]
+        next_version = max((a.version for a in same_kind), default=0) + 1
+        for a in same_kind:
+            a.is_current = False
+
+        rel_path = f"{subdir}/{target_name}"
+        xlsx_att = Attachment(
+            label=target_name,
+            url_or_path=rel_path,
+            kind=kind,
+            is_file=True,
+            version=next_version,
+            is_current=True,
+        )
+        if opposing:
+            opp.attachments.append(xlsx_att)
+        else:
+            t.attachments.append(xlsx_att)
+        review.xlsx_filename = rel_path
+
+        # 4) PDF přes LibreOffice (volitelné)
+        pdf_path: Path | None = None
+        if also_pdf:
+            pdf_path = self._xlsx_to_pdf(target_path)
+            if pdf_path is not None:
+                # Připoj PDF jako další attachment téhož kindu
+                rel_pdf = f"{subdir}/{pdf_path.name}"
+                pdf_att = Attachment(
+                    label=pdf_path.name,
+                    url_or_path=rel_pdf,
+                    kind=kind,
+                    is_file=True,
+                    version=next_version,  # stejná verze jako XLSX
+                    is_current=False,  # XLSX je current, PDF je doprovodný
+                )
+                if opposing:
+                    opp.attachments.append(pdf_att)
+                else:
+                    t.attachments.append(pdf_att)
+                review.pdf_filename = rel_pdf
+
+        # 5) Persist
+        if opposing:
+            self.upsert_opposing_thesis(opp)
+        else:
+            self.upsert_thesis(t)
+
+        return target_path, pdf_path
+
+    def _xlsx_to_pdf(self, xlsx_path: Path) -> Path | None:
+        """Konvertuje XLSX na PDF přes LibreOffice headless.
+
+        Vrátí cestu k vytvořenému PDF, nebo ``None`` pokud LibreOffice
+        není dostupný / konverze selhala. Volající by měl gracefully
+        pokračovat bez PDF.
+        """
+        import subprocess
+
+        soffice = self._find_soffice()
+        if soffice is None:
+            return None
+
+        pdf_path = xlsx_path.with_suffix(".pdf")
+        try:
+            proc = subprocess.run(
+                [
+                    str(soffice),
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", str(xlsx_path.parent),
+                    str(xlsx_path),
+                ],
+                capture_output=True,
+                timeout=120,
+                check=False,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            return None
+        if proc.returncode != 0 or not pdf_path.is_file():
+            return None
+        return pdf_path
+
+    @staticmethod
+    def _find_soffice() -> Path | None:
+        """Najde ``soffice`` binární soubor LibreOffice."""
+        import shutil as _shutil
+
+        # 1) Standardní PATH
+        bin_path = _shutil.which("soffice") or _shutil.which("libreoffice")
+        if bin_path:
+            return Path(bin_path)
+
+        # 2) macOS standardní lokace
+        mac_path = Path("/Applications/LibreOffice.app/Contents/MacOS/soffice")
+        if mac_path.is_file():
+            return mac_path
+
+        # 3) Linux distro typicky /usr/bin/soffice
+        for candidate in ("/usr/bin/soffice", "/usr/local/bin/soffice"):
+            p = Path(candidate)
+            if p.is_file():
+                return p
+
+        return None
+
+    @property
+    def libreoffice_available(self) -> bool:
+        """True pokud je LibreOffice nainstalován a dostupný pro PDF export."""
+        return self._find_soffice() is not None

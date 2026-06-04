@@ -8,7 +8,10 @@ APP_NAME = "bpdpmanager"
 # v2: ThesisStatus.ASSIGNED sloučeno do IN_PROGRESS;
 #     Attachment dostal pole version + is_current.
 # v3: Database.review_templates (knihovna XLSX šablon posudků v profilu).
-SCHEMA_VERSION = 3
+# v4: Review model — Thesis.reviews + OpposingThesis.reviews (strukturovaná
+#     data posudku jako zdroj pravdy pro XLSX/PDF výstupy).
+#     ReviewTemplate.criteria (cache schema kritérií).
+SCHEMA_VERSION = 4
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 DEFAULT_OBORY: list[str] = [
