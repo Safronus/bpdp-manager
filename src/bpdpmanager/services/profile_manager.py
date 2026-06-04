@@ -308,6 +308,102 @@ class ProfileManager:
 
         return stats
 
+    # --- export / import ZIP ---------------------------------------------
+
+    def export_profile_to_zip(
+        self,
+        profile_id: str,
+        target_zip: Path,
+        *,
+        include_documents: bool = True,
+        include_harmonograms: bool = True,
+        include_db_bak: bool = True,
+        include_backups: bool = False,
+    ) -> dict:
+        """Vyexportuje profil jako přenosný ZIP balík.
+
+        Manifest + db.json + (volitelně) documents/, harmonograms/, backups/.
+        Použití na druhém zařízení: ``import_profile_from_zip``.
+        """
+        # Lazy import — vyhneme se kruhové závislosti se ``__init__``.
+        from .profile_export import ExportOptions, export_profile_to_zip
+
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        return export_profile_to_zip(
+            profile=profile,
+            source_data_dir=Path(profile.data_dir),
+            target_zip=Path(target_zip),
+            opts=ExportOptions(
+                include_documents=include_documents,
+                include_harmonograms=include_harmonograms,
+                include_db_bak=include_db_bak,
+                include_backups=include_backups,
+            ),
+        )
+
+    def import_profile_from_zip(
+        self,
+        source_zip: Path,
+        target_data_dir: Path,
+        *,
+        name: str | None = None,
+        overwrite_existing: bool = False,
+    ) -> tuple[Profile, dict]:
+        """Rozbalí ZIP do ``target_data_dir`` a vytvoří záznam v registry.
+
+        Args:
+            source_zip: ZIP balík vytvořený přes ``export_profile_to_zip``.
+            target_data_dir: Kam rozbalit (vytvoří se, pokud neexistuje).
+            name: Název nového profilu v registry. Pokud ``None``, použije
+                  se název z manifestu (nebo „Importovaný profil").
+            overwrite_existing: Pokud cílová složka už obsahuje ``db.json``,
+                  selhání nebo přepis. Pokud True, lokální data se nahradí.
+
+        Returns:
+            ``(Profile, dict)`` — záznam v registry + statistiky importu.
+        """
+        from .profile_export import (
+            ProfileExportError,
+            import_profile_from_zip,
+            read_zip_manifest,
+        )
+
+        # Validace dřív, než cokoli sáhne na disk
+        preview = read_zip_manifest(Path(source_zip))
+        if not preview.valid:
+            raise ProfileError(f"Neplatný ZIP: {preview.error}")
+
+        try:
+            result = import_profile_from_zip(
+                source_zip=Path(source_zip),
+                target_data_dir=Path(target_data_dir),
+                overwrite_existing=overwrite_existing,
+            )
+        except ProfileExportError as exc:
+            raise ProfileError(str(exc)) from exc
+
+        # Zaregistruj nový profil. Generujeme nové UUID — original_id
+        # z manifestu si nemusíme přebírat (mohlo by kolidovat s jiným
+        # importem stejného exportu).
+        original = result["manifest"].get("profile") or {}
+        chosen_name = (name or "").strip() or original.get("name") or "Importovaný profil"
+        # Pokud už existuje profil se stejným jménem, přidej suffix " (2)" …
+        existing_names = {p.name for p in self._registry.profiles}
+        unique_name = chosen_name
+        n = 2
+        while unique_name in existing_names:
+            unique_name = f"{chosen_name} ({n})"
+            n += 1
+
+        profile = self.create(name=unique_name, data_dir=Path(target_data_dir))
+        # Pokud byl exportován user_name (pro STAG auto-detect role), přebíráme.
+        user_name = (original.get("user_name") or "").strip()
+        if user_name:
+            self.set_user_name(profile.id, user_name)
+        return profile, result
+
     # --- lock helpers ---------------------------------------------------
 
     def check_lock(self, profile_id: str) -> LockCheckResult:

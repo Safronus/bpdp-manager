@@ -1,0 +1,409 @@
+"""Export/import profilu jako přenosný ZIP balík.
+
+Cíl: uživatel může profil exportovat na flash disk / iCloud / email a na jiném
+zařízení (nebo na stejném po reinstalaci) ho otevřít a začít používat.
+
+Struktura ZIP:
+  manifest.json                              ← metadata exportu
+  db.json                                    ← databáze
+  db.json.bak                                ← poslední krátkodobá záloha (volitelně)
+  documents/<thesis_id>/...                  ← přílohy k pracem (volitelně)
+  harmonograms/*.pdf                         ← naimportované PDF harmonogramy (volitelně)
+
+Manifest schema (verze 1):
+  {
+    "bpdp_manager_export_version": 1,
+    "exported_at": "2026-06-04T12:34:56",
+    "app_version": "0.16.0",
+    "schema_version": 2,
+    "profile": { "name": "...", "original_id": "uuid", "user_name": "..." },
+    "contents": { "db_json": true, "documents": true, "harmonograms": true,
+                  "backups": false },
+    "stats": { "documents_count": N, "harmonograms_count": N,
+               "total_uncompressed_bytes": N }
+  }
+
+Modul je úmyslně bez závislosti na PySide6 — UI vrstva si dialog
+postaví sama nad zde vystavenými funkcemi.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import zipfile
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+from .. import __version__
+from ..config import SCHEMA_VERSION
+from ..models import Profile
+
+EXPORT_FORMAT_VERSION = 1
+MANIFEST_FILENAME = "manifest.json"
+DB_FILENAME = "db.json"
+DB_BAK_FILENAME = "db.json.bak"
+
+
+class ProfileExportError(Exception):
+    """Chyba při exportu/importu profilu jako ZIP."""
+
+
+@dataclass
+class ExportOptions:
+    include_documents: bool = True
+    include_harmonograms: bool = True
+    include_db_bak: bool = True
+    include_backups: bool = False  # rotující 10× zálohy se typicky neexportují
+
+
+@dataclass
+class ExportPreview:
+    """Co by export obsahoval — pro confirmation dialog před spuštěním."""
+
+    db_json_size: int
+    db_bak_size: int
+    documents_count: int
+    documents_bytes: int
+    harmonograms_count: int
+    harmonograms_bytes: int
+    backups_count: int
+    backups_bytes: int
+
+    @property
+    def total_bytes(self) -> int:
+        return (
+            self.db_json_size
+            + self.db_bak_size
+            + self.documents_bytes
+            + self.harmonograms_bytes
+            + self.backups_bytes
+        )
+
+
+@dataclass
+class ImportPreview:
+    """Co by import přinesl — pro confirmation dialog před extrakcí."""
+
+    manifest: dict[str, Any]
+    valid: bool
+    error: str = ""
+
+    @property
+    def profile_name(self) -> str:
+        return (self.manifest.get("profile") or {}).get("name", "(neznámý)")
+
+    @property
+    def exported_at(self) -> str:
+        return self.manifest.get("exported_at", "")
+
+    @property
+    def app_version(self) -> str:
+        return self.manifest.get("app_version", "")
+
+    @property
+    def schema_version(self) -> int:
+        return int(self.manifest.get("schema_version", 0))
+
+    @property
+    def stats(self) -> dict:
+        return self.manifest.get("stats") or {}
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+
+def _walk_files(root: Path) -> list[Path]:
+    """Rekurzivně všechny soubory pod ``root``. Symlinky se nesledují."""
+    if not root.is_dir():
+        return []
+    return [p for p in root.rglob("*") if p.is_file()]
+
+
+def _dir_size(root: Path) -> tuple[int, int]:
+    """Vrátí (počet souborů, total bytes) v adresáři rekurzivně."""
+    files = _walk_files(root)
+    return len(files), sum(p.stat().st_size for p in files)
+
+
+def _safe_extract_member(zf: zipfile.ZipFile, info: zipfile.ZipInfo, target_root: Path) -> Path:
+    """Bezpečná extrakce jednoho ZIP záznamu — chrání před path traversal."""
+    # Normalize: backslash → slash, leading slash removed, parent components rejected
+    name = info.filename.replace("\\", "/").lstrip("/")
+    target = (target_root / name).resolve()
+    if not str(target).startswith(str(target_root.resolve())):
+        raise ProfileExportError(
+            f"ZIP obsahuje cestu mimo cílovou složku ({info.filename!r}). "
+            "Soubor možná není legitimní BPDPManager export."
+        )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if info.is_dir():
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+    with zf.open(info) as src, target.open("wb") as dst:
+        shutil.copyfileobj(src, dst)
+    return target
+
+
+# ── Export ─────────────────────────────────────────────────────────────────
+
+
+def compute_export_preview(source_data_dir: Path, opts: ExportOptions) -> ExportPreview:
+    """Spočítá, co by export obsahoval — bez vlastního zápisu."""
+    db_path = source_data_dir / DB_FILENAME
+    db_bak = source_data_dir / DB_BAK_FILENAME
+    docs_dir = source_data_dir / "documents"
+    harm_dir = source_data_dir / "harmonograms"
+    backups_dir = source_data_dir / "backups"
+
+    docs_n, docs_b = _dir_size(docs_dir) if opts.include_documents else (0, 0)
+    harm_n, harm_b = _dir_size(harm_dir) if opts.include_harmonograms else (0, 0)
+    backups_n, backups_b = _dir_size(backups_dir) if opts.include_backups else (0, 0)
+
+    return ExportPreview(
+        db_json_size=db_path.stat().st_size if db_path.is_file() else 0,
+        db_bak_size=db_bak.stat().st_size if opts.include_db_bak and db_bak.is_file() else 0,
+        documents_count=docs_n,
+        documents_bytes=docs_b,
+        harmonograms_count=harm_n,
+        harmonograms_bytes=harm_b,
+        backups_count=backups_n,
+        backups_bytes=backups_b,
+    )
+
+
+def export_profile_to_zip(
+    profile: Profile,
+    source_data_dir: Path,
+    target_zip: Path,
+    opts: ExportOptions | None = None,
+) -> dict:
+    """Zapíše ZIP balík profilu.
+
+    Args:
+        profile: ``Profile`` z registry (pro jméno a původní ID v manifestu).
+        source_data_dir: Skutečná data složka profilu (kde leží db.json …).
+        target_zip: Kam zapsat ZIP. Pokud existuje, *přepíše se*.
+        opts: Co zahrnout (default: db + db.bak + documents + harmonograms,
+              bez rotujících backups).
+
+    Returns:
+        Statistiky exportu (file_count, total_bytes, target_zip_path).
+
+    Raises:
+        ProfileExportError: chybějící db.json, FS chyby zápisu.
+    """
+    opts = opts or ExportOptions()
+    source_data_dir = Path(source_data_dir).expanduser().resolve()
+    target_zip = Path(target_zip).expanduser()
+
+    if not source_data_dir.is_dir():
+        raise ProfileExportError(f"Datový adresář profilu neexistuje: {source_data_dir}")
+
+    db_path = source_data_dir / DB_FILENAME
+    if not db_path.is_file():
+        raise ProfileExportError(
+            f"db.json profilu chybí ({db_path}) — nelze exportovat prázdný profil."
+        )
+
+    target_zip.parent.mkdir(parents=True, exist_ok=True)
+
+    # Spočti stats předem (pro manifest)
+    preview = compute_export_preview(source_data_dir, opts)
+
+    manifest = {
+        "bpdp_manager_export_version": EXPORT_FORMAT_VERSION,
+        "exported_at": datetime.now().isoformat(timespec="seconds"),
+        "app_version": __version__,
+        "schema_version": SCHEMA_VERSION,
+        "profile": {
+            "name": profile.name,
+            "original_id": profile.id,
+            "user_name": profile.user_name or "",
+            "created_at": profile.created_at.isoformat() if profile.created_at else "",
+        },
+        "contents": {
+            "db_json": True,
+            "db_bak": opts.include_db_bak,
+            "documents": opts.include_documents,
+            "harmonograms": opts.include_harmonograms,
+            "backups": opts.include_backups,
+        },
+        "stats": {
+            "documents_count": preview.documents_count,
+            "harmonograms_count": preview.harmonograms_count,
+            "backups_count": preview.backups_count,
+            "total_uncompressed_bytes": preview.total_bytes,
+        },
+    }
+
+    files_added = 0
+    # Atomic write: pišeme do .tmp, na konci přejmenujeme.
+    tmp_zip = target_zip.with_suffix(target_zip.suffix + ".tmp")
+    try:
+        with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(
+                MANIFEST_FILENAME,
+                json.dumps(manifest, ensure_ascii=False, indent=2),
+            )
+            files_added += 1
+
+            zf.write(db_path, arcname=DB_FILENAME)
+            files_added += 1
+
+            if opts.include_db_bak:
+                db_bak = source_data_dir / DB_BAK_FILENAME
+                if db_bak.is_file():
+                    zf.write(db_bak, arcname=DB_BAK_FILENAME)
+                    files_added += 1
+
+            def _add_tree(subdir_name: str) -> None:
+                nonlocal files_added
+                root = source_data_dir / subdir_name
+                if not root.is_dir():
+                    return
+                for f in _walk_files(root):
+                    arcname = f"{subdir_name}/{f.relative_to(root).as_posix()}"
+                    zf.write(f, arcname=arcname)
+                    files_added += 1
+
+            if opts.include_documents:
+                _add_tree("documents")
+            if opts.include_harmonograms:
+                _add_tree("harmonograms")
+            if opts.include_backups:
+                _add_tree("backups")
+
+        tmp_zip.replace(target_zip)
+    except Exception:
+        # Cleanup tmp on failure
+        if tmp_zip.exists():
+            try:
+                tmp_zip.unlink()
+            except OSError:
+                pass
+        raise
+
+    return {
+        "target_zip": str(target_zip),
+        "files_added": files_added,
+        "zip_size_bytes": target_zip.stat().st_size,
+        "uncompressed_bytes": preview.total_bytes,
+        "manifest": manifest,
+    }
+
+
+# ── Import ─────────────────────────────────────────────────────────────────
+
+
+def read_zip_manifest(source_zip: Path) -> ImportPreview:
+    """Načte manifest ze ZIPu bez extrakce — pro preview dialog.
+
+    Pokud manifest chybí nebo je nečitelný, vrací ``valid=False`` a důvod.
+    """
+    source_zip = Path(source_zip)
+    if not source_zip.is_file():
+        return ImportPreview(manifest={}, valid=False, error="Soubor neexistuje.")
+    try:
+        with zipfile.ZipFile(source_zip, "r") as zf:
+            if MANIFEST_FILENAME not in zf.namelist():
+                return ImportPreview(
+                    manifest={},
+                    valid=False,
+                    error="Soubor není BPDPManager export (chybí manifest.json).",
+                )
+            with zf.open(MANIFEST_FILENAME) as f:
+                manifest = json.loads(f.read().decode("utf-8"))
+    except (zipfile.BadZipFile, json.JSONDecodeError, KeyError) as exc:
+        return ImportPreview(
+            manifest={},
+            valid=False,
+            error=f"ZIP nelze přečíst: {exc}",
+        )
+
+    if not isinstance(manifest, dict):
+        return ImportPreview(
+            manifest={}, valid=False, error="Manifest nemá očekávaný formát."
+        )
+
+    ver = manifest.get("bpdp_manager_export_version")
+    if not isinstance(ver, int):
+        return ImportPreview(
+            manifest=manifest,
+            valid=False,
+            error="Manifest neoznačil export verzi (bpdp_manager_export_version).",
+        )
+    if ver > EXPORT_FORMAT_VERSION:
+        return ImportPreview(
+            manifest=manifest,
+            valid=False,
+            error=(
+                f"ZIP byl vytvořen novější verzí aplikace (export verze {ver}, "
+                f"podporujeme {EXPORT_FORMAT_VERSION}). Aktualizuj aplikaci."
+            ),
+        )
+
+    schema = int(manifest.get("schema_version", 0))
+    if schema > SCHEMA_VERSION:
+        # Schema je novější — možná půjde, ale upozorni.
+        return ImportPreview(
+            manifest=manifest,
+            valid=True,  # nezablokuj — Database.model_validate to případně odhalí
+            error=(
+                f"⚠ Pozor: ZIP má novější schema_version ({schema} > {SCHEMA_VERSION}). "
+                "Některá pole mohou být ignorována. Pokračovat na vlastní riziko."
+            ),
+        )
+
+    return ImportPreview(manifest=manifest, valid=True)
+
+
+def import_profile_from_zip(
+    source_zip: Path,
+    target_data_dir: Path,
+    overwrite_existing: bool = False,
+) -> dict:
+    """Rozbalí ZIP do ``target_data_dir`` a vrátí stats + manifest.
+
+    Pokud ``target_data_dir`` neexistuje, vytvoří se. Pokud existuje a obsahuje
+    ``db.json`` a ``overwrite_existing=False``, vyhodí ``ProfileExportError``.
+
+    Po úspěšném importu *nevytváří* záznam v ``ProfileRegistry`` —
+    o to se postará volající (typicky ``ProfileManager``).
+    """
+    source_zip = Path(source_zip).expanduser()
+    target_data_dir = Path(target_data_dir).expanduser().resolve()
+
+    preview = read_zip_manifest(source_zip)
+    if not preview.valid:
+        raise ProfileExportError(f"ZIP není validní: {preview.error}")
+
+    existing_db = target_data_dir / DB_FILENAME
+    if existing_db.is_file() and not overwrite_existing:
+        raise ProfileExportError(
+            f"Cílová složka už obsahuje databázi ({existing_db}). "
+            'Pokud chceš přepsat, zaškrtni v dialogu „Přepsat existující data".'
+        )
+
+    target_data_dir.mkdir(parents=True, exist_ok=True)
+
+    files_extracted = 0
+    bytes_extracted = 0
+    with zipfile.ZipFile(source_zip, "r") as zf:
+        for info in zf.infolist():
+            # Manifest se nesype do cílové složky — je metadata exportu, ne data.
+            if info.filename == MANIFEST_FILENAME:
+                continue
+            _safe_extract_member(zf, info, target_data_dir)
+            if not info.is_dir():
+                files_extracted += 1
+                bytes_extracted += info.file_size
+
+    return {
+        "manifest": preview.manifest,
+        "target_data_dir": str(target_data_dir),
+        "files_extracted": files_extracted,
+        "bytes_extracted": bytes_extracted,
+    }

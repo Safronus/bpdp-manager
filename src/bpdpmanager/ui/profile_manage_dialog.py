@@ -64,16 +64,22 @@ class ProfileManageDialog(QDialog):
         self.btn_user_name.setToolTip(
             "Jméno uživatele profilu — pro auto-detekci role při STAG importu"
         )
+        self.btn_export = QPushButton("📤 Export…")
+        self.btn_export.setToolTip(
+            "Vyexportuje vybraný profil do přenosného ZIP balíku."
+        )
         self.btn_open_folder = QPushButton("📂 Otevřít složku")
         self.btn_remove = QPushButton("Odebrat z registry…")
         self.btn_close = QPushButton("Zavřít")
         self.btn_rename.clicked.connect(self._rename)
         self.btn_user_name.clicked.connect(self._edit_user_name)
+        self.btn_export.clicked.connect(self._export_zip)
         self.btn_open_folder.clicked.connect(self._open_folder)
         self.btn_remove.clicked.connect(self._remove)
         self.btn_close.clicked.connect(self.accept)
         row.addWidget(self.btn_rename)
         row.addWidget(self.btn_user_name)
+        row.addWidget(self.btn_export)
         row.addWidget(self.btn_open_folder)
         row.addWidget(self.btn_remove)
         row.addStretch()
@@ -157,6 +163,19 @@ class ProfileManageDialog(QDialog):
             QMessageBox.warning(self, "Uložení selhalo", str(exc))
             return
         self._refresh()
+
+    def _export_zip(self) -> None:
+        profile = self._current()
+        if profile is None:
+            QMessageBox.information(
+                self, "Vyber profil", "Vyber v seznamu profil pro export."
+            )
+            return
+        # Lazy import (kruhový import s main_window)
+        from .profile_export_dialog import ExportProfileDialog
+
+        dlg = ExportProfileDialog(self.pm, profile, self)
+        dlg.exec()
 
     def _open_folder(self) -> None:
         profile = self._current()

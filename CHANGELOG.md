@@ -7,6 +7,78 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-06-04
+
+### Added
+- **📤 Export profilu jako přenosný ZIP**. V toolbar 👤 menu nová akce
+  *Exportovat aktuální profil do ZIPu…*. Dialog s checkboxy:
+  - 📎 Dokumenty (přílohy k pracem) — default ✓
+  - 📅 Naimportované PDF harmonogramy — default ✓
+  - 💾 Krátkodobá záloha db.json.bak — default ✓
+  - 🔄 Rotující 10× zálohy — default ✗ (typicky netřeba, jen pojistka)
+  
+  Před zápisem zobrazí preview velikosti per kategorii + celkem.
+  Po dokončení sumář s kompresí + tlačítko *📂 Ukázat ve Finderu*.
+  Default cílová cesta `~/Downloads/{název}_{YYYY-MM-DD}.zip`.
+- **📥 Import profilu ze ZIPu**. V toolbar 👤 menu nová akce
+  *Importovat profil ze ZIPu…*. Dialog s file pickerem na ZIP →
+  okamžitý preview manifestu (jméno původního profilu, app verze,
+  schema verze, exportováno kdy, počty souborů, celková velikost). 
+  Validace:
+  - Chybějící/neplatný manifest → uživatelská chyba.
+  - Export verze novější než aplikace → blokace s hláškou.
+  - Schema novější → warning, ale povolí (Database.model_validate
+    rozhodne).
+  - Path traversal v ZIP entries → odmítnuto.
+  
+  Po importu se aplikace **automaticky přepne na nový profil**.
+  Pokud cílová složka už obsahuje `db.json`, vyžaduje explicitní
+  potvrzení přes checkbox *⚠ Přepsat existující data*.
+- **Per-profile export v *Správa profilů***. ``ProfileManageDialog``
+  má nové tlačítko *📤 Export…* — exportuje konkrétní vybraný profil
+  (nemusí být aktivní). Užitečné pro archivaci historických profilů
+  nebo bulk export více profilů najednou.
+
+### Added (API)
+- Nový modul ``services/profile_export.py``:
+  - ``export_profile_to_zip(profile, source_data_dir, target_zip, opts)``
+  - ``read_zip_manifest(source_zip) → ImportPreview``
+  - ``import_profile_from_zip(source_zip, target_data_dir, overwrite_existing)``
+  - ``compute_export_preview(source_data_dir, opts) → ExportPreview``
+  - Dataclasses ``ExportOptions``, ``ExportPreview``, ``ImportPreview``.
+  - Exception ``ProfileExportError`` pro chyby formátu/validace.
+- ``ProfileManager.export_profile_to_zip()`` a
+  ``ProfileManager.import_profile_from_zip()`` — wrapper nad service
+  modulem s integrací do registry (vytvoří záznam v
+  ``ProfileRegistry`` s unikátním ID a deduplikací jména
+  „Profil (2)" / „Profil (3)" …).
+- Konstanta ``EXPORT_FORMAT_VERSION = 1`` v manifestu pro budoucí
+  evoluci formátu (forward compatibility check).
+
+### Notes
+- **Manifest schema (v1)**:
+  ```json
+  {
+    "bpdp_manager_export_version": 1,
+    "exported_at": "2026-06-04T12:34:56",
+    "app_version": "0.16.0",
+    "schema_version": 2,
+    "profile": { "name": "...", "original_id": "uuid", "user_name": "..." },
+    "contents": { "db_json": true, "documents": true, ... },
+    "stats": { "documents_count": N, "total_uncompressed_bytes": N }
+  }
+  ```
+- ZIP používá ``zipfile.ZIP_DEFLATED`` — typická komprese 50–80 %
+  pro text v db.json, PDF dokumenty se moc nezmenší.
+- **Bezpečnost**: extrakce ZIPu validuje, že každý entry stay-within
+  cílového adresáře (defenze proti `../` path traversal v adversariálním
+  ZIPu).
+- Atomic write: ZIP se nejdřív píše do `.zip.tmp`, na konci se
+  přejmenuje. Pokud zápis selže, tmp se uklidí.
+- **Užití**: ideální pro migraci na nový laptop, archivaci ukončeného
+  ak. roku, sdílení mezi kolegy / s vedoucím katedry. Lze přenášet
+  přes USB, iCloud Drive, email (do limitu velikosti přílohy).
+
 ## [0.15.0] - 2026-06-04
 
 ### BREAKING / Architektura

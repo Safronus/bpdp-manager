@@ -51,6 +51,7 @@ from .manage_dialogs import (
 )
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
+from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
 from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
 from .stag_import_dialog import StagImportDialog
@@ -289,6 +290,19 @@ class MainWindow(QMainWindow):
         )
         act_import.setEnabled(other_count > 0 and active is not None)
         menu.addSeparator()
+        act_export = menu.addAction("📤 Exportovat aktuální profil do ZIPu…")
+        act_export.setToolTip(
+            "Vytvoří přenosný ZIP balík profilu — db.json + dokumenty + "
+            'harmonogramy. Lze otevřít na jiném zařízení přes „Importovat profil ze ZIPu…".'
+        )
+        act_export.triggered.connect(self._action_export_profile_zip)
+        act_export.setEnabled(active is not None)
+        act_import_zip = menu.addAction("📥 Importovat profil ze ZIPu…")
+        act_import_zip.setToolTip(
+            "Otevře ZIP s exportem z jiného zařízení a vytvoří nový profil."
+        )
+        act_import_zip.triggered.connect(self._action_import_profile_zip)
+        menu.addSeparator()
         act_manage = menu.addAction("🗂 Správa profilů…")
         act_manage.triggered.connect(self._action_manage_profiles)
         act_backups = menu.addAction("💾 Zálohy…")
@@ -455,6 +469,34 @@ class MainWindow(QMainWindow):
             "Pokud bys chtěl předchozí stav vrátit, je k dispozici v "
             "👤 → 💾 Zálohy (značka „before-import“).",
         )
+
+    def _action_export_profile_zip(self) -> None:
+        """Export aktuálního profilu jako ZIP."""
+        if self.profile_manager is None or self.profile_manager.active is None:
+            return
+        # Flushni rozpracované změny ve všech detail panelech, aby ZIP měl
+        # i poslední editaci.
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            if isinstance(w, _ThesesTab):
+                try:
+                    w.detail.flush()
+                except Exception:
+                    pass
+        dlg = ExportProfileDialog(
+            self.profile_manager, self.profile_manager.active, self
+        )
+        dlg.exec()
+
+    def _action_import_profile_zip(self) -> None:
+        """Import profilu ze ZIPu — vytvoří nový profil a přepne na něj."""
+        if self.profile_manager is None:
+            return
+        dlg = ImportProfileDialog(self.profile_manager, self)
+        if not dlg.exec() or dlg.created is None:
+            return
+        self._switch_profile(dlg.created.id)
+        self._refresh_profile_menu()
 
     def _action_manage_profiles(self) -> None:
         if self.profile_manager is None:
