@@ -498,12 +498,17 @@ class ThesisService:
                 raise TransitionError(
                     f"Pro vypsání tématu chybí: {', '.join(missing)}."
                 )
-        if target == ThesisStatus.ASSIGNED:
-            ok, missing = thesis.is_ready_for_assignment()
-            if not ok:
-                raise TransitionError(
-                    f"Pro oficiální zadání chybí: {', '.join(missing)}."
-                )
+        if target == ThesisStatus.IN_PROGRESS:
+            # Vstup do V řešení (= dřívější ASSIGNED + IN_PROGRESS) vyžaduje
+            # úplné oficiální zadání (titul EN, body zadání, literatura).
+            # Výjimka: druhý pokus obhajoby (CANCELLED → IN_PROGRESS) —
+            # tam už zadání jednou bylo, neblokujeme.
+            if thesis.status != ThesisStatus.CANCELLED:
+                ok, missing = thesis.is_ready_for_assignment()
+                if not ok:
+                    raise TransitionError(
+                        f"Pro spuštění práce chybí: {', '.join(missing)}."
+                    )
 
         thesis.status = target
         thesis.touch()
@@ -617,11 +622,22 @@ class ThesisService:
         # ``document_absolute_path`` fungovala beze změny pro nové i starší záznamy
         # (starší byly v rootu ``documents/{thesis_id}/``, tj. bez podadresáře).
         rel_path = f"{subdir}/{target_name}"
+
+        # Verzování: nová příloha téhož ``kind`` přepne stávající current
+        # (is_current=True) na False a stane se aktuální v rámci kindu.
+        # Version se inkrementuje od max(existing of same kind).
+        same_kind = [a for a in thesis.attachments if a.kind == kind]
+        next_version = max((a.version for a in same_kind), default=0) + 1
+        for a in same_kind:
+            a.is_current = False
+
         attachment = Attachment(
             label=label or target_name,
             url_or_path=rel_path,
             kind=kind,
             is_file=True,
+            version=next_version,
+            is_current=True,
         )
         thesis.attachments.append(attachment)
         self.upsert_thesis(thesis)
@@ -757,11 +773,20 @@ class ThesisService:
         shutil.copy2(source_path, target_path)
 
         rel_path = f"{subdir}/{target_name}"
+
+        # Verzování (stejně jako u ``attach_document``).
+        same_kind = [a for a in op.attachments if a.kind == kind]
+        next_version = max((a.version for a in same_kind), default=0) + 1
+        for a in same_kind:
+            a.is_current = False
+
         attachment = Attachment(
             label=label or target_name,
             url_or_path=rel_path,
             kind=kind,
             is_file=True,
+            version=next_version,
+            is_current=True,
         )
         op.attachments.append(attachment)
         self.upsert_opposing_thesis(op)

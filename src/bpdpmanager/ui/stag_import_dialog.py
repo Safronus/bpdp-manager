@@ -167,7 +167,7 @@ class StagImportDialog(QDialog):
         self.cb_default_status = QComboBox()
         for st in ThesisStatus:
             self.cb_default_status.addItem(st.label, st.value)
-        idx = self.cb_default_status.findData(ThesisStatus.ASSIGNED.value)
+        idx = self.cb_default_status.findData(ThesisStatus.IN_PROGRESS.value)
         if idx >= 0:
             self.cb_default_status.setCurrentIndex(idx)
         form.addRow("Fallback stav (vedené práce)", self.cb_default_status)
@@ -477,7 +477,7 @@ class StagImportDialog(QDialog):
             # Smart per-row default:
             #  - datumObhajoby vyplněno → Obhájeno
             #  - datumOdevzdani vyplněno (ale ne obhajoba) → V řešení
-            #  - datumZadani vyplněno (ale ne odevzdání) → Schválené téma
+            #  - datumZadani vyplněno (ale ne odevzdání) → V řešení
             #  - jinak → globální default z formuláře
             #
             # Pokud uživatel globální default v hlavičce explicitně přepsal
@@ -942,7 +942,7 @@ class StagImportDialog(QDialog):
         2. **Datumové heuristiky** — fallback pro CSV bez ``stavPrace``:
            - ``datumObhajoby`` vyplněno → ``DEFENDED``
            - ``datumOdevzdani`` vyplněno (ale ne obhajoba) → ``IN_PROGRESS``
-           - ``datumZadani`` vyplněno (ale ne odevzdání) → ``ASSIGNED``
+           - ``datumZadani`` vyplněno (ale ne odevzdání) → ``IN_PROGRESS``
         3. **Fallback** z hlavičkového combo boxu pro úplně prázdné řádky.
 
         Mapování STAG kódů → náš ``ThesisStatus``: viz konstanta
@@ -957,7 +957,7 @@ class StagImportDialog(QDialog):
         if record.date_submitted is not None:
             return ThesisStatus.IN_PROGRESS
         if record.date_assigned is not None:
-            return ThesisStatus.ASSIGNED
+            return ThesisStatus.IN_PROGRESS
         return fallback
 
     @staticmethod
@@ -1004,7 +1004,7 @@ class StagImportDialog(QDialog):
             )
         if record.date_assigned is not None:
             return prefix + (
-                f"  → Schválené téma (CSV má datumZadani = "
+                f"  → V řešení (CSV má datumZadani = "
                 f"{record.date_assigned.strftime('%d.%m.%Y')} "
                 "ale ne odevzdání)."
             )

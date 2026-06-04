@@ -5,7 +5,9 @@ import sys
 from pathlib import Path
 
 APP_NAME = "bpdpmanager"
-SCHEMA_VERSION = 1
+# v2: ThesisStatus.ASSIGNED sloučeno do IN_PROGRESS;
+#     Attachment dostal pole version + is_current.
+SCHEMA_VERSION = 2
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 DEFAULT_OBORY: list[str] = [

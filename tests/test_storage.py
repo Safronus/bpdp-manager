@@ -19,7 +19,7 @@ def repo(tmp_path: Path) -> JsonRepository:
 def test_creates_db_on_first_load(repo: JsonRepository) -> None:
     db = repo.load()
     assert isinstance(db, Database)
-    assert db.version == 1
+    assert db.version >= 1  # auto-bump na aktuální SCHEMA_VERSION
     assert "NSWI-P" in {o.name for o in db.obory}
     assert repo.path.exists()
 
@@ -61,6 +61,8 @@ def test_transition_requires_listing_fields(repo: JsonRepository) -> None:
 
 
 def test_transition_requires_full_assignment(repo: JsonRepository) -> None:
+    """v0.15.0: ASSIGNED bylo sloučeno do IN_PROGRESS. Stejné požadavky platí
+    pro vstup do IN_PROGRESS — titul EN, body zadání, literatura."""
     service = ThesisService(repo)
     thesis = Thesis(
         type=ThesisType.DP,
@@ -72,14 +74,14 @@ def test_transition_requires_full_assignment(repo: JsonRepository) -> None:
     service.upsert_thesis(thesis)
 
     with pytest.raises(TransitionError):
-        service.transition(thesis.id, ThesisStatus.ASSIGNED)
+        service.transition(thesis.id, ThesisStatus.IN_PROGRESS)
 
     thesis.title_en = "Topic"
     thesis.objectives = "1. Bod 1"
     thesis.references = "1. Zdroj 1"
     service.upsert_thesis(thesis)
-    updated = service.transition(thesis.id, ThesisStatus.ASSIGNED)
-    assert updated.status == ThesisStatus.ASSIGNED
+    updated = service.transition(thesis.id, ThesisStatus.IN_PROGRESS)
+    assert updated.status == ThesisStatus.IN_PROGRESS
 
 
 def test_disallowed_transition(repo: JsonRepository) -> None:

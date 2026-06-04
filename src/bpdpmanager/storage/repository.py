@@ -45,6 +45,61 @@ class Database(BaseModel):
                 data["obory"] = converted
         return data
 
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_assigned_status(cls, data: Any) -> Any:
+        """v0.15.0: ThesisStatus.ASSIGNED bylo sloučeno do IN_PROGRESS.
+
+        Stará data se statusem ``"assigned"`` musí být před validací přepsána
+        na ``"in_progress"``, jinak by pydantic neuměl deserializovat enum.
+        """
+        if not isinstance(data, dict):
+            return data
+        for thesis in data.get("theses", []) or []:
+            if isinstance(thesis, dict) and thesis.get("status") == "assigned":
+                thesis["status"] = "in_progress"
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_attachment_versioning(cls, data: Any) -> Any:
+        """v0.15.0: Attachment má nová pole version + is_current.
+
+        Stará data nemají tyto klíče → pydantic je doplní z defaultů
+        (version=1, is_current=True). Ale: pokud existuje víc příloh
+        téhož ``kind`` u jedné práce, je správnější označit jako
+        is_current=True jen tu *poslední* (nahranou jako poslední).
+        Heuristika: poslední pozice v listu.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        def _backfill_versioning(attachments: list[Any]) -> None:
+            if not isinstance(attachments, list):
+                return
+            # Group by kind, keep only last as current, version by order.
+            kind_indices: dict[str, list[int]] = {}
+            for i, att in enumerate(attachments):
+                if not isinstance(att, dict):
+                    continue
+                # už má v0.15.0 fieldy → respektuj
+                if "version" in att and "is_current" in att:
+                    continue
+                kind = att.get("kind") or "other"
+                kind_indices.setdefault(kind, []).append(i)
+            for _kind, idxs in kind_indices.items():
+                for n, idx in enumerate(idxs, start=1):
+                    attachments[idx].setdefault("version", n)
+                    attachments[idx].setdefault("is_current", idx == idxs[-1])
+
+        for thesis in data.get("theses", []) or []:
+            if isinstance(thesis, dict):
+                _backfill_versioning(thesis.get("attachments", []))
+        for op in data.get("opposing_theses", []) or []:
+            if isinstance(op, dict):
+                _backfill_versioning(op.get("attachments", []))
+        return data
+
 
 class Repository(ABC):
     """Abstraktní rozhraní pro perzistenci."""

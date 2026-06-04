@@ -20,6 +20,13 @@ class Attachment(BaseModel):
     url_or_path: str  # absolute path, URL, nebo relativní cesta v documents/{thesis_id}/
     kind: AttachmentKind = AttachmentKind.OTHER
     is_file: bool = False  # True = lokální soubor v documents/, False = URL/externí cesta
+    # Verzování: každá příloha má version (1, 2, 3, …) a is_current flag.
+    # Při nahrání nové přílohy stejného ``kind`` se předchozí current
+    # přepne na is_current=False a nově přidaná dostane version = max+1.
+    # UI ukáže current prominently a starší verze v rozbalené sekci
+    # „Předchozí verze". Stará data dostávají version=1, is_current=True.
+    version: int = 1
+    is_current: bool = True
 
 
 class Thesis(BaseModel):

@@ -6,8 +6,9 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -43,19 +44,32 @@ class DocumentsWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # tabulka
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Typ", "Popis / soubor", "Zdroj", "Cesta / URL"])
+        # tabulka — 5 sloupců (přidán Verze)
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(
+            ["Typ", "Verze", "Popis / soubor", "Zdroj", "Cesta / URL"]
+        )
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        h = self.table.horizontalHeader()
+        h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         self.table.doubleClicked.connect(self._open_selected)
         layout.addWidget(self.table)
+
+        # Toggle pro starší verze (defaultně schované)
+        self.chk_show_old = QCheckBox("Zobrazit starší verze (superseded)")
+        self.chk_show_old.setToolTip(
+            "Když je odškrtnuto, vidíš jen aktuální verzi každého typu. "
+            "Při nahrání nové verze se předchozí automaticky schová."
+        )
+        self.chk_show_old.toggled.connect(lambda _: self.refresh())
+        layout.addWidget(self.chk_show_old)
 
         # tlačítka
         row = QHBoxLayout()
@@ -106,23 +120,75 @@ class DocumentsWidget(QWidget):
         if thesis is None:
             return
 
-        for idx, att in enumerate(thesis.attachments):
-            self.table.insertRow(idx)
+        # Filtruj a setřiď:
+        # - default (chk_show_old=False): jen is_current=True
+        # - se zaškrtnutým chk_show_old: všechny, řadit kind asc → version desc
+        show_old = self.chk_show_old.isChecked()
+        rows: list[tuple[int, "Attachment"]] = list(enumerate(thesis.attachments))
+        if not show_old:
+            rows = [(i, a) for i, a in rows if a.is_current]
+        # Sort: kind label asc, current first, version desc
+        rows.sort(
+            key=lambda pair: (
+                pair[1].kind.label.lower(),
+                0 if pair[1].is_current else 1,
+                -pair[1].version,
+            )
+        )
 
+        # Spočti počet superseded per kind pro hint v záhlaví current řádku
+        superseded_per_kind: dict[AttachmentKind, int] = {}
+        for _, att in enumerate(thesis.attachments):
+            if not att.is_current:
+                superseded_per_kind[att.kind] = (
+                    superseded_per_kind.get(att.kind, 0) + 1
+                )
+
+        gray_fg = QBrush(QColor("#888"))
+        for vis_row, (real_idx, att) in enumerate(rows):
+            self.table.insertRow(vis_row)
+            # Sloupec 0 = Typ
             kind_item = QTableWidgetItem(att.kind.label)
             f: QFont = kind_item.font()
-            f.setBold(True)
+            f.setBold(att.is_current)
             kind_item.setFont(f)
-            kind_item.setData(Qt.ItemDataRole.UserRole, idx)
-            self.table.setItem(idx, 0, kind_item)
+            kind_item.setData(Qt.ItemDataRole.UserRole, real_idx)
+            self.table.setItem(vis_row, 0, kind_item)
 
-            self.table.setItem(idx, 1, QTableWidgetItem(att.label))
+            # Sloupec 1 = Verze (např. "v3 ✓ current" nebo "v1 (superseded)")
+            if att.is_current:
+                older = superseded_per_kind.get(att.kind, 0)
+                version_text = (
+                    f"v{att.version} ✓"
+                    + (f"   (+{older} starší)" if older and not show_old else "")
+                )
+            else:
+                version_text = f"v{att.version}"
+            ver_item = QTableWidgetItem(version_text)
+            if not att.is_current:
+                ver_item.setForeground(gray_fg)
+            self.table.setItem(vis_row, 1, ver_item)
 
+            # Sloupec 2 = Popis
+            label_item = QTableWidgetItem(att.label)
+            if not att.is_current:
+                label_item.setForeground(gray_fg)
+                lf = label_item.font()
+                lf.setItalic(True)
+                label_item.setFont(lf)
+            self.table.setItem(vis_row, 2, label_item)
+
+            # Sloupec 3 = Zdroj
             source_item = QTableWidgetItem("📄 soubor" if att.is_file else "🔗 odkaz")
-            self.table.setItem(idx, 2, source_item)
+            if not att.is_current:
+                source_item.setForeground(gray_fg)
+            self.table.setItem(vis_row, 3, source_item)
 
+            # Sloupec 4 = Cesta / URL
             path_item = QTableWidgetItem(att.url_or_path)
-            self.table.setItem(idx, 3, path_item)
+            if not att.is_current:
+                path_item.setForeground(gray_fg)
+            self.table.setItem(vis_row, 4, path_item)
 
     # --- akce ----------------------------------------------------------------
 
@@ -203,12 +269,20 @@ class DocumentsWidget(QWidget):
         thesis = self.service.get_thesis(self.thesis_id)
         if thesis is None:
             return
+        # Verzování i pro URL — supersede stávající current téhož kind
+        kind = self._current_kind()
+        same_kind = [a for a in thesis.attachments if a.kind == kind]
+        next_version = max((a.version for a in same_kind), default=0) + 1
+        for a in same_kind:
+            a.is_current = False
         thesis.attachments.append(
             Attachment(
                 label=label.strip() or url.strip(),
                 url_or_path=url.strip(),
-                kind=self._current_kind(),
+                kind=kind,
                 is_file=False,
+                version=next_version,
+                is_current=True,
             )
         )
         self.service.upsert_thesis(thesis)

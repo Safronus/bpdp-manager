@@ -7,6 +7,87 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-06-04
+
+### BREAKING / Architektura
+- **Status-driven taby + sloučení ASSIGNED**. Stavy práce zredukovány
+  ze 7 na 6 — *Schválené téma* (`ASSIGNED`) sloučeno do *V řešení*
+  (`IN_PROGRESS`). Po schválení tématu se de facto začíná na práci,
+  samostatný stav přidával jen šum.
+- **Filtrace tabů Aktuální / Budoucí / Historie je nově plně status-driven**.
+  Rok ovlivňuje pouze řazení a grupování uvnitř tabu, ne příslušnost:
+  
+  | Tab        | Stavy                                                   |
+  |------------|---------------------------------------------------------|
+  | Budoucí    | Zájemce bez tématu, Zájemce s tématem, Vypsané téma     |
+  | Aktuální   | V řešení                                                |
+  | Historie   | Obhájeno, Nedokončeno                                   |
+  
+  Tab labely už nepoužívají rok v záhlaví (např. „Aktuální (2025/2026)"
+  → jen „Aktuální").
+- **SCHEMA_VERSION bumped v1 → v2**. Automatická migrace na load:
+  - Všechny `Thesis` se statusem `"assigned"` se přepíšou na `"in_progress"`
+    (zachová se identita práce, jen status se reklasifikuje).
+  - Všechny `Attachment` bez polí `version`/`is_current` se backfillnou
+    (per kind: chronologicky verze 1, 2, …, N; poslední je current).
+- **ALLOWED_TRANSITIONS** aktualizováno:
+  - `RESERVED → IN_PROGRESS` (přeskočit vypsání tématu — pokud uživatel
+    má rovnou hotové oficiální zadání).
+  - `LISTED → IN_PROGRESS` (původně to bylo přes ASSIGNED).
+  - `CANCELLED → IN_PROGRESS` (re-open + 2. pokus obhajoby).
+  - `CANCELLED → DEFENDED` (oprava omylu / shortcut: 2. pokus
+    proběhl úspěšně, V řešení už nepotřebujeme).
+  - Vstup do `IN_PROGRESS` ze zadávacích stavů vyžaduje úplné
+    oficiální zadání (titul EN, body zadání, literatura). Z `CANCELLED`
+    se vyžadavek nekontroluje — zadání už jednou bylo.
+
+### Added
+- **Verzování posudků a textu práce**. `Attachment` má dvě nová pole:
+  - `version: int = 1` — pořadové číslo verze v rámci daného `kind` u
+    konkrétní práce / posudku.
+  - `is_current: bool = True` — true u poslední nahrané; ostatní téhož
+    kindu se automaticky přepnou na false.
+  Nahrání další přílohy stejného typu (např. druhý posudek vedoucího)
+  spustí auto-versioning: dostane `version = max+1`, předchozí
+  current se stane *superseded*. Funguje pro vedené práce
+  (`attach_document`) i pro oponentské posudky (`opposing_attach_document`).
+- **DocumentsWidget verze UI**:
+  - Nový sloupec *Verze* (např. `v3 ✓   (+1 starší)`).
+  - Toggle *Zobrazit starší verze (superseded)* — default skryté,
+    UI nepřetížíš historickými verzemi. Po zapnutí jsou *superseded*
+    řádky šedě + kurzívou.
+  - Řazení: kind asc → current first → version desc. UI tedy
+    vizuálně odděluje *„aktuální podle typu"* od historie.
+- **Tab-aware *+ Nová práce***. Tlačítko v toolbaru čte aktuální tab
+  a předvolí odpovídající status:
+  - Aktuální → *V řešení* (rok = aktuální)
+  - Budoucí → *Vypsané téma* (rok = příští)
+  - Historie → *Obhájeno* (rok = minulý)
+  - Vše / Oponentury → *Vypsané téma* (rok = aktuální)
+  Tooltip vysvětluje mapping.
+- Druhý pokus obhajoby flow je nyní *first-class*: z karty *Historie*
+  (CANCELLED) lze stav přepnout zpět na *V řešení* (vrátit do
+  Aktuální) nebo přímo na *Obhájeno*. Druhý posudek a/nebo nový text
+  práce se nahrají standardně — automaticky dostane verze 2 a stane
+  se current; první verze zůstává viditelná pod *Zobrazit starší verze*.
+
+### Changed
+- `_ACTIVE_STATES` v ``manage_dialogs`` aktualizováno (bez ASSIGNED).
+- STAG import: `_smart_status_for_record` mapuje `datumZadani`
+  vyplněno → `IN_PROGRESS` (předtím `ASSIGNED`). Heuristika i
+  STAG kódy nadále fungují, jen cíl je sloučený.
+- `_new_past_thesis` formulář pro Minulou práci: status combo už
+  neobsahuje *Schválené téma*.
+
+### Notes
+- **Zachování dat:** existující soubory na disku se nepřejmenovávají
+  ani nepřeřazují. Pouze metadata v `db.json` se přepisují automatickou
+  migrací při prvním načtení.
+- **Backup před migrací:** automatický `before-restore` se nevytváří,
+  ale `db.json.bak` se updatuje při každém save jako vždy. Pro
+  jistotu doporučuji spustit *Zálohy → Vytvořit zálohu* před prvním
+  otevřením 0.15.0 (nebo si nechat git tag/working copy verze 0.14.x).
+
 ## [0.14.2] - 2026-06-04
 
 ### Added

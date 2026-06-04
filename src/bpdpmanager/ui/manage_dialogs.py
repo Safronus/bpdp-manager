@@ -47,11 +47,11 @@ from .opponent_dialog import OpponentDialog
 from .student_dialog import StudentDialog
 from .supervisor_dialog import SupervisorDialog
 
-# Stavy, ve kterých má student „aktivní" práci
+# Stavy, ve kterých má student „aktivní" práci.
+# (Aktuální + Budoucí buckety dohromady, viz ``models.enums``.)
 _ACTIVE_STATES = {
     ThesisStatus.RESERVED,
     ThesisStatus.LISTED,
-    ThesisStatus.ASSIGNED,
     ThesisStatus.IN_PROGRESS,
 }
 

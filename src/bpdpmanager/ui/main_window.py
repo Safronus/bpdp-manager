@@ -25,7 +25,13 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import Thesis
-from ..models.enums import ThesisStatus, ThesisType
+from ..models.enums import (
+    STATUSES_CURRENT,
+    STATUSES_FUTURE,
+    STATUSES_HISTORY,
+    ThesisStatus,
+    ThesisType,
+)
 from ..services import (
     BackupManager,
     LockStatus,
@@ -135,42 +141,34 @@ class MainWindow(QMainWindow):
         current_year = ThesisService.current_academic_year()
         next_year = ThesisService.next_academic_year()
 
-        active_states = {
-            ThesisStatus.RESERVED,
-            ThesisStatus.LISTED,
-            ThesisStatus.ASSIGNED,
-            ThesisStatus.IN_PROGRESS,
-        }
-        finished_states = {ThesisStatus.DEFENDED, ThesisStatus.CANCELLED}
+        # Status-driven filtrace tabů (v0.15.0).
+        # Rok ovlivňuje pouze řazení/grupování uvnitř, ne příslušnost k tabu.
+        # Migrate v Database._migrate_assigned_status zajistí, že staré
+        # 'assigned' už neexistuje — všechny takové práce jsou v IN_PROGRESS.
 
         self.tabs = QTabWidget()
         self.tab_current = _ThesesTab(
             service,
-            lambda t: t.academic_year == current_year and t.status in active_states,
+            lambda t: t.status in STATUSES_CURRENT,
             year_mode=YEAR_MODE_CURRENT,
         )
         self.tab_future = _ThesesTab(
             service,
-            lambda t: t.academic_year == next_year
-            or (t.status == ThesisStatus.INTERESTED and t.academic_year >= current_year),
+            lambda t: t.status in STATUSES_FUTURE,
             year_mode=YEAR_MODE_FUTURE,
         )
         self.tab_history = _ThesesTab(
             service,
-            lambda t: t.status in finished_states
-            or (
-                t.academic_year
-                and t.academic_year < current_year
-                and t.status not in {ThesisStatus.INTERESTED}
-            ),
+            lambda t: t.status in STATUSES_HISTORY,
             year_mode=YEAR_MODE_HISTORY,
         )
         self.tab_all = _ThesesTab(service, lambda t: True, year_mode=YEAR_MODE_ALL)
         self.tab_opposing = OpposingTab(service)
         self.tab_harmonogram = HarmonogramTab(service)
 
-        self.tabs.addTab(self.tab_current, f"Aktuální ({current_year})")
-        self.tabs.addTab(self.tab_future, f"Budoucí ({next_year})")
+        # Tab labely (bez roku — status-driven, jeden tab = jeden bucket napříč roky)
+        self.tabs.addTab(self.tab_current, "Aktuální")
+        self.tabs.addTab(self.tab_future, "Budoucí")
         self.tabs.addTab(self.tab_history, "Historie")
         self.tabs.addTab(self.tab_all, "Vše")
         self.tabs.addTab(self.tab_opposing, "🧐 Oponentské posudky")
@@ -190,16 +188,25 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         act_new_thesis = QAction("+ Nová práce", self)
-        act_new_thesis.triggered.connect(lambda: self._new_thesis(current_year))
+        act_new_thesis.setToolTip(
+            "Vytvoří novou práci. Výchozí stav se odvodí z aktuálního tabu:\n"
+            "  Aktuální → V řešení\n  Budoucí → Vypsané téma\n"
+            "  Historie → Obhájeno\n  Vše → Vypsané téma"
+        )
+        act_new_thesis.triggered.connect(lambda: self._new_thesis_smart())
         toolbar.addAction(act_new_thesis)
 
-        act_new_interest = QAction("+ Zájemce (budoucí rok)", self)
+        act_new_interest = QAction("+ Zájemce (bez tématu)", self)
+        act_new_interest.setToolTip(
+            "Rychlé přidání zájemce o budoucí téma (status: Zájemce bez tématu)."
+        )
         act_new_interest.triggered.connect(
             lambda: self._new_thesis(next_year, ThesisStatus.INTERESTED)
         )
         toolbar.addAction(act_new_interest)
 
         act_new_past = QAction("+ Minulá práce", self)
+        act_new_past.setToolTip("Rychlý formulář pro historickou práci (vlastní rok + stav).")
         act_new_past.triggered.connect(self._new_past_thesis)
         toolbar.addAction(act_new_past)
 
@@ -472,6 +479,29 @@ class MainWindow(QMainWindow):
 
     # --- akce ----------------------------------------------------------------
 
+    def _new_thesis_smart(self) -> None:
+        """Tab-aware varianta + Nová práce — default status z aktuálního tabu.
+
+        Mapování:
+          Aktuální → V řešení (IN_PROGRESS) v aktuálním roce
+          Budoucí → Vypsané téma (LISTED) v příštím roce
+          Historie → Obhájeno (DEFENDED) v minulém roce
+          Vše / Oponentury → Vypsané téma v aktuálním roce
+        """
+        current_year = ThesisService.current_academic_year()
+        next_year = ThesisService.next_academic_year()
+        previous_year = ThesisService.previous_academic_year()
+
+        active = self.tabs.currentWidget()
+        if active is self.tab_current:
+            self._new_thesis(current_year, ThesisStatus.IN_PROGRESS)
+        elif active is self.tab_future:
+            self._new_thesis(next_year, ThesisStatus.LISTED)
+        elif active is self.tab_history:
+            self._new_thesis(previous_year, ThesisStatus.DEFENDED)
+        else:
+            self._new_thesis(current_year, ThesisStatus.LISTED)
+
     def _new_thesis(self, year: str, status: ThesisStatus = ThesisStatus.RESERVED) -> None:
         thesis_type_label, ok = QInputDialog.getItem(
             self,
@@ -509,7 +539,6 @@ class MainWindow(QMainWindow):
         past_statuses = [
             ThesisStatus.DEFENDED,
             ThesisStatus.IN_PROGRESS,
-            ThesisStatus.ASSIGNED,
             ThesisStatus.CANCELLED,
         ]
         for s in past_statuses:

@@ -89,10 +89,13 @@ PLAGIARISM_VERDICT_COLORS: dict["PlagiarismVerdict", str] = {
 
 
 class ThesisStatus(str, Enum):
+    # Pozn.: ``ASSIGNED`` (Schválené téma) byl ve verzi 0.15.0 sloučen
+    # do ``IN_PROGRESS`` — po schválení tématu de facto začíná práce
+    # a samostatný stav přidával jen šum. Migrace v ``Database`` převede
+    # všechny existující ``assigned`` na ``in_progress``.
     INTERESTED = "interested"
     RESERVED = "reserved"
     LISTED = "listed"
-    ASSIGNED = "assigned"
     IN_PROGRESS = "in_progress"
     DEFENDED = "defended"
     CANCELLED = "cancelled"
@@ -114,7 +117,6 @@ STATUS_LABELS: dict[ThesisStatus, str] = {
     ThesisStatus.INTERESTED: "Zájemce bez tématu",
     ThesisStatus.RESERVED: "Zájemce s tématem",
     ThesisStatus.LISTED: "Vypsané téma",
-    ThesisStatus.ASSIGNED: "Schválené téma",
     ThesisStatus.IN_PROGRESS: "V řešení",
     ThesisStatus.DEFENDED: "Obhájeno",
     ThesisStatus.CANCELLED: "Nedokončeno",
@@ -124,7 +126,6 @@ STATUS_COLORS: dict[ThesisStatus, str] = {
     ThesisStatus.INTERESTED: "#9e9e9e",
     ThesisStatus.RESERVED: "#ffb74d",
     ThesisStatus.LISTED: "#64b5f6",
-    ThesisStatus.ASSIGNED: "#4fc3f7",
     ThesisStatus.IN_PROGRESS: "#7e57c2",
     ThesisStatus.DEFENDED: "#66bb6a",
     ThesisStatus.CANCELLED: "#e57373",
@@ -134,12 +135,36 @@ STATUS_ORDER: dict[ThesisStatus, int] = {
     s: i for i, s in enumerate(ThesisStatus)
 }
 
+
+# ── Tab buckety (status-driven, bez ohledu na rok) ──────────────────────────
+#
+# Status-driven filtrace pro hlavní záložky. Rok se používá jen pro
+# řazení uvnitř, ne pro vyloučení z tabu (viz ``main_window.py``).
+STATUSES_FUTURE: set[ThesisStatus] = {
+    ThesisStatus.INTERESTED,
+    ThesisStatus.RESERVED,
+    ThesisStatus.LISTED,
+}
+STATUSES_CURRENT: set[ThesisStatus] = {
+    ThesisStatus.IN_PROGRESS,
+}
+STATUSES_HISTORY: set[ThesisStatus] = {
+    ThesisStatus.DEFENDED,
+    ThesisStatus.CANCELLED,
+}
+
+
 ALLOWED_TRANSITIONS: dict[ThesisStatus, set[ThesisStatus]] = {
     ThesisStatus.INTERESTED: {ThesisStatus.RESERVED, ThesisStatus.CANCELLED},
-    ThesisStatus.RESERVED: {ThesisStatus.LISTED, ThesisStatus.INTERESTED, ThesisStatus.CANCELLED},
-    ThesisStatus.LISTED: {ThesisStatus.ASSIGNED, ThesisStatus.RESERVED, ThesisStatus.CANCELLED},
-    ThesisStatus.ASSIGNED: {ThesisStatus.IN_PROGRESS, ThesisStatus.LISTED, ThesisStatus.CANCELLED},
-    ThesisStatus.IN_PROGRESS: {ThesisStatus.DEFENDED, ThesisStatus.CANCELLED, ThesisStatus.ASSIGNED},
+    ThesisStatus.RESERVED: {ThesisStatus.LISTED, ThesisStatus.INTERESTED, ThesisStatus.IN_PROGRESS, ThesisStatus.CANCELLED},
+    ThesisStatus.LISTED: {ThesisStatus.IN_PROGRESS, ThesisStatus.RESERVED, ThesisStatus.CANCELLED},
+    ThesisStatus.IN_PROGRESS: {ThesisStatus.DEFENDED, ThesisStatus.CANCELLED, ThesisStatus.LISTED},
     ThesisStatus.DEFENDED: set(),
-    ThesisStatus.CANCELLED: {ThesisStatus.INTERESTED},
+    # Druhý pokus obhajoby: z Nedokončeno se dá zpět do V řešení (re-open)
+    # nebo přímo Obhájeno (oprava omylu / shortcut když práce už fakticky obhájena).
+    ThesisStatus.CANCELLED: {
+        ThesisStatus.INTERESTED,
+        ThesisStatus.IN_PROGRESS,
+        ThesisStatus.DEFENDED,
+    },
 }
