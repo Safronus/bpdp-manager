@@ -59,6 +59,35 @@ ACTION_CREATE = "create"
 ACTION_UPDATE = "update"
 ACTION_SKIP = "skip"
 
+# STAG kódy stavu práce (sloupec ``stavPrace``) → náš ``ThesisStatus``.
+# Zdroj: konzultace s uživatelem (FAI UTB STAG export).
+#
+#   R     - Rozpracovaná                              → V řešení
+#   DBPOO - Dokončená bez pokusu o obhajobu           → V řešení
+#   DUO   - Dokončená s úspěšnou obhajobou            → Obhájeno
+#   DBUO  - Dokončená s neúspěšnou obhajobou          → Nedokončeno
+#   ND    - Nedokončená práce                         → Nedokončeno
+#
+# Pozn.: DBUO a ND mají v našem schématu společný stav (CANCELLED =
+# „Nedokončeno"). Nuance „failed defense" vs „abandoned work" lze
+# dohledat v poli ``stag_state_code`` u Thesis (zachovává se z importu).
+STAG_STATE_TO_STATUS: dict[str, ThesisStatus] = {
+    "R": ThesisStatus.IN_PROGRESS,
+    "DBPOO": ThesisStatus.IN_PROGRESS,
+    "DUO": ThesisStatus.DEFENDED,
+    "DBUO": ThesisStatus.CANCELLED,
+    "ND": ThesisStatus.CANCELLED,
+}
+
+# Lidsky čitelná jména STAG kódů pro tooltip.
+STAG_STATE_LABELS: dict[str, str] = {
+    "R": "Rozpracovaná",
+    "DBPOO": "Dokončená bez pokusu o obhajobu",
+    "DUO": "Dokončená s úspěšnou obhajobou",
+    "DBUO": "Dokončená, neúspěšná obhajoba",
+    "ND": "Nedokončená práce",
+}
+
 
 class _ImportHadErrors(Exception):
     """Vnitřní sentinel pro vyhození batche když nastaly per-řádkové chyby.
@@ -596,7 +625,9 @@ class StagImportDialog(QDialog):
               <td><code>{esc(record.adipidno)}</code></td></tr>
           <tr><td class='k'>Stav (zvolený)</td><td>{esc(status_label)}</td></tr>
           <tr><td class='k'>Stav (STAG kód)</td>
-              <td><code>{esc(record.stag_state_code)}</code></td></tr>
+              <td><code>{esc(record.stag_state_code)}</code>
+              {" — <i>" + esc(STAG_STATE_LABELS.get((record.stag_state_code or '').strip().upper(), 'neznámý kód')) + "</i>" if record.stag_state_code else ""}
+              </td></tr>
           <tr><td class='k'>Vedoucí</td><td>{esc(record.supervisor_name)}</td></tr>
           <tr><td class='k'>Oponent</td><td>{esc(record.opponent_name)}</td></tr>
           <tr><td class='k'>Známky</td>
@@ -903,17 +934,24 @@ class StagImportDialog(QDialog):
     def _smart_status_for_record(
         record: ParsedRecord, fallback: ThesisStatus
     ) -> ThesisStatus:
-        """Per-řádkový default stav na základě datumů z STAG CSV.
+        """Per-řádkový default stav.
 
-        Logika:
-        - ``datumObhajoby`` vyplněno → ``DEFENDED``
-        - ``datumOdevzdani`` vyplněno (ale ne obhajoba) → ``IN_PROGRESS``
-        - ``datumZadani`` vyplněno (ale ne odevzdání) → ``ASSIGNED``
-        - jinak → ``fallback`` (z hlavičkového combo boxu)
+        Priorita:
+        1. **STAG kód `stavPrace`** (R / DBPOO / DUO / DBUO / ND) — pokud je
+           v CSV, je autoritativní (přímo říká stav práce).
+        2. **Datumové heuristiky** — fallback pro CSV bez ``stavPrace``:
+           - ``datumObhajoby`` vyplněno → ``DEFENDED``
+           - ``datumOdevzdani`` vyplněno (ale ne obhajoba) → ``IN_PROGRESS``
+           - ``datumZadani`` vyplněno (ale ne odevzdání) → ``ASSIGNED``
+        3. **Fallback** z hlavičkového combo boxu pro úplně prázdné řádky.
 
-        STAG ``stavPrace`` kódy záměrně ignorujeme — jejich významy se
-        mezi katedrami liší a uživatel může chtít stav přepsat per řádek.
+        Mapování STAG kódů → náš ``ThesisStatus``: viz konstanta
+        ``STAG_STATE_TO_STATUS`` na vrcholu modulu.
         """
+        code = (record.stag_state_code or "").strip().upper()
+        if code in STAG_STATE_TO_STATUS:
+            return STAG_STATE_TO_STATUS[code]
+        # Fallback na datumovou heuristiku
         if record.date_defended is not None:
             return ThesisStatus.DEFENDED
         if record.date_submitted is not None:
@@ -926,22 +964,49 @@ class StagImportDialog(QDialog):
     def _status_heuristic_explanation(
         record: ParsedRecord, chosen: ThesisStatus
     ) -> str:
-        if record.date_defended is not None:
+        code = (record.stag_state_code or "").strip().upper()
+        # 1) Známý STAG kód má přednost
+        if code in STAG_STATE_TO_STATUS:
+            human = STAG_STATE_LABELS.get(code, "")
             return (
-                f"Auto-default: Obhájeno (CSV má datumObhajoby = "
-                f"{record.date_defended.strftime('%d.%m.%Y')}). "
-                "Pokud je to chyba, zvol jiný stav."
+                f"Auto-default: {chosen.label}\n"
+                f"  → STAG stavPrace = {code} ({human})\n"
+                f"\n"
+                f"Mapování STAG → BPDPManager:\n"
+                f"  R     → V řešení (Rozpracovaná)\n"
+                f"  DBPOO → V řešení (Dokončená bez pokusu o obhajobu)\n"
+                f"  DUO   → Obhájeno (úspěšná obhajoba)\n"
+                f"  DBUO  → Nedokončeno (neúspěšná obhajoba)\n"
+                f"  ND    → Nedokončeno (nedokončená)\n"
+                f"\n"
+                f"Pokud je to chyba, zvol jiný stav."
+            )
+        # 2) STAG kód neznámý / prázdný → datumové fallback
+        if code:
+            prefix = (
+                f"STAG stavPrace = {code} — neznámý kód, použita "
+                "datumová heuristika:\n"
+            )
+        else:
+            prefix = (
+                "STAG stavPrace prázdné, použita datumová heuristika:\n"
+            )
+        if record.date_defended is not None:
+            return prefix + (
+                f"  → Obhájeno (CSV má datumObhajoby = "
+                f"{record.date_defended.strftime('%d.%m.%Y')})."
             )
         if record.date_submitted is not None:
-            return (
-                f"Auto-default: V řešení (CSV má datumOdevzdani = "
-                f"{record.date_submitted.strftime('%d.%m.%Y')} ale ne datumObhajoby). "
-                "Pokud již byla obhajoba, přepni na *Obhájeno*."
+            return prefix + (
+                f"  → V řešení (CSV má datumOdevzdani = "
+                f"{record.date_submitted.strftime('%d.%m.%Y')} "
+                "ale ne datumObhajoby)."
             )
         if record.date_assigned is not None:
-            return (
-                f"Auto-default: Schválené téma (CSV má datumZadani = "
-                f"{record.date_assigned.strftime('%d.%m.%Y')} ale ne odevzdání)."
+            return prefix + (
+                f"  → Schválené téma (CSV má datumZadani = "
+                f"{record.date_assigned.strftime('%d.%m.%Y')} "
+                "ale ne odevzdání)."
             )
         return f"Default z hlavičky: {chosen.label}"
 

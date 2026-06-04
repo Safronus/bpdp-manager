@@ -7,6 +7,48 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-06-04
+
+### Added
+- **STAG `stavPrace` kódy jsou nyní autoritativním zdrojem stavu**
+  při importu. Tabulka mapování:
+  
+  | STAG kód | Popis (STAG)                              | → BPDPManager       |
+  |----------|-------------------------------------------|---------------------|
+  | `R`      | Rozpracovaná                              | *V řešení*          |
+  | `DBPOO`  | Dokončená bez pokusu o obhajobu           | *V řešení*          |
+  | `DUO`    | Dokončená s úspěšnou obhajobou            | *Obhájeno*          |
+  | `DBUO`   | Dokončená, neúspěšná obhajoba             | *Nedokončeno*       |
+  | `ND`     | Nedokončená práce                         | *Nedokončeno*       |
+  
+  Per-row default stavu v náhledu STAG importu se nyní určuje takto:
+  1. **Známý STAG kód** → přímé mapování (autoritativní zdroj).
+  2. Neznámý nebo prázdný kód → datumová heuristika (jako v 0.14.1).
+  3. Žádné datumy → fallback z hlavičkového formuláře.
+- Tooltip nad combo boxem stavu vypisuje **plné mapování STAG → BPDPManager**
+  + jaký kód byl detekován + jeho lidský popis (např. *„DBPOO = Dokončená
+  bez pokusu o obhajobu"*).
+- Detail panel pod tabulkou vedle STAG kódu nově zobrazuje i lidsky
+  čitelný popis kódu (kurzívou).
+
+### Fixed
+- BP/DP s ``stavPrace = DBPOO`` se už nezařadí defaultně jako
+  *Obhájeno* (a tím pádem do *Historie*), ale jako *V řešení* —
+  protože STAG explicitně říká, že obhajoba ještě neproběhla.
+  Ověřeno nad reálnými CSV soubory (BP i DP s `DBPOO`).
+
+### Notes
+- `DBUO` (neúspěšná obhajoba) a `ND` (nedokončená) se mapují na
+  stejný interní stav *Nedokončeno*. Nuanci „failed defense"
+  vs „abandoned" lze dohledat v originálním STAG kódu — záznam
+  parseru ho zachovává v ``record.stag_state_code``, který je
+  viditelný v detail panelu STAG dialogu.
+- Pokud STAG dodá kód, který v tabulce nemáme (např. nová verze
+  STAG), import na něj nepadne — použije datumovou heuristiku
+  a tooltip uživatele upozorní *„neznámý kód, použita datumová
+  heuristika"*. Stačí tabulku doplnit v
+  ``STAG_STATE_TO_STATUS`` a `STAG_STATE_LABELS`.
+
 ## [0.14.1] - 2026-06-04
 
 ### Changed
