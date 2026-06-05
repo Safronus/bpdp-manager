@@ -886,26 +886,45 @@ class MainWindow(QMainWindow):
         cb_student.addItem("(bez studenta)", None)
         for st in self.service.list_students():
             cb_student.addItem(st.full_name, st.id)
+        btn_new_student = QPushButton("+ Nový")
+        btn_new_student.setToolTip("Založit nového studenta (vč. oboru).")
+        student_row = QHBoxLayout()
+        student_row.setContentsMargins(0, 0, 0, 0)
+        student_row.addWidget(cb_student, stretch=1)
+        student_row.addWidget(btn_new_student)
+        student_widget = QWidget()
+        student_widget.setLayout(student_row)
 
+        # Obor je vždy editovatelný (pole je nepovinné); při výběru studenta se
+        # předvyplní jeho oborem.
         cb_obor = QComboBox()
         cb_obor.setEditable(True)
         cb_obor.addItem("")
         for o in self.service.list_obor_objects():
             cb_obor.addItem(o.name)
-        cb_obor.setEnabled(False)
-        cb_obor.lineEdit().setPlaceholderText("(vyber nejdřív studenta)")
+        cb_obor.lineEdit().setPlaceholderText("Obor (nepovinné)")
 
         def _on_student() -> None:
             sid = cb_student.currentData()
             if sid:
                 st = self.service.get_student(sid)
-                cb_obor.setEnabled(True)
                 cb_obor.setCurrentText((st.obor if st else "") or "")
-            else:
-                cb_obor.setCurrentText("")
-                cb_obor.setEnabled(False)
 
         cb_student.currentIndexChanged.connect(lambda _i: _on_student())
+
+        def _new_student() -> None:
+            from .student_dialog import StudentDialog
+
+            dlg = StudentDialog(self.service, parent=dialog)
+            if dlg.exec() != QDialog.DialogCode.Accepted:
+                return
+            new_st = dlg.student
+            cb_student.addItem(new_st.full_name, new_st.id)
+            cb_student.setCurrentIndex(cb_student.count() - 1)  # vyvolá _on_student
+            if new_st.obor:
+                cb_obor.setCurrentText(new_st.obor)
+
+        btn_new_student.clicked.connect(_new_student)
 
         ed_title = QLineEdit()
         ed_anot = QPlainTextEdit()
@@ -914,15 +933,15 @@ class MainWindow(QMainWindow):
         form.addRow("Typ", cb_type)
         form.addRow("Akademický rok", ed_year)
         form.addRow("Stav", cb_status)
-        form.addRow("Student", cb_student)
+        form.addRow("Student", student_widget)
         form.addRow("Obor", cb_obor)
         form.addRow("Název", ed_title)
         form.addRow("Anotace", ed_anot)
         layout.addLayout(form)
 
         hint = QLabel(
-            "Nepovinné — co nevyplníš, zůstane prázdné. Obor se ukládá ke "
-            "zvolenému studentovi."
+            "Nepovinné — co nevyplníš, zůstane prázdné. Obor se ukládá "
+            "ke zvolenému studentovi (jen pokud je zvolen)."
         )
         hint.setStyleSheet("color:#888;")
         hint.setWordWrap(True)

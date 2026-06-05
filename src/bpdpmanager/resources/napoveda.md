@@ -97,8 +97,10 @@ Teď můžeš:
 - nebo **ručně přidat práci** (toolbar *+ Nová práce*),
 - **🌱 Zájemce** — nová budoucí práce s dialogem, kde rovnou (volitelně)
   vyplníš **studenta, obor, název a anotaci** (nic není povinné — co
-  nevyplníš, zůstane prázdné). Stav je defaultně *Vypsané téma* (lze změnit
-  na *Zájemce s tématem* / *bez tématu*). Obor se uloží ke zvolenému studentovi.
+  nevyplníš, zůstane prázdné). Studenta lze rovnou **založit tlačítkem
+  „+ Nový"** (vč. oboru). Obor je **vždy editovatelný**; při výběru studenta se
+  předvyplní jeho oborem a (je-li student zvolen) se k němu uloží. Stav je
+  defaultně *Vypsané téma* (lze změnit na *Zájemce s tématem* / *bez tématu*).
 - u práce *V řešení* kliknout **📝 Napsat posudek…**.
 
 ---

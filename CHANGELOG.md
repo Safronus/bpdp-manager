@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-06-06
+
+### Changed
+- **Dialog „🌱 Zájemce" doladěn.** Studenta lze rovnou založit tlačítkem
+  **+ Nový** (vč. oboru). Pole **Obor je vždy editovatelné** (nepovinné, není
+  podmíněné výběrem studenta) — při výběru studenta se předvyplní jeho oborem.
+
 ## [0.47.0] - 2026-06-06
 
 ### Added
