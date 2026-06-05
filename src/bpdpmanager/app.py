@@ -120,6 +120,13 @@ def run() -> int:
     # Nový (právě vytvořený) profil dostane výchozí obory + šablony.
     service.maybe_seed_defaults()
 
+    # Jednorázová oprava názvů archivních posudků (starší bug — kumulace
+    # „_archiv_"). Idempotentní, čisté názvy nechá být.
+    try:
+        service.repair_review_archive_names()
+    except Exception:  # noqa: BLE001
+        pass
+
     window = MainWindow(service, profile_manager=pm)
     if icon_path is not None:
         window.setWindowIcon(QIcon(str(icon_path)))

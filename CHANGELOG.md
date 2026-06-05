@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.42.1] - 2026-06-06
+
+### Fixed
+- **Kumulace „_archiv_" v názvech archivních posudků.** Při generování nového
+  posudku se archivní přípona připisovala i už dříve archivovaným souborům,
+  takže se `_archiv_<ts>` zanořovalo (`…_archiv_…_archiv_…`). Nově se
+  archivují jen soubory, které ještě nejsou v `archiv/`. Při startu navíc
+  proběhne **jednorázová oprava názvů** existujících archivů (sloučí zanořené
+  segmenty; idempotentní).
+
 ## [0.42.0] - 2026-06-06
 
 ### Changed

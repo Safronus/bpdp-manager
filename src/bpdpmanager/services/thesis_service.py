@@ -1879,7 +1879,10 @@ class ThesisService:
 
         kept: list[Attachment] = []
         for att in attachments:
-            if att.kind != kind or not att.is_file:
+            # Soubory, které UŽ JSOU v archivu, nech být — jinak by se jim při
+            # každém novém posudku znovu přidával „_archiv_" do názvu (kumulace).
+            already_archived = Path(att.url_or_path).parent.name == "archiv"
+            if att.kind != kind or not att.is_file or already_archived:
                 kept.append(att)
                 continue
             abs_path = base_dir / att.url_or_path
@@ -1923,6 +1926,69 @@ class ThesisService:
             if not (archive_dir / candidate).exists():
                 return candidate
             n += 1
+
+    # Vícenásobně zanořené „_archiv_<datum>_<čas>" segmenty (důsledek staršího
+    # bugu) — sloučíme je na první výskyt.
+    _NESTED_ARCHIVE_RE = re.compile(
+        r"(_archiv_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?)"
+        r"(?:_archiv_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?)+"
+    )
+
+    def repair_review_archive_names(self) -> int:
+        """Jednorázová oprava názvů archivních posudků.
+
+        Sloučí vícenásobně zanořené ``_archiv_<ts>`` segmenty v názvech
+        archivovaných souborů (důsledek staršího bugu, kdy se archiv připisoval
+        i už archivovaným souborům). Idempotentní — čisté názvy nechá být.
+        Vrací počet přejmenovaných souborů.
+        """
+        repaired = 0
+        for thesis in self.list_theses():
+            n = self._repair_archive_names_for(thesis.id, thesis.attachments)
+            if n:
+                self.upsert_thesis(thesis)
+                repaired += n
+        for op in self.list_opposing_theses():
+            n = self._repair_archive_names_for(f"opposing-{op.id}", op.attachments)
+            if n:
+                self.upsert_opposing_thesis(op)
+                repaired += n
+        return repaired
+
+    def _repair_archive_names_for(
+        self, container_id: str, attachments: list[Attachment]
+    ) -> int:
+        base = thesis_documents_dir(container_id)
+        renamed = 0
+        for att in attachments:
+            if not att.is_file:
+                continue
+            rel = Path(att.url_or_path)
+            new_name = self._NESTED_ARCHIVE_RE.sub(r"\1", rel.name)
+            if new_name == rel.name:
+                continue
+            new_rel = rel.with_name(new_name)
+            old_abs = base / rel
+            new_abs = base / new_rel
+            # Zajisti unikátnost, kdyby cílový název už existoval.
+            if new_abs != old_abs and new_abs.exists():
+                stem, suffix = new_rel.stem, new_rel.suffix
+                k = 2
+                while (base / new_rel.with_name(f"{stem}_{k}{suffix}")).exists():
+                    k += 1
+                new_rel = new_rel.with_name(f"{stem}_{k}{suffix}")
+                new_abs = base / new_rel
+            try:
+                if old_abs.exists():
+                    old_abs.rename(new_abs)
+                old_basename = rel.name
+                att.url_or_path = str(new_rel)
+                if att.label == old_basename:
+                    att.label = new_rel.name
+                renamed += 1
+            except OSError:
+                pass
+        return renamed
 
     def prune_missing_documents(self, thesis_id: str) -> int:
         """Odebere ze seznamu příloh ty soubory, které fyzicky neexistují.
