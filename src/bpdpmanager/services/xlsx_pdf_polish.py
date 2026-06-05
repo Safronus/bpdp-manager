@@ -3,8 +3,9 @@
 Uložený XLSX (přílohu k práci) necháváme 1:1 se šablonou — tyhle úpravy se
 dělají jen na dočasné kopii, kterou pak LibreOffice převede do PDF:
 
-1. **Vyvážené okraje** — ``horizontalCentered`` vycentruje tisk na stránce,
-   takže vpravo vznikne stejná mezera jako vlevo.
+1. **Vyvážené okraje / širší tabulka** — tisk se omezí na sloupce s obsahem
+   (aby prázdné sloupce vpravo nedělaly velkou mezeru) a obsah se měřítkem
+   roztáhne na šířku stránky. Levý okraj zůstává, vpravo se mezera zmenší.
 2. **Hlavička „Body (0–5)"** — buňka dostane menší a černý font (na úzký
    sloupec se vejde na jeden řádek a líp se čte).
 
@@ -21,6 +22,9 @@ from xml.etree import ElementTree as ET
 _M = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 _BODY_FONT_SIZE = "9"
 _SHEET_RE = re.compile(r"xl/worksheets/sheet\d+\.xml$")
+_EMU_PER_PX = 9525
+_EMU_PER_MM = 36000
+_EMU_PER_INCH = 914400
 
 
 def polish_pdf_layout(path: Path) -> None:
@@ -34,7 +38,7 @@ def polish_pdf_layout(path: Path) -> None:
 
     changed = False
     try:
-        changed |= _center_print(parts, names)
+        changed |= _fit_table_width(parts, names)
     except Exception:  # noqa: BLE001
         pass
     try:
@@ -52,29 +56,109 @@ def polish_pdf_layout(path: Path) -> None:
         pass
 
 
-def _center_print(parts: dict[str, bytes], names: list[str]) -> bool:
-    """Zapne ``horizontalCentered`` na všech listech (vyvážené okraje)."""
-    changed = False
-    for n in names:
-        if not _SHEET_RE.match(n):
-            continue
-        s = parts[n].decode("utf-8")
-        if "<printOptions" in s:
-            if "horizontalCentered" not in s:
-                s = s.replace(
-                    "<printOptions", '<printOptions horizontalCentered="1"', 1
-                )
-                changed = True
-        else:
-            tag = '<printOptions horizontalCentered="1"/>'
-            if "<pageMargins" in s:  # printOptions musí být před pageMargins
-                s = s.replace("<pageMargins", tag + "<pageMargins", 1)
-                changed = True
-            elif "</worksheet>" in s:
-                s = s.replace("</worksheet>", tag + "</worksheet>", 1)
-                changed = True
-        parts[n] = s.encode("utf-8")
-    return changed
+def _col_num(letters: str) -> int:
+    n = 0
+    for ch in letters:
+        n = n * 26 + (ord(ch) - ord("A") + 1)
+    return n
+
+
+def _fit_table_width(parts: dict[str, bytes], names: list[str]) -> bool:
+    """Omez tisk na sloupce s obsahem a roztáhni tabulku na šířku stránky.
+
+    Posudek je na prvním listu (``sheet1``). Pravý okraj rozvržení bereme z
+    nejširší sloučené buňky (u FAI šablon sloupec D), poslední řádek z dat.
+    Tisk omezíme na ``A1:{pravý}{poslední}`` a nastavíme měřítko, aby tabulka
+    vyplnila šířku stránky (levý okraj zůstává, mezera vpravo se zmenší).
+    """
+    sheet_part = "xl/worksheets/sheet1.xml"
+    if sheet_part not in parts:
+        ws = [n for n in names if _SHEET_RE.match(n)]
+        if not ws:
+            return False
+        sheet_part = ws[0]
+    sx = parts[sheet_part].decode("utf-8")
+
+    merge_cols = re.findall(r'<mergeCell ref="[A-Z]+\d+:([A-Z]+)\d+"', sx)
+    if not merge_cols:
+        return False
+    right_col = max(merge_cols, key=_col_num)
+    rows = [int(m) for m in re.findall(r'<row r="(\d+)"', sx)]
+    max_row = max(rows) if rows else 49
+
+    table_emu = _columns_width_emu(sx, _col_num(right_col))
+    paper_w = _paper_width_emu(sx)
+    left_in, right_in = _margins_inches(sx)
+    printable = paper_w - int((left_in + right_in) * _EMU_PER_INCH)
+    if table_emu <= 0 or printable <= 0:
+        return False
+
+    # +3 % kompenzuje hrubší odhad šířky sloupců; drž v bezpečném rozsahu.
+    scale = round(printable / table_emu * 100) + 3
+    scale = max(105, min(120, scale))
+
+    _set_print_area(parts, right_col, max_row)
+    sx = _set_scale(sx, scale)
+    parts[sheet_part] = sx.encode("utf-8")
+    return True
+
+
+def _columns_width_emu(sx: str, right_col_num: int) -> int:
+    default = 8.43
+    fmt = re.search(r'<sheetFormatPr[^>]*defaultColWidth="([0-9.]+)"', sx)
+    if fmt:
+        default = float(fmt.group(1))
+    widths: dict[int, float] = {}
+    for cmin, cmax, w in re.findall(
+        r'<col min="(\d+)" max="(\d+)"[^>]*?width="([0-9.]+)"', sx
+    ):
+        for c in range(int(cmin), int(cmax) + 1):
+            widths[c] = float(w)
+    total_px = 0
+    for c in range(1, right_col_num + 1):
+        total_px += round(widths.get(c, default) * 7 + 5)  # Calibri/Arial ~MDW 7
+    return total_px * _EMU_PER_PX
+
+
+def _paper_width_emu(sx: str) -> int:
+    w_mm = 297 if 'orientation="landscape"' in sx else 210  # A4
+    return w_mm * _EMU_PER_MM
+
+
+def _margins_inches(sx: str) -> tuple[float, float]:
+    m = re.search(r'<pageMargins[^>]*\bleft="([0-9.]+)"[^>]*\bright="([0-9.]+)"', sx)
+    return (float(m.group(1)), float(m.group(2))) if m else (0.7, 0.7)
+
+
+def _set_print_area(parts: dict[str, bytes], right_col: str, max_row: int) -> None:
+    """Nastaví oblast tisku ``A1:{right_col}{max_row}`` pro první list."""
+    wb = parts.get("xl/workbook.xml")
+    if wb is None:
+        return
+    wbx = wb.decode("utf-8")
+    if "_xlnm.Print_Area" in wbx:
+        return  # už má vlastní — nezasahuj
+    m = re.search(r'<sheet [^>]*name="([^"]+)"', wbx)
+    if not m:
+        return
+    sheet_name = m.group(1)
+    ref = f"'{sheet_name}'!$A$1:${right_col}${max_row}"
+    dn = f'<definedName name="_xlnm.Print_Area" localSheetId="0">{ref}</definedName>'
+    if "<definedNames>" in wbx:
+        wbx = wbx.replace("<definedNames>", "<definedNames>" + dn, 1)
+    else:
+        wbx = re.sub(r"(</sheets>)", r"\1<definedNames>" + dn + "</definedNames>", wbx, 1)
+    parts["xl/workbook.xml"] = wbx.encode("utf-8")
+
+
+def _set_scale(sx: str, scale: int) -> str:
+    if "<pageSetup" not in sx:
+        return sx
+    if re.search(r"<pageSetup[^>]*\bscale=", sx):
+        return re.sub(
+            r'(<pageSetup[^>]*\bscale=")\d+(")', rf"\g<1>{scale}\g<2>", sx, count=1
+        )
+    return sx.replace("<pageSetup ", f'<pageSetup scale="{scale}" ', 1)
 
 
 def _restyle_body_header(parts: dict[str, bytes], names: list[str]) -> bool:
@@ -84,12 +168,13 @@ def _restyle_body_header(parts: dict[str, bytes], names: list[str]) -> bool:
     if ss is None or styles is None:
         return False
 
-    # 1) index sdíleného řetězce „Body (0…"
+    # 1) index sdíleného řetězce hlavičky bodů — „Body (0–5)" / „Points (0–5)"
+    #    (jakákoli pomlčka). Matchuje „…(0…5)".
     target_si = None
     for i, si in enumerate(ET.fromstring(ss)):
         txt = "".join(t.text or "" for t in si.iter() if t.tag.endswith("}t"))
         norm = txt.lower().replace(" ", "")
-        if norm.startswith("body(0") or norm.startswith("body(0–"):
+        if "(0" in norm and "5)" in norm:
             target_si = i
             break
     if target_si is None:

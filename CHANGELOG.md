@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.4] - 2026-06-05
+
+### Changed
+- **Šířka tabulky v PDF posudku.** Centrování z 0.31.3 zvětšovalo okraje
+  (prázdné sloupce vpravo dělaly velkou mezeru). Nově se tisk **omezí na
+  sloupce s obsahem** (A–D) a tabulka se **měřítkem roztáhne na šířku
+  stránky** — levý okraj zůstává, mezera vpravo se zmenší. Funguje na CZ/EN
+  i BP/DP šablonách (hlavička bodů „Body/Points (0–5)" se detekuje obecně).
+
 ## [0.31.3] - 2026-06-05
 
 ### Changed

@@ -256,8 +256,9 @@ přegenerovat. Náhled posudku je v záložce **Souhrn**.
 > řeší automaticky — při převodu do PDF logo na dočasné kopii převede na
 > klasický obrázek, takže PDF vypadá stejně jako export z Excelu.
 > Uložený XLSX zůstává beze změny. Při převodu se navíc PDF **vyladí**:
-> vyváží okraje (vycentrovaný tisk), **vycentruje logo** a hlavička
-> sloupce *„Body (0–5)"* dostane menší černý font (na jeden řádek).
+> tabulka se roztáhne na šířku stránky (menší mezera vpravo, levý okraj
+> zůstává), **vycentruje se logo** a hlavička sloupce *„Body (0–5)"*
+> dostane menší černý font (na jeden řádek).
 
 ---
 
