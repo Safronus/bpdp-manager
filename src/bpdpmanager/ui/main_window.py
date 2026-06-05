@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPlainTextEdit,
     QPushButton,
     QSplitter,
     QStatusBar,
@@ -344,9 +345,9 @@ class MainWindow(QMainWindow):
             "  Historie → Obhájeno\n  Vše → Vypsané téma",
         )
         add(
-            "🌱 Zájemce", lambda: self._new_thesis(next_year, ThesisStatus.INTERESTED),
-            self._GROUP_CREATE,
-            "Rychlé přidání zájemce o budoucí téma (status: Zájemce bez tématu).",
+            "🌱 Zájemce", self._new_future_thesis, self._GROUP_CREATE,
+            "Nová budoucí práce — volitelně rovnou vyplníš studenta, obor, "
+            "název a anotaci (nic není povinné). Stav default Vypsané téma.",
         )
         add(
             "🕘 Minulá práce", self._new_past_thesis, self._GROUP_CREATE,
@@ -791,6 +792,99 @@ class MainWindow(QMainWindow):
             return
         thesis_type = next(t for t in ThesisType if t.label == thesis_type_label)
         thesis = Thesis(type=thesis_type, status=status, academic_year=year)
+        self.service.upsert_thesis(thesis)
+        self._refresh_all()
+        self._focus_thesis(thesis.id)
+
+    def _new_future_thesis(self) -> None:
+        """Dialog nové budoucí práce — volitelně předvyplní studenta, obor,
+        název a anotaci. Nic není povinné; stav default *Vypsané téma*."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Nová budoucí práce")
+        dialog.setMinimumWidth(500)
+        layout = QVBoxLayout(dialog)
+        form = QFormLayout()
+
+        cb_type = QComboBox()
+        for t in ThesisType:
+            cb_type.addItem(t.label, t.value)
+        ed_year = QLineEdit(ThesisService.next_academic_year())
+
+        cb_status = QComboBox()
+        for s in (ThesisStatus.LISTED, ThesisStatus.RESERVED, ThesisStatus.INTERESTED):
+            cb_status.addItem(s.label, s.value)
+
+        cb_student = QComboBox()
+        cb_student.addItem("(bez studenta)", None)
+        for st in self.service.list_students():
+            cb_student.addItem(st.full_name, st.id)
+
+        cb_obor = QComboBox()
+        cb_obor.setEditable(True)
+        cb_obor.addItem("")
+        for o in self.service.list_obor_objects():
+            cb_obor.addItem(o.name)
+        cb_obor.setEnabled(False)
+        cb_obor.lineEdit().setPlaceholderText("(vyber nejdřív studenta)")
+
+        def _on_student() -> None:
+            sid = cb_student.currentData()
+            if sid:
+                st = self.service.get_student(sid)
+                cb_obor.setEnabled(True)
+                cb_obor.setCurrentText((st.obor if st else "") or "")
+            else:
+                cb_obor.setCurrentText("")
+                cb_obor.setEnabled(False)
+
+        cb_student.currentIndexChanged.connect(lambda _i: _on_student())
+
+        ed_title = QLineEdit()
+        ed_anot = QPlainTextEdit()
+        ed_anot.setMaximumHeight(110)
+
+        form.addRow("Typ", cb_type)
+        form.addRow("Akademický rok", ed_year)
+        form.addRow("Stav", cb_status)
+        form.addRow("Student", cb_student)
+        form.addRow("Obor", cb_obor)
+        form.addRow("Název", ed_title)
+        form.addRow("Anotace", ed_anot)
+        layout.addLayout(form)
+
+        hint = QLabel(
+            "Nepovinné — co nevyplníš, zůstane prázdné. Obor se ukládá ke "
+            "zvolenému studentovi."
+        )
+        hint.setStyleSheet("color:#888;")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        thesis = Thesis(
+            type=ThesisType(cb_type.currentData()),
+            status=ThesisStatus(cb_status.currentData()),
+            academic_year=ed_year.text().strip(),
+        )
+        thesis.title_cs = ed_title.text().strip()
+        thesis.annotation = ed_anot.toPlainText().strip()
+        sid = cb_student.currentData()
+        if sid:
+            thesis.student_id = sid
+            obor_text = cb_obor.currentText().strip()
+            st = self.service.get_student(sid)
+            if st is not None and obor_text and (st.obor or "") != obor_text:
+                st.obor = obor_text
+                self.service.upsert_student(st)
         self.service.upsert_thesis(thesis)
         self._refresh_all()
         self._focus_thesis(thesis.id)

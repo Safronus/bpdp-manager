@@ -90,6 +90,10 @@ Teď můžeš:
 - **📥 Importovat ze STAG** vedené i oponované práce (toolbar
   *Import ze STAG…*),
 - nebo **ručně přidat práci** (toolbar *+ Nová práce*),
+- **🌱 Zájemce** — nová budoucí práce s dialogem, kde rovnou (volitelně)
+  vyplníš **studenta, obor, název a anotaci** (nic není povinné — co
+  nevyplníš, zůstane prázdné). Stav je defaultně *Vypsané téma* (lze změnit
+  na *Zájemce s tématem* / *bez tématu*). Obor se uloží ke zvolenému studentovi.
 - u práce *V řešení* kliknout **📝 Napsat posudek…**.
 
 ---

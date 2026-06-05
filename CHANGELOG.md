@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-06-06
+
+### Changed
+- **Tlačítko „🌱 Zájemce" otevře dialog nové budoucí práce.** Lze rovnou
+  (volitelně) vyplnit **studenta, obor, název a anotaci** — nic není povinné,
+  co nevyplníš zůstane prázdné. Stav je defaultně **Vypsané téma** (lze změnit).
+  Obor se uloží ke zvolenému studentovi. (Dřív přidalo rovnou prázdného
+  „zájemce bez tématu".)
+
 ## [0.39.0] - 2026-06-06
 
 ### Added
