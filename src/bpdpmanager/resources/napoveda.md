@@ -10,6 +10,68 @@ a **diplomových (DP)** prací jednoho akademického vedoucího.
 
 ---
 
+## 🚀 Začínáme (první spuštění)
+
+Než začneš importovat ze STAG nebo psát posudky, projdi tento checklist.
+Postupuj odshora dolů.
+
+### 1. Datový profil a složka s daty
+Při prvním spuštění tě uvítá okno, kde zvolíš, **kam se ukládají data**:
+
+- **🆕 Nový prázdný profil** — vyber složku pro `db.json`, dokumenty,
+  šablony a zálohy. Pokud chceš data synchronizovat mezi víc Macy,
+  vyber složku v **iCloud Drive** (např.
+  `~/Library/Mobile Documents/com~apple~CloudDocs/BPDPManager`).
+- **📂 Otevřít existující profil** — pokud už složku s `db.json` máš.
+- **📥 Importovat ze ZIP balíku** — pokud přenášíš profil z jiného
+  zařízení (export z druhého Macu).
+
+> Profil lze kdykoli přepnout / přidat přes toolbar **👤** menu.
+> Více profilů = oddělené datové sady (osobní / sdílený …).
+
+### 2. Tvoje jméno a místo posudku (v profilu)
+V **👤 → 🗂 Správa profilů**:
+
+- **👤 Tvoje jméno…** — celé jméno vč. titulů (např.
+  „doc. Ing. Petr Žáček, Ph.D."). Slouží k **auto-detekci role** při
+  STAG importu (rozpozná, jestli jsi u práce vedoucí nebo oponent)
+  a jako **podpis v posudku**.
+- **📍 Místo posudku…** — město pro podpisový blok posudku
+  (default *Zlín*).
+
+### 3. Studijní obory (+ STAG zkratky)
+V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
+
+- **STAG kód** (např. `knIT-KYB`) — **důležité pro STAG import**:
+  podle něj se obor automaticky namapuje. Bez něj tě import upozorní,
+  že obor není namapovaný (a budeš ho muset doplnit ručně).
+- volitelně sekretářku oboru (jméno, email, telefon).
+
+### 4. Šablony posudků
+V toolbaru **📝 Šablony posudků → + Přidat šablonu…** nahraj XLSX
+šablony posudků (vedoucího / oponenta, BP / DP, CZ / EN). Aplikace
+z šablony **sama rozpozná** typ, roli, jazyk, obor, rok i strukturu
+kritérií. Bez šablon nelze generovat posudky.
+
+### 5. (Volitelně) LibreOffice pro PDF
+Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:
+
+```bash
+brew install --cask libreoffice
+```
+
+Bez něj se vygeneruje jen XLSX (PDF si vyrobíš v Excelu přes Export).
+
+### 6. Hotovo — můžeš pracovat
+Teď můžeš:
+
+- **📥 Importovat ze STAG** vedené i oponované práce (toolbar
+  *Import ze STAG…*),
+- nebo **ručně přidat práci** (toolbar *+ Nová práce*),
+- u práce *V řešení* kliknout **📝 Napsat posudek…**.
+
+---
+
 ## Přehled obrazovky
 
 Hlavní okno má nahoře **toolbar** a pod ním **záložky** (taby):

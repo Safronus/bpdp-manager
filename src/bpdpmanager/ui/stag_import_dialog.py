@@ -452,7 +452,6 @@ class StagImportDialog(QDialog):
             # === Obor mapping ===
             cb_obor = QComboBox()
             cb_obor.setEditable(False)
-            cb_obor.setStyleSheet(combo_neutral_qss)
             # Volby:
             #  - mapping na existující obor (auto-detekce přes stag_code)
             #  - "(zachovat STAG kód jako jméno)"
@@ -481,6 +480,11 @@ class StagImportDialog(QDialog):
             obor_layout.addWidget(stag_label)
             obor_layout.addWidget(cb_obor, stretch=1)
             self.table.setCellWidget(row_idx, 7, obor_widget)
+            # Jantarové zvýraznění, pokud STAG obor nemá lokální mapování.
+            self._style_obor_combo(cb_obor)
+            cb_obor.currentIndexChanged.connect(
+                lambda _, cb=cb_obor: self._style_obor_combo(cb)
+            )
 
             # === Stav (jen pro Vedené práce) ===
             cb_status = QComboBox()
@@ -536,11 +540,24 @@ class StagImportDialog(QDialog):
             self.table.selectRow(0)
             self._render_record_detail(0)
 
-        self.lbl_info.setText(
+        # Spočti, kolik řádků má nenamapovaný obor (default „Nemapováno").
+        unmapped = sum(
+            1 for w in self.row_widgets
+            if w["cb_obor"].currentData() == "__keep__"
+        )
+        info = (
             f"📊 Řádků: {len(self.import_file.records)} "
             f"(přeskočeno při parsingu: {self.import_file.skipped})  ·  "
             f"Encoding: {self.import_file.encoding}"
         )
+        if unmapped:
+            info += (
+                f"  ·  <span style='color:#e65100;font-weight:bold;'>"
+                f"⚠ {unmapped}× nenamapovaný obor</span> — "
+                f"doplň ve sloupci „Obor (STAG → cíl)\""
+            )
+        self.lbl_info.setTextFormat(Qt.TextFormat.RichText)
+        self.lbl_info.setText(info)
         self.btn_import.setEnabled(True)
 
     # --- detail panel --------------------------------------------------------
@@ -671,6 +688,37 @@ class StagImportDialog(QDialog):
         self.detail_view.setHtml(html)
 
     # --- obor mapping --------------------------------------------------------
+
+    @staticmethod
+    def _style_obor_combo(cb_obor: QComboBox) -> None:
+        """Obarví obor combo — jantarově když je „Nemapováno", jinak neutrálně.
+
+        Vizuálně upozorní, že STAG obor nemá lokální mapování (uživatel by
+        ho měl namapovat na existující obor nebo založit nový).
+        """
+        neutral = (
+            "QComboBox { background-color: palette(base); color: palette(text); "
+            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px 4px; }"
+            "QComboBox QAbstractItemView { background-color: palette(base); "
+            "color: palette(text); }"
+        )
+        amber = (
+            "QComboBox { background-color: #fff3e0; color: #5d4037; "
+            "border: 1px solid #ffb74d; border-radius: 3px; padding: 2px 4px; "
+            "font-weight: bold; }"
+            "QComboBox QAbstractItemView { background-color: #fffaf2; "
+            "color: #5d4037; }"
+        )
+        if cb_obor.currentData() == "__keep__":
+            cb_obor.setStyleSheet(amber)
+            cb_obor.setToolTip(
+                "⚠ STAG obor není namapovaný na žádný evidovaný obor. "
+                'Vyber existující obor, nebo zvol „Nový obor…" — předvyplní se '
+                "STAG kód, takže příště se namapuje automaticky."
+            )
+        else:
+            cb_obor.setStyleSheet(neutral)
+            cb_obor.setToolTip("")
 
     def _on_obor_combo_changed(self, row_idx: int) -> None:
         if row_idx >= len(self.row_widgets):
@@ -885,11 +933,18 @@ class StagImportDialog(QDialog):
             if missing["obory"]:
                 items = "".join(f"<li><code>{_esc(name)}</code></li>" for name in missing["obory"])
                 body_parts.append(
-                    f"<p>🗂 <b>Obory</b> ({len(missing['obory'])}):"
-                    f" <span style='color:#888;font-size:11px;'>"
-                    f"uloženo pod STAG kódem (lze přejmenovat / přiřadit sekretářku v <i>Obory</i>)"
-                    f"</span></p>"
-                    f"<ul style='margin-top:0;'>{items}</ul>"
+                    "<p style='background:#fff3e0;color:#5d4037;padding:8px;"
+                    "border-radius:4px;border:1px solid #ffb74d;'>"
+                    f"⚠ <b>Nenamapované obory</b> ({len(missing['obory'])}) — "
+                    "STAG kód oboru nemá protějšek v evidovaných oborech, "
+                    "uloží se jako prostý název (a <b>příště se znovu "
+                    "nenamapuje automaticky</b>).<br>"
+                    "<small>Doporučení: zavři tento dialog a u dotčených řádků "
+                    "vyber ve sloupci <i>Obor</i> existující obor, nebo "
+                    'zvol „➕ Nový obor…" (předvyplní STAG kód → příští import '
+                    "se namapuje sám).</small>"
+                    f"<ul style='margin:6px 0 0 0;'>{items}</ul>"
+                    "</p>"
                 )
         else:
             body_parts.append(

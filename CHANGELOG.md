@@ -7,6 +7,32 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-06-05
+
+### Added
+- **STAG import upozorňuje na nenamapovaný obor.** Když STAG kód oboru
+  (např. `knIT-KYB`) nemá protějšek mezi evidovanými obory:
+  - obor combo v náhledu se **jantarově zvýrazní** + tooltip s návodem,
+  - info řádek pod tabulkou ukazuje *„⚠ N× nenamapovaný obor"*,
+  - souhrn před importem má **výraznou žlutou výstrahu** s výčtem
+    nenamapovaných STAG kódů a doporučením je doplnit.
+  Doplnit lze přímo v náhledu — výběrem existujícího oboru, nebo
+  *„➕ Nový obor…"* (předvyplní STAG kód, takže příští import se
+  namapuje automaticky).
+- **First-run tutorial „Začínáme"** — po prvním nastavení profilu se
+  zobrazí uvítací průvodce s checklistem (datová složka, tvoje jméno
+  a místo posudku, obory + STAG kódy, šablony posudků, LibreOffice pro
+  PDF). Tlačítko *📖 Otevřít plnou nápovědu* a checkbox *Příště
+  nezobrazovat*. Zobrazí se jen jednou (flag v registry profilů).
+- **Sekce „🚀 Začínáme (první spuštění)"** v nápovědě — detailní
+  getting-started checklist. First-run tutorial čte stejnou sekci
+  (single-source).
+
+### Notes
+- Nenamapovaný obor (volba „Nemapováno") se i nadále uloží jako prostý
+  název ze STAG kódu — ale teď je to jednoznačně vidět a uživatel může
+  obor založit pořádně (s `stag_code`) pro automatické mapování příště.
+
 ## [0.22.0] - 2026-06-05
 
 ### Added

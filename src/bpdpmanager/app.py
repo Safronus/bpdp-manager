@@ -122,6 +122,17 @@ def run() -> int:
         window.setWindowIcon(QIcon(str(icon_path)))
     window.showMaximized()
 
+    # First-run tutorial — jednou po prvním nastavení profilu.
+    if pm is not None and not pm.tutorial_shown:
+        from .ui.help_dialog import FirstRunDialog, HelpDialog
+
+        tut = FirstRunDialog(window)
+        tut.exec()
+        if tut.dont_show_again:
+            pm.mark_tutorial_shown()
+        if tut.open_full_help:
+            HelpDialog(window).exec()
+
     try:
         rc = app.exec()
     finally:
