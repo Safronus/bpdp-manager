@@ -284,10 +284,11 @@ jako **oponent** (recenzuješ cizí BP/DP). Vlastní model — inline údaje
 o studentovi a vedoucím (přes registr vedoucích s našeptáváním),
 známky, dokumenty, generovaný souhrn. **Souhrn nově ukazuje i napsaný
 posudek** (body, procenta, navržená známka, kritéria, komentář) — stejně
-jako u vedených prací posudek vedoucího. U seznamu dokumentů platí stejné
-chování jako u vedených prací — **📂 Ve Finderu**, indikace chybějících
-souborů i **🧹 Odklidit chybějící**. Archivace posudků (1 aktuální +
-archiv starších) funguje shodně.
+jako u vedených prací posudek vedoucího. **Seznam dokumentů je úplně stejný
+jako u vedených prací** — agregovaný strom podle typu, verzování, **📂 Ve
+Finderu**, pravý klik (Otevřít / Finder / Odebrat), indikace chybějících
+souborů i **🧹 Odklidit chybějící**. Archivace posudků (1 aktuální + archiv
+starších) funguje shodně.
 
 ---
 

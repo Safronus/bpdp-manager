@@ -12,22 +12,18 @@ from __future__ import annotations
 
 import html
 from datetime import datetime
-from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QBrush, QColor, QCursor, QDesktopServices
+from PySide6.QtCore import QTimer, QUrl, Signal
+from PySide6.QtGui import QCursor, QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QComboBox,
-    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
-    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -35,18 +31,15 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QTabWidget,
-    QTableWidget,
-    QTableWidgetItem,
     QTextBrowser,
     QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
-from ..models import Attachment, OpposingThesis
-from ..models.enums import AttachmentKind, ThesisType
+from ..models import OpposingThesis
+from ..models.enums import ThesisType
 from ..services import ThesisService
-from ._os_actions import open_path, reveal_in_file_manager
 from .supervisor_dialog import SupervisorDialog
 from .thesis_detail import (
     YEAR_MODE_ALL,
@@ -55,6 +48,7 @@ from .thesis_detail import (
     _setup_searchable_combo,
     _split_items,
 )
+from .widgets import DocumentsWidget
 
 AUTOSAVE_DEBOUNCE_MS = 1500
 
@@ -360,63 +354,18 @@ class OpposingDetail(QWidget):
             "tvůj posudek oponenta, příp. další):"
         ))
 
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Typ", "Popis / soubor", "Zdroj", "Cesta / URL"])
-        self.table.verticalHeader().setVisible(False)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setAlternatingRowColors(True)
-        h = self.table.horizontalHeader()
-        h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self.table.doubleClicked.connect(self._open_doc)
-        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.table.customContextMenuRequested.connect(self._on_doc_context_menu)
-        layout.addWidget(self.table, stretch=1)
-
-        row = QHBoxLayout()
-        self.cb_doc_kind = QComboBox()
-        # Pro oponentský posudek dává smysl primárně 3 typy + Jiné
-        for k in (
-            AttachmentKind.THESIS_TEXT,
-            AttachmentKind.SUPERVISOR_REVIEW,
-            AttachmentKind.OPPONENT_REVIEW,
-            AttachmentKind.OTHER,
-        ):
-            self.cb_doc_kind.addItem(k.label, k.value)
-        row.addWidget(self.cb_doc_kind)
-        btn_upload = QPushButton("📎 Nahrát soubor…")
-        btn_upload.clicked.connect(self._upload_doc)
-        row.addWidget(btn_upload)
-        row.addStretch()
-        btn_open = QPushButton("Otevřít")
-        btn_open.clicked.connect(self._open_doc)
-        row.addWidget(btn_open)
-        btn_reveal = QPushButton("📂 Ve Finderu")
-        btn_reveal.setToolTip("Zobrazí vybraný soubor ve správci souborů (Finder / Explorer).")
-        btn_reveal.clicked.connect(self._reveal_doc)
-        row.addWidget(btn_reveal)
-        btn_remove = QPushButton("Odebrat")
-        btn_remove.clicked.connect(self._remove_doc)
-        row.addWidget(btn_remove)
-        layout.addLayout(row)
-
-        # Úklid mrtvých záznamů (soubory smazané mimo aplikaci).
-        row2 = QHBoxLayout()
-        self.lbl_missing = QLabel("")
-        self.lbl_missing.setStyleSheet("color:#c62828;")
-        row2.addWidget(self.lbl_missing, stretch=1)
-        self.btn_prune = QPushButton("🧹 Odklidit chybějící")
-        self.btn_prune.setToolTip(
-            "Odebere ze seznamu záznamy, jejichž soubor byl smazán mimo aplikaci."
-        )
-        self.btn_prune.clicked.connect(self._prune_missing_docs)
-        self.btn_prune.setVisible(False)
-        row2.addWidget(self.btn_prune)
-        layout.addLayout(row2)
+        # Stejný agregovaný widget jako u vedených prací (strom podle typu,
+        # verzování, otevřít / Finder / odebrat, indikace chybějících…).
+        self.documents_widget = DocumentsWidget(self.service)
+        self.documents_widget.changed.connect(self._on_documents_changed)
+        layout.addWidget(self.documents_widget, stretch=1)
         return w
+
+    def _on_documents_changed(self) -> None:
+        # Dokumenty se mění přímo přes službu — jen přenačti detail/souhrn.
+        if self.op is not None:
+            self.op = self.service.get_opposing_thesis(self.op.id)
+            self._refresh_summary()
 
     # --- pomocné: zobrazení -------------------------------------------------
 
@@ -435,6 +384,7 @@ class OpposingDetail(QWidget):
 
         self.op = op
         if op is None:
+            self.documents_widget.set_opposing_id(None)
             self._show_empty()
             return
         self._show_form()
@@ -475,7 +425,7 @@ class OpposingDetail(QWidget):
             self.cb_grade_sup.setCurrentText(op.grade_supervisor or "")
             self.cb_grade_opp.setCurrentText(op.grade_opponent or "")
 
-            self._reload_documents_table()
+            self.documents_widget.set_opposing_id(op.id)
             self.lbl_title.setText(self._compose_header_label())
         finally:
             self._loading = False
@@ -608,182 +558,6 @@ class OpposingDetail(QWidget):
             self.service.delete_opposing_thesis(op_id)
             self.set_opposing(None)
             self.deleted.emit(op_id)
-
-    # --- documents ----------------------------------------------------------
-
-    def _reload_documents_table(self) -> None:
-        self.table.setRowCount(0)
-        if self.op is None:
-            return
-        red_fg = QBrush(QColor("#c62828"))
-        missing_count = 0
-        for idx, att in enumerate(self.op.attachments):
-            is_missing = att.is_file and self._doc_is_missing(att)
-            if is_missing:
-                missing_count += 1
-            source_text = (
-                ("⚠ chybí soubor" if is_missing else "📄 soubor")
-                if att.is_file else "🔗 odkaz"
-            )
-            self.table.insertRow(idx)
-            kind_item = QTableWidgetItem(att.kind.label)
-            kind_item.setData(Qt.ItemDataRole.UserRole, idx)
-            cells = [
-                kind_item,
-                QTableWidgetItem(att.label),
-                QTableWidgetItem(source_text),
-                QTableWidgetItem(att.url_or_path),
-            ]
-            for col, item in enumerate(cells):
-                if is_missing:
-                    item.setForeground(red_fg)
-                self.table.setItem(idx, col, item)
-
-        if missing_count:
-            self.lbl_missing.setText(
-                f"⚠ {missing_count}× chybí soubor na disku (smazán mimo aplikaci)."
-            )
-            self.btn_prune.setVisible(True)
-        else:
-            self.lbl_missing.setText("")
-            self.btn_prune.setVisible(False)
-
-    def _doc_is_missing(self, att: Attachment) -> bool:
-        if self.op is None or not att.is_file:
-            return False
-        path = self.service.opposing_document_absolute_path(self.op.id, att)
-        return path is None or not path.exists()
-
-    def _upload_doc(self) -> None:
-        if self.op is None:
-            QMessageBox.information(
-                self, "Nahrát", "Nejprve ulož rozpracovaný posudek."
-            )
-            return
-        path_str, _ = QFileDialog.getOpenFileName(
-            self, "Vyber soubor", str(Path.home()),
-            "Všechny soubory (*.*);;PDF (*.pdf);;Word (*.docx *.doc)",
-        )
-        if not path_str:
-            return
-        kind = AttachmentKind(self.cb_doc_kind.currentData())
-        try:
-            self.service.opposing_attach_document(self.op.id, Path(path_str), kind=kind)
-        except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Chyba", f"Nahrání selhalo:\n{exc}")
-            return
-        # re-fetch op
-        self.op = self.service.get_opposing_thesis(self.op.id)
-        self._reload_documents_table()
-
-    def _remove_doc(self) -> None:
-        if self.op is None:
-            return
-        row = self.table.currentRow()
-        if row < 0:
-            return
-        item = self.table.item(row, 0)
-        idx = item.data(Qt.ItemDataRole.UserRole) if item else None
-        if idx is None:
-            return
-        att = self.op.attachments[idx]
-        if att.is_file:
-            confirm = QMessageBox.question(
-                self, "Odebrat dokument",
-                f"Odebrat „{att.label}“? Smazat i soubor?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                | QMessageBox.StandardButton.Cancel,
-            )
-            if confirm == QMessageBox.StandardButton.Cancel:
-                return
-            delete_file = confirm == QMessageBox.StandardButton.Yes
-        else:
-            if QMessageBox.question(
-                self, "Odebrat odkaz", f"Odebrat „{att.label}“?"
-            ) != QMessageBox.StandardButton.Yes:
-                return
-            delete_file = False
-        self.service.opposing_remove_document(self.op.id, idx, delete_file=delete_file)
-        self.op = self.service.get_opposing_thesis(self.op.id)
-        self._reload_documents_table()
-
-    def _open_doc(self) -> None:
-        if self.op is None:
-            return
-        row = self.table.currentRow()
-        if row < 0:
-            return
-        item = self.table.item(row, 0)
-        idx = item.data(Qt.ItemDataRole.UserRole) if item else None
-        if idx is None:
-            return
-        att = self.op.attachments[idx]
-        if att.is_file:
-            path = self.service.opposing_document_absolute_path(self.op.id, att)
-            if path is None or not path.exists():
-                QMessageBox.warning(self, "Otevřít", f"Soubor neexistuje:\n{path}")
-                return
-            open_path(path)
-        else:
-            open_path(att.url_or_path)
-
-    def _on_doc_context_menu(self, pos) -> None:
-        item = self.table.itemAt(pos)
-        if item is None:
-            return
-        self.table.selectRow(item.row())
-        menu = QMenu(self)
-        act_open = menu.addAction("Otevřít")
-        act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
-        menu.addSeparator()
-        act_remove = menu.addAction("Odebrat")
-        chosen = menu.exec(self.table.viewport().mapToGlobal(pos))
-        if chosen == act_open:
-            self._open_doc()
-        elif chosen == act_reveal:
-            self._reveal_doc()
-        elif chosen == act_remove:
-            self._remove_doc()
-
-    def _reveal_doc(self) -> None:
-        if self.op is None:
-            return
-        row = self.table.currentRow()
-        if row < 0:
-            return
-        item = self.table.item(row, 0)
-        idx = item.data(Qt.ItemDataRole.UserRole) if item else None
-        if idx is None:
-            return
-        att = self.op.attachments[idx]
-        if not att.is_file:
-            QMessageBox.information(
-                self, "Ve Finderu", "Odkaz/URL nelze zobrazit ve správci souborů."
-            )
-            return
-        path = self.service.opposing_document_absolute_path(self.op.id, att)
-        if path is None or not path.exists():
-            QMessageBox.warning(self, "Ve Finderu", f"Soubor neexistuje:\n{path}")
-            return
-        reveal_in_file_manager(path)
-
-    def _prune_missing_docs(self) -> None:
-        if self.op is None:
-            return
-        confirm = QMessageBox.question(
-            self,
-            "Odklidit chybějící",
-            "Odebrat ze seznamu všechny záznamy, jejichž soubor už na disku "
-            "neexistuje? Smažou se jen záznamy v aplikaci.",
-        )
-        if confirm != QMessageBox.StandardButton.Yes:
-            return
-        removed = self.service.opposing_prune_missing_documents(self.op.id)
-        self.op = self.service.get_opposing_thesis(self.op.id)
-        self._reload_documents_table()
-        QMessageBox.information(
-            self, "Odklidit chybějící", f"Odebráno záznamů: {removed}."
-        )
 
     # --- souhrn -------------------------------------------------------------
 

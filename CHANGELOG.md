@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.6] - 2026-06-05
+
+### Changed
+- **Dokumenty u oponentur mají stejný vzhled jako u vedených prací.** Místo
+  ploché tabulky se nově používá stejný **agregovaný strom** (skupiny podle
+  typu, verzování, otevřít / 📂 Finder / odebrat, pravý klik, indikace
+  chybějících souborů, úklid). `DocumentsWidget` umí oba režimy (Thesis i
+  OpposingThesis).
+
 ## [0.31.5] - 2026-06-05
 
 ### Added

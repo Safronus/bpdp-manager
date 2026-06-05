@@ -40,6 +40,9 @@ class DocumentsWidget(QWidget):
         super().__init__(parent)
         self.service = service
         self.thesis_id: str | None = None
+        # Když True, widget pracuje s OpposingThesis (oponentský posudek) —
+        # volá opposing_* metody služby. Jinak s vedenou Thesis.
+        self.opposing: bool = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -138,17 +141,76 @@ class DocumentsWidget(QWidget):
     # --- veřejné API ---------------------------------------------------------
 
     def set_thesis_id(self, thesis_id: str | None) -> None:
+        """Nastaví widget na vedenou práci (Thesis)."""
+        self.opposing = False
         self.thesis_id = thesis_id
         # Při přepnutí na jinou práci resetujeme „uživatel si vybral typ",
         # aby heuristika v rámci nové práce mohla zase navrhovat.
         self._user_changed_kind = False
         self.refresh()
 
+    def set_opposing_id(self, op_id: str | None) -> None:
+        """Nastaví widget na oponentský posudek (OpposingThesis)."""
+        self.opposing = True
+        self.thesis_id = op_id
+        self._user_changed_kind = False
+        self.refresh()
+
+    # --- dispatch (Thesis × OpposingThesis) ----------------------------------
+
+    def _get_work(self):
+        if not self.thesis_id:
+            return None
+        return (
+            self.service.get_opposing_thesis(self.thesis_id)
+            if self.opposing
+            else self.service.get_thesis(self.thesis_id)
+        )
+
+    def _abs_path(self, att: Attachment):
+        return (
+            self.service.opposing_document_absolute_path(self.thesis_id, att)
+            if self.opposing
+            else self.service.document_absolute_path(self.thesis_id, att)
+        )
+
+    def _attach(self, path: Path, kind: AttachmentKind, delete_source: bool):
+        if self.opposing:
+            return self.service.opposing_attach_document(
+                self.thesis_id, path, kind=kind, delete_source=delete_source
+            )
+        return self.service.attach_document(
+            self.thesis_id, path, kind=kind, delete_source=delete_source
+        )
+
+    def _remove(self, index: int, delete_file: bool) -> None:
+        if self.opposing:
+            self.service.opposing_remove_document(
+                self.thesis_id, index, delete_file=delete_file
+            )
+        else:
+            self.service.remove_document(
+                self.thesis_id, index, delete_file=delete_file
+            )
+
+    def _upsert_work(self, work) -> None:
+        if self.opposing:
+            self.service.upsert_opposing_thesis(work)
+        else:
+            self.service.upsert_thesis(work)
+
+    def _prune(self) -> int:
+        return (
+            self.service.opposing_prune_missing_documents(self.thesis_id)
+            if self.opposing
+            else self.service.prune_missing_documents(self.thesis_id)
+        )
+
     def refresh(self) -> None:
         self.tree.clear()
         if not self.thesis_id:
             return
-        thesis = self.service.get_thesis(self.thesis_id)
+        thesis = self._get_work()
         if thesis is None:
             return
 
@@ -235,7 +297,7 @@ class DocumentsWidget(QWidget):
         """True, pokud jde o soubor, jehož fyzická cesta neexistuje."""
         if not att.is_file:
             return False
-        path = self.service.document_absolute_path(self.thesis_id, att)
+        path = self._abs_path(att)
         return path is None or not path.exists()
 
     # --- akce ----------------------------------------------------------------
@@ -277,12 +339,7 @@ class DocumentsWidget(QWidget):
             self._select_kind(kind)
         delete_source = self.chk_delete_source.isChecked()
         try:
-            self.service.attach_document(
-                self.thesis_id,
-                Path(path_str),
-                kind=kind,
-                delete_source=delete_source,
-            )
+            self._attach(Path(path_str), kind, delete_source)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Chyba", f"Nepodařilo se nahrát soubor:\n{exc}")
             return
@@ -316,7 +373,7 @@ class DocumentsWidget(QWidget):
         label, ok = QInputDialog.getText(self, "Popis", "Popis odkazu:", text=url.strip())
         if not ok:
             return
-        thesis = self.service.get_thesis(self.thesis_id)
+        thesis = self._get_work()
         if thesis is None:
             return
         # Verzování i pro URL — supersede stávající current téhož kind
@@ -335,7 +392,7 @@ class DocumentsWidget(QWidget):
                 is_current=True,
             )
         )
-        self.service.upsert_thesis(thesis)
+        self._upsert_work(thesis)
         self.refresh()
         self.changed.emit()
 
@@ -345,7 +402,7 @@ class DocumentsWidget(QWidget):
         idx = self._selected_index()
         if idx is None:
             return
-        thesis = self.service.get_thesis(self.thesis_id)
+        thesis = self._get_work()
         if thesis is None:
             return
         att = thesis.attachments[idx]
@@ -366,7 +423,7 @@ class DocumentsWidget(QWidget):
             if confirm != QMessageBox.StandardButton.Yes:
                 return
             delete_file = False
-        self.service.remove_document(self.thesis_id, idx, delete_file=delete_file)
+        self._remove(idx, delete_file)
         self.refresh()
         self.changed.emit()
 
@@ -376,13 +433,13 @@ class DocumentsWidget(QWidget):
         idx = self._selected_index()
         if idx is None:
             return
-        thesis = self.service.get_thesis(self.thesis_id)
+        thesis = self._get_work()
         if thesis is None:
             return
         att = thesis.attachments[idx]
 
         if att.is_file:
-            path = self.service.document_absolute_path(self.thesis_id, att)
+            path = self._abs_path(att)
             if path is None or not path.exists():
                 QMessageBox.warning(self, "Otevřít", f"Soubor neexistuje:\n{path}")
                 return
@@ -415,7 +472,7 @@ class DocumentsWidget(QWidget):
         idx = self._selected_index()
         if idx is None:
             return
-        thesis = self.service.get_thesis(self.thesis_id)
+        thesis = self._get_work()
         if thesis is None:
             return
         att = thesis.attachments[idx]
@@ -424,7 +481,7 @@ class DocumentsWidget(QWidget):
                 self, "Ve Finderu", "Odkaz/URL nelze zobrazit ve správci souborů."
             )
             return
-        path = self.service.document_absolute_path(self.thesis_id, att)
+        path = self._abs_path(att)
         if path is None or not path.exists():
             QMessageBox.warning(self, "Ve Finderu", f"Soubor neexistuje:\n{path}")
             return
@@ -442,7 +499,7 @@ class DocumentsWidget(QWidget):
         )
         if confirm != QMessageBox.StandardButton.Yes:
             return
-        removed = self.service.prune_missing_documents(self.thesis_id)
+        removed = self._prune()
         self.refresh()
         self.changed.emit()
         QMessageBox.information(
