@@ -8,6 +8,21 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class SmtpConfig(BaseModel):
+    """Nastavení odchozího SMTP serveru pro odesílání posudků.
+
+    Heslo se zde **nikdy neukládá** — uživatel je zadává při každém odeslání.
+    Výchozí hodnoty odpovídají UTB Office365 (viz nápověda / CVT UTB).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    host: str = "outlook.office365.com"
+    port: int = 587
+    security: str = "starttls"  # "starttls" | "ssl" | "none"
+    username: str = ""           # prázdné = použij e-mail uživatele profilu
+
+
 class Profile(BaseModel):
     """Jeden datový profil (data_dir + jméno + meta)."""
 
@@ -15,10 +30,12 @@ class Profile(BaseModel):
     name: str
     data_dir: str  # absolutní cesta ke složce s db.json, documents/, harmonograms/
     user_name: str = ""  # jméno uživatele profilu (pro STAG import auto-detect role)
+    user_email: str = ""  # e-mail uživatele (odesílatel posudků sekretářkám)
     # Tituly před/za jménem (volný string) — skládají se do jména autora posudku.
     user_title_before: str = ""  # např. "doc. Ing."
     user_title_after: str = ""   # např. "Ph.D." nebo ", Ph.D."
     review_place: str = "Zlín"  # místo pro podpisový blok posudku (Místo, datum)
+    smtp: SmtpConfig = Field(default_factory=SmtpConfig)  # odchozí pošta (bez hesla)
     created_at: datetime = Field(default_factory=datetime.now)
     last_opened_at: datetime | None = None
 

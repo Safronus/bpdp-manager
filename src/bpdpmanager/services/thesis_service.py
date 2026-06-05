@@ -973,6 +973,55 @@ class ThesisService:
             self.upsert_thesis(thesis)
         return thesis
 
+    # --- posudky k odeslání (PDF poslední verze) ----------------------------
+
+    @staticmethod
+    def _current_pdf_attachment(work, kind: AttachmentKind):
+        """Vrátí aktuální (is_current) PDF přílohu daného druhu, nebo None."""
+        candidates = [
+            a
+            for a in work.attachments
+            if a.kind == kind
+            and a.is_file
+            and a.url_or_path.lower().endswith(".pdf")
+        ]
+        if not candidates:
+            return None
+        # Preferuj is_current; jinak nejvyšší verzi.
+        current = [a for a in candidates if a.is_current]
+        pool = current or candidates
+        return max(pool, key=lambda a: a.version)
+
+    def current_supervisor_review_pdf(self, thesis: Thesis) -> Path | None:
+        """Absolutní cesta k aktuálnímu PDF posudku vedoucího, nebo None."""
+        att = self._current_pdf_attachment(thesis, AttachmentKind.SUPERVISOR_REVIEW)
+        return self.document_absolute_path(thesis.id, att) if att else None
+
+    def current_opponent_review_pdf(self, op: OpposingThesis) -> Path | None:
+        """Absolutní cesta k aktuálnímu PDF oponentského posudku, nebo None."""
+        att = self._current_pdf_attachment(op, AttachmentKind.OPPONENT_REVIEW)
+        return self.opposing_document_absolute_path(op.id, att) if att else None
+
+    def mark_supervisor_review_sent(
+        self, thesis_id: str, when: datetime | None = None
+    ) -> None:
+        """Označí posudek vedoucího jako odeslaný sekretářce."""
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return
+        thesis.supervisor_review_sent_at = when or datetime.now()
+        self.upsert_thesis(thesis)
+
+    def mark_opponent_review_sent(
+        self, op_id: str, when: datetime | None = None
+    ) -> None:
+        """Označí oponentský posudek jako odeslaný sekretářce."""
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return
+        op.opponent_review_sent_at = when or datetime.now()
+        self.upsert_opposing_thesis(op)
+
     # --- harmonogram napříč roky --------------------------------------------
 
     def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:

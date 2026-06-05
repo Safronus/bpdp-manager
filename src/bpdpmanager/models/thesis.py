@@ -63,6 +63,10 @@ class Thesis(BaseModel):
     grade_supervisor: str = ""
     grade_opponent: str = ""
 
+    # Kdy byl posudek vedoucího odeslán sekretářce (None = neodesláno). Slouží
+    # k tomu, aby se v dialogu odesílání defaultně nenabízely už odeslané.
+    supervisor_review_sent_at: datetime | None = None
+
     # Výsledek kontroly plagiátorství
     plagiarism_similarity_pct: float | None = None  # 0–100
     plagiarism_comment: str = ""

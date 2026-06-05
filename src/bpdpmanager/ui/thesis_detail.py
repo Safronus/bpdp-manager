@@ -1040,6 +1040,9 @@ class ThesisDetail(QWidget):
         # ── Známky + Posudky (strukturovaná data) ──────────────────────────
         grades_section = self._build_grades_summary_html(thesis, e, section_header_style)
         reviews_section = self._build_reviews_summary_html(thesis, e, section_header_style)
+        documents_section = self._build_documents_summary_html(
+            thesis, e, section_header_style
+        )
 
         # ── STAG link ──────────────────────────────────────────────────────
         stag_html = ""
@@ -1072,6 +1075,7 @@ class ThesisDetail(QWidget):
             f"{plag_section}"
             f"{grades_section}"
             f"{reviews_section}"
+            f"{documents_section}"
             "</body></html>"
         )
 
@@ -1092,6 +1096,25 @@ class ThesisDetail(QWidget):
             'font-size:18pt;padding:6px 16px;border-radius:6px;'
             f'display:inline-block;text-align:center;min-width:28px;">{disp}</div>'
             "</td>"
+        )
+
+    def _build_documents_summary_html(self, thesis, e, section_header_style: str) -> str:
+        """Souhrn souborů (aktuální přílohy) — u aktuálních i historických prací."""
+        atts = [a for a in thesis.attachments if a.is_current]
+        if not atts:
+            return ""
+        rows = ""
+        for att in sorted(atts, key=lambda a: a.kind.label):
+            icon = "📄 " if att.is_file else "🔗 "
+            rows += (
+                "<tr>"
+                f"<td style='padding:3px 14px 3px 0;'><b>{e(att.kind.label)}</b></td>"
+                f"<td style='padding:3px 0;'>{icon}{e(att.label)}</td>"
+                "</tr>"
+            )
+        return (
+            f'<h3 style="{section_header_style}">Soubory:</h3>'
+            f"<table>{rows}</table>"
         )
 
     def _build_grades_summary_html(self, thesis, e, section_header_style: str) -> str:

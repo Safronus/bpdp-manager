@@ -16,7 +16,9 @@ APP_NAME = "bpdpmanager"
 # v7: grade_supervisor / grade_opponent u Thesis (navržené známky, volitelné,
 #     default ""). Plní se z in-app posudku, nebo se vyčtou z nahraného PDF
 #     posudku (historické práce) — viz ThesisService.sync_thesis_grades.
-SCHEMA_VERSION = 7
+# v8: supervisor_review_sent_at u Thesis a opponent_review_sent_at
+#     u OpposingThesis (kdy byl posudek odeslán sekretářce; volitelné, None).
+SCHEMA_VERSION = 8
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

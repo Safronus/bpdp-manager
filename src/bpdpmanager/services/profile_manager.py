@@ -18,7 +18,7 @@ from ..config import (
     profiles_registry_path,
     set_active_data_dir,
 )
-from ..models import Profile, ProfileRegistry
+from ..models import Profile, ProfileRegistry, SmtpConfig
 from .lock_file import LockCheckResult, LockFile, LockStatus
 
 
@@ -200,6 +200,24 @@ class ProfileManager:
         if profile is None:
             raise ProfileError(f"Profil {profile_id} neexistuje.")
         profile.user_name = (user_name or "").strip()
+        self._save_registry()
+        return profile
+
+    def set_user_email(self, profile_id: str, user_email: str) -> Profile:
+        """Nastaví e-mail uživatele (odesílatel posudků sekretářkám)."""
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        profile.user_email = (user_email or "").strip()
+        self._save_registry()
+        return profile
+
+    def set_smtp_config(self, profile_id: str, smtp: SmtpConfig) -> Profile:
+        """Nastaví konfiguraci odchozího SMTP serveru (bez hesla)."""
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        profile.smtp = smtp
         self._save_registry()
         return profile
 

@@ -29,13 +29,16 @@ Při prvním spuštění tě uvítá okno, kde zvolíš, **kam se ukládají dat
 > Profil lze kdykoli přepnout / přidat přes toolbar **👤** menu.
 > Více profilů = oddělené datové sady (osobní / sdílený …).
 
-### 2. Tvoje jméno a místo posudku (v profilu)
+### 2. Tvoje jméno, e-mail a místo posudku (v profilu)
 V **👤 → 🗂 Správa profilů**:
 
 - **👤 Tvoje jméno a tituly…** — jméno + **tituly před/za** (např.
   „doc. Ing." a „Ph.D."). Jméno slouží k **auto-detekci role** při STAG
   importu (vedoucí / oponent); tituly se **automaticky složí do jména
   autora v posudku** („doc. Ing. Petr Žáček, Ph.D.").
+- **✉ E-mail…** — tvůj e-mail (např. `prijmeni@utb.cz`). Slouží jako
+  **odesílatel při posílání posudků sekretářkám** (viz *Odeslání posudků
+  e-mailem*). SMTP server se nastavuje v **👤 → ✉ Nastavení e-mailu (SMTP)**.
 - **📍 Místo posudku…** — město pro podpisový blok posudku
   (default *Zlín*).
 
@@ -156,8 +159,9 @@ Detail vybrané práce má vnitřní záložky:
 Read-only přehled celé práce — barevný badge stavu, hlavička
 (typ / název / student / oponent), anotace, body zadání, literatura,
 výsledek plagiátorství, sekce **Známky** (navržené z posudků — vedoucí +
-oponent) a **náhled uložených posudků** (role, body, známka, kritéria,
-hodnocení). Každá sekce má tlačítko 📋 pro zkopírování do schránky.
+oponent), **náhled uložených posudků** (role, body, známka, kritéria,
+hodnocení) a na konci **Soubory** (přehled aktuálních příloh — text práce,
+posudky, přílohy…). Každá sekce má tlačítko 📋 pro zkopírování do schránky.
 
 > **Známky u historických prací.** Sekce *Známky* bere známku primárně
 > z posudku napsaného v aplikaci. Pokud posudek existuje jen jako **nahrané
@@ -304,6 +308,49 @@ jako u vedených prací** — agregovaný strom podle typu, verzování, **📂 
 Finderu**, pravý klik (Otevřít / Finder / Odebrat), indikace chybějících
 souborů i **🧹 Odklidit chybějící**. Archivace posudků (1 aktuální + archiv
 starších) funguje shodně.
+
+---
+
+## Odeslání posudků e-mailem sekretářce
+
+Připravené posudky (PDF) pošleš sekretářce oboru přímo z aplikace:
+
+- **Posudky vedoucího** (vedené práce) → toolbar **✉ Odeslat posudky**.
+- **Oponentské posudky** → v záložce *🧐 Oponentské posudky* tlačítko
+  **✉ Odeslat sekretářce…**.
+
+V dialogu:
+
+1. **Vyber sekretářku** — nabízejí se sekretářky vyplněné u oborů (👤 e-mail
+   u oboru). Podle jejích oborů se vyfiltrují práce.
+2. **Seznam prací** — nabídnou se jen práce s **hotovým PDF posudku**.
+   Nezaslané jsou předzaškrtnuté, **už odeslané** se defaultně skryjí
+   (zaškrtni *Zobrazit i už odeslané*, pokud chceš poslat znovu). BP i DP
+   můžeš poslat naráz.
+3. **Náhled e-mailu** — předmět a tělo se sestaví automaticky (pozdrav +
+   seznam prací seskupený na **bakalářské / diplomové**, u každé jméno,
+   osobní číslo a název). Text **lze upravit**; *↻ Přegenerovat text* ho
+   sestaví znovu dle výběru.
+4. **Kopie mně** (default zapnuto) — pošle kopii na tvůj e-mail, abys měl(a)
+   jistotu, že mail odešel.
+5. **✉ Odeslat…** — po potvrzení tě aplikace vyzve k **heslu** (nikam se
+   neukládá) a odešle e-mail s **PDF posudky v příloze**. Odeslané práce se
+   označí jako *odeslané*.
+
+### Nastavení e-mailu (SMTP)
+
+**👤 → ✉ Nastavení e-mailu (SMTP)** — samostatný správce odchozí pošty:
+e-mail odesílatele, **SMTP server / port / zabezpečení** a tlačítko
+**🔌 Test spojení** (přihlásí se, bez odeslání). Výchozí hodnoty odpovídají
+**UTB Office365** (`outlook.office365.com`, port 587, STARTTLS) — viz
+[nastavení CVT UTB](https://www.utb.cz/cvt/office365-thunderbird-doc).
+**Heslo se nikde neukládá.**
+
+> **Pozn. k UTB Office365:** UTB vyžaduje pro odchozí poštu **OAuth2**, takže
+> přímé přihlášení heslem přes SMTP nemusí projít. Když odeslání selže,
+> aplikace nabídne **vytvořit hotový e-mail (.eml) a otevřít ho v tvém
+> mailovém klientovi** (Outlook/Thunderbird), kde jsi přihlášený přes OAuth2 —
+> stačí kliknout *Odeslat*. Posudky pak můžeš nechat označit jako odeslané.
 
 ---
 

@@ -54,6 +54,9 @@ class OpposingThesis(BaseModel):
     # v4+ (0.19.0): strukturované posudky.
     reviews: list[Review] = Field(default_factory=list)
 
+    # Kdy byl oponentský posudek odeslán sekretářce (None = neodesláno).
+    opponent_review_sent_at: datetime | None = None
+
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

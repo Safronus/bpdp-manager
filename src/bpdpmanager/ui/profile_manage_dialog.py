@@ -72,6 +72,11 @@ class ProfileManageDialog(QDialog):
         self.btn_review_place.setToolTip(
             'Místo pro podpisový blok posudku (Místo, datum). Default „Zlín".'
         )
+        self.btn_user_email = QPushButton("✉ E-mail…")
+        self.btn_user_email.setToolTip(
+            "E-mail uživatele (odesílatel posudků sekretářkám). SMTP server se "
+            "nastavuje v 👤 → Nastavení e-mailu."
+        )
         self.btn_export = QPushButton("📤 Export…")
         self.btn_export.setToolTip(
             "Vyexportuje vybraný profil do přenosného ZIP balíku."
@@ -82,6 +87,7 @@ class ProfileManageDialog(QDialog):
         self.btn_rename.clicked.connect(self._rename)
         self.btn_user_name.clicked.connect(self._edit_user_name)
         self.btn_review_place.clicked.connect(self._edit_review_place)
+        self.btn_user_email.clicked.connect(self._edit_user_email)
         self.btn_export.clicked.connect(self._export_zip)
         self.btn_open_folder.clicked.connect(self._open_folder)
         self.btn_remove.clicked.connect(self._remove)
@@ -89,6 +95,7 @@ class ProfileManageDialog(QDialog):
         row.addWidget(self.btn_rename)
         row.addWidget(self.btn_user_name)
         row.addWidget(self.btn_review_place)
+        row.addWidget(self.btn_user_email)
         row.addWidget(self.btn_export)
         row.addWidget(self.btn_open_folder)
         row.addWidget(self.btn_remove)
@@ -228,6 +235,30 @@ class ProfileManageDialog(QDialog):
             return
         try:
             self.pm.set_review_place(profile.id, new_place)
+        except ProfileError as exc:
+            QMessageBox.warning(self, "Uložení selhalo", str(exc))
+            return
+        self._refresh()
+
+    def _edit_user_email(self) -> None:
+        profile = self._current()
+        if profile is None:
+            QMessageBox.information(
+                self,
+                "Vyber profil",
+                "Vyber v seznamu profil, kterému chceš nastavit e-mail.",
+            )
+            return
+        new_email, ok = QInputDialog.getText(
+            self,
+            "E-mail uživatele",
+            "E-mail odesílatele posudků (např. prijmeni@utb.cz):",
+            text=profile.user_email or "",
+        )
+        if not ok:
+            return
+        try:
+            self.pm.set_user_email(profile.id, new_email)
         except ProfileError as exc:
             QMessageBox.warning(self, "Uložení selhalo", str(exc))
             return

@@ -7,6 +7,30 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-06-05
+
+### Added
+- **Odesílání posudků e-mailem sekretářce.** Nové tlačítko **✉ Odeslat
+  posudky** (vedené práce, toolbar) a **✉ Odeslat sekretářce…** (záložka
+  *Oponentské posudky*). Dialog: výběr sekretářky → podle jejích oborů se
+  nabídnou práce s **hotovým PDF posudku** (nezaslané předzaškrtnuté, už
+  odeslané volitelně), editovatelný **náhled** předmětu a textu (pozdrav +
+  seznam prací seskupený na BP/DP: jméno, osobní číslo, název), **kopie sobě**
+  (default zapnuto). Odeslání připojí **PDF posudky poslední verze** a označí
+  práce jako odeslané (pole `supervisor_review_sent_at` /
+  `opponent_review_sent_at`, schéma v8).
+- **Samostatný správce e-mailu (SMTP)** — **👤 → ✉ Nastavení e-mailu (SMTP)**:
+  e-mail odesílatele, server/port/zabezpečení a **🔌 Test spojení**. Výchozí
+  hodnoty pro **UTB Office365** (outlook.office365.com:587, STARTTLS).
+  **Heslo se nikde neukládá** — zadává se při každém odeslání i testu.
+- **Fallback přes mailového klienta.** Když přímé odeslání přes SMTP selže
+  (UTB Office365 vyžaduje OAuth2, Basic Auth bývá vypnutý), aplikace nabídne
+  vytvořit hotový e-mail **.eml** s přílohami a otevřít ho v Outlooku/
+  Thunderbirdu, kde stačí kliknout Odeslat.
+- **E-mail uživatele v profilu** (👤 → Správa profilů → ✉ E-mail…).
+- **Sekce „Soubory" v souhrnu vedené práce** — přehled aktuálních příloh
+  (text práce, posudky, přílohy…) u aktuálních i historických prací.
+
 ## [0.35.0] - 2026-06-05
 
 ### Added

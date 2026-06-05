@@ -11,7 +11,7 @@ from .harmonogram import AcademicYearInfo, KeyDate, KeyDateCategory
 from .obor import Obor
 from .opponent import Opponent
 from .opposing_thesis import OpposingThesis
-from .profile import Profile, ProfileRegistry
+from .profile import Profile, ProfileRegistry, SmtpConfig
 from .review import CriterionScore, Review
 from .review_template import ReviewTemplate, TemplateCriterion
 from .student import Student
@@ -33,6 +33,7 @@ __all__ = [
     "PlagiarismVerdict",
     "Profile",
     "ProfileRegistry",
+    "SmtpConfig",
     "CriterionScore",
     "Review",
     "ReviewTemplate",

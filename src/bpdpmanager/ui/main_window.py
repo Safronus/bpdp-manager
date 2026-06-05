@@ -197,6 +197,7 @@ class MainWindow(QMainWindow):
         )
         self.tab_all = _ThesesTab(service, lambda t: True, year_mode=YEAR_MODE_ALL)
         self.tab_opposing = OpposingTab(service)
+        self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
         self.tab_harmonogram = HarmonogramTab(service)
 
         # Tab labely (bez roku — status-driven, jeden tab = jeden bucket napříč roky)
@@ -361,6 +362,11 @@ class MainWindow(QMainWindow):
             "Knihovna XLSX šablon posudků (vedoucího / oponenta) — "
             "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek.",
         )
+        add(
+            "✉ Odeslat posudky", self._send_supervisor_reviews, self._GROUP_REVIEW,
+            "Odeslání připravených posudků vedoucího sekretářce e-mailem "
+            "(vybere se podle oborů sekretářky; přiloží se PDF posudků).",
+        )
 
         toolbar.addSeparator()
 
@@ -394,6 +400,46 @@ class MainWindow(QMainWindow):
 
     def _show_help(self) -> None:
         HelpDialog(self).exec()
+
+    def _send_supervisor_reviews(self) -> None:
+        """Otevře dialog pro odeslání posudků vedoucího sekretářce."""
+        if self.profile_manager is None:
+            return
+        # Flushni rozpracované změny, ať se pracuje s aktuálními daty
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            if isinstance(w, _ThesesTab):
+                try:
+                    w.detail.flush()
+                except Exception:
+                    pass
+        from .send_reviews_dialog import SendReviewsDialog
+
+        dlg = SendReviewsDialog(self.service, self.profile_manager, "supervisor", self)
+        dlg.exec()
+        self._refresh_all()
+
+    def _send_opponent_reviews(self) -> None:
+        """Otevře dialog pro odeslání oponentských posudků sekretářce."""
+        if self.profile_manager is None:
+            QMessageBox.information(
+                self, "Profil",
+                "Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem.",
+            )
+            return
+        from .send_reviews_dialog import SendReviewsDialog
+
+        dlg = SendReviewsDialog(self.service, self.profile_manager, "opponent", self)
+        dlg.exec()
+        self._refresh_all()
+
+    def _open_email_settings(self) -> None:
+        """Otevře samostatného správce SMTP nastavení."""
+        if self.profile_manager is None:
+            return
+        from .email_settings_dialog import EmailSettingsDialog
+
+        EmailSettingsDialog(self.profile_manager, self).exec()
 
     # --- profil --------------------------------------------------------------
 
@@ -442,6 +488,14 @@ class MainWindow(QMainWindow):
             "Otevře ZIP s exportem z jiného zařízení a vytvoří nový profil."
         )
         act_import_zip.triggered.connect(self._action_import_profile_zip)
+        menu.addSeparator()
+        act_email = menu.addAction("✉ Nastavení e-mailu (SMTP)…")
+        act_email.setToolTip(
+            "E-mail odesílatele a SMTP server pro odesílání posudků sekretářkám "
+            "(s testem spojení). Heslo se neukládá."
+        )
+        act_email.triggered.connect(self._open_email_settings)
+        act_email.setEnabled(active is not None)
         menu.addSeparator()
         act_manage = menu.addAction("🗂 Správa profilů…")
         act_manage.triggered.connect(self._action_manage_profiles)

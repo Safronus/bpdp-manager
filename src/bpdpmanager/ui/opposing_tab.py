@@ -100,6 +100,9 @@ class OpposingTab(QWidget):
 
     # Emitne se po změně dat (posudek/uložení) — pro souhrn v dolní liště.
     changed = Signal()
+    # Požadavek na odeslání oponentských posudků sekretářce (odbaví MainWindow,
+    # který má přístup k profilu / e-mailovým nastavením).
+    send_reviews_requested = Signal()
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -114,6 +117,13 @@ class OpposingTab(QWidget):
         btn_new = QPushButton("➕ Nový oponentský posudek…")
         btn_new.clicked.connect(self._new_opposing)
         top.addWidget(btn_new)
+        btn_send = QPushButton("✉ Odeslat sekretářce…")
+        btn_send.setToolTip(
+            "Odeslání připravených oponentských posudků sekretářce e-mailem "
+            "(vybere se podle oborů sekretářky; přiloží se PDF posudků)."
+        )
+        btn_send.clicked.connect(self.send_reviews_requested.emit)
+        top.addWidget(btn_send)
         top.addStretch()
         self.lbl_count = QLabel("")
         self.lbl_count.setStyleSheet("color:#888;font-size:11px;")
