@@ -166,8 +166,8 @@ class StagClient:
         """
         student_surname = (student_surname or "").strip()
         person_surname = (person_surname or "").strip()
-        if not student_surname:
-            raise StagError("Zadej alespoň příjmení studenta.")
+        if not student_surname and not person_surname:
+            raise StagError("Zadej příjmení studenta nebo vedoucího/oponenta.")
 
         action_url = self._open_search_form()
 

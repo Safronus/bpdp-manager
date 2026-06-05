@@ -413,10 +413,13 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 ### A) Stáhnout přímo ze STAG (doporučeno)
 V import dialogu klikni na **🌐 Stáhnout ze STAG**:
 
-1. Zadej **příjmení studenta** (povinné).
+1. Zadej **příjmení studenta** (nepovinné).
 2. Zadej **příjmení vedoucího nebo oponenta** a přepni *role* (Vedoucí /
-   Oponent) — samotné příjmení studenta nemusí být jednoznačné, druhé
-   příjmení hledání zpřesní. Předvyplní se tvé příjmení z profilu.
+   Oponent) — druhé příjmení hledání zpřesní. Předvyplní se tvé příjmení
+   z profilu.
+   - **Hromadně dle vedoucího/oponenta:** nech **příjmení studenta prázdné**
+     a zadej jen vedoucího/oponenta — STAG najde **všechny jeho práce**
+     (historické i aktuální) a můžeš jich naimportovat víc najednou.
 3. **🔍 Vyhledat ve STAG** → ve výsledcích **zaškrtni práce**, které chceš.
    U každé je odznak **🆕 nové** / **✓ už máš** (podle toho, co je v DB) —
    nové jsou předzaškrtnuté. Můžeš tak v jednom kroku stáhnout třeba **BP

@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-06-06
+
+### Added
+- **Hromadné vyhledání ze STAG dle vedoucího/oponenta.** V dialogu
+  *🌐 Stáhnout ze STAG* lze nechat příjmení studenta prázdné a zadat jen
+  vedoucího/oponenta — STAG vrátí **všechny jeho práce** (historické
+  i aktuální), které pak naimportuješ víc najednou (multi-výběr).
+
 ## [0.43.0] - 2026-06-06
 
 ### Added

@@ -2226,11 +2226,12 @@ class StagDownloadDialog(QDialog):
         outer.addWidget(title)
 
         intro = QLabel(
-            "Vyhledá veřejný záznam kvalifikační práce na "
-            "<a href='https://stag.utb.cz'>stag.utb.cz</a> a stáhne jeho CSV. "
-            "Hledá se podle <b>příjmení studenta</b> a (pro upřesnění) "
-            "<b>příjmení vedoucího nebo oponenta</b> — samotné příjmení studenta "
-            "nemusí být jednoznačné."
+            "Vyhledá veřejné záznamy kvalifikačních prací na "
+            "<a href='https://stag.utb.cz'>stag.utb.cz</a> a stáhne jejich CSV. "
+            "Hledat můžeš podle <b>příjmení studenta</b> (+ upřesnění vedoucím/"
+            "oponentem), nebo <b>jen podle vedoucího/oponenta</b> — pak najde "
+            "<b>všechny jeho práce</b> (historické i aktuální) a můžeš jich "
+            "naimportovat víc najednou."
         )
         intro.setTextFormat(Qt.TextFormat.RichText)
         intro.setOpenExternalLinks(True)
@@ -2242,12 +2243,12 @@ class StagDownloadDialog(QDialog):
         form = QFormLayout()
 
         self.ed_student = QLineEdit()
-        self.ed_student.setPlaceholderText("např. Pohanka")
+        self.ed_student.setPlaceholderText("např. Pohanka (nepovinné při hledání dle vedoucího)")
         self.ed_student.returnPressed.connect(self._do_search)
-        form.addRow("Příjmení studenta *", self.ed_student)
+        form.addRow("Příjmení studenta", self.ed_student)
 
         self.ed_person = QLineEdit(default_person_surname)
-        self.ed_person.setPlaceholderText("např. Žáček (tvoje příjmení)")
+        self.ed_person.setPlaceholderText("např. Žáček (tvoje příjmení) — bez studenta najde VŠE")
         self.ed_person.returnPressed.connect(self._do_search)
 
         self.rb_supervisor = QRadioButton("Vedoucí")
@@ -2318,13 +2319,15 @@ class StagDownloadDialog(QDialog):
 
     def _do_search(self) -> None:
         student = self.ed_student.text().strip()
-        if not student:
+        person = self.ed_person.text().strip()
+        if not student and not person:
             QMessageBox.warning(
-                self, "Chybí příjmení", "Zadej alespoň příjmení studenta."
+                self, "Chybí příjmení",
+                "Zadej příjmení studenta, nebo příjmení vedoucího/oponenta "
+                "(hromadné vyhledání všech jeho prací).",
             )
             self.ed_student.setFocus()
             return
-        person = self.ed_person.text().strip()
         role = (
             stag_api.ROLE_SUPERVISOR
             if self.rb_supervisor.isChecked()

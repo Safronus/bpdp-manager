@@ -137,3 +137,26 @@ def test_csv_export_url_shape() -> None:
     assert "outputFormat=CSV" in url
     assert "adipIdno=72503" in url
     assert url.startswith("https://stag.utb.cz/")
+
+
+def test_search_supervisor_only(monkeypatch) -> None:
+    """Hledání jen dle vedoucího (prázdný student) projde a vyplní pole vedoucího."""
+    import pytest
+
+    client = stag_api.StagClient()
+    monkeypatch.setattr(client, "_open_search_form", lambda: "/action")
+    captured: dict = {}
+
+    def fake_request(url, data=None, **kw):
+        captured["data"] = data
+        return "<html><body>žádné výsledky</body></html>"
+
+    monkeypatch.setattr(client, "_request", fake_request)
+    res = client.search("", "Žáček", stag_api.ROLE_SUPERVISOR)
+    assert res == []
+    body = captured["data"].decode()
+    assert "praceSearchVedouci=%" in body          # vedoucí vyplněn
+    assert "studentSearchPrijmeni=&" in body        # student prázdný
+
+    with pytest.raises(stag_api.StagError):
+        client.search("", "")                       # obojí prázdné → chyba
