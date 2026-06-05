@@ -7,6 +7,29 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.21.2] - 2026-06-05
+
+### Fixed
+- **Crash „AttributeError: no attribute _build_reviews_summary_html"
+  při výběru práce na druhém Macu.** Příčina: projekt leží v
+  iCloud-synced složce (``~/Desktop/``) a sdílený ``__pycache__`` se
+  mezi Macy dostal do nekonzistentního stavu — iCloud nezachovává
+  spolehlivě mtime, takže Python na druhém zařízení načetl starou
+  ``.pyc`` (bez metody přidané v 0.21.1) místo aktuálního zdroje.
+- **Prevence**: entry point (``__main__.py``) nově přesměruje bytecode
+  cache mimo zdrojový strom — ``sys.pycache_prefix`` na
+  ``~/.cache/bpdpmanager/pyc``. Source-adjacent ``.pyc`` v iCloud
+  složce se tím ignorují; každý Mac má vlastní lokální cache mimo sync.
+  Heavy moduly se importují líně v ``main()``, takže nastavení je
+  stihne ovlivnit.
+
+### Notes
+- Pokud na nějakém zařízení přetrvává starý stav, jednorázově pomůže
+  smazat cache: ``find . -name __pycache__ -type d -exec rm -rf {} +``.
+  Od 0.21.2 už by se ale nový ``.pyc`` do iCloud stromu neměl psát.
+- ``__pycache__`` a ``*.pyc`` jsou v ``.gitignore`` (nikdy nebyly
+  verzované) — šlo čistě o iCloud sync, ne o git.
+
 ## [0.21.1] - 2026-06-04
 
 ### Added

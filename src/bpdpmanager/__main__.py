@@ -5,6 +5,21 @@ import json
 import sys
 from pathlib import Path
 
+# ── Bytecode cache mimo (potenciálně iCloud-synced) zdrojový strom ──────────
+# Projekt často leží v ~/Desktop/ nebo ~/Documents/, které macOS synchronizuje
+# přes iCloud Drive. iCloud nezachovává spolehlivě mtime souborů, takže sdílený
+# ``__pycache__`` mezi více Macy se dostane do nekonzistentního stavu — Python
+# na druhém zařízení načte starou ``.pyc`` (bez nově přidaných metod) a spadne
+# s AttributeError. Přesměrujeme bytecode cache mimo zdrojový strom (do
+# ~/.cache), čímž se source-adjacent ``.pyc`` ignorují. Importy heavy modulů
+# jsou v ``main()`` líné, takže tohle nastavení je stihne ovlivnit.
+try:
+    _pyc_cache = Path.home() / ".cache" / "bpdpmanager" / "pyc"
+    _pyc_cache.mkdir(parents=True, exist_ok=True)
+    sys.pycache_prefix = str(_pyc_cache)
+except OSError:
+    pass
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
