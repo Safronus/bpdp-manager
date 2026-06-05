@@ -7,7 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.31.2] - 2026-06-05
+## [0.31.3] - 2026-06-05
+
+### Changed
+- **Hezčí PDF posudku.** Při převodu do PDF (na dočasné kopii, uložený XLSX
+  zůstává 1:1 se šablonou) se nově: **vyváží okraje** (tisk se vycentruje, takže
+  vpravo je stejná mezera jako vlevo), **vycentruje logo** a hlavička sloupce
+  **„Body (0–5)"** dostane menší a černý font (vejde se na jeden řádek). Týká
+  se jen vzhledu PDF; data ani XLSX se nemění.
 
 ### Fixed
 - **Robustnější přepojení šablony posudku.** Předchozí oprava (0.31.1)

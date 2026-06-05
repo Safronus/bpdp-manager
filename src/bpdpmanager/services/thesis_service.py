@@ -1814,6 +1814,7 @@ class ThesisService:
         import tempfile
 
         from .xlsx_image_in_cell import flatten_image_in_cell
+        from .xlsx_pdf_polish import polish_pdf_layout
 
         soffice = self._find_soffice()
         if soffice is None:
@@ -1825,6 +1826,9 @@ class ThesisService:
             convert_src = tmp_dir / xlsx_path.name
             try:
                 flatten_image_in_cell(xlsx_path, convert_src)
+                # Kosmetika jen pro PDF: vyvážené okraje + menší/černá hlavička
+                # „Body". Pracuje na dočasné kopii, uložený XLSX zůstává 1:1.
+                polish_pdf_layout(convert_src)
             except Exception:  # noqa: BLE001 — fail-safe, převeď aspoň originál
                 convert_src = xlsx_path
             try:

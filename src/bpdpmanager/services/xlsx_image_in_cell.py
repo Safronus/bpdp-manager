@@ -414,7 +414,10 @@ def _image_extent_emu(
     if cy > avail_h:
         cy = avail_h
         cx = round(cy * aspect)
-    return cx, cy, pad, pad
+    # Vycentruj logo v oblasti buňky (vodorovně i svisle).
+    off_x = max((region_w - cx) // 2, 0)
+    off_y = max((region_h - cy) // 2, 0)
+    return cx, cy, off_x, off_y
 
 
 class _SheetGeometry:
