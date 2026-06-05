@@ -444,7 +444,9 @@ class MainWindow(QMainWindow):
     # --- profil --------------------------------------------------------------
 
     def _compose_title(self) -> str:
-        base = "BPDPManager"
+        from .. import __version__
+
+        base = f"BPDPManager {__version__}"
         if self.profile_manager and self.profile_manager.active:
             return f"{base} — {self.profile_manager.active.name}"
         return f"{base} — správa BP/DP"

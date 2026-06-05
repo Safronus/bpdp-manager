@@ -7,6 +7,11 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-06-05
+
+### Changed
+- **Verze aplikace v titulku okna** — např. „BPDPManager 0.36.1 — Profil".
+
 ## [0.36.0] - 2026-06-05
 
 ### Added
