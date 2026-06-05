@@ -48,8 +48,17 @@ class OpponentDialog(QDialog):
         self.cb_kind.currentIndexChanged.connect(self._on_kind_change)
         form.addRow("Typ", self.cb_kind)
 
+        self.ed_title_before = QLineEdit(self.opponent.title_before)
+        self.ed_title_before.setPlaceholderText("např. doc. Ing.")
+        form.addRow("Tituly před", self.ed_title_before)
+
         self.ed_name = QLineEdit(self.opponent.name)
+        self.ed_name.setPlaceholderText("např. Petr Novák")
         form.addRow("Jméno", self.ed_name)
+
+        self.ed_title_after = QLineEdit(self.opponent.title_after)
+        self.ed_title_after.setPlaceholderText("např. Ph.D.")
+        form.addRow("Tituly za", self.ed_title_after)
 
         self.ed_email = QLineEdit(self.opponent.email or "")
         form.addRow("Email", self.ed_email)
@@ -99,6 +108,8 @@ class OpponentDialog(QDialog):
         kind = OpponentKind(self.cb_kind.currentData())
         self.opponent.kind = kind
         self.opponent.name = name
+        self.opponent.title_before = self.ed_title_before.text().strip()
+        self.opponent.title_after = self.ed_title_after.text().strip()
         self.opponent.email = self.ed_email.text().strip() or None
         self.opponent.affiliation = self.ed_affiliation.text().strip() or None
         if kind == OpponentKind.EXTERNAL:

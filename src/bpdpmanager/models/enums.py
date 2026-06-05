@@ -135,6 +135,25 @@ STATUS_ORDER: dict[ThesisStatus, int] = {
     s: i for i, s in enumerate(ThesisStatus)
 }
 
+# Stav posudku (vedoucího / oponenta) → barva pro odlišení v seznamech.
+# "done" = vyrobený soubor (zelená), "draft" = jen uložená data (oranžová),
+# "none" = nic (červená). Světlé odstíny pro podbarvení buňky (text čitelný).
+REVIEW_STATE_LABELS: dict[str, str] = {
+    "done": "posudek hotový",
+    "draft": "rozpracovaný (jen data)",
+    "none": "posudek chybí",
+}
+REVIEW_STATE_TINTS: dict[str, str] = {
+    "done": "#c8e6c9",   # světle zelená
+    "draft": "#ffe0b2",  # světle oranžová
+    "none": "#ffcdd2",   # světle červená
+}
+REVIEW_STATE_STRONG: dict[str, str] = {
+    "done": "#2e7d32",   # sytá zelená (pro text počtů v liště)
+    "draft": "#ef6c00",  # sytá oranžová
+    "none": "#c62828",   # sytá červená
+}
+
 
 # ── Tab buckety (status-driven, bez ohledu na rok) ──────────────────────────
 #

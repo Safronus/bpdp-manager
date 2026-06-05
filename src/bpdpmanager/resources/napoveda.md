@@ -32,12 +32,16 @@ Při prvním spuštění tě uvítá okno, kde zvolíš, **kam se ukládají dat
 ### 2. Tvoje jméno a místo posudku (v profilu)
 V **👤 → 🗂 Správa profilů**:
 
-- **👤 Tvoje jméno…** — celé jméno vč. titulů (např.
-  „doc. Ing. Petr Žáček, Ph.D."). Slouží k **auto-detekci role** při
-  STAG importu (rozpozná, jestli jsi u práce vedoucí nebo oponent)
-  a jako **podpis v posudku**.
+- **👤 Tvoje jméno a tituly…** — jméno + **tituly před/za** (např.
+  „doc. Ing." a „Ph.D."). Jméno slouží k **auto-detekci role** při STAG
+  importu (vedoucí / oponent); tituly se **automaticky složí do jména
+  autora v posudku** („doc. Ing. Petr Žáček, Ph.D.").
 - **📍 Místo posudku…** — město pro podpisový blok posudku
   (default *Zlín*).
+
+> Tituly před/za jdou nastavit i u **oponentů** a **vedoucích** v jejich
+> registrech — uloží se jako text a zobrazí se u jejich jména (i v posudku,
+> když píšeš za ně).
 
 ### 3. Studijní obory (+ STAG zkratky)
 V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
@@ -85,7 +89,8 @@ Teď můžeš:
 
 ## Přehled obrazovky
 
-Hlavní okno má nahoře **toolbar** a pod ním **záložky** (taby):
+Hlavní okno má nahoře **toolbar**, pod ním **🔍 vyhledávací pole** a pak
+**záložky** (taby):
 
 - **Aktuální** — práce ve stavu *V řešení*
 - **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
@@ -97,6 +102,20 @@ Hlavní okno má nahoře **toolbar** a pod ním **záložky** (taby):
 
 > **Důležité:** zařazení práce do tabu se řídí **stavem**, ne rokem.
 > Rok ovlivňuje jen řazení a grupování uvnitř tabu.
+
+### 🔍 Vyhledávání a navigace
+Do pole nad záložkami napiš **jméno studenta**, **název práce** nebo
+**osobní číslo (Axxxxx)** a stiskni Enter. Hledá napříč vedenými pracemi
+i oponenturami. Při jediné shodě aplikace rovnou **skočí na práci**
+(přepne záložku a vybere ji), při více shodách nabídne **výběr** (práce
+v *Aktuální* jsou nahoře).
+
+### 🟢🟡🔴 Stav posudku barevně
+V **Aktuální** se buňka *názvu práce* podbarví podle posudku vedoucího:
+🟢 vyrobený soubor · 🟡 jen rozpracovaná data (uložená bez XLSX) · 🔴 nic.
+V **🧐 Oponentské posudky** stejně podle oponentského posudku. **Dolní
+lišta** ukazuje barevný souhrn *hotovo / chybí* (vedoucí i oponentury),
+ať máš přehled, kolik práce tě ještě čeká.
 
 Každý tab prací má nahoře **strom** (rok → BP/DP → práce) a dole
 **detail** vybrané práce. Po startu se automaticky otevře první práce
@@ -156,8 +175,10 @@ Přílohy, Pracovní deník, Oficiální zadání, Posudek vedoucího, Posudek
 oponenta, Prezentace, STAG export, Jiné).
 
 - **Verzování:** nahrání dalšího souboru téhož typu vytvoří novou verzi;
-  předchozí se schová jako *superseded*. Toggle **Zobrazit starší verze**
-  je rozbalí.
+  předchozí se označí jako *superseded*. Toggle **Zobrazit starší verze**
+  je defaultně **zapnutý** (vidíš i archiv). U posudku se **XLSX i PDF**
+  nejnovější verze berou jako aktuální — PDF se ukáže hned, ne až po
+  zapnutí starších verzí.
 - **Auto-pojmenování:** soubor se přejmenuje na
   `{Příjmení}_{typ}_{YYYY-MM-DD}[_vN].{ext}` a roztřídí do podsložky.
 - **Auto-detekce typu** z původního názvu při nahrání.

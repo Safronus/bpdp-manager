@@ -59,6 +59,7 @@ class DocumentsWidget(QWidget):
 
         # Toggle pro starší verze (defaultně schované)
         self.chk_show_old = QCheckBox("Zobrazit starší verze (superseded)")
+        self.chk_show_old.setChecked(True)  # výchozí: ukázat i archiv/starší verze
         self.chk_show_old.setToolTip(
             "Když je odškrtnuto, vidíš jen aktuální verzi každého typu. "
             "Při nahrání nové verze se předchozí automaticky schová."

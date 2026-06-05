@@ -990,6 +990,40 @@ class ThesisService:
         ]
         self.save()
 
+    # ── vyhledávání prací ─────────────────────────────────────────────────
+
+    def search_works(self, query: str) -> list[dict]:
+        """Najde vedené práce i oponentury podle jména studenta / názvu / ID.
+
+        ``query`` se hledá (case-insensitive, substring) ve jméně studenta,
+        názvu práce a univerzitním ID (Axxxxx). Vrací list dictů
+        ``{kind, id, student, title, status, uid}`` — ``kind`` je
+        ``"thesis"`` / ``"opposing"``, ``status`` je ``ThesisStatus`` u
+        vedených prací, ``None`` u oponentur.
+        """
+        q = (query or "").strip().lower()
+        if not q:
+            return []
+        hits: list[dict] = []
+        for t in self._db.theses:
+            student = self.get_student(t.student_id) if t.student_id else None
+            name = student.full_name if student else ""
+            uid = (student.university_id or "") if student else ""
+            if q in f"{name}\n{t.title_cs}\n{uid}".lower():
+                hits.append({
+                    "kind": "thesis", "id": t.id, "student": name or "—",
+                    "title": t.display_title, "status": t.status, "uid": uid,
+                })
+        for o in self._db.opposing_theses:
+            name = o.student_full_name
+            uid = o.student_university_id or ""
+            if q in f"{name}\n{o.title_cs}\n{uid}".lower():
+                hits.append({
+                    "kind": "opposing", "id": o.id, "student": name or "—",
+                    "title": o.display_title, "status": None, "uid": uid,
+                })
+        return hits
+
     # ── výchozí (default) data — obory + šablony ─────────────────────────
 
     def default_obory_seed_status(self) -> tuple[int, int]:
@@ -1194,20 +1228,17 @@ class ThesisService:
         self.upsert_thesis(thesis)
         return target_path, attachment
 
-    def _guess_user_name(self) -> str:
-        """Nejlepší dostupný 'user_name' (z profile přes config callback).
+    @staticmethod
+    def _active_profile_dict() -> dict:
+        """Přečte (read-only) dict aktivního profilu z ProfileRegistry.
 
-        ProfileManager není zde dostupný (services nezávisí na UI), takže
-        bereme to z ``ProfileRegistry`` přes config indirection. Pokud
-        není nastaveno, vrátí prázdný string a UI to vyřeší vlastním
-        defaultem.
+        Services nezávisí na UI/ProfileManageru, takže registry čteme přímo
+        ze souboru. Vrací prázdný dict, pokud nic není.
         """
-        # Profile_manager je v UI vrstvě — bezpečnější přes lazy proxy:
-        # přečteme registry souboru přímo (read-only).
         try:
-            from ..config import profiles_registry_path
-
             import json
+
+            from ..config import profiles_registry_path
 
             p = profiles_registry_path()
             if p.is_file():
@@ -1215,32 +1246,37 @@ class ThesisService:
                 last_id = data.get("last_opened")
                 for prof in data.get("profiles", []) or []:
                     if isinstance(prof, dict) and prof.get("id") == last_id:
-                        return (prof.get("user_name") or "").strip()
+                        return prof
         except Exception:  # noqa: BLE001
             pass
-        return ""
+        return {}
+
+    def _guess_user_name(self) -> str:
+        """Jméno uživatele aktivního profilu (bez titulů). Prázdné, když není."""
+        return (self._active_profile_dict().get("user_name") or "").strip()
+
+    def _guess_user_titles(self) -> tuple[str, str]:
+        """Tituly před/za jménem uživatele aktivního profilu."""
+        prof = self._active_profile_dict()
+        return (
+            (prof.get("user_title_before") or "").strip(),
+            (prof.get("user_title_after") or "").strip(),
+        )
+
+    def review_author_name(self) -> str:
+        """Jméno autora posudku (uživatel profilu) vč. titulů před/za.
+
+        Toto se propisuje do buňky „Vedoucí"/„Oponent" v XLSX posudku.
+        """
+        from ..models.naming import compose_titled_name
+
+        before, after = self._guess_user_titles()
+        return compose_titled_name(before, self._guess_user_name(), after)
 
     def _guess_review_place(self) -> str:
-        """Místo pro podpisový blok posudku z aktivního profilu.
-
-        Default „Zlín", pokud profil nemá nastaveno.
-        """
-        try:
-            from ..config import profiles_registry_path
-
-            import json
-
-            p = profiles_registry_path()
-            if p.is_file():
-                data = json.loads(p.read_text(encoding="utf-8"))
-                last_id = data.get("last_opened")
-                for prof in data.get("profiles", []) or []:
-                    if isinstance(prof, dict) and prof.get("id") == last_id:
-                        place = (prof.get("review_place") or "").strip()
-                        return place or "Zlín"
-        except Exception:  # noqa: BLE001
-            pass
-        return "Zlín"
+        """Místo pro podpisový blok posudku z aktivního profilu (default „Zlín")."""
+        place = (self._active_profile_dict().get("review_place") or "").strip()
+        return place or "Zlín"
 
     @staticmethod
     def build_place_date(place: str) -> str:
@@ -1524,7 +1560,9 @@ class ThesisService:
                     kind=kind,
                     is_file=True,
                     version=next_version,  # stejná verze jako XLSX
-                    is_current=False,  # XLSX je current, PDF je doprovodný
+                    # PDF i XLSX nejnovějšího posudku jsou „aktuální" — ať se
+                    # PDF ukazuje v seznamu hned, ne až po zobrazení starších.
+                    is_current=True,
                 )
                 if opposing:
                     opp.attachments.append(pdf_att)

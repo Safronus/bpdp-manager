@@ -16,7 +16,13 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import Thesis
-from ..models.enums import AttachmentKind, ThesisType
+from ..models.enums import (
+    REVIEW_STATE_LABELS,
+    REVIEW_STATE_TINTS,
+    AttachmentKind,
+    ThesisStatus,
+    ThesisType,
+)
 from ..services import ThesisService
 
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
@@ -228,7 +234,7 @@ class ThesesTreeWidget(QTreeWidget):
 
         student_name = student.full_name if student else "—"
         title = thesis.display_title
-        opponent_name = opponent.name if opponent else "—"
+        opponent_name = opponent.display_name if opponent else "—"
         obor = student.obor if student and student.obor else "—"
 
         # Posudky — máme nahrány?
@@ -294,6 +300,20 @@ class ThesesTreeWidget(QTreeWidget):
         leaf.setTextAlignment(
             self.COL_STATUS, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )
+
+        # Posudek vedoucího — podbarvi buňku NÁZVU práce (jen u prací „V řešení",
+        # kde má smysl sledovat, co ještě jako vedoucí musím posoudit):
+        #   🟢 hotový soubor · 🟡 jen rozpracovaná data · 🔴 nic
+        if thesis.status == ThesisStatus.IN_PROGRESS:
+            state = thesis.supervisor_review_state
+            tint = REVIEW_STATE_TINTS.get(state)
+            if tint:
+                leaf.setBackground(self.COL_TITLE, QBrush(QColor(tint)))
+                leaf.setForeground(self.COL_TITLE, QBrush(QColor("#212121")))
+                leaf.setToolTip(
+                    self.COL_TITLE,
+                    f"Posudek vedoucího: {REVIEW_STATE_LABELS.get(state, '')}",
+                )
 
         # Tooltipy
         if student:

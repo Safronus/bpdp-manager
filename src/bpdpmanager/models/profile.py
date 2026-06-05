@@ -15,6 +15,9 @@ class Profile(BaseModel):
     name: str
     data_dir: str  # absolutní cesta ke složce s db.json, documents/, harmonograms/
     user_name: str = ""  # jméno uživatele profilu (pro STAG import auto-detect role)
+    # Tituly před/za jménem (volný string) — skládají se do jména autora posudku.
+    user_title_before: str = ""  # např. "doc. Ing."
+    user_title_after: str = ""   # např. "Ph.D." nebo ", Ph.D."
     review_place: str = "Zlín"  # místo pro podpisový blok posudku (Místo, datum)
     created_at: datetime = Field(default_factory=datetime.now)
     last_opened_at: datetime | None = None

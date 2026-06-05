@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .enums import ThesisType
+from .enums import AttachmentKind, ThesisType
 from .review import Review
 from .thesis import Attachment
 
@@ -77,3 +77,16 @@ class OpposingThesis(BaseModel):
     @property
     def display_title(self) -> str:
         return self.title_cs or "(bez názvu)"
+
+    @property
+    def opponent_review_state(self) -> str:
+        """Stav oponentského posudku: ``"done"`` (vyrobený soubor) /
+        ``"draft"`` (jen uložená data) / ``"none"`` (nic)."""
+        if any(
+            a.is_file and a.kind == AttachmentKind.OPPONENT_REVIEW
+            for a in self.attachments
+        ):
+            return "done"
+        if any(r.role == "opponent" for r in self.reviews):
+            return "draft"
+        return "none"

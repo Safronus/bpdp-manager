@@ -212,6 +212,18 @@ class ProfileManager:
         self._save_registry()
         return profile
 
+    def set_user_titles(
+        self, profile_id: str, title_before: str, title_after: str
+    ) -> Profile:
+        """Nastaví tituly před/za jménem uživatele (autor posudku)."""
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        profile.user_title_before = (title_before or "").strip()
+        profile.user_title_after = (title_after or "").strip()
+        self._save_registry()
+        return profile
+
     # --- UI předvolby (perzistentní mezi spuštěními) --------------------
 
     @property

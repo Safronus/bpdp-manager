@@ -6,7 +6,7 @@ import locale
 import unicodedata
 
 from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -28,7 +28,12 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import OpposingThesis
-from ..models.enums import ThesisType
+from ..models.enums import (
+    REVIEW_STATE_LABELS,
+    REVIEW_STATE_STRONG,
+    REVIEW_STATE_TINTS,
+    ThesisType,
+)
 from ..services import ThesisService
 from .opposing_detail import OpposingDetail
 
@@ -93,6 +98,9 @@ class _NewOpposingDialog(QDialog):
 class OpposingTab(QWidget):
     """Vertikální splitter: strom posudků nahoře + detail dole."""
 
+    # Emitne se po změně dat (posudek/uložení) — pro souhrn v dolní liště.
+    changed = Signal()
+
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
@@ -140,8 +148,8 @@ class OpposingTab(QWidget):
 
         self.detail = OpposingDetail(service)
         self.detail.setMinimumHeight(520)
-        self.detail.saved.connect(lambda _: self.refresh())
-        self.detail.deleted.connect(lambda _: self.refresh())
+        self.detail.saved.connect(lambda _: (self.refresh(), self.changed.emit()))
+        self.detail.deleted.connect(lambda _: (self.refresh(), self.changed.emit()))
         self.detail.generate_review_requested.connect(self._on_generate_review)
         splitter.addWidget(self.detail)
 
@@ -166,6 +174,7 @@ class OpposingTab(QWidget):
         # Posudek/přílohy se mohly změnit → refresh seznamu i detailu.
         self.refresh()
         self._select_id(opposing_id)
+        self.changed.emit()
 
     # --- načtení / refresh --------------------------------------------------
 
@@ -226,10 +235,28 @@ class OpposingTab(QWidget):
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    # Oponentský posudek — podbarvi sloupec názvu práce:
+                    #   🟢 hotový soubor · 🟡 jen data · 🔴 chybí
+                    state = op.opponent_review_state
+                    tint = REVIEW_STATE_TINTS.get(state)
+                    if tint:
+                        leaf.setBackground(1, QBrush(QColor(tint)))
+                        leaf.setForeground(1, QBrush(QColor("#212121")))
+                        leaf.setToolTip(
+                            1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
+                        )
                     year_item.addChild(leaf)
                 year_item.setExpanded(True)
 
-            self.lbl_count.setText(f"Posudků celkem: {len(opposings)}")
+            # Souhrn s počty hotovo/chybí (barevně).
+            done = sum(1 for o in opposings if o.opponent_review_state == "done")
+            missing = sum(1 for o in opposings if o.opponent_review_state == "none")
+            self.lbl_count.setText(
+                f"Posudků celkem: {len(opposings)}  ·  "
+                f"<span style='color:{REVIEW_STATE_STRONG['done']};'>hotovo {done}</span>  ·  "
+                f"<span style='color:{REVIEW_STATE_STRONG['none']};'>chybí {missing}</span>"
+            )
+            self.lbl_count.setTextFormat(Qt.TextFormat.RichText)
 
             if selected_id:
                 self._select_id(selected_id)

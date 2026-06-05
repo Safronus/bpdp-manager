@@ -86,6 +86,19 @@ class Thesis(BaseModel):
     def display_title(self) -> str:
         return self.title_cs or "(bez názvu)"
 
+    @property
+    def supervisor_review_state(self) -> str:
+        """Stav posudku vedoucího: ``"done"`` (vyrobený soubor) /
+        ``"draft"`` (jen uložená data) / ``"none"`` (nic)."""
+        if any(
+            a.is_file and a.kind == AttachmentKind.SUPERVISOR_REVIEW
+            for a in self.attachments
+        ):
+            return "done"
+        if any(r.role == "supervisor" for r in self.reviews):
+            return "draft"
+        return "none"
+
     def is_ready_for_listing(self) -> tuple[bool, list[str]]:
         """Vypsání tématu vyžaduje název CZ a anotaci."""
         missing = []

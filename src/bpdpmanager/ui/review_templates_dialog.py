@@ -1014,8 +1014,9 @@ class GenerateReviewDialog(QDialog):
                 "Můžeš pokračovat — editor zobrazí jen základní pole bez bodování.",
             )
 
-        # Sestav scaffold Review z dat práce + template kritérií
-        user_name = self.service._guess_user_name()
+        # Sestav scaffold Review z dat práce + template kritérií.
+        # Autor posudku = uživatel profilu vč. titulů před/za.
+        user_name = self.service.review_author_name()
 
         # Zjisti, jestli pro tuto práci a roli existuje uložený Review →
         # předáme ho do editoru k úpravě (zachová body z minula).

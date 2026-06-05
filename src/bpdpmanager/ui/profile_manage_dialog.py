@@ -10,10 +10,13 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
+    QDialogButtonBox,
+    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QTreeWidget,
@@ -60,7 +63,7 @@ class ProfileManageDialog(QDialog):
 
         row = QHBoxLayout()
         self.btn_rename = QPushButton("Přejmenovat…")
-        self.btn_user_name = QPushButton("👤 Tvoje jméno…")
+        self.btn_user_name = QPushButton("👤 Tvoje jméno a tituly…")
         self.btn_user_name.setToolTip(
             "Jméno uživatele profilu — pro auto-detekci role při STAG importu "
             "a podpis v posudcích"
@@ -109,7 +112,10 @@ class ProfileManageDialog(QDialog):
             data_dir_exists = Path(p.data_dir).exists()
             if not data_dir_exists:
                 status = (status + "  ·  ⚠ složka neexistuje").strip()
-            user_name = (p.user_name or "").strip() or "—"
+            from ..models.naming import compose_titled_name
+            user_name = compose_titled_name(
+                p.user_title_before, p.user_name, p.user_title_after
+            ) or "—"
             item = QTreeWidgetItem([p.name, user_name, p.data_dir, last, status])
             item.setData(0, Qt.ItemDataRole.UserRole, p)
             if is_active:
@@ -155,17 +161,49 @@ class ProfileManageDialog(QDialog):
                 "Vyber v seznamu profil, kterému chceš nastavit jméno.",
             )
             return
-        new_user_name, ok = QInputDialog.getText(
-            self,
-            "Tvoje jméno v profilu",
-            "Jméno uživatele tohoto profilu\n"
-            "(používá se k auto-detekci role při importu ze STAG):",
-            text=profile.user_name or "",
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Tvoje jméno a tituly")
+        dlg.setMinimumWidth(440)
+        v = QVBoxLayout(dlg)
+        v.addWidget(QLabel(
+            "Jméno se používá k auto-detekci role při importu ze STAG.\n"
+            "Tituly před/za se automaticky doplní do jména autora v posudku."
+        ))
+        form = QFormLayout()
+        ed_before = QLineEdit(profile.user_title_before or "")
+        ed_before.setPlaceholderText("např. doc. Ing.")
+        ed_name = QLineEdit(profile.user_name or "")
+        ed_name.setPlaceholderText("např. Petr Novák")
+        ed_after = QLineEdit(profile.user_title_after or "")
+        ed_after.setPlaceholderText("např. Ph.D.")
+        form.addRow("Tituly před", ed_before)
+        form.addRow("Jméno a příjmení", ed_name)
+        form.addRow("Tituly za", ed_after)
+        v.addLayout(form)
+        from ..models.naming import compose_titled_name
+        preview = QLabel()
+        preview.setStyleSheet("color:#666;")
+
+        def _upd() -> None:
+            full = compose_titled_name(ed_before.text(), ed_name.text(), ed_after.text())
+            preview.setText(f"V posudku: <b>{full or '—'}</b>")
+
+        preview.setTextFormat(Qt.TextFormat.RichText)
+        for ed in (ed_before, ed_name, ed_after):
+            ed.textChanged.connect(lambda *_: _upd())
+        _upd()
+        v.addWidget(preview)
+        bb = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        if not ok:
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        v.addWidget(bb)
+        if not dlg.exec():
             return
         try:
-            self.pm.set_user_name(profile.id, new_user_name)
+            self.pm.set_user_name(profile.id, ed_name.text())
+            self.pm.set_user_titles(profile.id, ed_before.text(), ed_after.text())
         except ProfileError as exc:
             QMessageBox.warning(self, "Uložení selhalo", str(exc))
             return

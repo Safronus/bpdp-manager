@@ -7,6 +7,28 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-06-05
+
+### Added
+- **🔍 Globální vyhledávání a navigace.** Pole nad záložkami najde práci
+  napříč vedenými pracemi i oponenturami podle jména studenta, názvu práce
+  nebo osobního čísla (Axxxxx). Při jediné shodě skočí na práci (přepne
+  záložku a vybere ji), při více shodách nabídne výběr (práce v *Aktuální*
+  jsou první).
+- **Barevné odlišení stavu posudku.** V *Aktuální* se buňka názvu práce
+  podbarví podle posudku vedoucího (🟢 vyrobený soubor · 🟡 jen rozpracovaná
+  data · 🔴 chybí), v *🧐 Oponentské posudky* obdobně podle oponentského
+  posudku. **Dolní lišta** ukazuje barevný souhrn hotovo/chybí (vedoucí
+  i oponentury).
+- **Tituly před/za** u uživatele profilu i u oponentů a vedoucích v
+  registrech (ukládají se jako string). Tituly uživatele se automaticky
+  skládají do jména autora v posudku („doc. Ing. Petr Novák, Ph.D.").
+
+### Changed
+- **PDF posudku se v seznamu dokumentů zobrazuje jako aktuální** (vedle
+  XLSX) — ne až po zapnutí starších verzí. Toggle *Zobrazit starší verze*
+  je nově defaultně zapnutý.
+
 ## [0.28.1] - 2026-06-05
 
 ### Fixed

@@ -480,7 +480,7 @@ class OpponentsManageDialog(QDialog):
                 phone = o.phone if (o.phone and kind == OpponentKind.EXTERNAL) else ""
                 leaf = QTreeWidgetItem(
                     [
-                        o.name,
+                        o.display_name,
                         o.affiliation or "",
                         o.email or "",
                         phone,
@@ -937,7 +937,7 @@ class SupervisorsManageDialog(QDialog):
         for sup in sups:
             item = QTreeWidgetItem(
                 [
-                    sup.name,
+                    sup.display_name,
                     sup.affiliation or "",
                     sup.email or "",
                     sup.phone or "",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -10,11 +10,14 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QHBoxLayout,
     QInputDialog,
+    QLabel,
     QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPushButton,
     QSplitter,
     QStatusBar,
     QTabWidget,
@@ -26,6 +29,7 @@ from PySide6.QtWidgets import (
 
 from ..models import Thesis
 from ..models.enums import (
+    REVIEW_STATE_STRONG,
     STATUSES_CURRENT,
     STATUSES_FUTURE,
     STATUSES_HISTORY,
@@ -70,6 +74,9 @@ from .thesis_detail import (
 class _ThesesTab(QWidget):
     """Jedna záložka = strom prací (grupování rok → BP/DP) nahoře + detail dole."""
 
+    # Emitne se, když se mohla změnit data ovlivňující souhrn (posudek, uložení).
+    data_changed = Signal()
+
     def __init__(
         self,
         service: ThesisService,
@@ -106,8 +113,8 @@ class _ThesesTab(QWidget):
         # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
         # stejný signal a my ho zpracujeme jednou handlerem.
         self.detail.generate_review_requested.connect(self._on_generate_review_requested)
-        self.detail.saved.connect(lambda _: self.tree.refresh())
-        self.detail.deleted.connect(lambda _: self.tree.refresh())
+        self.detail.saved.connect(lambda _: (self.tree.refresh(), self.data_changed.emit()))
+        self.detail.deleted.connect(lambda _: (self.tree.refresh(), self.data_changed.emit()))
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
@@ -130,6 +137,7 @@ class _ThesesTab(QWidget):
             # ``DocumentsWidget.set_thesis_id`` rovnou obnoví i seznam dokumentů.
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
             self.tree.refresh()
+            self.data_changed.emit()
 
     def _on_rollback_requested(self, thesis_id: str) -> None:
         """Otevře rollback dialog pro vybranou práci."""
@@ -199,8 +207,36 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_opposing, "🧐 Oponentské posudky")
         self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
 
-        self.setCentralWidget(self.tabs)
+        # Globální vyhledávání + navigace nad záložkami.
+        central = QWidget()
+        cv = QVBoxLayout(central)
+        cv.setContentsMargins(6, 4, 6, 0)
+        cv.setSpacing(4)
+        search_row = QHBoxLayout()
+        self.ed_search = QLineEdit()
+        self.ed_search.setClearButtonEnabled(True)
+        self.ed_search.setPlaceholderText(
+            "🔍 Najít práci: jméno studenta · název práce · ID (Axxxxx) — Enter"
+        )
+        self.ed_search.returnPressed.connect(self._do_search)
+        btn_search = QPushButton("Najít")
+        btn_search.clicked.connect(self._do_search)
+        search_row.addWidget(self.ed_search, stretch=1)
+        search_row.addWidget(btn_search)
+        cv.addLayout(search_row)
+        cv.addWidget(self.tabs, stretch=1)
+        self.setCentralWidget(central)
         self.setStatusBar(QStatusBar())
+        # Barevný souhrn posudků (vpravo v dolní liště).
+        self._status_reviews = QLabel()
+        self._status_reviews.setTextFormat(Qt.TextFormat.RichText)
+        self.statusBar().addPermanentWidget(self._status_reviews)
+
+        # Souhrn posudků v dolní liště přepočítej při změně dat i přepnutí tabu.
+        for tab in (self.tab_current, self.tab_future, self.tab_history, self.tab_all):
+            tab.data_changed.connect(self._update_status)
+        self.tab_opposing.changed.connect(self._update_status)
+        self.tabs.currentChanged.connect(lambda _: self._update_status())
 
         self._build_toolbar(current_year, next_year)
         self._update_status()
@@ -808,12 +844,111 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def _update_status(self) -> None:
-        total = len(self.service.list_theses())
-        opposing = len(self.service.list_opposing_theses())
+        theses = self.service.list_theses()
+        opposings = self.service.list_opposing_theses()
+        total = len(theses)
         students = len(self.service.list_students())
         opponents = len(self.service.list_opponents())
         obory = len(self.service.list_obory())
         self.statusBar().showMessage(
-            f"Vedené práce: {total} • Oponentury: {opposing} • "
+            f"Vedené práce: {total} • Oponentury: {len(opposings)} • "
             f"Studenti: {students} • Oponenti: {opponents} • Obory: {obory}"
         )
+
+        # Barevný souhrn posudků: vedoucí (jen práce „V řešení") + oponentury.
+        in_progress = [t for t in theses if t.status == ThesisStatus.IN_PROGRESS]
+        sup_done = sum(1 for t in in_progress if t.supervisor_review_state == "done")
+        sup_draft = sum(1 for t in in_progress if t.supervisor_review_state == "draft")
+        sup_missing = sum(1 for t in in_progress if t.supervisor_review_state == "none")
+        opp_done = sum(1 for o in opposings if o.opponent_review_state == "done")
+        opp_missing = sum(1 for o in opposings if o.opponent_review_state == "none")
+
+        g, a, r = (
+            REVIEW_STATE_STRONG["done"],
+            REVIEW_STATE_STRONG["draft"],
+            REVIEW_STATE_STRONG["none"],
+        )
+        draft_part = (
+            f" · <span style='color:{a};'>rozpracováno {sup_draft}</span>"
+            if sup_draft else ""
+        )
+        self._status_reviews.setText(
+            f"Posudky vedoucího (V řešení): "
+            f"<span style='color:{g};'>hotovo {sup_done}</span>{draft_part} · "
+            f"<span style='color:{r};'>chybí {sup_missing}</span>"
+            f" &nbsp;&nbsp;‖&nbsp;&nbsp; Oponentury: "
+            f"<span style='color:{g};'>hotovo {opp_done}</span> · "
+            f"<span style='color:{r};'>chybí {opp_missing}</span>"
+        )
+
+    # --- globální vyhledávání + navigace -------------------------------------
+
+    def _do_search(self) -> None:
+        query = self.ed_search.text().strip()
+        if not query:
+            return
+        hits = self.service.search_works(query)
+        if not hits:
+            self.statusBar().showMessage(f"Nic nenalezeno: „{query}“", 4000)
+            return
+        if len(hits) == 1:
+            self._navigate_hit(hits[0])
+            return
+
+        # Více shod → nabídni výběr (práce v „Aktuální" první, default).
+        def rank(h: dict) -> int:
+            if h["kind"] == "thesis" and h["status"] in STATUSES_CURRENT:
+                return 0
+            if h["kind"] == "thesis" and h["status"] in STATUSES_FUTURE:
+                return 1
+            if h["kind"] == "thesis" and h["status"] in STATUSES_HISTORY:
+                return 2
+            return 3  # oponentura
+        hits = sorted(hits, key=lambda h: (rank(h), h["student"].lower()))
+
+        menu = QMenu(self)
+        head = menu.addAction(f"{len(hits)} shod — vyber práci:")
+        head.setEnabled(False)
+        menu.addSeparator()
+        for h in hits:
+            uid = f"  ·  {h['uid']}" if h["uid"] else ""
+            act = menu.addAction(
+                f"[{self._bucket_label(h)}]  {h['student']} — {h['title']}{uid}"
+            )
+            act.triggered.connect(
+                lambda _checked=False, hit=h: self._navigate_hit(hit)
+            )
+        menu.exec(self.ed_search.mapToGlobal(self.ed_search.rect().bottomLeft()))
+
+    def _bucket_label(self, hit: dict) -> str:
+        if hit["kind"] == "opposing":
+            return "Oponentura"
+        s = hit["status"]
+        if s in STATUSES_CURRENT:
+            return "Aktuální"
+        if s in STATUSES_FUTURE:
+            return "Budoucí"
+        if s in STATUSES_HISTORY:
+            return "Historie"
+        return "Vše"
+
+    def _tab_for_status(self, status) -> "_ThesesTab":
+        if status in STATUSES_CURRENT:
+            return self.tab_current
+        if status in STATUSES_FUTURE:
+            return self.tab_future
+        if status in STATUSES_HISTORY:
+            return self.tab_history
+        return self.tab_all
+
+    def _navigate_hit(self, hit: dict) -> None:
+        if hit["kind"] == "opposing":
+            self.tabs.setCurrentWidget(self.tab_opposing)
+            self.tab_opposing._select_id(hit["id"])
+            return
+        tab = self._tab_for_status(hit["status"])
+        self.tabs.setCurrentWidget(tab)
+        if not tab.tree.select_thesis(hit["id"]):
+            # Práce nesedí do filtru tabu (krajní případ) → zkus „Vše".
+            self.tabs.setCurrentWidget(self.tab_all)
+            self.tab_all.tree.select_thesis(hit["id"])

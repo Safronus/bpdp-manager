@@ -298,7 +298,8 @@ class OpposingDetail(QWidget):
         try:
             self.cb_sup_name.clear()
             for sup in self.service.list_supervisors():
-                self.cb_sup_name.addItem(sup.name, sup.id)
+                # Jméno vč. titulů — propíše se do supervisor_name (i do posudku).
+                self.cb_sup_name.addItem(sup.display_name, sup.id)
             # Obnov text, kdyby byl něčím vyplněn (např. ručně zadané jméno)
             if prev_text:
                 idx = self.cb_sup_name.findText(prev_text)

@@ -31,9 +31,17 @@ class SupervisorDialog(QDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
+        self.ed_title_before = QLineEdit(self.supervisor.title_before)
+        self.ed_title_before.setPlaceholderText("např. doc. Ing.")
+        form.addRow("Tituly před", self.ed_title_before)
+
         self.ed_name = QLineEdit(self.supervisor.name)
-        self.ed_name.setPlaceholderText("např. doc. Ing. Petr Novák, Ph.D.")
+        self.ed_name.setPlaceholderText("např. Petr Novák")
         form.addRow("Jméno", self.ed_name)
+
+        self.ed_title_after = QLineEdit(self.supervisor.title_after)
+        self.ed_title_after.setPlaceholderText("např. Ph.D.")
+        form.addRow("Tituly za", self.ed_title_after)
 
         self.ed_email = QLineEdit(self.supervisor.email or "")
         self.ed_email.setPlaceholderText("novak@utb.cz")
@@ -65,6 +73,8 @@ class SupervisorDialog(QDialog):
         if not name:
             return
         self.supervisor.name = name
+        self.supervisor.title_before = self.ed_title_before.text().strip()
+        self.supervisor.title_after = self.ed_title_after.text().strip()
         self.supervisor.email = self.ed_email.text().strip() or None
         self.supervisor.affiliation = self.ed_affiliation.text().strip() or None
         self.supervisor.phone = self.ed_phone.text().strip() or None
