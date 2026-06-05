@@ -79,6 +79,10 @@ class ParsedRecord:
     # Plné raw data (pro debugging / další pole)
     raw: dict[str, str] = field(default_factory=dict)
 
+    # Zdrojové CSV (vyplní se při vícesouborovém stažení ze STAG — připojí se
+    # pak právě tohle CSV ke správné práci). Prázdné = použij společný zdroj.
+    source_csv: str = ""
+
 
 @dataclass
 class ImportFile:

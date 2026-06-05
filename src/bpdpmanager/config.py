@@ -12,7 +12,8 @@ APP_NAME = "bpdpmanager"
 #     data posudku jako zdroj pravdy pro XLSX/PDF výstupy).
 #     ReviewTemplate.criteria (cache schema kritérií).
 # v5: tituly před/za u Opponent a Supervisor (volitelná pole, default "").
-SCHEMA_VERSION = 5
+# v6: adipidno (STAG ID práce) u Thesis a OpposingThesis (volitelné, default "").
+SCHEMA_VERSION = 6
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

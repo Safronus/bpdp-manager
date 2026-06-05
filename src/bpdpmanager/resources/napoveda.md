@@ -298,11 +298,20 @@ V import dialogu klikni na **🌐 Stáhnout ze STAG**:
 2. Zadej **příjmení vedoucího nebo oponenta** a přepni *role* (Vedoucí /
    Oponent) — samotné příjmení studenta nemusí být jednoznačné, druhé
    příjmení hledání zpřesní. Předvyplní se tvé příjmení z profilu.
-3. **🔍 Vyhledat ve STAG** → vyber práci ze seznamu shod.
-4. **⬇ Stáhnout a načíst** → CSV se stáhne a rovnou se otevře náhled.
+3. **🔍 Vyhledat ve STAG** → ve výsledcích **zaškrtni práce**, které chceš.
+   U každé je odznak **🆕 nové** / **✓ už máš** (podle toho, co je v DB) —
+   nové jsou předzaškrtnuté. Můžeš tak v jednom kroku stáhnout třeba **BP
+   i DP** stejného studenta.
+4. **⬇ Stáhnout vybrané (N)** → všechna zaškrtnutá CSV se stáhnou a sloučí
+   do jednoho náhledu; ke každé práci se připojí její vlastní CSV.
 
 Hledá se ve veřejném *Prohlížení → Kvalifikační práce* na **stag.utb.cz**,
 takže přihlášení obvykle není potřeba.
+
+> **BP × DP:** BP a DP jsou samostatné záznamy (párují se podle typu),
+> takže import DP **nepřepíše** dříve naimportovanou BP. Práce se navíc
+> párují přes **STAG ID (`adipidno`)**, takže opětovný import téže práce ji
+> spolehlivě *aktualizuje* místo zdvojení.
 
 > **Pozn.:** Veřejný CSV export STAG **neobsahuje jméno studenta**
 > (jen osobní číslo). Aplikace ho proto doplní z výsledku vyhledávání.

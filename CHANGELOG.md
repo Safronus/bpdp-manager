@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-06-05
+
+### Added
+- **Stažení ze STAG — vícevýběr.** Když STAG vrátí víc prací jednoho
+  studenta (např. BP i DP), můžeš jich **zaškrtnout víc a stáhnout je
+  najednou**; sloučí se do jednoho náhledu a ke každé práci se připojí
+  její vlastní CSV.
+- **Odznaky „🆕 nové / ✓ už máš".** U výsledků hledání aplikace ukáže, co
+  už v databázi máš a co je nové — nové jsou předzaškrtnuté. Tím poznáš,
+  že stahuješ novou DP, i když už máš starou BP téhož studenta.
+- **STAG ID práce (`adipidno`) se ukládá** na práci i oponenturu →
+  opětovný import téže práce se přesně spáruje (aktualizuje, nezaloží
+  duplikát). BP a DP se nadále nemíchají (jsou to oddělené záznamy).
+
+### Changed
+- Schéma `version` zvýšeno na 6 (přidané volitelné `adipidno`; bez migrace
+  dat — staré záznamy mají prázdné).
+
 ## [0.30.0] - 2026-06-05
 
 ### Added

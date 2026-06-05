@@ -404,14 +404,69 @@ class StagImportDialog(QDialog):
             if tokens:
                 default_surname = tokens[-1]  # příjmení bývá poslední token
 
-        dlg = StagDownloadDialog(default_person_surname=default_surname, parent=self)
-        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result_path:
-            self.ed_path.setText(str(dlg.result_path))
-            # Jméno studenta doplníme z výsledku vyhledávání (veřejné CSV ho
-            # neobsahuje) — _load_preview ho po načtení vloží do záznamu.
-            self._pending_stag_meta = dlg.result_meta
-            # Po stažení rovnou načti náhled (uživatel jen potvrdí import).
-            self._load_preview()
+        dlg = StagDownloadDialog(
+            default_person_surname=default_surname, parent=self, service=self.service
+        )
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result_items:
+            # Po stažení (i více prací najednou) rovnou načti náhled.
+            self._load_preview_from_stag(dlg.result_items)
+
+    def _load_preview_from_stag(
+        self, items: list[tuple[Path, "stag_api.StagThesisResult"]]
+    ) -> None:
+        """Načte do náhledu jednu nebo více stažených STAG prací (každá = CSV).
+
+        Záznamy ze všech CSV se sloučí; ke každému se doplní jméno studenta
+        z výsledku vyhledávání (veřejné CSV ho nemá) a uloží se jeho zdrojové
+        CSV (``source_csv``), aby se k práci připojilo to správné.
+        """
+        user_name = self.ed_user_name.text().strip()
+        all_records: list[ParsedRecord] = []
+        skipped = 0
+        encoding: str | None = None
+        for path, meta in items:
+            try:
+                imp = load_stag_csv(Path(path), user_name=user_name)
+            except Exception as exc:  # noqa: BLE001
+                QMessageBox.warning(
+                    self, "Chyba načítání", f"CSV {Path(path).name} nelze přečíst:\n{exc}"
+                )
+                continue
+            encoding = encoding or imp.encoding
+            skipped += imp.skipped
+            for rec in imp.records:
+                if not rec.student_last and meta.surname:
+                    rec.student_last = meta.surname
+                if not rec.student_first and meta.name:
+                    rec.student_first = meta.name
+                rec.source_csv = str(path)
+            all_records.extend(imp.records)
+
+        if not all_records:
+            QMessageBox.warning(self, "STAG", "Stažené CSV neobsahuje žádná data.")
+            return
+
+        self.import_file = ImportFile(
+            encoding=encoding or "utf-8", records=all_records, skipped=skipped
+        )
+        self.ed_path.setText(str(items[0][0]))  # první cesta jen pro zobrazení
+        self._persist_user_name(user_name)
+        self._populate_preview()
+
+    def _persist_user_name(self, user_name: str) -> None:
+        """Uloží user_name do aktivního profilu (pro příští předvyplnění)."""
+        if (
+            self.profile_manager is not None
+            and self.profile_manager.active is not None
+            and user_name
+            and self.profile_manager.active.user_name != user_name
+        ):
+            try:
+                self.profile_manager.set_user_name(
+                    self.profile_manager.active.id, user_name
+                )
+            except Exception:  # noqa: BLE001
+                pass
 
     def _load_preview(self) -> None:
         path_str = self.ed_path.text().strip()
@@ -894,9 +949,15 @@ class StagImportDialog(QDialog):
         type_value = record.type_code
         year = record.academic_year
         uni_id = record.student_uni_id.strip()
+        adip = record.adipidno.strip()
 
         if role == ImportRole.SUPERVISOR:
-            # match podle student_id (přes university_id) + year + type
+            # 1) přesně přes adipidno
+            if adip:
+                for t in existing_theses:
+                    if t.adipidno and t.adipidno == adip:
+                        return f"existuje: {t.display_title[:40]}"
+            # 2) fallback: student_id (přes university_id) + year + type
             students_by_uni_id = {
                 s.university_id: s for s in self.service.list_students()
                 if s.university_id
@@ -913,6 +974,10 @@ class StagImportDialog(QDialog):
                     return f"existuje: {t.display_title[:40]}"
             return ""
         else:
+            if adip:
+                for o in existing_opposing:
+                    if o.adipidno and o.adipidno == adip:
+                        return f"existuje: {o.display_title[:40]}"
             # OPPOSING — match podle student_uni_id (inline) + year + type
             for o in existing_opposing:
                 if (
@@ -1244,6 +1309,10 @@ class StagImportDialog(QDialog):
         errors: list[str] = []
         affected_thesis_ids: list[str] = []
         affected_opposing_ids: list[str] = []
+        # Per-práce zdrojové CSV (u vícesouborového stažení se ke každé práci
+        # připojí to její). Fallback je společný ``csv_source``.
+        thesis_csv: dict[str, str] = {}
+        opposing_csv: dict[str, str] = {}
         last_thesis_id: str | None = None
         last_opposing_id: str | None = None
 
@@ -1273,44 +1342,45 @@ class StagImportDialog(QDialog):
                                 record, obor_name, status, stats
                             )
                             affected_thesis_ids.append(thesis_id)
+                            if record.source_csv:
+                                thesis_csv[thesis_id] = record.source_csv
                             last_thesis_id = thesis_id
                         else:
                             op_id, _is_new = self._apply_opponent_role(
                                 record, obor_name, stats
                             )
                             affected_opposing_ids.append(op_id)
+                            if record.source_csv:
+                                opposing_csv[op_id] = record.source_csv
                             last_opposing_id = op_id
                     except Exception as exc:  # noqa: BLE001
                         errors.append(
                             f"{record.student_last} {record.student_first}: {exc}"
                         )
 
-                # 3b) Připoj CSV jako STAG_EXPORT k všem dotčeným pracem
-                if csv_source and csv_source.exists():
-                    for tid in affected_thesis_ids:
-                        try:
-                            self.service.attach_document(
-                                tid,
-                                csv_source,
-                                kind=AttachmentKind.STAG_EXPORT,
-                            )
-                            stats["attached_csv"] += 1
-                        except Exception as exc:  # noqa: BLE001
-                            errors.append(
-                                f"Přiložení CSV k práci {tid[:8]}: {exc}"
-                            )
-                    for oid in affected_opposing_ids:
-                        try:
-                            self.service.opposing_attach_document(
-                                oid,
-                                csv_source,
-                                kind=AttachmentKind.STAG_EXPORT,
-                            )
-                            stats["attached_csv"] += 1
-                        except Exception as exc:  # noqa: BLE001
-                            errors.append(
-                                f"Přiložení CSV k posudku {oid[:8]}: {exc}"
-                            )
+                # 3b) Připoj CSV jako STAG_EXPORT k dotčeným pracem (každé to její)
+                for tid in affected_thesis_ids:
+                    src = Path(thesis_csv[tid]) if tid in thesis_csv else csv_source
+                    if not (src and src.exists()):
+                        continue
+                    try:
+                        self.service.attach_document(
+                            tid, src, kind=AttachmentKind.STAG_EXPORT
+                        )
+                        stats["attached_csv"] += 1
+                    except Exception as exc:  # noqa: BLE001
+                        errors.append(f"Přiložení CSV k práci {tid[:8]}: {exc}")
+                for oid in affected_opposing_ids:
+                    src = Path(opposing_csv[oid]) if oid in opposing_csv else csv_source
+                    if not (src and src.exists()):
+                        continue
+                    try:
+                        self.service.opposing_attach_document(
+                            oid, src, kind=AttachmentKind.STAG_EXPORT
+                        )
+                        stats["attached_csv"] += 1
+                    except Exception as exc:  # noqa: BLE001
+                        errors.append(f"Přiložení CSV k posudku {oid[:8]}: {exc}")
 
                 # 3c) Pokud se cokoli nepovedlo a uživatel je dotazuje, dej mu
                 #     šanci rollback udělat výjimkou z bloku.
@@ -1424,6 +1494,8 @@ class StagImportDialog(QDialog):
         errors: list[str] = []
         affected_thesis_ids: list[str] = []
         affected_opposing_ids: list[str] = []
+        thesis_csv: dict[str, str] = {}
+        opposing_csv: dict[str, str] = {}
         last_thesis_id: str | None = None
         last_opposing_id: str | None = None
 
@@ -1444,32 +1516,41 @@ class StagImportDialog(QDialog):
                             record, obor_name, status, stats
                         )
                         affected_thesis_ids.append(tid)
+                        if record.source_csv:
+                            thesis_csv[tid] = record.source_csv
                         last_thesis_id = tid
                     else:
                         oid, _ = self._apply_opponent_role(record, obor_name, stats)
                         affected_opposing_ids.append(oid)
+                        if record.source_csv:
+                            opposing_csv[oid] = record.source_csv
                         last_opposing_id = oid
                 except Exception as exc:  # noqa: BLE001
                     errors.append(
                         f"{record.student_last} {record.student_first}: {exc}"
                     )
-            if csv_source and csv_source.exists():
-                for tid in affected_thesis_ids:
-                    try:
-                        self.service.attach_document(
-                            tid, csv_source, kind=AttachmentKind.STAG_EXPORT
-                        )
-                        stats["attached_csv"] += 1
-                    except Exception:
-                        pass
-                for oid in affected_opposing_ids:
-                    try:
-                        self.service.opposing_attach_document(
-                            oid, csv_source, kind=AttachmentKind.STAG_EXPORT
-                        )
-                        stats["attached_csv"] += 1
-                    except Exception:
-                        pass
+            for tid in affected_thesis_ids:
+                src = Path(thesis_csv[tid]) if tid in thesis_csv else csv_source
+                if not (src and src.exists()):
+                    continue
+                try:
+                    self.service.attach_document(
+                        tid, src, kind=AttachmentKind.STAG_EXPORT
+                    )
+                    stats["attached_csv"] += 1
+                except Exception:
+                    pass
+            for oid in affected_opposing_ids:
+                src = Path(opposing_csv[oid]) if oid in opposing_csv else csv_source
+                if not (src and src.exists()):
+                    continue
+                try:
+                    self.service.opposing_attach_document(
+                        oid, src, kind=AttachmentKind.STAG_EXPORT
+                    )
+                    stats["attached_csv"] += 1
+                except Exception:
+                    pass
 
         self.imported_thesis_ids = affected_thesis_ids
         self.imported_opposing_ids = affected_opposing_ids
@@ -1617,6 +1698,8 @@ class StagImportDialog(QDialog):
         thesis.annotation_en = record.annotation_en or thesis.annotation_en
         thesis.objectives = record.objectives_text or thesis.objectives
         thesis.references = record.references_text or thesis.references
+        if record.adipidno:
+            thesis.adipidno = record.adipidno
 
         self.service.upsert_thesis(thesis)
         if is_new:
@@ -1662,6 +1745,8 @@ class StagImportDialog(QDialog):
         op.objectives = record.objectives_text or op.objectives
         op.grade_supervisor = record.grade_supervisor or op.grade_supervisor
         op.grade_opponent = record.grade_opponent or op.grade_opponent
+        if record.adipidno:
+            op.adipidno = record.adipidno
 
         self.service.upsert_opposing_thesis(op)
         if is_new:
@@ -1808,6 +1893,12 @@ class StagImportDialog(QDialog):
         return sup
 
     def _find_existing_thesis(self, student_id: str, record: ParsedRecord) -> Thesis | None:
+        # 1) Přesná shoda přes STAG ID práce (adipidno) — nejspolehlivější.
+        if record.adipidno:
+            for t in self.service.list_theses():
+                if t.adipidno and t.adipidno == record.adipidno:
+                    return t
+        # 2) Fallback: student + rok + typ (BP≠DP → samostatné záznamy).
         for t in self.service.list_theses():
             if (
                 t.student_id == student_id
@@ -1818,6 +1909,10 @@ class StagImportDialog(QDialog):
         return None
 
     def _find_existing_opposing(self, record: ParsedRecord) -> OpposingThesis | None:
+        if record.adipidno:
+            for o in self.service.list_opposing_theses():
+                if o.adipidno and o.adipidno == record.adipidno:
+                    return o
         uni_id = record.student_uni_id.strip()
         for o in self.service.list_opposing_theses():
             if (
@@ -1838,11 +1933,17 @@ class StagDownloadDialog(QDialog):
     :mod:`bpdpmanager.services.stag_api` (UI nesahá na HTTP přímo).
     """
 
-    def __init__(self, default_person_surname: str = "", parent=None) -> None:
+    def __init__(
+        self, default_person_surname: str = "", parent=None, *, service=None
+    ) -> None:
         super().__init__(parent)
+        # Vícevýběr: ``result_items`` = stažené práce (cesta k CSV + STAG meta).
+        self.result_items: list[tuple[Path, stag_api.StagThesisResult]] = []
+        # Zpětná kompatibilita (první stažená) — některý starší kód to čte.
         self.result_path: Path | None = None
         self.result_meta: stag_api.StagThesisResult | None = None
         self._results: list[stag_api.StagThesisResult] = []
+        self._service = service
 
         self.setWindowTitle("Stáhnout práci ze STAG")
         self.setMinimumSize(740, 560)
@@ -1912,17 +2013,14 @@ class StagDownloadDialog(QDialog):
         outer.addWidget(self.lbl_status)
 
         self.list_results = QListWidget()
-        self.list_results.itemSelectionChanged.connect(self._on_result_selected)
-        self.list_results.itemDoubleClicked.connect(
-            lambda _item: self._download_selected()
-        )
+        self.list_results.itemChanged.connect(lambda _i: self._update_download_btn())
         outer.addWidget(self.list_results, stretch=1)
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
         btn_cancel = QPushButton("Zrušit")
         btn_cancel.clicked.connect(self.reject)
-        self.btn_download = QPushButton("⬇ Stáhnout a načíst")
+        self.btn_download = QPushButton("⬇ Stáhnout vybrané")
         self.btn_download.setEnabled(False)
         self.btn_download.setDefault(True)
         df = self.btn_download.font()
@@ -1984,73 +2082,158 @@ class StagDownloadDialog(QDialog):
                 "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku) "
                 "nebo zkus jen příjmení studenta."
             )
+            self._update_download_btn()
             return
 
+        existing_adip, existing_name_type = self._existing_keys()
+        new_count = 0
+        self.list_results.blockSignals(True)
         for r in results:
-            item = QListWidgetItem(r.display_label)
+            is_existing = self._is_existing(r, existing_adip, existing_name_type)
+            if not is_existing:
+                new_count += 1
+            badge = "✓ už máš" if is_existing else "🆕 nové"
+            item = QListWidgetItem(f"{badge}   {r.display_label}")
             item.setData(Qt.ItemDataRole.UserRole, r.adipidno)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            # Nové předzaškrtnuto, „už máš" ne (ale lze přidat ručně).
+            item.setCheckState(
+                Qt.CheckState.Unchecked if is_existing else Qt.CheckState.Checked
+            )
+            if is_existing:
+                item.setForeground(QBrush(QColor("#888")))
             tooltip = [f"STAG ID práce: {r.adipidno}"]
             if r.supervisor:
                 tooltip.append(f"Vedoucí: {r.supervisor}")
             if r.reviewer:
                 tooltip.append(f"Oponent: {r.reviewer}")
+            if is_existing:
+                tooltip.append("Tuto práci už máš v databázi.")
             item.setToolTip("\n".join(tooltip))
             self.list_results.addItem(item)
+        self.list_results.blockSignals(False)
 
         self.lbl_status.setText(
             f"✓ Nalezeno: {len(results)} "
-            f"{StagImportDialog._cs_plural(len(results), 'práce', 'práce', 'prací')}. "
-            "Vyber jednu a stáhni."
+            f"{StagImportDialog._cs_plural(len(results), 'práce', 'práce', 'prací')}"
+            f" ({new_count} nových). Zaškrtni, co stáhnout — nové jsou "
+            "předzaškrtnuté."
         )
-        if len(results) == 1:
-            self.list_results.setCurrentRow(0)
+        self._update_download_btn()
 
-    def _on_result_selected(self) -> None:
-        self.btn_download.setEnabled(bool(self.list_results.selectedItems()))
+    # --- vícevýběr / odznaky -------------------------------------------------
+
+    @staticmethod
+    def _result_type_code(r: stag_api.StagThesisResult) -> str:
+        lbl = (r.type_label or "").lower()
+        if "diplom" in lbl:
+            return "DP"
+        if "bakal" in lbl:
+            return "BP"
+        return ""
+
+    @staticmethod
+    def _result_name_key(r: stag_api.StagThesisResult) -> tuple[str, str]:
+        full = f"{r.name} {r.surname}".strip().lower()
+        return (full, StagDownloadDialog._result_type_code(r))
+
+    def _existing_keys(self) -> tuple[set[str], set[tuple[str, str]]]:
+        """Vrátí (množina adipidno v DB, množina (jméno, typ) v DB)."""
+        adip: set[str] = set()
+        name_type: set[tuple[str, str]] = set()
+        svc = self._service
+        if svc is None:
+            return adip, name_type
+        try:
+            for t in svc.list_theses():
+                if t.adipidno:
+                    adip.add(t.adipidno)
+                student = svc.get_student(t.student_id) if t.student_id else None
+                if student:
+                    name_type.add((student.full_name.strip().lower(), t.type.value))
+            for o in svc.list_opposing_theses():
+                if o.adipidno:
+                    adip.add(o.adipidno)
+                name_type.add((o.student_full_name.strip().lower(), o.type.value))
+        except Exception:  # noqa: BLE001
+            pass
+        return adip, name_type
+
+    def _is_existing(
+        self,
+        r: stag_api.StagThesisResult,
+        existing_adip: set[str],
+        existing_name_type: set[tuple[str, str]],
+    ) -> bool:
+        if r.adipidno and r.adipidno in existing_adip:
+            return True
+        key = self._result_name_key(r)
+        return key[1] != "" and key in existing_name_type
+
+    def _checked_results(self) -> list[stag_api.StagThesisResult]:
+        out: list[stag_api.StagThesisResult] = []
+        for i in range(self.list_results.count()):
+            item = self.list_results.item(i)
+            if item.checkState() == Qt.CheckState.Checked:
+                adip = item.data(Qt.ItemDataRole.UserRole)
+                r = next((x for x in self._results if x.adipidno == adip), None)
+                if r is not None:
+                    out.append(r)
+        return out
+
+    def _update_download_btn(self) -> None:
+        n = len(self._checked_results())
+        self.btn_download.setEnabled(n > 0)
+        self.btn_download.setText(
+            "⬇ Stáhnout vybrané" if n == 0 else f"⬇ Stáhnout vybrané ({n})"
+        )
 
     def _download_selected(self) -> None:
-        items = self.list_results.selectedItems()
-        if not items:
+        results = self._checked_results()
+        if not results:
             return
-        adipidno = items[0].data(Qt.ItemDataRole.UserRole)
-        result = next(
-            (r for r in self._results if r.adipidno == adipidno), None
-        )
 
         self.btn_download.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
+        items: list[tuple[Path, stag_api.StagThesisResult]] = []
+        errors: list[str] = []
         try:
-            data = stag_api.download_csv(adipidno)
-        except stag_api.StagError as exc:
-            QApplication.restoreOverrideCursor()
-            self.btn_download.setEnabled(True)
-            QMessageBox.warning(self, "STAG", str(exc))
-            return
-        except Exception as exc:  # noqa: BLE001
-            QApplication.restoreOverrideCursor()
-            self.btn_download.setEnabled(True)
-            QMessageBox.critical(
-                self, "STAG", f"Stažení CSV selhalo:\n{exc}"
-            )
-            return
+            for result in results:
+                try:
+                    data = stag_api.download_csv(result.adipidno)
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(f"{result.student_full}: {exc}")
+                    continue
+                surname = result.surname or "prace"
+                safe = re.sub(r"[^0-9A-Za-zÀ-ž_-]+", "_", surname).strip("_") or "prace"
+                target = (
+                    Path(tempfile.gettempdir())
+                    / f"stag_{safe}_{result.adipidno}.csv"
+                )
+                try:
+                    target.write_bytes(data)
+                except OSError as exc:
+                    errors.append(f"{result.student_full}: zápis CSV: {exc}")
+                    continue
+                items.append((target, result))
         finally:
             QApplication.restoreOverrideCursor()
 
-        # Ulož do dočasného souboru s čitelným jménem (přiloží se k práci
-        # jako STAG export; volba „smazat originál CSV" v importu ho uklidí).
-        surname = (result.surname if result else "") or "prace"
-        safe = re.sub(r"[^0-9A-Za-zÀ-ž_-]+", "_", surname).strip("_") or "prace"
-        target = Path(tempfile.gettempdir()) / f"stag_{safe}_{adipidno}.csv"
-        try:
-            target.write_bytes(data)
-        except OSError as exc:
+        if not items:
             self.btn_download.setEnabled(True)
-            QMessageBox.critical(
-                self, "STAG", f"Nepodařilo se uložit dočasné CSV:\n{exc}"
+            QMessageBox.warning(
+                self, "STAG",
+                "Nepodařilo se stáhnout žádnou práci.\n\n" + "\n".join(errors),
             )
             return
+        if errors:
+            QMessageBox.warning(
+                self, "STAG",
+                "Některé práce se nepodařilo stáhnout:\n\n" + "\n".join(errors),
+            )
 
-        self.result_path = target
-        self.result_meta = result
+        self.result_items = items
+        self.result_path = items[0][0]   # zpětná kompatibilita
+        self.result_meta = items[0][1]
         self.accept()
