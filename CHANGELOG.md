@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-06-06
+
+### Added
+- **Evidence odmítnutých zájemců o vedení** (toolbar **🚫 Odmítnutí**): jméno,
+  obor, akademický rok. Souvisí s kapacitou vedení a promítá se do statistik.
+  (Schéma v10 — `Database.rejected_students`.)
+- **Statistiky rozšířeny:** sekce **Kapacita vedení** (vedených z max. 15 +
+  odmítnutí po letech), **Vývoj počtu vedených prací po letech** (graf),
+  **Odměny (orientačně)** — vedení 3 000 Kč/obhájenou práci (max 12/rok),
+  oponentury 600 Kč/posudek, s ročními i celkovými součty. KPI karta
+  *Odmítnutí*.
+
 ## [0.45.0] - 2026-06-06
 
 ### Added

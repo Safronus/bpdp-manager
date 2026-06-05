@@ -16,6 +16,7 @@ from ..models import (
     Obor,
     Opponent,
     OpposingThesis,
+    RejectedStudent,
     Review,
     ReviewTemplate,
     Student,
@@ -138,6 +139,32 @@ class ThesisService:
             if t.student_id == student_id:
                 t.student_id = None
                 t.touch()
+        self.save()
+
+    # --- odmítnutí zájemci ---------------------------------------------------
+
+    def list_rejected_students(self) -> list[RejectedStudent]:
+        return sorted(
+            self._db.rejected_students,
+            key=lambda r: (r.academic_year, r.name.lower()),
+            reverse=True,
+        )
+
+    def upsert_rejected_student(self, rej: RejectedStudent) -> RejectedStudent:
+        existing = next(
+            (r for r in self._db.rejected_students if r.id == rej.id), None
+        )
+        if existing:
+            self._db.rejected_students[self._db.rejected_students.index(existing)] = rej
+        else:
+            self._db.rejected_students.append(rej)
+        self.save()
+        return rej
+
+    def remove_rejected_student(self, rej_id: str) -> None:
+        self._db.rejected_students = [
+            r for r in self._db.rejected_students if r.id != rej_id
+        ]
         self.save()
 
     # --- oponenti ------------------------------------------------------------

@@ -24,6 +24,16 @@ _GRADE_COLORS = {
     "D": "#f57c00", "E": "#e65100", "F": "#c62828", "FX": "#c62828",
 }
 
+# Kapacita a odměny (FAI UTB konvence — lze upravit).
+_MAX_LED_THESES = 15          # max počet vedených prací
+_FEE_THESIS = 3000            # Kč za vedenou (obhájenou) práci
+_THESIS_FEE_CAP_PER_YEAR = 12  # max počet honorovaných vedení za rok
+_FEE_OPPOSING = 600           # Kč za oponentský posudek
+
+
+def _czk(amount: int) -> str:
+    return f"{amount:,}".replace(",", " ") + " Kč"
+
 
 def _bar(label: str, count: int, total: int, color: str) -> str:
     """Jeden řádek s vodorovným pruhem (podíl z ``total``)."""
@@ -76,13 +86,17 @@ class StatsTab(QWidget):
         students = self.service.list_students()
 
         parts: list[str] = ["<html><body style='font-size:13px;'>"]
-        parts.append(self._kpis(theses, opposings, students))
+        rejected = self.service.list_rejected_students()
+        parts.append(self._kpis(theses, opposings, students, rejected))
+        parts.append(self._capacity(theses, rejected))
+        parts.append(self._led_trend(theses))
         parts.append(self._by_status(theses))
         parts.append(self._by_type(theses))
         parts.append(self._by_year(theses))
         parts.append(self._by_obor(theses))
         parts.append(self._defense_success(theses))
         parts.append(self._grades(theses))
+        parts.append(self._finance(theses, opposings))
         parts.append(self._reviews(theses, opposings))
         parts.append("</body></html>")
         self.view.setHtml("".join(parts))
@@ -93,7 +107,7 @@ class StatsTab(QWidget):
     def _h(title: str) -> str:
         return f'<h3 style="color:#ffa726;margin:16px 0 6px 0;">{title}</h3>'
 
-    def _kpis(self, theses, opposings, students) -> str:
+    def _kpis(self, theses, opposings, students, rejected) -> str:
         cur = sum(1 for t in theses if t.status in STATUSES_CURRENT)
         fut = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         hist = sum(1 for t in theses if t.status in STATUSES_HISTORY)
@@ -104,6 +118,7 @@ class StatsTab(QWidget):
             ("Historie", hist, "#8e24aa"),
             ("Oponentury", len(opposings), "#5e35b1"),
             ("Studenti", len(students), "#546e7a"),
+            ("Odmítnutí", len(rejected), "#b71c1c"),
         ]
         cells = ""
         for label, n, color in cards:
@@ -115,6 +130,92 @@ class StatsTab(QWidget):
                 f"<div style='font-size:11px;opacity:0.9;'>{label}</div></div></td>"
             )
         return self._h("Souhrn") + f"<table><tr>{cells}</tr></table>"
+
+    def _capacity(self, theses, rejected) -> str:
+        active = sum(1 for t in theses if t.status in STATUSES_CURRENT)
+        color = "#2e7d32" if active < _MAX_LED_THESES else "#c62828"
+        out = (
+            self._h("Kapacita vedení")
+            + f"<p>Aktuálně vedených prací (V řešení): "
+            f"<b style='color:{color};'>{active}</b> z max. {_MAX_LED_THESES} "
+            f"(volných {max(0, _MAX_LED_THESES - active)}).</p>"
+        )
+        if rejected:
+            by_year: Counter[str] = Counter(r.academic_year or "(bez roku)" for r in rejected)
+            items = " · ".join(
+                f"{y}: {n}" for y, n in sorted(by_year.items(), reverse=True)
+            )
+            out += (
+                f"<p>Odmítnutí zájemci: <b>{len(rejected)}</b> "
+                f"<span style='color:#888;'>({items})</span></p>"
+            )
+        return out
+
+    def _led_trend(self, theses) -> str:
+        if not theses:
+            return ""
+        by_year: Counter[str] = Counter(t.academic_year or "(bez roku)" for t in theses)
+        years = sorted(by_year)  # chronologicky
+        peak = max(by_year.values())
+        rows = ""
+        for y in years:
+            rows += _bar(y, by_year[y], peak, "#1565c0")
+        return self._h("Vývoj počtu vedených prací po letech") + (
+            f"<table style='width:100%;'>{rows}</table>"
+        )
+
+    def _finance(self, theses, opposings) -> str:
+        years: dict[str, dict] = {}
+        for t in theses:
+            y = t.academic_year or "(bez roku)"
+            d = years.setdefault(y, {"def": 0, "opp": 0})
+            if t.status == ThesisStatus.DEFENDED:
+                d["def"] += 1
+        for op in opposings:
+            y = op.academic_year or "(bez roku)"
+            years.setdefault(y, {"def": 0, "opp": 0})["opp"] += 1
+        if not years:
+            return ""
+
+        header = (
+            "<tr style='color:#666;text-align:left;'>"
+            "<th style='padding:2px 14px 2px 0;'>Rok</th>"
+            "<th style='padding:2px 14px 2px 0;'>Obhájené</th>"
+            "<th style='padding:2px 14px 2px 0;'>Odměna vedení</th>"
+            "<th style='padding:2px 14px 2px 0;'>Oponentury</th>"
+            "<th style='padding:2px 14px 2px 0;'>Odměna oponentur</th>"
+            "<th style='padding:2px 0;'>Celkem</th></tr>"
+        )
+        rows = ""
+        tot_sup = tot_opp = 0
+        for y in sorted(years, reverse=True):
+            d = years[y]
+            sup_fee = min(d["def"], _THESIS_FEE_CAP_PER_YEAR) * _FEE_THESIS
+            opp_fee = d["opp"] * _FEE_OPPOSING
+            tot_sup += sup_fee
+            tot_opp += opp_fee
+            capped = " ⚠" if d["def"] > _THESIS_FEE_CAP_PER_YEAR else ""
+            rows += (
+                f"<tr><td style='padding:2px 14px 2px 0;'><b>{y}</b></td>"
+                f"<td style='padding:2px 14px 2px 0;'>{d['def']}{capped}</td>"
+                f"<td style='padding:2px 14px 2px 0;'>{_czk(sup_fee)}</td>"
+                f"<td style='padding:2px 14px 2px 0;'>{d['opp']}</td>"
+                f"<td style='padding:2px 14px 2px 0;'>{_czk(opp_fee)}</td>"
+                f"<td style='padding:2px 0;'><b>{_czk(sup_fee + opp_fee)}</b></td></tr>"
+            )
+        rows += (
+            "<tr style='border-top:1px solid #ccc;'>"
+            "<td style='padding:4px 14px 2px 0;'><b>Celkem</b></td>"
+            f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_sup)}</b></td>"
+            f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_opp)}</b></td>"
+            f"<td style='padding:4px 0;'><b>{_czk(tot_sup + tot_opp)}</b></td></tr>"
+        )
+        return self._h("Odměny (orientačně)") + (
+            f"<p style='color:#888;font-size:11px;'>Vedení {_czk(_FEE_THESIS)}/práci "
+            f"(jen <b>obhájené</b>, max {_THESIS_FEE_CAP_PER_YEAR}/rok — symbol ⚠ "
+            f"značí překročení stropu), oponentský posudek {_czk(_FEE_OPPOSING)}.</p>"
+            f"<table>{header}{rows}</table>"
+        )
 
     def _by_status(self, theses) -> str:
         total = len(theses)

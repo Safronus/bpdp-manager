@@ -513,7 +513,10 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
 (nebo tlačítkem *🔄 Přepočítat*). Obsahuje:
 
 - **Souhrn** — KPI karty: vedené práce, V řešení, budoucí, historie,
-  oponentury, studenti.
+  oponentury, studenti, odmítnutí zájemci.
+- **Kapacita vedení** — aktuálně vedených prací z maxima (15) + počet
+  odmítnutých zájemců (po letech).
+- **Vývoj počtu vedených prací po letech** — sloupcový přehled (trend).
 - **Podle stavu** — kolik prací je v jednotlivých stavech (barevné pruhy).
 - **Bakalářské vs diplomové** — poměr BP/DP.
 - **Podle akademického roku** — tabulka rok → celkem / BP / DP / V řešení /
@@ -521,8 +524,13 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
 - **Podle oboru** — rozložení prací mezi obory.
 - **Úspěšnost obhajob** — z dokončených prací (obhájeno vs nedokončeno) + %.
 - **Známky obhájených** — rozložení navržených známek vedoucího (A–F).
+- **Odměny (orientačně)** — per rok: odměna za vedení (3 000 Kč/obhájenou
+  práci, max 12/rok) a oponentury (600 Kč/posudek) + celkový součet.
 - **Posudky** — hotové / rozpracované / chybí (vedoucí), hotové / chybí
   (oponentské) a kolik jich bylo odesláno sekretářce.
+
+> **Odmítnutí zájemci** se evidují v toolbaru **🚫 Odmítnutí** (jméno, obor,
+> akademický rok) — souvisí s kapacitou vedení a promítají se do statistik.
 
 ---
 

@@ -407,6 +407,11 @@ class MainWindow(QMainWindow):
             "Číselník oborů + sekretářky oborů. Dvojklik na hlavičku sekretářky "
             "upraví její kontakt a oslovení hromadně pro všechny její obory.",
         )
+        add(
+            "🚫 Odmítnutí", self._manage_rejected, self._GROUP_MANAGE,
+            "Evidence odmítnutých zájemců o vedení (jméno, obor, rok) — "
+            "promítá se do Statistik (kapacita vedení).",
+        )
 
         toolbar.addSeparator()
 
@@ -1012,6 +1017,12 @@ class MainWindow(QMainWindow):
 
     def _manage_supervisors(self) -> None:
         SupervisorsManageDialog(self.service, self).exec()
+        self._refresh_all()
+
+    def _manage_rejected(self) -> None:
+        from .rejected_students_dialog import RejectedStudentsDialog
+
+        RejectedStudentsDialog(self.service, self).exec()
         self._refresh_all()
 
     def _manage_obory(self) -> None:
