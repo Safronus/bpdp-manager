@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-06-05
+
+### Fixed
+- **Náhled importu více prací padal.** Při stažení BP i DP stejného studenta
+  (obecně více prací najednou) skončil import výjimkou `TypeError` ještě před
+  zobrazením náhledu. Opraveno.
+
 ## [0.33.0] - 2026-06-05
 
 ### Added

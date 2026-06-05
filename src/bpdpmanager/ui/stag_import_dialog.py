@@ -501,7 +501,10 @@ class StagImportDialog(QDialog):
             return
 
         self.import_file = ImportFile(
-            encoding=encoding or "utf-8", records=all_records, skipped=skipped
+            path=Path(items[0][0]),  # reprezentativní cesta (sloučeno z více CSV)
+            encoding=encoding or "utf-8",
+            records=all_records,
+            skipped=skipped,
         )
         self.ed_path.setText(str(items[0][0]))  # první cesta jen pro zobrazení
         self._persist_user_name(user_name)
