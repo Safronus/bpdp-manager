@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-06-06
+
+### Added
+- **Export / import jedné práce jako ZIP balík.** Pravý klik na práci →
+  *📦 Exportovat práci do ZIP* uloží kompletní balík (data, stav, posudky,
+  známky, soubory + navázaný student / oponent / obor). Toolbar **📦 Import
+  práce ze ZIP…** ho naimportuje jako novou práci (obnoví entity i soubory).
+  Vhodné pro přesun jedné práce mezi profily/zařízeními.
+
 ## [0.44.0] - 2026-06-06
 
 ### Added

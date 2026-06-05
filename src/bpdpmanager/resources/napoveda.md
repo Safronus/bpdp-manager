@@ -562,6 +562,12 @@ synchronizací.
   (1,5 s po poslední úpravě) + při přepnutí práce a zavření okna.
 - **Roll-back** — pravý klik na práci ve stromu → kompletní smazání
   záznamu i souborů (s náhledem a potvrzením).
+- **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
+  do ZIP* uloží **kompletní balík** (data, stav, posudky, známky a všechny
+  soubory). Na jiném zařízení / v jiném profilu ho přes toolbar **📦 Import
+  práce ze ZIP…** naimportuješ jako **novou práci** (obnoví se i navázaný
+  student, oponent a obor; soubory se přenesou). Vhodné pro přesun jediné
+  práce mezi profily nebo zálohu jedné práce.
 
 ---
 

@@ -86,6 +86,8 @@ class ThesesTreeWidget(QTreeWidget):
     rollback_requested = Signal(str)
     # Vyžádané generování posudku z šablony — connect z _ThesesTab
     generate_review_requested = Signal(str)
+    # Vyžádaný export práce do ZIP — connect z _ThesesTab
+    export_thesis_requested = Signal(str)
 
     HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Oponent", "Obor"]
     COL_STUDENT = 0
@@ -382,6 +384,16 @@ class ThesesTreeWidget(QTreeWidget):
             lambda _checked=False, tid=thesis_id: self.generate_review_requested.emit(tid)
         )
         menu.addAction(act_generate)
+
+        act_export = QAction("📦 Exportovat práci do ZIP…", self)
+        act_export.setToolTip(
+            "Uloží kompletní balík práce (data, stav, posudky, soubory) do ZIPu "
+            "— lze importovat na jiném zařízení / v jiném profilu."
+        )
+        act_export.triggered.connect(
+            lambda _checked=False, tid=thesis_id: self.export_thesis_requested.emit(tid)
+        )
+        menu.addAction(act_export)
 
         menu.addSeparator()
 

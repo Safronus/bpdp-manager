@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -116,6 +117,7 @@ class _ThesesTab(QWidget):
         self.tree.thesis_selected.connect(self._on_thesis_selected)
         self.tree.rollback_requested.connect(self._on_rollback_requested)
         self.tree.generate_review_requested.connect(self._on_generate_review_requested)
+        self.tree.export_thesis_requested.connect(self._on_export_thesis)
         # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
         # stejný signal a my ho zpracujeme jednou handlerem.
         self.detail.generate_review_requested.connect(self._on_generate_review_requested)
@@ -144,6 +146,39 @@ class _ThesesTab(QWidget):
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
             self.tree.refresh()
             self.data_changed.emit()
+
+    def _on_export_thesis(self, thesis_id: str) -> None:
+        """Exportuje práci do ZIP balíku."""
+        from ..services.thesis_export import ThesisExportError, export_thesis_to_zip
+
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        thesis = self.service.get_thesis(thesis_id)
+        if thesis is None:
+            return
+        surname = ""
+        if thesis.student_id:
+            student = self.service.get_student(thesis.student_id)
+            surname = student.last_name if student else ""
+        safe = re.sub(r"[^0-9A-Za-zÀ-ž_-]+", "_", surname).strip("_") or "prace"
+        default_name = f"prace_{safe}_{thesis.type.value}_{thesis.academic_year.replace('/', '-')}.zip"
+        path_str, _ = QFileDialog.getSaveFileName(
+            self, "Exportovat práci do ZIP", str(Path.home() / default_name),
+            "ZIP balík (*.zip)",
+        )
+        if not path_str:
+            return
+        try:
+            stats = export_thesis_to_zip(self.service, thesis_id, Path(path_str))
+        except (ThesisExportError, OSError) as exc:
+            QMessageBox.critical(self, "Export", f"Export selhal:\n{exc}")
+            return
+        QMessageBox.information(
+            self, "Export hotov",
+            f"Práce byla vyexportována do:\n{path_str}\n\nSouborů: {stats['files']}",
+        )
 
     def _on_rollback_requested(self, thesis_id: str) -> None:
         """Otevře rollback dialog pro vybranou práci."""
@@ -405,6 +440,11 @@ class MainWindow(QMainWindow):
             "📥 Import ze STAG…", self._import_from_stag, self._GROUP_IMPORT,
             "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
             "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.",
+        )
+        add(
+            "📦 Import práce ze ZIP…", self._import_thesis_zip, self._GROUP_IMPORT,
+            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
+            "posudky, soubory) — vytvoří novou práci.",
         )
 
         toolbar.addSeparator()
@@ -982,6 +1022,24 @@ class MainWindow(QMainWindow):
         ReviewTemplatesDialog(
             self.service, self, profile_manager=self.profile_manager
         ).exec()
+
+    def _import_thesis_zip(self) -> None:
+        """Importuje práci z dříve vyexportovaného ZIP balíku."""
+        from ..services.thesis_export import ThesisExportError, import_thesis_from_zip
+
+        path_str, _ = QFileDialog.getOpenFileName(
+            self, "Import práce ze ZIP", str(Path.home()), "ZIP balík (*.zip)"
+        )
+        if not path_str:
+            return
+        try:
+            new_id = import_thesis_from_zip(self.service, Path(path_str))
+        except (ThesisExportError, OSError) as exc:
+            QMessageBox.critical(self, "Import", f"Import selhal:\n{exc}")
+            return
+        self._refresh_all()
+        self._focus_thesis(new_id)
+        QMessageBox.information(self, "Import hotov", "Práce byla naimportována.")
 
     def _import_from_stag(self) -> None:
         """Otevře wizard pro import dat z STAG CSV exportu.
