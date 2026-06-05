@@ -195,6 +195,15 @@ class ReviewEditorDialog(QDialog):
         if review.role == "supervisor":
             box_plag = QGroupBox("Výsledek kontroly plagiátorství (jen pro vedoucího)")
             form_p = QFormLayout(box_plag)
+            # Pole zarovnaná doleva a roztažená na šířku dialogu (zejména
+            # „Zdůvodnění" — víceřádkový text potřebuje celou šířku).
+            form_p.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+            form_p.setFormAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            )
+            form_p.setFieldGrowthPolicy(
+                QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
+            )
             self.cb_plag_verdict = QComboBox()
             for v in (
                 "Práce není plagiát",

@@ -1418,6 +1418,37 @@ class ThesisService:
             t.reviews = [r for r in t.reviews if r.id != review_id]
             self.upsert_thesis(t)
 
+    def _relink_review_template(self, review: Review) -> ReviewTemplate | None:
+        """Dohledá aktuální šablonu pro posudek, jehož ``template_id`` už nesedí.
+
+        ID se mění např. po „Smazat vše a nahradit" v knihovně šablon. Posudek
+        si ale drží **snapshot názvu** (``template_name``), který je u defaultních
+        šablon stabilní → podle něj (a sekundárně podle role+jazyka+počtu
+        kritérií) najdeme ekvivalentní současnou šablonu a posudek přepojíme.
+        """
+        templates = self._db.review_templates
+        # 1) přesně podle uloženého názvu
+        if review.template_name:
+            for t in templates:
+                if t.name == review.template_name:
+                    review.template_id = t.id
+                    return t
+        # 2) heuristika: role + jazyk (+ stejný počet kritérií, je-li jednoznačné)
+        cands = [
+            t for t in templates
+            if t.role == review.role and t.language == review.language
+        ]
+        if review.criteria:
+            n = len(review.criteria)
+            narrowed = [t for t in cands if t.criteria and len(t.criteria) == n]
+            if len(narrowed) == 1:
+                review.template_id = narrowed[0].id
+                return narrowed[0]
+        if len(cands) == 1:
+            review.template_id = cands[0].id
+            return cands[0]
+        return None
+
     def generate_review_files(
         self,
         thesis_id: str,
@@ -1437,6 +1468,10 @@ class ThesisService:
         Returns ``(xlsx_path, pdf_path_or_None)``.
         """
         tmpl = self.get_review_template(review.template_id) if review.template_id else None
+        if tmpl is None:
+            # Stalé ID (např. po „Smazat vše a nahradit" / přegenerování
+            # defaultů dostaly šablony nová ID) — zkus přepojit podle názvu.
+            tmpl = self._relink_review_template(review)
         if tmpl is None:
             raise ValueError(
                 "Šablona posudku nebyla nalezena. Pravděpodobně byla smazána "

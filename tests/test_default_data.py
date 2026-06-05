@@ -180,6 +180,28 @@ def test_reset_templates_to_defaults(service: ThesisService) -> None:
     assert len(names) == 32
 
 
+def test_relink_review_template_by_name(service: ThesisService) -> None:
+    """Posudek se stalým template_id se přepojí podle uloženého názvu."""
+    from bpdpmanager.models.review import Review
+
+    service.seed_default_templates()
+    tmpl = service.list_review_templates()[0]
+    review = Review(
+        template_id="neexistujici-id",
+        template_name=tmpl.name,
+        role=tmpl.role,
+        language=tmpl.language,
+    )
+    relinked = service._relink_review_template(review)
+    assert relinked is not None
+    assert relinked.id == tmpl.id
+    assert review.template_id == tmpl.id  # posudek se opravil
+
+    # nesmyslné jméno + víc supervisor šablon bez jednoznačné heuristiky → None
+    bad = Review(template_id="x", template_name="ZCELA NEEXISTUJE", role="supervisor")
+    assert service._relink_review_template(bad) is None
+
+
 def test_maybe_seed_defaults_only_on_fresh(tmp_path: Path) -> None:
     repo = JsonRepository(path=tmp_path / "db.json", backup_path=tmp_path / "db.json.bak")
     svc = ThesisService(repo)  # load() vytvořil čerstvou DB → created_fresh

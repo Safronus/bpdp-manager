@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-06-05
+
+### Fixed
+- **„Šablona posudku nebyla nalezena" při generování.** Po „Smazat vše a
+  nahradit" (nebo přegenerování defaultů) dostaly šablony nová ID a uložené
+  posudky mířily na stará → generování spadlo, i když byla zvolená správná
+  šablona. Generování teď stalé ID **automaticky přepojí** podle uloženého
+  názvu šablony (sekundárně podle role+jazyka+počtu kritérií) a posudek
+  opraví.
+- **Plagiátorská sekce v editoru posudku** (verdikt + zdůvodnění) je nově
+  zarovnaná doleva a pole *Zdůvodnění* se roztáhne na celou šířku dialogu.
+
 ## [0.31.0] - 2026-06-05
 
 ### Added
