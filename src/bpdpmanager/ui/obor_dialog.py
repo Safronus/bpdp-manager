@@ -56,9 +56,14 @@ class OborDialog(QDialog):
         self.ed_sec_email.setPlaceholderText("email@utb.cz")
         self.ed_sec_phone = QLineEdit(self.obor.secretary_phone or "")
         self.ed_sec_phone.setPlaceholderText("+420 …")
+        self.ed_sec_greeting = QLineEdit(self.obor.secretary_greeting or "")
+        self.ed_sec_greeting.setPlaceholderText(
+            "např. Vážená paní Nováková  (prázdné = formální oslovení)"
+        )
         sec_form.addRow("Jméno", self.ed_sec_name)
         sec_form.addRow("Email", self.ed_sec_email)
         sec_form.addRow("Telefon", self.ed_sec_phone)
+        sec_form.addRow("Oslovení v mailu", self.ed_sec_greeting)
         layout.addWidget(sec_box)
 
         # Poznámka
@@ -93,6 +98,7 @@ class OborDialog(QDialog):
         self.obor.secretary_name = self.ed_sec_name.text().strip() or None
         self.obor.secretary_email = self.ed_sec_email.text().strip() or None
         self.obor.secretary_phone = self.ed_sec_phone.text().strip() or None
+        self.obor.secretary_greeting = self.ed_sec_greeting.text().strip() or None
         self.obor.note = self.ed_note.toPlainText().strip() or None
 
         self.service.upsert_obor(self.obor)

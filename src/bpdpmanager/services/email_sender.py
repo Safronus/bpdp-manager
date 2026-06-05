@@ -184,18 +184,23 @@ def compose_body(
     *,
     role: str,
     secretary_name: str = "",
+    secretary_greeting: str = "",
     sender_display: str = "",
 ) -> str:
     """Sestaví tělo e-mailu seskupené dle BP/DP.
 
     ``items`` = seznam ``(type_code, student_name, student_uni_id, title)``.
+    ``secretary_greeting`` — vlastní oslovení; prázdné = formální výchozí.
     """
     what = "vedoucího" if role == "supervisor" else "oponenta"
-    greeting = (
-        f"Dobrý den, paní {secretary_name},"
-        if secretary_name
-        else "Dobrý den,"
-    )
+    custom = (secretary_greeting or "").strip()
+    if custom:
+        # Vlastní oslovení — doplň čárku, pokud nekončí interpunkcí.
+        greeting = custom if custom[-1] in ",.:!?" else f"{custom},"
+    elif secretary_name:
+        greeting = f"Dobrý den, paní {secretary_name},"
+    else:
+        greeting = "Dobrý den,"
     lines: list[str] = [
         greeting,
         "",

@@ -52,7 +52,9 @@ V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
 - **STAG kód** (např. `knIT-KYB`) — **důležité pro STAG import**:
   podle něj se obor automaticky namapuje. Bez něj tě import upozorní,
   že obor není namapovaný (a budeš ho muset doplnit ručně).
-- volitelně sekretářku oboru (jméno, email, telefon).
+- volitelně sekretářku oboru (jméno, email, telefon) a její **oslovení
+  v mailu** (např. „Vážená paní Nováková") — použije se při odesílání posudků;
+  prázdné = formální výchozí „Dobrý den, paní {jméno},".
 
 > **⭐ Defaultní obory:** tlačítko **Defaultní…** v manažeru oborů nabídne
 > buď **doplnit chybějící** výchozí obory FAI UTB i s STAG zkratkami (NSWI,
@@ -326,7 +328,13 @@ V toolbaru je tlačítko **✉ Odeslat posudky** s volbou:
 V dialogu:
 
 1. **Vyber sekretářku** — nabízejí se sekretářky vyplněné u oborů (👤 e-mail
-   u oboru). Podle jejích oborů se vyfiltrují práce.
+   u oboru). Podle jejích oborů se vyfiltrují práce (matchuje se **název i
+   STAG kód** oboru). Oslovení v mailu se převezme z oboru (viz výše).
+
+   > Když obor práce nesedí na žádný obor sekretářky (typicky u oponentur, kde
+   > je kód oboru jiný), nic se nenabídne. Zaškrtni **Zobrazit i práce z jiných
+   > oborů** — ukáže se vše s hotovým posudkem (s červeně označeným oborem),
+   > vybereš ručně. Počet skrytých prací aplikace napoví pod tabulkou.
 2. **Seznam prací** — nabídnou se jen práce s **hotovým PDF posudku**.
    U vedených prací **jen ty aktuální („V řešení")** — z Historie (obhájeno /
    nedokončeno) se posudky nenabízejí. Nezaslané jsou předzaškrtnuté,

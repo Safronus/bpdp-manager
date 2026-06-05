@@ -11,6 +11,9 @@ class Obor(BaseModel):
     secretary_name: str | None = None
     secretary_email: str | None = None
     secretary_phone: str | None = None
+    # Oslovení sekretářky v e-mailu (např. „Vážená paní Nováková"). Prázdné =
+    # formální výchozí oslovení („Dobrý den, paní {jméno},").
+    secretary_greeting: str | None = None
     note: str | None = None
 
     @property

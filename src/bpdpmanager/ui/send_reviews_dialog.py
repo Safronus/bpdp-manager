@@ -74,6 +74,7 @@ class _Secretary:
     # Práce se páruje přes svůj obor: u vedených je to název oboru, u oponentur
     # volný text (často STAG kód), proto matchujeme proti oběma.
     obor_keys: set[str]
+    greeting: str = ""    # vlastní oslovení v mailu (prázdné = formální)
 
 
 def _open_path(path: Path) -> None:
@@ -152,12 +153,24 @@ class SendReviewsDialog(QDialog):
         )
         self.chk_signature.stateChanged.connect(lambda _s: self._regenerate_body())
         form.addRow("", self.chk_signature)
+
+        self.chk_other_obory = QCheckBox(
+            "Zobrazit i práce, jejichž obor neodpovídá sekretářce"
+        )
+        self.chk_other_obory.setChecked(False)
+        self.chk_other_obory.setToolTip(
+            "Když obor práce nesedí na žádný obor sekretářky (typicky odlišný "
+            "kód oboru), normálně se nenabídne. Zaškrtni pro zobrazení všech "
+            "připravených posudků — vybereš ručně, co poslat."
+        )
+        self.chk_other_obory.stateChanged.connect(lambda _s: self._reload_table())
+        form.addRow("", self.chk_other_obory)
         outer.addLayout(form)
 
         # ── Tabulka prací ───────────────────────────────────────────────────
-        self.table = QTableWidget(0, 6)
+        self.table = QTableWidget(0, 7)
         self.table.setHorizontalHeaderLabels(
-            ["", "Typ", "Student", "Os. číslo", "Téma", "Stav"]
+            ["", "Typ", "Student", "Os. číslo", "Téma", "Obor", "Stav"]
         )
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(True)
@@ -170,6 +183,7 @@ class SendReviewsDialog(QDialog):
         h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
         self.table.itemChanged.connect(self._on_item_changed)
         self.table.setMinimumHeight(220)
         outer.addWidget(self.table, stretch=1)
@@ -256,6 +270,8 @@ class SendReviewsDialog(QDialog):
                     sec.obor_keys.add(nk)
             if not sec.name and o.secretary_name:
                 sec.name = o.secretary_name.strip()
+            if not sec.greeting and (o.secretary_greeting or "").strip():
+                sec.greeting = o.secretary_greeting.strip()
 
         self._secretaries = sorted(
             by_email.values(), key=lambda s: (s.name.lower(), s.email.lower())
@@ -276,33 +292,33 @@ class SendReviewsDialog(QDialog):
             return None
         return next((s for s in self._secretaries if s.email == email), None)
 
-    def _gather_items(self, secretary: _Secretary) -> list[_ReviewItem]:
+    def _all_role_items(self) -> list[_ReviewItem]:
+        """Všechny práce s hotovým PDF posudku dané role (bez filtru oboru).
+
+        Filtr na sekretářku (obor) řeší až ``_reload_table`` — chceme totiž umět
+        zobrazit i práce z jiných oborů (přepínač), protože kódy oborů u oponentur
+        často nesedí na evidované obory.
+        """
         items: list[_ReviewItem] = []
         if self.role == "supervisor":
             for t in self.service.list_theses():
-                # Jen aktuální práce „V řešení" — z Historie (obhájeno /
-                # nedokončeno) posudky odesílat nechceme.
+                # Jen aktuální práce „V řešení" — z Historie posudky neposíláme.
                 if t.status != ThesisStatus.IN_PROGRESS:
-                    continue
-                student = (
-                    self.service.get_student(t.student_id) if t.student_id else None
-                )
-                obor = (student.obor if student else "") or ""
-                if _norm_obor(obor) not in secretary.obor_keys:
                     continue
                 pdf = self.service.current_supervisor_review_pdf(t)
                 if pdf is None or not pdf.exists():
                     continue
-                name = student.full_name if student else "(neznámý student)"
-                uni = (student.university_id if student else "") or ""
+                student = (
+                    self.service.get_student(t.student_id) if t.student_id else None
+                )
                 items.append(
                     _ReviewItem(
                         work_id=t.id,
                         type_code=t.type.value,
-                        student_name=name,
-                        student_uni_id=uni,
+                        student_name=student.full_name if student else "(neznámý student)",
+                        student_uni_id=(student.university_id if student else "") or "",
                         title=t.title_cs or "(bez názvu)",
-                        obor=obor,
+                        obor=(student.obor if student else "") or "",
                         pdf_path=pdf,
                         sent_at_label=(
                             t.supervisor_review_sent_at.strftime("%d.%m.%Y")
@@ -313,9 +329,6 @@ class SendReviewsDialog(QDialog):
                 )
         else:
             for op in self.service.list_opposing_theses():
-                obor = (op.student_obor or "").strip()
-                if _norm_obor(obor) not in secretary.obor_keys:
-                    continue
                 pdf = self.service.current_opponent_review_pdf(op)
                 if pdf is None or not pdf.exists():
                     continue
@@ -326,7 +339,7 @@ class SendReviewsDialog(QDialog):
                         student_name=op.student_full_name or "(neznámý student)",
                         student_uni_id=op.student_university_id or "",
                         title=op.title_cs or "(bez názvu)",
-                        obor=obor,
+                        obor=(op.student_obor or "").strip(),
                         pdf_path=pdf,
                         sent_at_label=(
                             op.opponent_review_sent_at.strftime("%d.%m.%Y")
@@ -335,9 +348,12 @@ class SendReviewsDialog(QDialog):
                         ),
                     )
                 )
-        # BP první, pak DP; v rámci skupiny dle jména
         items.sort(key=lambda it: (0 if it.type_code == "BP" else 1, it.student_name.lower()))
         return items
+
+    @staticmethod
+    def _obor_matches(obor: str, secretary: _Secretary | None) -> bool:
+        return secretary is not None and _norm_obor(obor) in secretary.obor_keys
 
     def _on_secretary_changed(self) -> None:
         self._reload_table()
@@ -352,22 +368,30 @@ class SendReviewsDialog(QDialog):
 
     def _reload_table(self) -> None:
         sec = self._current_secretary()
-        self._items = self._gather_items(sec) if sec else []
+        self._items = self._all_role_items()
         show_sent = self.chk_show_sent.isChecked()
+        show_other = self.chk_other_obory.isChecked()
 
+        hidden_other = 0  # práce skryté kvůli neshodě oboru
         self.table.blockSignals(True)
         self.table.setRowCount(0)
         self._row_items = []
         for it in self._items:
             if it.sent_at_label and not show_sent:
                 continue
+            matches = self._obor_matches(it.obor, sec)
+            if not matches and not show_other:
+                hidden_other += 1
+                continue
             row = self.table.rowCount()
             self.table.insertRow(row)
             chk = QTableWidgetItem()
             chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-            # Nezaslané předzaškrtnuté; zaslané ne.
+            # Předzaškrtnuté jen nezaslané se shodou oboru; ostatní ručně.
             chk.setCheckState(
-                Qt.CheckState.Unchecked if it.sent_at_label else Qt.CheckState.Checked
+                Qt.CheckState.Checked
+                if (matches and not it.sent_at_label)
+                else Qt.CheckState.Unchecked
             )
             self.table.setItem(row, 0, chk)
             type_item = QTableWidgetItem(it.type_code)
@@ -378,13 +402,19 @@ class SendReviewsDialog(QDialog):
             title_item = QTableWidgetItem(it.title)
             title_item.setToolTip(it.title)
             self.table.setItem(row, 4, title_item)
+            obor_item = QTableWidgetItem(it.obor or "—")
+            if not matches:
+                obor_item.setForeground(Qt.GlobalColor.red)
+                obor_item.setToolTip("Obor neodpovídá žádnému oboru sekretářky.")
+            self.table.setItem(row, 5, obor_item)
             stav = f"✓ odesláno {it.sent_at_label}" if it.sent_at_label else "připraveno"
             stav_item = QTableWidgetItem(stav)
             if it.sent_at_label:
                 stav_item.setForeground(Qt.GlobalColor.gray)
-            self.table.setItem(row, 5, stav_item)
+            self.table.setItem(row, 6, stav_item)
             self._row_items.append((it, chk))
         self.table.blockSignals(False)
+        self._hidden_other = hidden_other
         self._update_count()
 
     def _checked_items(self) -> list[_ReviewItem]:
@@ -412,7 +442,14 @@ class SendReviewsDialog(QDialog):
     def _update_count(self) -> None:
         n = len(self._checked_items())
         total = len(self._row_items)
-        self.lbl_count.setText(f"Vybráno {n} z {total}")
+        txt = f"Vybráno {n} z {total}"
+        hidden = getattr(self, "_hidden_other", 0)
+        if hidden and not self.chk_other_obory.isChecked():
+            txt += (
+                f"  ·  {hidden} {'práce' if hidden < 5 else 'prací'} s posudkem "
+                "má jiný obor — viz „Zobrazit i práce z jiných oborů“."
+            )
+        self.lbl_count.setText(txt)
         self.btn_send.setEnabled(n > 0)
         self.btn_test.setEnabled(n > 0)
 
@@ -442,6 +479,7 @@ class SendReviewsDialog(QDialog):
             body_items,
             role=self.role,
             secretary_name=sec.name if sec else "",
+            secretary_greeting=sec.greeting if sec else "",
             sender_display=self._sender_display(),
         )
         if self.chk_signature.isChecked():

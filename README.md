@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.36.4** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.37.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -23,7 +23,7 @@ o budoucí témata.
 - **6 stavů toku**: *Zájemce bez tématu → Zájemce s tématem → Vypsané téma → V řešení → Obhájeno → Nedokončeno*, s validací přechodů. *Schválené téma* bylo v 0.15.0 sloučeno do *V řešení* (po schválení tématu už se na práci pracuje). *Druhý pokus obhajoby* je podporovaný — z *Nedokončeno* se práce dá vrátit do *V řešení* nebo (oprava omylu) přímo do *Obhájeno*.
 - **Studenti**: jméno, obor (forma studia se odvozuje z přípony `-P` / `-K`), osobní číslo UTB (např. A24390), email, telefon, poznámka. Správa studentů: strom *BP/DP → obor → studenti*, řazeno dle příjmení, barevné odlišení aktuálních/budoucích/dokončených, filtr „Skrýt dokončené".
 - **Oponenti** rozdělení na **interní** (jméno + email) a **externí** (jméno + email + telefon + adresa)
-- **Studijní obory** jako spravovatelný číselník — přidat, přejmenovat (synchronizuje studenty), smazat. U každého oboru lze evidovat **STAG zkratku** (pro import) a **sekretářku oboru** (jméno, email, telefon). Tlačítko **⭐ Defaultní** doplní předpřipravené obory FAI UTB i s STAG kódy (nebo umožní kompletní výměnu číselníku); nový profil je dostane rovnou.
+- **Studijní obory** jako spravovatelný číselník — přidat, přejmenovat (synchronizuje studenty), smazat. U každého oboru lze evidovat **STAG zkratku** (pro import) a **sekretářku oboru** (jméno, email, telefon, oslovení v mailu). Tlačítko **⭐ Defaultní** doplní předpřipravené obory FAI UTB i s STAG kódy (nebo umožní kompletní výměnu číselníku); nový profil je dostane rovnou.
 - **📋 Souhrn práce**: první záložka detailu — formátovaný read-only přehled celé práce (velký barevný badge stavu, hlavička s typem/názvem/studentem/oponentem, anotace, body zadání, literární zdroje, sekce **Známky** vedoucí + oponent). Každá sekce má malé tlačítko 📋 pro zkopírování do schránky. Ideální pro rychlý vizuální audit nebo přepis do oficiálního systému. **Známky** se počítají z posudku napsaného v aplikaci; u **historických prací**, kde je posudek jen jako nahrané PDF, se navržená známka **vyčte z PDF** (rozpozná i starší formulace „navrhuji hodnocení B…") a doplní automaticky — ručně zadanou hodnotu nikdy nepřepíše.
 - **Vypsané téma**: název CZ + anotace
 - **Oficiální zadání**: navíc název EN, body zadání a literární zdroje (volný text s vlastním číslováním 1./2./3., styl odpovídá oficiálnímu zadání UTB)

@@ -57,6 +57,21 @@ def test_compose_body_no_secretary_name() -> None:
     assert body.startswith("Dobrý den,")
 
 
+def test_compose_body_custom_greeting() -> None:
+    # Vlastní oslovení má přednost; čárka se doplní automaticky.
+    body = email_sender.compose_body(
+        [("BP", "X Y", "", "T")], role="opponent",
+        secretary_name="Nováková", secretary_greeting="Vážená paní Nováková",
+    )
+    assert body.startswith("Vážená paní Nováková,")
+    # Když oslovení končí interpunkcí, nepřidává se další čárka.
+    body2 = email_sender.compose_body(
+        [("BP", "X Y", "", "T")], role="opponent",
+        secretary_greeting="Ahoj Jano!",
+    )
+    assert body2.startswith("Ahoj Jano!")
+
+
 # ── MailDraft / build_message ────────────────────────────────────────────────
 
 def test_recipients_dedup() -> None:

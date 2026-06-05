@@ -70,11 +70,11 @@ def test_opponent_matches_by_stag_code(qapp, service: ThesisService, pm: _StubPM
     service.opposing_attach_document(op.id, src, kind=AttachmentKind.OPPONENT_REVIEW)
 
     dlg = SendReviewsDialog(service, pm, "opponent")
-    sec = dlg._current_secretary()
-    assert sec is not None
-    items = dlg._gather_items(sec)
-    assert len(items) == 1
-    assert items[0].student_name == "Novák, Jan" or "Novák" in items[0].student_name
+    assert dlg._current_secretary() is not None
+    # Obor sedí přes STAG kód → práce je v tabulce a předzaškrtnutá.
+    assert dlg.table.rowCount() == 1
+    from PySide6.QtCore import Qt
+    assert dlg.table.item(0, 0).checkState() == Qt.CheckState.Checked
 
 
 def test_supervisor_matches_by_name(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
@@ -90,11 +90,8 @@ def test_supervisor_matches_by_name(qapp, service: ThesisService, pm: _StubPM, t
     service.attach_document(t.id, src, kind=AttachmentKind.SUPERVISOR_REVIEW)
 
     dlg = SendReviewsDialog(service, pm, "supervisor")
-    sec = dlg._current_secretary()
-    assert sec is not None
-    items = dlg._gather_items(sec)
-    assert len(items) == 1
-    assert items[0].type_code == "DP"
+    assert dlg._current_secretary() is not None
+    assert dlg.table.rowCount() == 1
 
 
 def test_supervisor_skips_history(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
@@ -111,7 +108,10 @@ def test_supervisor_skips_history(qapp, service: ThesisService, pm: _StubPM, tmp
     service.attach_document(t.id, src, kind=AttachmentKind.SUPERVISOR_REVIEW)
 
     dlg = SendReviewsDialog(service, pm, "supervisor")
-    assert dlg._gather_items(dlg._current_secretary()) == []
+    # Historie se nenabízí ani po zapnutí „jiné obory" (filtruje se dřív).
+    assert dlg.table.rowCount() == 0
+    dlg.chk_other_obory.setChecked(True)
+    assert dlg.table.rowCount() == 0
 
 
 def test_no_match_other_obor(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
@@ -127,5 +127,9 @@ def test_no_match_other_obor(qapp, service: ThesisService, pm: _StubPM, tmp_path
     service.opposing_attach_document(op.id, src, kind=AttachmentKind.OPPONENT_REVIEW)
 
     dlg = SendReviewsDialog(service, pm, "opponent")
-    items = dlg._gather_items(dlg._current_secretary())
-    assert items == []
+    # Neshoda oboru → defaultně skryto, ale po zapnutí přepínače se objeví.
+    assert dlg.table.rowCount() == 0
+    dlg.chk_other_obory.setChecked(True)
+    assert dlg.table.rowCount() == 1
+    from PySide6.QtCore import Qt
+    assert dlg.table.item(0, 0).checkState() == Qt.CheckState.Unchecked  # ručně

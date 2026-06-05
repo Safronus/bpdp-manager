@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-06-06
+
+### Added
+- **Oslovení sekretářky v e-mailu** — nové pole u oboru (manažer oborů →
+  Sekretářka → *Oslovení v mailu*, např. „Vážená paní Nováková"). Použije se
+  v textu odesílaných posudků; prázdné = formální výchozí oslovení.
+  (Schéma v9 — `Obor.secretary_greeting`.)
+- **Zobrazit i práce z jiných oborů** — přepínač v dialogu odesílání posudků.
+  Když obor práce nesedí na žádný obor sekretářky (časté u oponentur s odlišným
+  kódem oboru), normálně se nenabídne; po zapnutí se ukážou všechny připravené
+  posudky (s červeně označeným oborem) a vybereš ručně. Pod tabulkou je navíc
+  počet skrytých prací s nesouhlasícím oborem.
+
+### Changed
+- Dialog odesílání má nový sloupec **Obor**, ať je vidět, proč se práce páruje
+  (či nepáruje) na sekretářku.
+
 ## [0.36.4] - 2026-06-06
 
 ### Fixed
