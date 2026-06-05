@@ -124,8 +124,10 @@ class _ThesesTab(QWidget):
         if thesis is None:
             return
         dlg = GenerateReviewDialog(self.service, thesis, self)
-        if dlg.exec() and dlg.generated_attachment is not None:
-            # Refresh detail panelu (nová příloha už je viditelná v tabulce)
+        if dlg.exec():
+            # Po potvrzení dialogu znovu načti práci — posudek mohl přidat
+            # přílohy (XLSX/PDF) a archivovat starší. ``set_thesis`` přes
+            # ``DocumentsWidget.set_thesis_id`` rovnou obnoví i seznam dokumentů.
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
             self.tree.refresh()
 

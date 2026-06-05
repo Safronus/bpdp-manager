@@ -152,6 +152,12 @@ oponenta, Prezentace, STAG export, Jiné).
 - **Auto-detekce typu** z původního názvu při nahrání.
 - **🗑 Smazat originál po nahrání** (default zapnuto) — odstraní zdroj
   z Downloads, kopie zůstává v `documents/`.
+- **📂 Ve Finderu** — označí vybraný soubor přímo ve správci souborů
+  (Finder / Explorer), ať se k němu snadno dostaneš na disku.
+- **Chybějící soubory:** když soubor smažeš ručně mimo aplikaci (např.
+  ve Finderu), aplikace se nerozbije — záznam zůstane, ale zobrazí se
+  červeně s *⚠ chybí soubor*. Tlačítko **🧹 Odklidit chybějící** odebere
+  takové mrtvé záznamy ze seznamu (existující soubory ani odkazy nechá).
 
 ---
 
@@ -181,9 +187,19 @@ Workflow:
 3. **Uložit & vyrobit XLSX + PDF** — data se uloží do práce (JSON),
    vyplní se XLSX šablona a (pokud je nainstalován LibreOffice)
    vygeneruje PDF. Oba soubory se připojí jako příloha typu posudek.
+4. **Po vygenerování** zůstane otevřené okno s akcemi **📄 Otevřít XLSX**,
+   **📕 Otevřít PDF** a **📂 Ukázat ve Finderu** — můžeš otevřít obojí
+   z jednoho místa, okno se zavře až tlačítkem *Zavřít*. Seznam dokumentů
+   práce se rovnou aktualizuje (nový posudek je hned vidět).
 
 Data posudku jsou *zdrojem pravdy* v JSON — XLSX/PDF lze kdykoli
 přegenerovat. Náhled posudku je v záložce **Souhrn**.
+
+> **Archivace posudků:** vždy se drží **jeden aktuální** posudek.
+> Při novém vygenerování se předchozí **XLSX přesune** do podsložky
+> `posudky/archiv/` (přejmenovaný s časovým razítkem) a starší **PDF se
+> smaže** (je jen odvozeninou). V seznamu tak máš čistě 1 aktuální posudek
+> + archiv starších verzí.
 
 > **Věrnost šablony 1:1:** vyplněný XLSX je **totožný se šablonou** —
 > mění se jen vyplněné buňky. Logo fakulty (i v záhlaví), formátování,
@@ -214,7 +230,10 @@ profilu (kopie v `profile_dir/templates/`).
 Samostatná záložka **🧐 Oponentské posudky** pro práce, kde vystupuješ
 jako **oponent** (recenzuješ cizí BP/DP). Vlastní model — inline údaje
 o studentovi a vedoucím (přes registr vedoucích s našeptáváním),
-známky, dokumenty, generovaný souhrn.
+známky, dokumenty, generovaný souhrn. U seznamu dokumentů platí stejné
+chování jako u vedených prací — **📂 Ve Finderu**, indikace chybějících
+souborů i **🧹 Odklidit chybějící**. Archivace posudků (1 aktuální +
+archiv starších) funguje shodně.
 
 ---
 

@@ -4,7 +4,7 @@ import re
 import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from ..config import app_data_dir, harmonograms_dir, thesis_documents_dir
@@ -1294,6 +1294,13 @@ class ThesisService:
         target_dir = thesis_documents_dir(container_id) / subdir
         target_dir.mkdir(parents=True, exist_ok=True)
 
+        # Archivace předchozích posudků téhož typu: starší XLSX se přesunou
+        # do ``posudky/archiv/`` (přejmenované s timestampem), stará PDF se
+        # smažou (jsou jen odvozeninou). Po tomto kroku zůstává „1 aktuální +
+        # archiv" a nový posudek dostane čistý název bez ``_vN``.
+        atts = opp.attachments if opposing else t.attachments
+        self._archive_previous_review_files(container_id, atts, kind, subdir)
+
         existing = {p.name for p in target_dir.iterdir() if p.is_file()}
         target_name = build_target_name(
             surname, kind, tmpl_path, existing_names=existing
@@ -1420,6 +1427,110 @@ class ThesisService:
             self.upsert_thesis(t)
 
         return target_path, pdf_path
+
+    def _archive_previous_review_files(
+        self,
+        container_id: str,
+        attachments: list[Attachment],
+        kind: AttachmentKind,
+        subdir: str,
+    ) -> None:
+        """Uklidí předchozí soubory posudku téhož ``kind`` před generováním nového.
+
+        - starší XLSX (a jiné než PDF) se přesunou do ``{subdir}/archiv/`` a
+          přejmenují na ``{stem}_archiv_{YYYY-MM-DD_HHMMSS}.xlsx``; zůstávají
+          jako přílohy (``is_current=False``), aby k nim šlo dohledat historii,
+        - starší PDF se smažou i s odpovídající přílohou (PDF je odvozenina XLSX).
+
+        Mutuje ``attachments`` in-place (typicky ``thesis.attachments`` /
+        ``op.attachments``). Posudky druhé role (např. oponent při generování
+        vedoucího) zůstávají nedotčené — filtrujeme striktně na ``kind``.
+        """
+        base_dir = thesis_documents_dir(container_id)
+        archive_dir = base_dir / subdir / "archiv"
+        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+
+        kept: list[Attachment] = []
+        for att in attachments:
+            if att.kind != kind or not att.is_file:
+                kept.append(att)
+                continue
+            abs_path = base_dir / att.url_or_path
+            suffix = Path(att.url_or_path).suffix.lower()
+            if suffix == ".pdf":
+                # Stará PDF je jen odvozenina — smaž soubor i záznam.
+                try:
+                    if abs_path.exists():
+                        abs_path.unlink()
+                except OSError:
+                    pass
+                continue  # přílohu nezachováme
+            # XLSX (nebo jiný formát posudku) → přesun do archivu.
+            att.is_current = False
+            if abs_path.exists():
+                archive_dir.mkdir(parents=True, exist_ok=True)
+                archived_name = self._unique_archive_name(
+                    archive_dir, abs_path.stem, ts, abs_path.suffix
+                )
+                try:
+                    shutil.move(str(abs_path), str(archive_dir / archived_name))
+                    att.url_or_path = f"{subdir}/archiv/{archived_name}"
+                    att.label = archived_name
+                except OSError:
+                    pass  # ponech původní cestu, ať nezmizí ze seznamu
+            kept.append(att)
+
+        attachments[:] = kept
+
+    @staticmethod
+    def _unique_archive_name(
+        archive_dir: Path, stem: str, ts: str, suffix: str
+    ) -> str:
+        """Sestaví unikátní název v ``archiv/`` (timestamp + příp. pořadí)."""
+        candidate = f"{stem}_archiv_{ts}{suffix}"
+        if not (archive_dir / candidate).exists():
+            return candidate
+        n = 2
+        while True:
+            candidate = f"{stem}_archiv_{ts}_{n}{suffix}"
+            if not (archive_dir / candidate).exists():
+                return candidate
+            n += 1
+
+    def prune_missing_documents(self, thesis_id: str) -> int:
+        """Odebere ze seznamu příloh ty soubory, které fyzicky neexistují.
+
+        Vrací počet odebraných záznamů. URL odkazy a existující soubory zůstávají.
+        """
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return 0
+        base_dir = thesis_documents_dir(thesis_id)
+        kept = [
+            att for att in thesis.attachments
+            if not att.is_file or (base_dir / att.url_or_path).exists()
+        ]
+        removed = len(thesis.attachments) - len(kept)
+        if removed:
+            thesis.attachments = kept
+            self.upsert_thesis(thesis)
+        return removed
+
+    def opposing_prune_missing_documents(self, op_id: str) -> int:
+        """Obdoba ``prune_missing_documents`` pro oponentský posudek."""
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return 0
+        base_dir = thesis_documents_dir(f"opposing-{op_id}")
+        kept = [
+            att for att in op.attachments
+            if not att.is_file or (base_dir / att.url_or_path).exists()
+        ]
+        removed = len(op.attachments) - len(kept)
+        if removed:
+            op.attachments = kept
+            self.upsert_opposing_thesis(op)
+        return removed
 
     @staticmethod
     def _template_cell_text(tmpl_path: Path, cell: str | None) -> str | None:

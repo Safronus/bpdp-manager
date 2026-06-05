@@ -9,8 +9,6 @@ Tři dialogy:
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -37,34 +35,20 @@ from PySide6.QtWidgets import (
 from ..models import CriterionScore, OpposingThesis, Review, ReviewTemplate, Thesis
 from ..models.enums import ThesisType
 from ..services import ThesisService
+from ._os_actions import open_path, reveal_in_file_manager
 
 # Známé obory (heuristicky odvozené z šablon FAI UTB) — slouží jako návrhy
 # v combo boxu, ale uživatel může vyplnit cokoli.
 KNOWN_OBORS = ["SWI", "KYB", "UI", "ITA", ""]
 
 
+# Tenké aliasy na sdílené OS helpery (zpětně kompatibilní názvy v tomto modulu).
 def _open_in_app(path: Path) -> None:
-    if sys.platform == "darwin":
-        subprocess.run(["open", str(path)], check=False)
-    elif sys.platform.startswith("linux"):
-        subprocess.run(["xdg-open", str(path)], check=False)
-    elif sys.platform == "win32":
-        try:
-            os.startfile(str(path))  # type: ignore[attr-defined]
-        except OSError:
-            pass
+    open_path(path)
 
 
 def _reveal_in_filemanager(path: Path) -> None:
-    if sys.platform == "darwin":
-        subprocess.run(["open", "-R", str(path)], check=False)
-    elif sys.platform.startswith("linux"):
-        subprocess.run(["xdg-open", str(path.parent)], check=False)
-    elif sys.platform == "win32":
-        try:
-            subprocess.run(["explorer", "/select,", str(path)], check=False)
-        except OSError:
-            pass
+    reveal_in_file_manager(path)
 
 
 # ── Edit single template ───────────────────────────────────────────────────

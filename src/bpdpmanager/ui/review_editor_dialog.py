@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
 
 from ..models import Review
 from ..services import ThesisService
+from ._os_actions import open_path, reveal_in_file_manager
 
 
 class ReviewEditorDialog(QDialog):
@@ -361,9 +362,16 @@ class ReviewEditorDialog(QDialog):
         self.accept()
 
     def _show_done_dialog(self, xlsx: Path, pdf: Path | None) -> None:
+        """Dokončovací dialog s akcemi, které ho NEzavírají.
+
+        Záměrně to není ``QMessageBox`` — u toho každé „action" tlačítko box
+        zavře, takže po otevření XLSX už nešlo otevřít PDF. Vlastní ``QDialog``
+        nechá uživatele otevřít XLSX, PDF i složku ve Finderu z jednoho okna;
+        zavře se až tlačítkem „Zavřít".
+        """
         body = (
-            f"<p style='color:#2e7d32;font-weight:bold;'>✓ Posudek byl vyrobený.</p>"
-            f"<p>"
+            "<p style='color:#2e7d32;font-weight:bold;'>✓ Posudek byl vyrobený.</p>"
+            "<p>"
             f"<b>XLSX:</b> <code>{escape(xlsx.name)}</code><br>"
         )
         if pdf is not None:
@@ -380,40 +388,31 @@ class ReviewEditorDialog(QDialog):
             "editor a upravit body / komentář, soubor se přegeneruje.</p>"
         )
 
-        msg = QMessageBox(self.parent() or self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Posudek vyrobený")
-        msg.setTextFormat(Qt.TextFormat.RichText)
-        msg.setText(body)
-        btn_open = msg.addButton(
-            "📄 Otevřít XLSX", QMessageBox.ButtonRole.ActionRole
-        )
-        btn_open_pdf = None
+        dlg = QDialog(self.parent() or self)
+        dlg.setWindowTitle("Posudek vyrobený")
+        dlg.setMinimumWidth(460)
+        lay = QVBoxLayout(dlg)
+        lbl = QLabel(body)
+        lbl.setTextFormat(Qt.TextFormat.RichText)
+        lbl.setWordWrap(True)
+        lay.addWidget(lbl)
+
+        btn_row = QHBoxLayout()
+        btn_xlsx = QPushButton("📄 Otevřít XLSX")
+        btn_xlsx.clicked.connect(lambda: open_path(xlsx))
+        btn_row.addWidget(btn_xlsx)
         if pdf is not None:
-            btn_open_pdf = msg.addButton(
-                "📕 Otevřít PDF", QMessageBox.ButtonRole.ActionRole
-            )
-        msg.addButton(QMessageBox.StandardButton.Close)
-        msg.exec()
+            btn_pdf = QPushButton("📕 Otevřít PDF")
+            btn_pdf.clicked.connect(lambda: open_path(pdf))
+            btn_row.addWidget(btn_pdf)
+        btn_reveal = QPushButton("📂 Ukázat ve Finderu")
+        btn_reveal.clicked.connect(lambda: reveal_in_file_manager(pdf or xlsx))
+        btn_row.addWidget(btn_reveal)
+        btn_row.addStretch()
+        btn_close = QPushButton("Zavřít")
+        btn_close.setDefault(True)
+        btn_close.clicked.connect(dlg.accept)
+        btn_row.addWidget(btn_close)
+        lay.addLayout(btn_row)
 
-        clicked = msg.clickedButton()
-        if clicked == btn_open:
-            self._open_path(xlsx)
-        elif btn_open_pdf is not None and clicked == btn_open_pdf:
-            self._open_path(pdf)
-
-    @staticmethod
-    def _open_path(path: Path) -> None:
-        import os
-        import subprocess
-        import sys
-
-        if sys.platform == "darwin":
-            subprocess.run(["open", str(path)], check=False)
-        elif sys.platform.startswith("linux"):
-            subprocess.run(["xdg-open", str(path)], check=False)
-        elif sys.platform == "win32":
-            try:
-                os.startfile(str(path))  # type: ignore[attr-defined]
-            except OSError:
-                pass
+        dlg.exec()

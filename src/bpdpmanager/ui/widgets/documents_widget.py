@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -14,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
+    QLabel,
     QMessageBox,
     QPushButton,
     QTreeWidget,
@@ -25,6 +23,7 @@ from PySide6.QtWidgets import (
 from ...models import Attachment, AttachmentKind
 from ...services import ThesisService
 from ...services.file_naming import guess_kind_from_filename
+from .._os_actions import open_path, reveal_in_file_manager
 
 
 class DocumentsWidget(QWidget):
@@ -106,11 +105,31 @@ class DocumentsWidget(QWidget):
         self.btn_open.clicked.connect(self._open_selected)
         row.addWidget(self.btn_open)
 
+        self.btn_reveal = QPushButton("📂 Ve Finderu")
+        self.btn_reveal.setToolTip("Zobrazí vybraný soubor ve správci souborů (Finder / Explorer).")
+        self.btn_reveal.clicked.connect(self._reveal_selected)
+        row.addWidget(self.btn_reveal)
+
         self.btn_remove = QPushButton("Odebrat")
         self.btn_remove.clicked.connect(self._remove_selected)
         row.addWidget(self.btn_remove)
 
         layout.addLayout(row)
+
+        # Druhá řádka — úklid mrtvých záznamů (soubory smazané mimo aplikaci).
+        row2 = QHBoxLayout()
+        self.lbl_missing = QLabel("")
+        self.lbl_missing.setStyleSheet("color:#c62828;")
+        row2.addWidget(self.lbl_missing, stretch=1)
+        self.btn_prune = QPushButton("🧹 Odklidit chybějící")
+        self.btn_prune.setToolTip(
+            "Odebere ze seznamu záznamy, jejichž soubor byl smazán mimo aplikaci "
+            "(např. ručně ve Finderu). Existující soubory ani odkazy se nedotkne."
+        )
+        self.btn_prune.clicked.connect(self._prune_missing)
+        self.btn_prune.setVisible(False)
+        row2.addWidget(self.btn_prune)
+        layout.addLayout(row2)
 
     # --- veřejné API ---------------------------------------------------------
 
@@ -139,6 +158,7 @@ class DocumentsWidget(QWidget):
             by_kind.setdefault(att.kind, []).append((idx, att))
 
         gray_fg = QBrush(QColor("#888"))
+        red_fg = QBrush(QColor("#c62828"))
         kind_order = list(AttachmentKind)
 
         for kind in kind_order:
@@ -167,14 +187,23 @@ class DocumentsWidget(QWidget):
 
             for real_idx, att in visible:
                 version_text = f"v{att.version}" + (" ✓" if att.is_current else "")
+                # Soubor smazaný mimo aplikaci (např. ručně ve Finderu) → indikuj.
+                is_missing = att.is_file and self._is_missing(att)
+                source_text = (
+                    ("⚠ chybí soubor" if is_missing else "📄 soubor")
+                    if att.is_file else "🔗 odkaz"
+                )
                 leaf = QTreeWidgetItem([
                     att.label,
                     version_text,
-                    "📄 soubor" if att.is_file else "🔗 odkaz",
+                    source_text,
                     att.url_or_path,
                 ])
                 leaf.setData(0, Qt.ItemDataRole.UserRole, real_idx)
-                if not att.is_current:
+                if is_missing:
+                    for c in range(4):
+                        leaf.setForeground(c, red_fg)
+                elif not att.is_current:
                     for c in range(4):
                         leaf.setForeground(c, gray_fg)
                     lf = leaf.font(0)
@@ -183,6 +212,27 @@ class DocumentsWidget(QWidget):
                 group_item.addChild(leaf)
 
             group_item.setExpanded(True)
+
+        # Spočítej chybějící napříč VŠEMI přílohami (i schovanými staršími),
+        # ať se úklid nabídne i pro mrtvé záznamy mimo aktuální filtr.
+        missing_count = sum(
+            1 for att in thesis.attachments if att.is_file and self._is_missing(att)
+        )
+        if missing_count:
+            self.lbl_missing.setText(
+                f"⚠ {missing_count}× chybí soubor na disku (smazán mimo aplikaci)."
+            )
+            self.btn_prune.setVisible(True)
+        else:
+            self.lbl_missing.setText("")
+            self.btn_prune.setVisible(False)
+
+    def _is_missing(self, att: Attachment) -> bool:
+        """True, pokud jde o soubor, jehož fyzická cesta neexistuje."""
+        if not att.is_file:
+            return False
+        path = self.service.document_absolute_path(self.thesis_id, att)
+        return path is None or not path.exists()
 
     # --- akce ----------------------------------------------------------------
 
@@ -332,16 +382,46 @@ class DocumentsWidget(QWidget):
             if path is None or not path.exists():
                 QMessageBox.warning(self, "Otevřít", f"Soubor neexistuje:\n{path}")
                 return
-            target = str(path)
+            open_path(path)
         else:
-            target = att.url_or_path
+            open_path(att.url_or_path)
 
-        if sys.platform == "darwin":
-            subprocess.run(["open", target], check=False)
-        elif sys.platform.startswith("linux"):
-            subprocess.run(["xdg-open", target], check=False)
-        elif sys.platform == "win32":
-            try:
-                os.startfile(target)  # type: ignore[attr-defined]
-            except OSError as exc:
-                QMessageBox.warning(self, "Otevřít", f"Nelze otevřít:\n{exc}")
+    def _reveal_selected(self) -> None:
+        if not self.thesis_id:
+            return
+        idx = self._selected_index()
+        if idx is None:
+            return
+        thesis = self.service.get_thesis(self.thesis_id)
+        if thesis is None:
+            return
+        att = thesis.attachments[idx]
+        if not att.is_file:
+            QMessageBox.information(
+                self, "Ve Finderu", "Odkaz/URL nelze zobrazit ve správci souborů."
+            )
+            return
+        path = self.service.document_absolute_path(self.thesis_id, att)
+        if path is None or not path.exists():
+            QMessageBox.warning(self, "Ve Finderu", f"Soubor neexistuje:\n{path}")
+            return
+        reveal_in_file_manager(path)
+
+    def _prune_missing(self) -> None:
+        if not self.thesis_id:
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Odklidit chybějící",
+            "Odebrat ze seznamu všechny záznamy, jejichž soubor už na disku "
+            "neexistuje?\n\nSmažou se jen záznamy v aplikaci — žádné existující "
+            "soubory ani odkazy se nedotkne.",
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        removed = self.service.prune_missing_documents(self.thesis_id)
+        self.refresh()
+        self.changed.emit()
+        QMessageBox.information(
+            self, "Odklidit chybějící", f"Odebráno záznamů: {removed}."
+        )
