@@ -210,6 +210,18 @@ známky, dokumenty, generovaný souhrn.
 
 ## Import ze STAG (CSV)
 
+### Odkud stáhnout CSV
+1. Otevři **stag.utb.cz**
+2. Sekce **Prohlížení** → **Kvalifikační práce**
+3. Vyhledej práci podle **jména studenta**
+4. U nalezené práce zvol **stažení CSV**
+
+Stažený soubor `getKvalifikacniPrace*.csv` pak v aplikaci vyber přes
+*Import ze STAG… → Procházet…*. (Stejný návod je i pod tlačítkem
+**❓ Odkud stáhnout** v import dialogu.) Záznam kvalifikační práce je
+veřejný, takže ke stažení obvykle není potřeba přihlášení.
+
+### Průběh importu
 Toolbar **📥 Import ze STAG…** načte CSV export `getKvalifikacniPrace*.csv`.
 
 - **Auto-detekce role** podle *Tvého jména* (z profilu) v poli

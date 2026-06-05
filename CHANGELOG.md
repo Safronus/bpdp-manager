@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-06-05
+
+### Added
+- **Návod „odkud stáhnout CSV ze STAG"**:
+  - V import dialogu tlačítko **❓ Odkud stáhnout** vedle výběru souboru
+    — ukáže kroky (stag.utb.cz → Prohlížení → Kvalifikační práce →
+    vyhledat dle jména studenta → stažení CSV) s klikatelným odkazem.
+  - V nápovědě (sekce *Import ze STAG*) přibyl pododdíl *Odkud stáhnout
+    CSV* se stejným postupem.
+
 ## [0.23.0] - 2026-06-05
 
 ### Added

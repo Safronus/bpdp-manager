@@ -138,9 +138,13 @@ class StagImportDialog(QDialog):
         self.ed_path.setPlaceholderText("vyber CSV soubor exportovaný ze STAG")
         btn_browse = QPushButton("Procházet…")
         btn_browse.clicked.connect(self._browse)
+        btn_csv_help = QPushButton("❓ Odkud stáhnout")
+        btn_csv_help.setToolTip("Jak získat CSV s prací ze STAG")
+        btn_csv_help.clicked.connect(self._show_csv_download_help)
         row_path = QHBoxLayout()
         row_path.addWidget(self.ed_path, stretch=1)
         row_path.addWidget(btn_browse)
+        row_path.addWidget(btn_csv_help)
         form.addRow("CSV soubor", row_path)
 
         # Tvoje jméno (pro detekci role)
@@ -285,6 +289,31 @@ class StagImportDialog(QDialog):
         outer.addLayout(row)
 
     # --- akce ----------------------------------------------------------------
+
+    def _show_csv_download_help(self) -> None:
+        """Návod, odkud a jak stáhnout CSV s prací ze STAG."""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Odkud stáhnout CSV ze STAG")
+        msg.setTextFormat(Qt.TextFormat.RichText)
+        msg.setText(
+            "<b>Jak získat CSV s kvalifikační prací ze STAG:</b>"
+            "<ol>"
+            "<li>Otevři <a href='https://stag.utb.cz'>stag.utb.cz</a></li>"
+            "<li>Sekce <b>Prohlížení</b> → <b>Kvalifikační práce</b></li>"
+            "<li>Vyhledej práci podle <b>jména studenta</b></li>"
+            "<li>U nalezené práce zvol <b>stažení CSV</b></li>"
+            "</ol>"
+            "<p>Stažený soubor (<code>getKvalifikacniPrace*.csv</code>) pak "
+            "vyber tlačítkem <i>Procházet…</i>.</p>"
+            "<p style='color:#888;font-size:11px;'>Záznam kvalifikační práce "
+            "je veřejný, takže ke stažení obvykle není potřeba přihlášení.</p>"
+        )
+        # Umožni klik na odkaz
+        lbl = msg.findChild(QLabel, "qt_msgbox_label")
+        if lbl is not None:
+            lbl.setOpenExternalLinks(True)
+        msg.exec()
 
     def _browse(self) -> None:
         # Začni v poslední použité složce (nebo v adresáři aktuálně vybraného
