@@ -33,7 +33,8 @@ from .file_naming import (
 )
 from .harmonogram_parser import parse_pdf
 from .review_schema import extract_template_schema
-from .review_template_filler import fill_template
+from .review_template_filler import fill_template, plan_template_fill
+from .xlsx_cell_writer import set_cells
 
 
 class TransitionError(ValueError):
@@ -1295,7 +1296,12 @@ class ThesisService:
         )
         target_path = target_dir / target_name
 
-        # 1) Heuristický fill základních polí
+        # === Vyplnění buněk BEZ ztráty zbytku šablony (logo, kresby, styly) ===
+        # KRITICKÉ: nepřepisujeme celý sešit přes openpyxl (to zahazuje
+        # obrázky v záhlaví / logo), ale zapíšeme jen hodnoty buněk přes
+        # xlsx_cell_writer (XML aktivního listu) — výstup je 1:1 se šablonou.
+
+        # 1) Naplánuj základní pole (heuristika dle popisků sloupce A) — readonly
         basic_fields = {
             "student": review.student_name,
             "supervisor": review.user_name if review.role == "supervisor" else "",
@@ -1304,28 +1310,31 @@ class ThesisService:
             "title_en": review.title_en,
             "academic_year": review.academic_year,
         }
-        fill_template(tmpl_path, target_path, basic_fields)
+        values: dict[str, object] = {}
+        try:
+            for coord, _fkey, value in plan_template_fill(tmpl_path, basic_fields):
+                values[coord] = value
+        except Exception:  # noqa: BLE001
+            pass
 
-        # 2) Druhý průchod přes openpyxl — zapsat criteria + extra pole
-        import openpyxl  # type: ignore
-
-        wb = openpyxl.load_workbook(target_path, data_only=False)
-        ws = wb.active
-
-        # Criteria scores
+        # 2) Kritéria — body + (volitelně) váhy
         for cs in review.criteria:
             if cs.score_cell:
                 try:
-                    ws[cs.score_cell] = float(cs.score)
-                except Exception:  # noqa: BLE001
+                    values[cs.score_cell] = float(cs.score)
+                except (TypeError, ValueError):
                     pass
             if cs.weight_cell:
                 try:
-                    ws[cs.weight_cell] = float(cs.weight)
-                except Exception:  # noqa: BLE001
+                    values[cs.weight_cell] = float(cs.weight)
+                except (TypeError, ValueError):
                     pass
 
-        # Extra pole — assignment_fulfilled, plagiarism_*, overall_comment, place_date
+        # 3) Extra pole — place_date vyžaduje znát původní text buňky šablony
+        #    (obsahuje „Místo, datum: …  Podpis: …" v jednom textu).
+        place_existing = self._template_cell_text(
+            tmpl_path, tmpl.field_cells.get("place_date")
+        )
         extras = {
             "assignment_fulfilled": review.assignment_fulfilled,
             "plagiarism_verdict": review.plagiarism_verdict,
@@ -1337,30 +1346,22 @@ class ThesisService:
             cell = tmpl.field_cells.get(key)
             if not cell or not value:
                 continue
-            try:
-                if key == "place_date":
-                    # POZOR: buňka „Místo, datum:" obvykle obsahuje v jednom
-                    # textu i podpisový blok, např.:
-                    #   "Místo, datum: ........   Podpis: ........"
-                    # Přímý zápis hodnoty by zničil label i pole pro podpis.
-                    # Proto nahradíme jen PRVNÍ souvislou tečkovanou linku
-                    # (za „Místo, datum:") hodnotou a zbytek (Podpis: …)
-                    # ponecháme nedotčený.
-                    existing = ws[cell].value
-                    if isinstance(existing, str) and "..." in existing:
-                        new_text = re.sub(r"\.{3,}", f" {value} ", existing, count=1)
-                        ws[cell] = new_text
-                    elif isinstance(existing, str) and existing.strip():
-                        # Label bez teček → připoj hodnotu za něj
-                        ws[cell] = f"{existing.rstrip()} {value}"
-                    else:
-                        ws[cell] = value
+            if key == "place_date":
+                # Nahraď jen PRVNÍ tečkovanou linku (za „Místo, datum:")
+                # hodnotou a podpisový blok ponech nedotčený.
+                if isinstance(place_existing, str) and "..." in place_existing:
+                    values[cell] = re.sub(
+                        r"\.{3,}", f" {value} ", place_existing, count=1
+                    )
+                elif isinstance(place_existing, str) and place_existing.strip():
+                    values[cell] = f"{place_existing.rstrip()} {value}"
                 else:
-                    ws[cell] = value
-            except Exception:  # noqa: BLE001
-                pass
+                    values[cell] = value
+            else:
+                values[cell] = value
 
-        wb.save(target_path)
+        # 4) Jeden zápis — zachová logo i veškeré formátování šablony 1:1
+        set_cells(tmpl_path, target_path, values)
 
         # 3) Připoj XLSX jako Attachment (auto-versioning)
         same_kind = []
@@ -1415,6 +1416,24 @@ class ThesisService:
             self.upsert_thesis(t)
 
         return target_path, pdf_path
+
+    @staticmethod
+    def _template_cell_text(tmpl_path: Path, cell: str | None) -> str | None:
+        """Přečte (read-only) text buňky šablony — pro place_date transformaci."""
+        if not cell:
+            return None
+        try:
+            import openpyxl  # type: ignore
+
+            wb = openpyxl.load_workbook(tmpl_path, data_only=False)
+            ws = wb.active
+            val = ws[cell].value
+            wb.close()
+            if val is None:
+                return None
+            return val if isinstance(val, str) else str(val)
+        except Exception:  # noqa: BLE001
+            return None
 
     def _xlsx_to_pdf(self, xlsx_path: Path) -> Path | None:
         """Konvertuje XLSX na PDF přes LibreOffice headless.

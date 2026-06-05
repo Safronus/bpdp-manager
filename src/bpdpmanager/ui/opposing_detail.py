@@ -73,6 +73,7 @@ class OpposingDetail(QWidget):
 
     saved = Signal(str)  # opposing thesis id
     deleted = Signal(str)
+    generate_review_requested = Signal(str)  # opposing thesis id
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -115,6 +116,13 @@ class OpposingDetail(QWidget):
         self.lbl_save_state = QLabel("")
         self.lbl_save_state.setStyleSheet("color:#888;font-size:11px;")
         header.addWidget(self.lbl_save_state)
+        self.btn_generate_review = QPushButton("📝 Napsat posudek…")
+        self.btn_generate_review.setToolTip(
+            "Vyplnit oponentský posudek z šablony (kritéria, body, známka) "
+            "a připojit jako přílohu."
+        )
+        self.btn_generate_review.clicked.connect(self._generate_review)
+        header.addWidget(self.btn_generate_review)
         self.btn_delete = QPushButton("Smazat")
         self.btn_delete.clicked.connect(self._delete)
         header.addWidget(self.btn_delete)
@@ -502,6 +510,14 @@ class OpposingDetail(QWidget):
 
     def _save_now(self) -> None:
         self._autosave()
+
+    def _generate_review(self) -> None:
+        """Klik na „📝 Napsat posudek…" → flush + emit (OpposingTab otevře dialog)."""
+        if self.op is None:
+            return
+        # Flushni rozpracované změny, aby šablona dostala aktuální data.
+        self.flush()
+        self.generate_review_requested.emit(self.op.id)
 
     def flush(self) -> None:
         self._debounce.stop()

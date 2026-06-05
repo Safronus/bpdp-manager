@@ -144,7 +144,34 @@ def fill_template(
         "matches": [],  # list[(coord, field, value)]
     }
 
-    # Heuristika: walk col A, pro každý popisek najdi field
+    for coord, field_key, value, kind in _scan_fill_targets(
+        ws, clean_fields, overwrite_existing_cells
+    ):
+        if kind == "skip_unknown":
+            stats["skipped_unknown"] += 1
+            continue
+        if kind == "skip_existing":
+            stats["skipped_existing"] += 1
+            continue
+        ws[coord] = value
+        stats["filled_count"] += 1
+        stats["matches"].append((coord, field_key, value))
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(output_path)
+    return stats
+
+
+def _scan_fill_targets(
+    ws: Any, clean_fields: dict[str, str], overwrite_existing_cells: bool
+):
+    """Generátor: prochází sloupec A, mapuje popisky na pole a yielduje
+    ``(coord_B, field_key, value, kind)``.
+
+    ``kind`` ∈ ``{"fill", "skip_existing", "skip_unknown"}``. Společné jádro
+    pro :func:`fill_template` (zapisuje) i :func:`plan_template_fill` (jen
+    spočítá souřadnice + hodnoty).
+    """
     for row_idx in range(1, ws.max_row + 1):
         cell_a = ws.cell(row=row_idx, column=1)
         if cell_a.value is None:
@@ -153,7 +180,6 @@ def fill_template(
         if not label_raw.strip():
             continue
 
-        # Match against patterns
         label_norm = _ascii_fold(label_raw).lower().strip().rstrip(":").strip()
         field_key = None
         for pattern, fkey in LABEL_PATTERNS:
@@ -165,34 +191,65 @@ def fill_template(
 
         value = clean_fields.get(field_key)
         if value is None:
-            # Special case: pokud máme title_en v poli, ale šablona ptá
-            # title_cs (nebo naopak), zkusíme fallback opačné jazykové
-            # verze (lepší něco než nic).
+            # Fallback mezi jazykovými verzemi názvu.
             if field_key == "title_cs":
                 value = clean_fields.get("title_en")
             elif field_key == "title_en":
                 value = clean_fields.get("title_cs")
+        target = ws.cell(row=row_idx, column=2)
         if value is None:
-            stats["skipped_unknown"] += 1
+            yield (target.coordinate, field_key, None, "skip_unknown")
             continue
 
-        # Cílová buňka je B na stejném řádku
-        target = ws.cell(row=row_idx, column=2)
-        # Respektuj existující default v šabloně (kromě academic_year,
-        # který je vždy volatilní — chceme rok aktuální práce)
+        # Respektuj existující default (kromě academic_year — volatilní).
         if (
             target.value is not None
             and str(target.value).strip()
             and not overwrite_existing_cells
             and field_key != "academic_year"
         ):
-            stats["skipped_existing"] += 1
+            yield (target.coordinate, field_key, value, "skip_existing")
             continue
 
-        target.value = value
-        stats["filled_count"] += 1
-        stats["matches"].append((target.coordinate, field_key, value))
+        yield (target.coordinate, field_key, value, "fill")
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    wb.save(output_path)
-    return stats
+
+def plan_template_fill(
+    template_path: Path,
+    fields: dict[str, str],
+    *,
+    overwrite_existing_cells: bool = False,
+) -> list[tuple[str, str, str]]:
+    """Spočítá, které buňky by :func:`fill_template` vyplnil — **bez zápisu**.
+
+    Vrací seznam ``(coord, field_key, value)`` pro buňky určené k vyplnění.
+    Slouží k naplánování zápisu přes :mod:`bpdpmanager.services.xlsx_cell_writer`
+    (který zachová logo a zbytek šablony 1:1).
+    """
+    try:
+        import openpyxl  # type: ignore
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "openpyxl není nainstalován — `pip install openpyxl`."
+        ) from exc
+
+    template_path = Path(template_path)
+    if not template_path.is_file():
+        raise FileNotFoundError(f"Šablona neexistuje: {template_path}")
+
+    clean_fields: dict[str, str] = {
+        k: str(v).strip()
+        for k, v in (fields or {}).items()
+        if v is not None and str(v).strip()
+    }
+
+    wb = openpyxl.load_workbook(template_path, data_only=False)
+    ws = wb.active
+    out: list[tuple[str, str, str]] = []
+    for coord, field_key, value, kind in _scan_fill_targets(
+        ws, clean_fields, overwrite_existing_cells
+    ):
+        if kind == "fill":
+            out.append((coord, field_key, value))
+    wb.close()
+    return out

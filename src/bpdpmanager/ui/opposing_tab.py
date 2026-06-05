@@ -142,6 +142,7 @@ class OpposingTab(QWidget):
         self.detail.setMinimumHeight(520)
         self.detail.saved.connect(lambda _: self.refresh())
         self.detail.deleted.connect(lambda _: self.refresh())
+        self.detail.generate_review_requested.connect(self._on_generate_review)
         splitter.addWidget(self.detail)
 
         splitter.setSizes([260, 640])
@@ -150,6 +151,21 @@ class OpposingTab(QWidget):
         outer.addWidget(splitter, stretch=1)
 
         self.refresh()
+
+    # --- posudky ------------------------------------------------------------
+
+    def _on_generate_review(self, opposing_id: str) -> None:
+        """Otevře dialog pro výběr šablony + napsání oponentského posudku."""
+        op = self.service.get_opposing_thesis(opposing_id)
+        if op is None:
+            return
+        from .review_templates_dialog import GenerateReviewDialog
+
+        dlg = GenerateReviewDialog(self.service, opposing_thesis=op, parent=self)
+        dlg.exec()
+        # Posudek/přílohy se mohly změnit → refresh seznamu i detailu.
+        self.refresh()
+        self._select_id(opposing_id)
 
     # --- načtení / refresh --------------------------------------------------
 

@@ -7,6 +7,52 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-06-05
+
+### Fixed
+- **Posudek se generuje 1:1 se šablonou — logo zůstává.** Dřív se při
+  vyplnění posudku přepisoval celý sešit přes openpyxl, což zahazovalo
+  obrázky (logo fakulty „nahoře", i v záhlaví). Nově se zapisují **jen
+  hodnoty buněk** přímo do XML aktivního listu a zbytek šablony (logo,
+  kresby, styly, tisková nastavení) se zkopíruje beze změny. Nový modul
+  `services/xlsx_cell_writer.py`.
+
+### Added
+- **Psaní posudku i u oponovaných prací.** Záložka *🧐 Oponentské posudky*
+  má v hlavičce detailu tlačítko **📝 Napsat posudek…** — otevře výběr
+  šablony (jen role *oponent*) a editor posudku. Posudek + XLSX/PDF se
+  připojí k oponovanému posudku stejně jako u vedených prací.
+  `GenerateReviewDialog` nyní přijímá `Thesis` i `OpposingThesis`.
+
+## [0.24.0] - 2026-06-05
+
+### Added
+- **Přímé stažení práce ze STAG do import dialogu.** Nové tlačítko
+  **🌐 Stáhnout ze STAG** vedle výběru CSV:
+  - vyhledá veřejný záznam kvalifikační práce na **stag.utb.cz** podle
+    **příjmení studenta** + **příjmení vedoucího/oponenta** (přepínač
+    role; druhé příjmení se předvyplní z profilu),
+  - zobrazí seznam shod (student, název, typ, rok), po výběru stáhne CSV
+    a rovnou otevře náhled importu,
+  - vše bez přihlášení (záznam je veřejný), pouze přes standardní
+    knihovnu (žádná nová závislost).
+  - Síťová vrstva je izolovaná v `services/stag_api.py` (UI nesahá na
+    HTTP přímo).
+- **Doplnění jména studenta z vyhledávání.** Veřejný CSV export STAG
+  jméno studenta neobsahuje (jen osobní číslo) — při přímém stažení se
+  jméno doplní z výsledku vyhledávání, takže se student správně založí
+  i přiřadí.
+- **Revize / doplnění nových studentů při importu.** Volba
+  **✎ Před založením zkontrolovat / doplnit nové studenty** otevře pro
+  každého nového studenta (u vedených prací) jeho kartu předvyplněnou
+  daty ze STAG; zápis proběhne až v rámci (transakčního) importu.
+
+### Notes
+- U **oponovaných** prací se student i nadále neeviduje jako samostatná
+  entita — ukládá se inline u posudku (proto se „nevytvoří student").
+- `*.har` přidáno do `.gitignore` (síťové zachytávky mohou obsahovat
+  reálná data ze STAG).
+
 ## [0.23.1] - 2026-06-05
 
 ### Added

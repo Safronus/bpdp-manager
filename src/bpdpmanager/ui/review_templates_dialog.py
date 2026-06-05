@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..models import CriterionScore, Review, ReviewTemplate, Thesis
+from ..models import CriterionScore, OpposingThesis, Review, ReviewTemplate, Thesis
 from ..models.enums import ThesisType
 from ..services import ThesisService
 
@@ -665,14 +665,51 @@ class GenerateReviewDialog(QDialog):
     def __init__(
         self,
         service: ThesisService,
-        thesis: Thesis,
+        thesis: Thesis | None = None,
         parent=None,
+        *,
+        opposing_thesis: OpposingThesis | None = None,
     ) -> None:
         super().__init__(parent)
         self.service = service
-        self.thesis = thesis
+        # Práce může být vedená (Thesis) nebo oponovaná (OpposingThesis).
+        self.opposing = opposing_thesis is not None
+        self.work: Thesis | OpposingThesis = opposing_thesis if self.opposing else thesis
+        if self.work is None:
+            raise ValueError("GenerateReviewDialog: chybí thesis nebo opposing_thesis.")
+        self.thesis = self.work  # zpětná kompatibilita pro stávající kód
         self.generated_path: Path | None = None
         self.generated_attachment = None
+
+        # Normalizovaná data práce (sjednocení Thesis × OpposingThesis)
+        self._work_id = self.work.id
+        if self.opposing:
+            self._student_name = self.work.student_full_name
+            self._title_cs = self.work.title_cs
+            self._title_en = ""
+            self._student_obor = self.work.student_obor
+            self._plag_verdict_text = ""
+            self._plag_justification = ""
+        else:
+            student = (
+                self.service.get_student(self.work.student_id)
+                if self.work.student_id else None
+            )
+            self._student_name = student.full_name if student else ""
+            self._title_cs = self.work.title_cs
+            self._title_en = self.work.title_en
+            self._student_obor = student.obor if student else ""
+            from ..models.enums import PlagiarismVerdict
+
+            plag_map = {
+                PlagiarismVerdict.NOT_PLAGIARISM: "Práce není plagiát",
+                PlagiarismVerdict.PLAGIARISM: "Práce je plagiát",
+                PlagiarismVerdict.NOT_ASSESSED: "Práce nebyla posouzena",
+            }
+            self._plag_verdict_text = plag_map.get(
+                self.work.plagiarism_verdict, "Práce není plagiát"
+            )
+            self._plag_justification = self.work.plagiarism_comment or ""
 
         self.setWindowTitle("Generovat posudek z šablony")
         self.setMinimumSize(820, 580)
@@ -686,11 +723,11 @@ class GenerateReviewDialog(QDialog):
         header.setStyleSheet("font-size:15px;font-weight:bold;")
         outer.addWidget(header)
 
-        student = self.service.get_student(thesis.student_id) if thesis.student_id else None
-        student_lbl = student.full_name if student else "(bez studenta)"
+        role_hint = " · <b>oponentský posudek</b>" if self.opposing else ""
+        student_lbl = self._student_name or "(bez studenta)"
         ctx = QLabel(
-            f"Práce: <b>{thesis.type.value} · {thesis.academic_year}</b> · "
-            f"{student_lbl}<br><i>{thesis.display_title}</i>"
+            f"Práce: <b>{self.work.type.value} · {self.work.academic_year}</b> · "
+            f"{student_lbl}{role_hint}<br><i>{self.work.display_title}</i>"
         )
         ctx.setTextFormat(Qt.TextFormat.RichText)
         ctx.setWordWrap(True)
@@ -766,7 +803,11 @@ class GenerateReviewDialog(QDialog):
 
     def _latest_current_review(self):
         """Vrátí naposledy upravený current Review pro tuto práci (libovolná role)."""
-        reviews = [r for r in self.service.list_reviews(self.thesis.id) if r.is_current]
+        reviews = [
+            r for r in self.service.list_reviews(
+                self._work_id, opposing=self.opposing
+            ) if r.is_current
+        ]
         if not reviews:
             return None
         return max(reviews, key=lambda r: r.updated_at)
@@ -784,26 +825,24 @@ class GenerateReviewDialog(QDialog):
         from .review_editor_dialog import ReviewEditorDialog
 
         editor = ReviewEditorDialog(
-            self.service, self.thesis.id, review, opposing=False, parent=self
+            self.service, self._work_id, review, opposing=self.opposing, parent=self
         )
         if editor.exec() and editor.saved:
             self.generated_path = editor.generated_xlsx
             self.accept()
 
     def _student_obor_code(self) -> str:
-        """Pokus odvodit kód oboru pro filtr (např. „SWI") z student.obor.
+        """Pokus odvodit kód oboru pro filtr (např. „SWI") z oboru studenta.
 
         Studentův obor je typicky „knIT-KYB" nebo „NSWI-P" — vrátíme suffix
         nebo prefix podle obvyklých konvencí.
         """
-        if self.thesis.student_id is None:
-            return ""
-        st = self.service.get_student(self.thesis.student_id)
-        if st is None or not st.obor:
+        obor = self._student_obor or ""
+        if not obor:
             return ""
         # Heuristic: rozdělit na pomlčce, vzít poslední segment > 1 znak,
         # vyhodit '-P'/'-K' suffix (forma studia)
-        parts = [p for p in st.obor.replace("/", "-").split("-") if p]
+        parts = [p for p in obor.replace("/", "-").split("-") if p]
         for p in reversed(parts):
             if len(p) >= 2 and p.upper() not in {"P", "K"}:
                 return p.upper()
@@ -817,9 +856,13 @@ class GenerateReviewDialog(QDialog):
             # Auto-filtr podle typu práce + oboru studenta
             obor_code = self._student_obor_code()
             templates = self.service.list_review_templates(
-                type_filter=self.thesis.type,
+                type_filter=self.work.type,
                 obor_filter=obor_code if obor_code else None,
             )
+        # U oponovaných prací dává smysl jen oponentský posudek (uživatel je
+        # oponent) — zúžíme nabídku na role „opponent".
+        if self.opposing:
+            templates = [t for t in templates if t.role == "opponent"]
         for tmpl in templates:
             item = QTreeWidgetItem([
                 tmpl.name,
@@ -865,10 +908,13 @@ class GenerateReviewDialog(QDialog):
         """Předvybere nejvhodnější šablonu (viz pravidla v _refresh_list)."""
         if not templates:
             return
-        # 1) Existující posudek (vedoucí preferován — uživatel je vedoucí práce)
-        for role in ("supervisor", "opponent"):
+        # U oponovaných prací je relevantní role „opponent"; u vedených
+        # preferujeme „supervisor" (uživatel je vedoucí).
+        role_order = ("opponent",) if self.opposing else ("supervisor", "opponent")
+        # 1) Existující posudek pro danou roli → jeho šablona
+        for role in role_order:
             existing = self.service.get_current_review(
-                self.thesis.id, role, opposing=False
+                self._work_id, role, opposing=self.opposing
             )
             if existing is not None and existing.template_id:
                 if self._select_template_id(existing.template_id):
@@ -877,10 +923,11 @@ class GenerateReviewDialog(QDialog):
         if len(templates) == 1:
             self._select_template_id(templates[0].id)
             return
-        # 3) První supervisor šablona
-        supervisors = [t for t in templates if t.role == "supervisor"]
-        if supervisors:
-            self._select_template_id(supervisors[0].id)
+        # 3) První šablona preferované role
+        preferred_role = role_order[0]
+        preferred = [t for t in templates if t.role == preferred_role]
+        if preferred:
+            self._select_template_id(preferred[0].id)
             return
         # 4) jinak první v seznamu
         self._select_template_id(templates[0].id)
@@ -914,21 +961,13 @@ class GenerateReviewDialog(QDialog):
                 "Můžeš pokračovat — editor zobrazí jen základní pole bez bodování.",
             )
 
-        # Sestav scaffold Review z thesis dat + template kritérií
-        student = (
-            self.service.get_student(self.thesis.student_id)
-            if self.thesis.student_id else None
-        )
-        opponent_entity = (
-            self.service.get_opponent(self.thesis.opponent_id)
-            if self.thesis.opponent_id else None
-        )
+        # Sestav scaffold Review z dat práce + template kritérií
         user_name = self.service._guess_user_name()
 
         # Zjisti, jestli pro tuto práci a roli existuje uložený Review →
         # předáme ho do editoru k úpravě (zachová body z minula).
         existing = self.service.get_current_review(
-            self.thesis.id, tmpl.role, opposing=False
+            self._work_id, tmpl.role, opposing=self.opposing
         )
 
         continue_existing = False
@@ -968,20 +1007,7 @@ class GenerateReviewDialog(QDialog):
             review = existing
         else:
             # Předvyplnění plagiátorství z práce (vedoucí ho v posudku uvádí).
-            # Mapování PlagiarismVerdict → text v editoru posudku.
-            from ..models.enums import PlagiarismVerdict
-
-            plag_map = {
-                PlagiarismVerdict.NOT_PLAGIARISM: "Práce není plagiát",
-                PlagiarismVerdict.PLAGIARISM: "Práce je plagiát",
-                PlagiarismVerdict.NOT_ASSESSED: "Práce nebyla posouzena",
-            }
-            plag_verdict_text = plag_map.get(
-                self.thesis.plagiarism_verdict, "Práce není plagiát"
-            )
-            plag_justification = self.thesis.plagiarism_comment or ""
-
-            # Místo + datum: místo z profilu (default Zlín), datum dnešní.
+            # U oponovaných prací data nemáme — uživatel doplní v editoru.
             place = self.service._guess_review_place()
             place_date = self.service.build_place_date(place)
 
@@ -990,15 +1016,13 @@ class GenerateReviewDialog(QDialog):
                 template_name=tmpl.name,
                 role=tmpl.role,
                 language=tmpl.language,
-                student_name=student.full_name if student else "",
-                user_name=user_name if tmpl.role == "supervisor" else (
-                    user_name if tmpl.role == "opponent" else ""
-                ),
-                title_cs=self.thesis.title_cs,
-                title_en=self.thesis.title_en,
-                academic_year=self.thesis.academic_year,
-                plagiarism_verdict=plag_verdict_text,
-                plagiarism_justification=plag_justification,
+                student_name=self._student_name,
+                user_name=user_name,
+                title_cs=self._title_cs,
+                title_en=self._title_en,
+                academic_year=self.work.academic_year,
+                plagiarism_verdict=self._plag_verdict_text,
+                plagiarism_justification=self._plag_justification,
                 place_date=place_date,
                 criteria=[
                     CriterionScore(
@@ -1008,16 +1032,12 @@ class GenerateReviewDialog(QDialog):
                     ) for c in tmpl.criteria
                 ],
             )
-            # Pokud uživatel není supervisor, je oponent — v poli „opponent"
-            # je user_name. Pole „supervisor" zůstává prázdné (cizí).
-            if tmpl.role == "opponent" and not review.user_name:
-                review.user_name = user_name
 
         # Otevři editor
         from .review_editor_dialog import ReviewEditorDialog
 
         editor = ReviewEditorDialog(
-            self.service, self.thesis.id, review, opposing=False, parent=self
+            self.service, self._work_id, review, opposing=self.opposing, parent=self
         )
         if not editor.exec() or not editor.saved:
             return

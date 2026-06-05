@@ -5,6 +5,10 @@
 data/
 private/
 exports/
+# Síťové zachytávky (HAR z prohlížeče) — mohou obsahovat reálná data ze STAG
+*.har
+# venv (i jako symlink) — bez lomítka, ať se chytí i symbolické odkazy
+.venv*
 
 # Python
 __pycache__/

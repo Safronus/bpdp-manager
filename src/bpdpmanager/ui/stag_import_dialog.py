@@ -10,12 +10,16 @@ Workflow:
 
 from __future__ import annotations
 
+import re
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -26,8 +30,11 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -45,7 +52,7 @@ from ..models import (
     Thesis,
 )
 from ..models.enums import AttachmentKind, OpponentKind, ThesisStatus, ThesisType
-from ..services import BackupManager, ProfileManager, ThesisService
+from ..services import BackupManager, ProfileManager, ThesisService, stag_api
 from ..services.stag_csv_importer import (
     ImportFile,
     ImportRole,
@@ -112,6 +119,13 @@ class StagImportDialog(QDialog):
         self.service = service
         self.profile_manager = profile_manager
         self.import_file: ImportFile | None = None
+        # Metadata z přímého stažení ze STAG (jméno studenta apod.) — veřejný
+        # CSV export STAG totiž jméno studenta NEOBSAHUJE (jen osobní číslo),
+        # doplníme ho proto z výsledku vyhledávání. Spotřebuje ho _load_preview.
+        self._pending_stag_meta: stag_api.StagThesisResult | None = None
+        # Studenti zkontrolovaní/doplnění uživatelem před importem (klíč =
+        # osobní číslo). Použije je _ensure_student místo holého auto-založení.
+        self._reviewed_students: dict[str, Student] = {}
         self.row_widgets: list[dict] = []  # každý řádek má { role, obor, status, action }
         # Po úspěšném importu MainWindow přečte tyto atributy a přepne se na
         # příslušnou práci v UI (Aktuální / Budoucí / Historie nebo Oponentury).
@@ -138,12 +152,19 @@ class StagImportDialog(QDialog):
         self.ed_path.setPlaceholderText("vyber CSV soubor exportovaný ze STAG")
         btn_browse = QPushButton("Procházet…")
         btn_browse.clicked.connect(self._browse)
+        btn_stag_dl = QPushButton("🌐 Stáhnout ze STAG")
+        btn_stag_dl.setToolTip(
+            "Najdi a stáhni CSV s prací přímo ze STAG podle příjmení "
+            "studenta a vedoucího/oponenta (bez přihlášení)."
+        )
+        btn_stag_dl.clicked.connect(self._open_stag_download)
         btn_csv_help = QPushButton("❓ Odkud stáhnout")
         btn_csv_help.setToolTip("Jak získat CSV s prací ze STAG")
         btn_csv_help.clicked.connect(self._show_csv_download_help)
         row_path = QHBoxLayout()
         row_path.addWidget(self.ed_path, stretch=1)
         row_path.addWidget(btn_browse)
+        row_path.addWidget(btn_stag_dl)
         row_path.addWidget(btn_csv_help)
         form.addRow("CSV soubor", row_path)
 
@@ -198,6 +219,20 @@ class StagImportDialog(QDialog):
             "u každé importované práce."
         )
         form.addRow("", self.chk_delete_csv)
+
+        # Před založením nových studentů otevřít jejich kartu k revizi/doplnění
+        # (e-mail, telefon, obor…). Veřejný STAG CSV nese jen osobní číslo a
+        # jméno (jméno doplňujeme z vyhledávání), zbytek je vhodné doplnit ručně.
+        self.chk_review_students = QCheckBox(
+            "✎ Před založením zkontrolovat / doplnit nové studenty"
+        )
+        self.chk_review_students.setChecked(False)
+        self.chk_review_students.setToolTip(
+            "Pro každého nového studenta (u vedených prací) otevře kartu "
+            "studenta předvyplněnou daty ze STAG — můžeš doplnit e-mail, "
+            "telefon, obor apod. Záznam se uloží až v rámci importu."
+        )
+        form.addRow("", self.chk_review_students)
 
         btn_load = QPushButton("🔍 Načíst náhled")
         btn_load.clicked.connect(self._load_preview)
@@ -297,7 +332,10 @@ class StagImportDialog(QDialog):
         msg.setWindowTitle("Odkud stáhnout CSV ze STAG")
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(
-            "<b>Jak získat CSV s kvalifikační prací ze STAG:</b>"
+            "<b>Nejrychleji:</b> použij tlačítko "
+            "<b>🌐 Stáhnout ze STAG</b> — práci najde a CSV stáhne přímo "
+            "(stačí příjmení studenta + vedoucího/oponenta).<hr>"
+            "<b>Nebo ručně z webu STAG:</b>"
             "<ol>"
             "<li>Otevři <a href='https://stag.utb.cz'>stag.utb.cz</a></li>"
             "<li>Sekce <b>Prohlížení</b> → <b>Kvalifikační práce</b></li>"
@@ -350,6 +388,31 @@ class StagImportDialog(QDialog):
                 except Exception:
                     pass
 
+    def _open_stag_download(self) -> None:
+        """Otevře dialog pro přímé vyhledání + stažení CSV ze STAG.
+
+        Po úspěšném stažení nastaví cestu k dočasnému CSV a rovnou načte náhled.
+        """
+        default_surname = ""
+        if self.profile_manager and self.profile_manager.active:
+            user_name = self.profile_manager.active.user_name or ""
+            tokens = [
+                t.strip(".,")
+                for t in user_name.replace(",", " ").split()
+                if t.strip(".,")
+            ]
+            if tokens:
+                default_surname = tokens[-1]  # příjmení bývá poslední token
+
+        dlg = StagDownloadDialog(default_person_surname=default_surname, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result_path:
+            self.ed_path.setText(str(dlg.result_path))
+            # Jméno studenta doplníme z výsledku vyhledávání (veřejné CSV ho
+            # neobsahuje) — _load_preview ho po načtení vloží do záznamu.
+            self._pending_stag_meta = dlg.result_meta
+            # Po stažení rovnou načti náhled (uživatel jen potvrdí import).
+            self._load_preview()
+
     def _load_preview(self) -> None:
         path_str = self.ed_path.text().strip()
         if not path_str:
@@ -361,6 +424,10 @@ class StagImportDialog(QDialog):
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Chyba načítání", f"Soubor nelze přečíst:\n{exc}")
             return
+
+        # Doplň jméno studenta z výsledku vyhledávání ve STAG — veřejný CSV
+        # export jméno (jmeno/prijmeni.student) NEOBSAHUJE, jen osobní číslo.
+        self._apply_stag_meta_to_records()
 
         # Ulož user_name do aktivního profilu, aby se příště předvyplnil
         if (
@@ -377,6 +444,26 @@ class StagImportDialog(QDialog):
                 pass
 
         self._populate_preview()
+
+    def _apply_stag_meta_to_records(self) -> None:
+        """Doplní jméno studenta z výsledku vyhledávání STAG do načtených
+        záznamů (veřejný CSV jméno neobsahuje). Spotřebuje ``_pending_stag_meta``.
+        """
+        meta = self._pending_stag_meta
+        self._pending_stag_meta = None
+        if meta is None or self.import_file is None:
+            return
+        for rec in self.import_file.records:
+            # Páruj přes adipidno; u jednořádkového exportu doplň vždy.
+            matches = (
+                rec.adipidno and meta.adipidno and rec.adipidno == meta.adipidno
+            ) or len(self.import_file.records) == 1
+            if not matches:
+                continue
+            if not rec.student_last and meta.surname:
+                rec.student_last = meta.surname
+            if not rec.student_first and meta.name:
+                rec.student_first = meta.name
 
     def _populate_preview(self) -> None:
         if self.import_file is None:
@@ -1126,6 +1213,14 @@ class StagImportDialog(QDialog):
         if not self._show_preflight_dialog(missing, len(active_rows)):
             return  # uživatel zrušil
 
+        # 1b) Volitelná revize/doplnění nových studentů (před zápisem)
+        self._reviewed_students = {}
+        if self.chk_review_students.isChecked():
+            reviewed = self._review_new_students(active_rows)
+            if reviewed is None:
+                return  # uživatel revizi zrušil → celý import zruš
+            self._reviewed_students = reviewed
+
         # 2) Backup před importem (na případ selhání rollbacku)
         if self.profile_manager and self.profile_manager.active:
             data_dir = self.profile_manager.active_data_dir()
@@ -1599,16 +1694,91 @@ class StagImportDialog(QDialog):
                     if changed:
                         self.service.upsert_student(s)
                     return s
-        # Vytvoř nového
-        s = Student(
-            first_name=record.student_first,
-            last_name=record.student_last,
-            obor=obor_name,
-            university_id=uni_id or None,
-        )
+        # Vytvoř nového — pokud uživatel studenta předem zrevidoval/doplnil,
+        # použij jeho objekt (jen dorovnej prázdná pole z dat STAG).
+        reviewed = self._reviewed_students.get(uni_id) if uni_id else None
+        if reviewed is not None:
+            s = reviewed
+            s.first_name = s.first_name or record.student_first
+            s.last_name = s.last_name or record.student_last
+            if not s.obor:
+                s.obor = obor_name
+            if not s.university_id:
+                s.university_id = uni_id or None
+            if s.obor:
+                self.service.add_obor(s.obor)
+        else:
+            s = Student(
+                first_name=record.student_first,
+                last_name=record.student_last,
+                obor=obor_name,
+                university_id=uni_id or None,
+            )
         self.service.upsert_student(s)
         stats["created_student"] += 1
         return s
+
+    def _review_new_students(
+        self, active_rows: list[dict]
+    ) -> dict[str, Student] | None:
+        """Otevře kartu studenta pro každého *nového* studenta vedené práce.
+
+        Vrací slovník ``{osobní_číslo: Student}`` s doplněnými daty (zápis se
+        provede až v dávce importu), nebo ``None`` pokud uživatel revizi zrušil
+        a chce celý import přerušit.
+        """
+        from .student_dialog import StudentDialog
+
+        existing_by_uni = {
+            s.university_id: s
+            for s in self.service.list_students()
+            if s.university_id
+        }
+        reviewed: dict[str, Student] = {}
+        seen: set[str] = set()
+
+        for ws in active_rows:
+            record: ParsedRecord = ws["record"]
+            if ImportRole(ws["cb_role"].currentData()) != ImportRole.SUPERVISOR:
+                continue
+            uni_id = record.student_uni_id.strip()
+            if not uni_id or uni_id in existing_by_uni or uni_id in seen:
+                continue
+            seen.add(uni_id)
+
+            obor_choice = ws["cb_obor"].currentData()
+            obor_name = (
+                obor_choice
+                if obor_choice not in ("__keep__", "__new__")
+                else (record.student_obor_stag or "")
+            )
+            prefilled = Student(
+                first_name=record.student_first,
+                last_name=record.student_last,
+                obor=obor_name,
+                university_id=uni_id,
+            )
+            dlg = StudentDialog(
+                self.service, prefilled, parent=self, persist=False
+            )
+            label = f"{record.student_last} {record.student_first}".strip()
+            dlg.setWindowTitle(f"Doplnit studenta — {label}" if label else "Doplnit studenta")
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                reviewed[uni_id] = dlg.student
+            else:
+                choice = QMessageBox.question(
+                    self,
+                    "Přeskočit revizi?",
+                    "Revize tohoto studenta byla zrušena.\n\n"
+                    "Pokračovat v importu s automaticky vyplněnými údaji "
+                    "(jméno, obor, osobní číslo)?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Yes,
+                )
+                if choice == QMessageBox.StandardButton.Cancel:
+                    return None
+                reviewed[uni_id] = prefilled
+        return reviewed
 
     def _ensure_opponent(self, name: str, stats: dict) -> Opponent | None:
         """Najdi (podle jména) nebo vytvoř oponenta v registru."""
@@ -1657,3 +1827,230 @@ class StagImportDialog(QDialog):
             ):
                 return o
         return None
+
+
+class StagDownloadDialog(QDialog):
+    """Vyhledání a stažení CSV s prací přímo ze STAG (stag.utb.cz).
+
+    Replikuje veřejné *Prohlížení → Kvalifikační práce*: hledá podle příjmení
+    studenta a (volitelně) příjmení vedoucího/oponenta, zobrazí seznam shod a
+    stáhne CSV vybrané práce do dočasného souboru. Síťovou vrstvu řeší
+    :mod:`bpdpmanager.services.stag_api` (UI nesahá na HTTP přímo).
+    """
+
+    def __init__(self, default_person_surname: str = "", parent=None) -> None:
+        super().__init__(parent)
+        self.result_path: Path | None = None
+        self.result_meta: stag_api.StagThesisResult | None = None
+        self._results: list[stag_api.StagThesisResult] = []
+
+        self.setWindowTitle("Stáhnout práci ze STAG")
+        self.setMinimumSize(740, 560)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(14, 14, 14, 14)
+        outer.setSpacing(10)
+
+        title = QLabel("🌐 Stáhnout práci ze STAG")
+        title.setStyleSheet("font-size:16px;font-weight:bold;")
+        outer.addWidget(title)
+
+        intro = QLabel(
+            "Vyhledá veřejný záznam kvalifikační práce na "
+            "<a href='https://stag.utb.cz'>stag.utb.cz</a> a stáhne jeho CSV. "
+            "Hledá se podle <b>příjmení studenta</b> a (pro upřesnění) "
+            "<b>příjmení vedoucího nebo oponenta</b> — samotné příjmení studenta "
+            "nemusí být jednoznačné."
+        )
+        intro.setTextFormat(Qt.TextFormat.RichText)
+        intro.setOpenExternalLinks(True)
+        intro.setWordWrap(True)
+        intro.setStyleSheet("color:#888;")
+        outer.addWidget(intro)
+
+        # ── Vyhledávací formulář ────────────────────────────────────────────
+        form = QFormLayout()
+
+        self.ed_student = QLineEdit()
+        self.ed_student.setPlaceholderText("např. Pohanka")
+        self.ed_student.returnPressed.connect(self._do_search)
+        form.addRow("Příjmení studenta *", self.ed_student)
+
+        self.ed_person = QLineEdit(default_person_surname)
+        self.ed_person.setPlaceholderText("např. Žáček (tvoje příjmení)")
+        self.ed_person.returnPressed.connect(self._do_search)
+
+        self.rb_supervisor = QRadioButton("Vedoucí")
+        self.rb_opponent = QRadioButton("Oponent")
+        self.rb_supervisor.setChecked(True)
+        role_group = QButtonGroup(self)
+        role_group.addButton(self.rb_supervisor)
+        role_group.addButton(self.rb_opponent)
+        person_row = QHBoxLayout()
+        person_row.setContentsMargins(0, 0, 0, 0)
+        person_row.addWidget(self.ed_person, stretch=1)
+        person_row.addWidget(QLabel("role:"))
+        person_row.addWidget(self.rb_supervisor)
+        person_row.addWidget(self.rb_opponent)
+        person_widget = QWidget()
+        person_widget.setLayout(person_row)
+        form.addRow("Příjmení vedoucího/oponenta", person_widget)
+
+        outer.addLayout(form)
+
+        self.btn_search = QPushButton("🔍 Vyhledat ve STAG")
+        self.btn_search.clicked.connect(self._do_search)
+        bf = self.btn_search.font()
+        bf.setBold(True)
+        self.btn_search.setFont(bf)
+        outer.addWidget(self.btn_search)
+
+        # ── Výsledky ────────────────────────────────────────────────────────
+        self.lbl_status = QLabel("Zadej příjmení a klikni na „Vyhledat ve STAG\".")
+        self.lbl_status.setStyleSheet("color:#888;")
+        self.lbl_status.setWordWrap(True)
+        outer.addWidget(self.lbl_status)
+
+        self.list_results = QListWidget()
+        self.list_results.itemSelectionChanged.connect(self._on_result_selected)
+        self.list_results.itemDoubleClicked.connect(
+            lambda _item: self._download_selected()
+        )
+        outer.addWidget(self.list_results, stretch=1)
+
+        # ── Tlačítka ────────────────────────────────────────────────────────
+        row = QHBoxLayout()
+        btn_cancel = QPushButton("Zrušit")
+        btn_cancel.clicked.connect(self.reject)
+        self.btn_download = QPushButton("⬇ Stáhnout a načíst")
+        self.btn_download.setEnabled(False)
+        self.btn_download.setDefault(True)
+        df = self.btn_download.font()
+        df.setBold(True)
+        self.btn_download.setFont(df)
+        self.btn_download.clicked.connect(self._download_selected)
+        row.addStretch()
+        row.addWidget(btn_cancel)
+        row.addWidget(self.btn_download)
+        outer.addLayout(row)
+
+    # --- akce ----------------------------------------------------------------
+
+    def _do_search(self) -> None:
+        student = self.ed_student.text().strip()
+        if not student:
+            QMessageBox.warning(
+                self, "Chybí příjmení", "Zadej alespoň příjmení studenta."
+            )
+            self.ed_student.setFocus()
+            return
+        person = self.ed_person.text().strip()
+        role = (
+            stag_api.ROLE_SUPERVISOR
+            if self.rb_supervisor.isChecked()
+            else stag_api.ROLE_OPPONENT
+        )
+
+        self.list_results.clear()
+        self._results = []
+        self.btn_download.setEnabled(False)
+        self.lbl_status.setText("⏳ Hledám ve STAG…")
+        self.btn_search.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
+        try:
+            results = stag_api.search_theses(student, person, role)
+        except stag_api.StagError as exc:
+            QApplication.restoreOverrideCursor()
+            self.btn_search.setEnabled(True)
+            self.lbl_status.setText("⚠ Vyhledávání se nezdařilo.")
+            QMessageBox.warning(self, "STAG", str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001
+            QApplication.restoreOverrideCursor()
+            self.btn_search.setEnabled(True)
+            self.lbl_status.setText("⚠ Neočekávaná chyba.")
+            QMessageBox.critical(
+                self, "STAG", f"Neočekávaná chyba při vyhledávání:\n{exc}"
+            )
+            return
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.btn_search.setEnabled(True)
+
+        self._results = results
+        if not results:
+            self.lbl_status.setText(
+                "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku) "
+                "nebo zkus jen příjmení studenta."
+            )
+            return
+
+        for r in results:
+            item = QListWidgetItem(r.display_label)
+            item.setData(Qt.ItemDataRole.UserRole, r.adipidno)
+            tooltip = [f"STAG ID práce: {r.adipidno}"]
+            if r.supervisor:
+                tooltip.append(f"Vedoucí: {r.supervisor}")
+            if r.reviewer:
+                tooltip.append(f"Oponent: {r.reviewer}")
+            item.setToolTip("\n".join(tooltip))
+            self.list_results.addItem(item)
+
+        self.lbl_status.setText(
+            f"✓ Nalezeno: {len(results)} "
+            f"{StagImportDialog._cs_plural(len(results), 'práce', 'práce', 'prací')}. "
+            "Vyber jednu a stáhni."
+        )
+        if len(results) == 1:
+            self.list_results.setCurrentRow(0)
+
+    def _on_result_selected(self) -> None:
+        self.btn_download.setEnabled(bool(self.list_results.selectedItems()))
+
+    def _download_selected(self) -> None:
+        items = self.list_results.selectedItems()
+        if not items:
+            return
+        adipidno = items[0].data(Qt.ItemDataRole.UserRole)
+        result = next(
+            (r for r in self._results if r.adipidno == adipidno), None
+        )
+
+        self.btn_download.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
+        try:
+            data = stag_api.download_csv(adipidno)
+        except stag_api.StagError as exc:
+            QApplication.restoreOverrideCursor()
+            self.btn_download.setEnabled(True)
+            QMessageBox.warning(self, "STAG", str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001
+            QApplication.restoreOverrideCursor()
+            self.btn_download.setEnabled(True)
+            QMessageBox.critical(
+                self, "STAG", f"Stažení CSV selhalo:\n{exc}"
+            )
+            return
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        # Ulož do dočasného souboru s čitelným jménem (přiloží se k práci
+        # jako STAG export; volba „smazat originál CSV" v importu ho uklidí).
+        surname = (result.surname if result else "") or "prace"
+        safe = re.sub(r"[^0-9A-Za-zÀ-ž_-]+", "_", surname).strip("_") or "prace"
+        target = Path(tempfile.gettempdir()) / f"stag_{safe}_{adipidno}.csv"
+        try:
+            target.write_bytes(data)
+        except OSError as exc:
+            self.btn_download.setEnabled(True)
+            QMessageBox.critical(
+                self, "STAG", f"Nepodařilo se uložit dočasné CSV:\n{exc}"
+            )
+            return
+
+        self.result_path = target
+        self.result_meta = result
+        self.accept()

@@ -24,10 +24,21 @@ class StudentDialog(QDialog):
     indikátor odvozené formy.
     """
 
-    def __init__(self, service: ThesisService, student: Student | None = None, parent=None) -> None:
+    def __init__(
+        self,
+        service: ThesisService,
+        student: Student | None = None,
+        parent=None,
+        *,
+        persist: bool = True,
+    ) -> None:
         super().__init__(parent)
         self.service = service
         self.student = student or Student(first_name="", last_name="")
+        # persist=False → dialog jen naplní objekt ``student`` (neukládá na disk
+        # ani neregistruje obor). Použito pro revizi v transakčním importu, kde
+        # se zápis provádí až v dávce.
+        self.persist = persist
         self.setWindowTitle("Student" if student else "Nový student")
         self.setMinimumWidth(420)
 
@@ -95,11 +106,12 @@ class StudentDialog(QDialog):
         self.student.last_name = self.ed_last.text().strip()
         obor = self.cb_obor.currentText().strip()
         self.student.obor = obor
-        if obor:
-            self.service.add_obor(obor)
         self.student.university_id = self.ed_university_id.text().strip() or None
         self.student.email = self.ed_email.text().strip() or None
         self.student.phone = self.ed_phone.text().strip() or None
         self.student.note = self.ed_note.toPlainText().strip() or None
-        self.service.upsert_student(self.student)
+        if self.persist:
+            if obor:
+                self.service.add_obor(obor)
+            self.service.upsert_student(self.student)
         self.accept()

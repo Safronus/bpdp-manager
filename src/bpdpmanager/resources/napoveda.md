@@ -80,7 +80,8 @@ Hlavní okno má nahoře **toolbar** a pod ním **záložky** (taby):
 - **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
 - **Historie** — *Obhájeno*, *Nedokončeno*
 - **Vše** — všechny vedené práce
-- **🧐 Oponentské posudky** — práce, kde jsi oponent (ne vedoucí)
+- **🧐 Oponentské posudky** — práce, kde jsi oponent (ne vedoucí).
+  I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
 - **📅 Harmonogram** — fakultní termíny z PDF
 
 > **Důležité:** zařazení práce do tabu se řídí **stavem**, ne rokem.
@@ -156,14 +157,19 @@ oponenta, Prezentace, STAG export, Jiné).
 
 ## Psaní posudku (vedoucí / oponent)
 
-V detailu *V řešení* práce je tlačítko **📝 Napsat posudek…** (tlačítko
-je aktivní jen pro práci ve stavu *V řešení*).
+Tlačítko **📝 Napsat posudek…** je na **dvou místech**:
+
+- u **vedené práce** *V řešení* (záložka detailu práce — aktivní jen ve
+  stavu *V řešení*),
+- u **oponovaného posudku** (záložka *🧐 Oponentské posudky* → v hlavičce
+  detailu) — vyplníš tu svůj **oponentský** posudek cizí práce.
 
 Workflow:
 
 1. **Výběr šablony** — dialog nabídne šablony z knihovny. Správná se
-   předvybere podle typu (BP/DP), oboru a role. Pokud už pro práci
-   existuje uložený posudek, nahoře je tlačítko
+   předvybere podle typu (BP/DP), oboru a role. U oponovaných prací se
+   nabídnou jen šablony **oponenta**. Pokud už pro práci existuje
+   uložený posudek, nahoře je tlačítko
    **✏ Pokračovat v posledním posudku**.
 2. **Editor posudku** — formulář:
    - *Splnění bodů zadání* (splnil / nesplnil)
@@ -178,6 +184,10 @@ Workflow:
 
 Data posudku jsou *zdrojem pravdy* v JSON — XLSX/PDF lze kdykoli
 přegenerovat. Náhled posudku je v záložce **Souhrn**.
+
+> **Věrnost šablony 1:1:** vyplněný XLSX je **totožný se šablonou** —
+> mění se jen vyplněné buňky. Logo fakulty (i v záhlaví), formátování,
+> rozvržení a tisková nastavení zůstávají beze změny.
 
 > **PDF:** vyžaduje LibreOffice (`brew install --cask libreoffice`
 > nebo z libreoffice.org). Bez něj se vygeneruje jen XLSX.
@@ -210,19 +220,33 @@ známky, dokumenty, generovaný souhrn.
 
 ## Import ze STAG (CSV)
 
-### Odkud stáhnout CSV
-1. Otevři **stag.utb.cz**
-2. Sekce **Prohlížení** → **Kvalifikační práce**
-3. Vyhledej práci podle **jména studenta**
-4. U nalezené práce zvol **stažení CSV**
+Toolbar **📥 Import ze STAG…** umí práci buď **stáhnout přímo ze STAG**,
+nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 
-Stažený soubor `getKvalifikacniPrace*.csv` pak v aplikaci vyber přes
-*Import ze STAG… → Procházet…*. (Stejný návod je i pod tlačítkem
-**❓ Odkud stáhnout** v import dialogu.) Záznam kvalifikační práce je
-veřejný, takže ke stažení obvykle není potřeba přihlášení.
+### A) Stáhnout přímo ze STAG (doporučeno)
+V import dialogu klikni na **🌐 Stáhnout ze STAG**:
+
+1. Zadej **příjmení studenta** (povinné).
+2. Zadej **příjmení vedoucího nebo oponenta** a přepni *role* (Vedoucí /
+   Oponent) — samotné příjmení studenta nemusí být jednoznačné, druhé
+   příjmení hledání zpřesní. Předvyplní se tvé příjmení z profilu.
+3. **🔍 Vyhledat ve STAG** → vyber práci ze seznamu shod.
+4. **⬇ Stáhnout a načíst** → CSV se stáhne a rovnou se otevře náhled.
+
+Hledá se ve veřejném *Prohlížení → Kvalifikační práce* na **stag.utb.cz**,
+takže přihlášení obvykle není potřeba.
+
+> **Pozn.:** Veřejný CSV export STAG **neobsahuje jméno studenta**
+> (jen osobní číslo). Aplikace ho proto doplní z výsledku vyhledávání.
+
+### B) Ručně stažený CSV
+1. Otevři **stag.utb.cz** → **Prohlížení** → **Kvalifikační práce**
+2. Vyhledej práci podle jména studenta a u ní zvol **stažení CSV**
+3. V aplikaci vyber soubor přes *Import ze STAG… → Procházet…*
+
+(Stejný návod je i pod tlačítkem **❓ Odkud stáhnout** v import dialogu.)
 
 ### Průběh importu
-Toolbar **📥 Import ze STAG…** načte CSV export `getKvalifikacniPrace*.csv`.
 
 - **Auto-detekce role** podle *Tvého jména* (z profilu) v poli
   `vedouciJmeno` / `oponentJmeno` → práce se zařadí jako vedená nebo
@@ -231,6 +255,12 @@ Toolbar **📥 Import ze STAG…** načte CSV export `getKvalifikacniPrace*.csv`
   lokální obor), stavu a akce (Vytvořit / Aktualizovat / Přeskočit).
   Stav se předvyplní podle STAG kódu (`R`, `DBPOO` → V řešení;
   `DUO` → Obhájeno; `DBUO`, `ND` → Nedokončeno) nebo podle datumů.
+- **Studenti** — u vedených prací se chybějící student automaticky
+  založí a přiřadí k práci. Volba **✎ Před založením zkontrolovat /
+  doplnit nové studenty** otevře pro každého nového studenta jeho kartu
+  (e-mail, telefon, obor…) k doplnění — zapíše se až v rámci importu.
+  *(U oponovaných prací se student neeviduje jako samostatná entita,
+  ukládá se inline u posudku.)*
 - **Souhrn před importem** ukáže, které entity (studenti, oponenti,
   vedoucí, obory) se založí.
 - **Transakční** — vše se zapíše jednou na konci; při chybě rollback.
