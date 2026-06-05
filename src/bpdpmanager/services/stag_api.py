@@ -66,6 +66,7 @@ class StagFile:
     filename: str          # název souboru (např. „Novak_M_v.pdf")
     download_path: str     # relativní cesta ke stažení (k BASE_URL)
     section: str = "other"  # text | appendix | supervisor_review | opponent_review | other
+    size_hint: int = 0     # odhad velikosti v bajtech z výpisu STAG (0 = neznámá)
 
 
 @dataclass
@@ -234,13 +235,14 @@ class StagClient:
             except StagError:
                 continue
             assert isinstance(frag, str)
-            for soubidno, fname, href in _parse_file_fragment(frag):
+            for soubidno, fname, href, size in _parse_file_fragment(frag):
                 files.append(
                     StagFile(
                         soubidno=soubidno,
                         filename=fname,
                         download_path=href,
                         section=section,
+                        size_hint=size,
                     )
                 )
         _refine_sections(files)
@@ -375,19 +377,38 @@ def _section_from_body(body: str) -> str:
     return "other"
 
 
-# <a ... href="...PagesDispatcherServlet?...soubidno=NNN...">název.pdf</a>
+# <a ... href="...PagesDispatcherServlet?...soubidno=NNN...">název.pdf</a> (217 KB)
+# Velikost za odkazem je volitelná (STAG ji u souborů uvádí, ale ne vždy).
 _FILE_LINK_RE = re.compile(
-    r'<a\b[^>]*href="([^"]*soubidno=(\d+)[^"]*)"[^>]*>(.*?)</a>', re.S
+    r'<a\b[^>]*href="([^"]*soubidno=(\d+)[^"]*)"[^>]*>(.*?)</a>'
+    r'(?:\s*\(\s*([\d.,\s]+?)\s*([kKmMgG]?B)\s*\))?',
+    re.S,
 )
 
 
-def _parse_file_fragment(fragment_html: str) -> list[tuple[str, str, str]]:
-    """Z fragmentu se seznamem souborů vytáhne (soubidno, název, download href)."""
-    out: list[tuple[str, str, str]] = []
-    for href, soubidno, label in _FILE_LINK_RE.findall(fragment_html):
+def _size_to_bytes(num: str, unit: str) -> int:
+    """Převede „217", „KB" (resp. „1,2", „MB") na bajty. Nezdar → 0."""
+    cleaned = re.sub(r"\s+", "", num or "").replace(",", ".")
+    try:
+        val = float(cleaned)
+    except ValueError:
+        return 0
+    mult = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3}.get(
+        (unit or "").upper(), 1
+    )
+    return int(val * mult)
+
+
+def _parse_file_fragment(fragment_html: str) -> list[tuple[str, str, str, int]]:
+    """Z fragmentu vytáhne (soubidno, název, download href, velikost v bajtech)."""
+    out: list[tuple[str, str, str, int]] = []
+    for href, soubidno, label, size_num, size_unit in _FILE_LINK_RE.findall(
+        fragment_html
+    ):
         path = html.unescape(href)
         name = _WS_RE.sub(" ", html.unescape(_TAG_RE.sub("", label))).strip()
-        out.append((soubidno, name, path))
+        size = _size_to_bytes(size_num, size_unit) if size_unit else 0
+        out.append((soubidno, name, path, size))
     return out
 
 

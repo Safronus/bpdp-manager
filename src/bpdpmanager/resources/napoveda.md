@@ -342,6 +342,11 @@ Pokud STAG u práce nabízí soubory, stáhnou se spolu s ní a otevře se
 - **typ přílohy** je odhadnutý ze STAG; pokud nesedí (nebo se nepodařilo
   rozpoznat), přepiš ho v posledním sloupci.
 
+> **Velké přílohy.** Pokud je některá příloha velká (nad ~25 MB — typicky
+> objemný plný text nebo přílohy), aplikace se **před stažením zeptá** a vypíše
+> velikosti. Můžeš zvolit *⬇ Stáhnout i tak*, nebo *Přeskočit velké* (ostatní
+> soubory se stáhnou normálně).
+
 Vybrané soubory se po importu **připojí k té správné práci** (párováno přes
 STAG ID) jako přílohy příslušného typu — objeví se v záložce **Dokumenty**.
 Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená známka**.

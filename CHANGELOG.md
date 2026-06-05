@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-06-05
+
+### Added
+- **Varování u velkých příloh ze STAG.** Než se stáhnou soubory práce,
+  aplikace přečte jejich velikost z výpisu STAG a u velkých (nad ~25 MB —
+  typicky objemný plný text či přílohy) se **zeptá**: *⬇ Stáhnout i tak*,
+  nebo *Přeskočit velké* (ostatní se stáhnou normálně). Platí pro
+  *Stáhnout vybrané* i *Stáhnout jen soubory*.
+
 ## [0.34.0] - 2026-06-05
 
 ### Added

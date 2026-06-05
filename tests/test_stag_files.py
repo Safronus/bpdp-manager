@@ -54,8 +54,22 @@ def test_parse_file_fragment() -> None:
     assert len(files) == 2
     assert files[0] == ("205074", "Prilohy.zip",
                         "/StagPortletsJSR168/PagesDispatcherServlet"
-                        "?pp_page=souboryStudentuDownloadPage&pp_nameSpace=G17612&soubidno=205074")
+                        "?pp_page=souboryStudentuDownloadPage&pp_nameSpace=G17612&soubidno=205074",
+                        11 * 1024)
     assert files[1][0] == "205075" and files[1][1] == "Vzor_text.pdf"
+    assert files[1][3] == 1024 * 1024  # „(1 MB)"
+
+
+def test_parse_file_fragment_size_variants() -> None:
+    from bpdpmanager.services.stag_api import _size_to_bytes
+    assert _size_to_bytes("217", "KB") == 217 * 1024
+    assert _size_to_bytes("1,2", "MB") == int(1.2 * 1024 * 1024)
+    assert _size_to_bytes("800", "B") == 800
+    assert _size_to_bytes("3", "GB") == 3 * 1024**3
+    assert _size_to_bytes("", "KB") == 0       # nečitelné → 0
+    # Soubor bez uvedené velikosti → velikost 0.
+    no_size = _parse_file_fragment('<a href="?soubidno=9">x.pdf</a>')
+    assert no_size == [("9", "x.pdf", "?soubidno=9", 0)]
 
 
 def test_refine_sections_text_then_appendix() -> None:

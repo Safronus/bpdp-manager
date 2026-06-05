@@ -106,6 +106,11 @@ def _fmt_size(n: int) -> str:
         return f"{n / 1024:.0f} KB"
     return f"{n / (1024 * 1024):.1f} MB"
 
+
+# Práh pro varování u velkých příloh (desítky MB) — nad ním se uživatel
+# před stažením dotáže, jestli je chce stáhnout.
+_LARGE_FILE_BYTES = 25 * 1024 * 1024  # 25 MB
+
 # STAG kódy stavu práce (sloupec ``stavPrace``) → náš ``ThesisStatus``.
 # Zdroj: konzultace s uživatelem (FAI UTB STAG export).
 #
@@ -2474,14 +2479,17 @@ class StagDownloadDialog(QDialog):
 
         self.btn_download.setEnabled(False)
         self.btn_files_only.setEnabled(False)
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        QApplication.processEvents()
         items: list[tuple[Path, stag_api.StagThesisResult]] = []
         errors: list[str] = []
         files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
+        listings: dict[str, list[stag_api.StagFile]] = {}
         # Jeden klient (session) na celé stažení — odkaz na soubor je vázán
         # na session, kterou založí dotaz na detail práce.
         client = stag_api.StagClient()
+
+        # Fáze 1: stáhni CSV a vypiš soubory (bez stahování jejich obsahu).
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
         try:
             for result in results:
                 try:
@@ -2501,10 +2509,7 @@ class StagDownloadDialog(QDialog):
                     errors.append(f"{result.student_full}: zápis CSV: {exc}")
                     continue
                 items.append((target, result))
-                # Spolu s prací stáhni i její soubory (text, přílohy, posudky).
-                dl = self._download_files_for(client, result)
-                if dl:
-                    files_by_adip[result.adipidno] = dl
+                listings[result.adipidno] = self._list_files_for(client, result)
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -2521,6 +2526,24 @@ class StagDownloadDialog(QDialog):
                 self, "STAG",
                 "Některé práce se nepodařilo stáhnout:\n\n" + "\n".join(errors),
             )
+
+        # Fáze 2: varování u velkých příloh (mimo čekací kurzor — ptá se uživatele).
+        skip_ids = self._confirm_oversized(
+            {r.adipidno: listings.get(r.adipidno, []) for (_, r) in items}
+        )
+
+        # Fáze 3: stáhni soubory (text, přílohy, posudky), velké přeskoč dle volby.
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
+        try:
+            for _, result in items:
+                dl = self._download_listed(
+                    client, result, listings.get(result.adipidno, []), skip_ids
+                )
+                if dl:
+                    files_by_adip[result.adipidno] = dl
+        finally:
+            QApplication.restoreOverrideCursor()
 
         # Náhled stažených souborů — výběr, co naimportovat (default vše).
         self.downloaded_files = self._preview_and_pick(
@@ -2542,26 +2565,45 @@ class StagDownloadDialog(QDialog):
 
         self.btn_download.setEnabled(False)
         self.btn_files_only.setEnabled(False)
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        QApplication.processEvents()
         files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
-        # (result, thesis_id|None, opposing_id|None)
-        matched: list[tuple[stag_api.StagThesisResult, str | None, str | None]] = []
+        # (result, thesis_id|None, opposing_id|None, vypsané soubory)
+        matched: list[
+            tuple[stag_api.StagThesisResult, str | None, str | None, list[stag_api.StagFile]]
+        ] = []
         unmatched: list[stag_api.StagThesisResult] = []
         no_files: list[stag_api.StagThesisResult] = []
         client = stag_api.StagClient()
+
+        # Fáze 1: vypiš soubory + dohledej práci v DB (bez stahování obsahu).
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
         try:
             for result in results:
-                dl = self._download_files_for(client, result)
-                if not dl:
+                stag_files = self._list_files_for(client, result)
+                if not stag_files:
                     no_files.append(result)
                     continue
                 thesis_id, op_id = self._find_db_target(result)
                 if not thesis_id and not op_id:
                     unmatched.append(result)
                     continue
-                files_by_adip[result.adipidno] = dl
-                matched.append((result, thesis_id, op_id))
+                matched.append((result, thesis_id, op_id, stag_files))
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        # Fáze 2: varování u velkých příloh.
+        skip_ids = self._confirm_oversized(
+            {r.adipidno: sf for r, _, _, sf in matched}
+        )
+
+        # Fáze 3: stáhni soubory dohledaných prací (velké přeskoč dle volby).
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
+        try:
+            for result, _tid, _oid, stag_files in matched:
+                dl = self._download_listed(client, result, stag_files, skip_ids)
+                if dl:
+                    files_by_adip[result.adipidno] = dl
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -2580,9 +2622,13 @@ class StagDownloadDialog(QDialog):
             QMessageBox.warning(self, "STAG — jen soubory", msg)
             return
 
-        # Náhled výběru souborů
+        # Náhled výběru souborů (jen práce, kde se nějaké soubory stáhly)
         picked = self._preview_and_pick(
-            [(self._group_label(r), files_by_adip[r.adipidno]) for r, _, _ in matched],
+            [
+                (self._group_label(r), files_by_adip[r.adipidno])
+                for r, _, _, _ in matched
+                if r.adipidno in files_by_adip
+            ],
             files_by_adip,
             intro="Vyber soubory k připojení k odpovídající práci v databázi.",
         )
@@ -2591,7 +2637,7 @@ class StagDownloadDialog(QDialog):
         attach_errors: list[str] = []
         last_thesis_id: str | None = None
         last_opposing_id: str | None = None
-        for result, thesis_id, op_id in matched:
+        for result, thesis_id, op_id, _stag_files in matched:
             for f in picked.get(result.adipidno, []):
                 try:
                     if thesis_id:
@@ -2643,16 +2689,67 @@ class StagDownloadDialog(QDialog):
 
     # --- stahování souborů ---------------------------------------------------
 
-    def _download_files_for(
+    def _list_files_for(
         self, client: stag_api.StagClient, result: stag_api.StagThesisResult
-    ) -> list[_DownloadedStagFile]:
-        """Stáhne všechny veřejné soubory práce do dočasného úložiště."""
+    ) -> list[stag_api.StagFile]:
+        """Vypíše veřejné soubory práce (bez stahování obsahu)."""
         try:
-            stag_files = client.list_thesis_files(result.adipidno)
+            return client.list_thesis_files(result.adipidno)
         except Exception:  # noqa: BLE001
             return []
+
+    def _confirm_oversized(
+        self, listings: dict[str, list[stag_api.StagFile]]
+    ) -> set[str]:
+        """Pokud jsou ve výpisu velké přílohy, dá varování a vrátí ``soubidno``
+        těch, které má uživatel přeskočit (zvolil „Přeskočit velké").
+        """
+        big = [
+            sf
+            for files in listings.values()
+            for sf in files
+            if sf.size_hint >= _LARGE_FILE_BYTES
+        ]
+        if not big:
+            return set()
+        lines = "\n".join(
+            f"• {sf.filename} — {_fmt_size(sf.size_hint)}" for sf in big
+        )
+        total = sum(sf.size_hint for sf in big)
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Velké přílohy ze STAG")
+        msg.setText(
+            f"{len(big)} {self._cs_plural(len(big), 'příloha je velká', 'přílohy jsou velké', 'příloh je velkých')} "
+            f"(celkem ~{_fmt_size(total)}):"
+        )
+        msg.setInformativeText(lines + "\n\nStáhnout je i tak?")
+        btn_dl = msg.addButton("⬇ Stáhnout i tak", QMessageBox.ButtonRole.AcceptRole)
+        btn_skip = msg.addButton(
+            "Přeskočit velké", QMessageBox.ButtonRole.RejectRole
+        )
+        msg.setDefaultButton(btn_dl)
+        msg.exec()
+        if msg.clickedButton() == btn_skip:
+            return {sf.soubidno for sf in big}
+        return set()
+
+    def _download_listed(
+        self,
+        client: stag_api.StagClient,
+        result: stag_api.StagThesisResult,
+        stag_files: list[stag_api.StagFile],
+        skip_soubidno: set[str],
+    ) -> list[_DownloadedStagFile]:
+        """Stáhne dané (už vypsané) soubory do dočasného úložiště.
+
+        Soubory ze ``skip_soubidno`` (uživatel je odmítl kvůli velikosti)
+        přeskočí.
+        """
         out: list[_DownloadedStagFile] = []
         for sf in stag_files:
+            if sf.soubidno in skip_soubidno:
+                continue
             try:
                 data = client.download_file(sf.download_path)
             except Exception:  # noqa: BLE001
