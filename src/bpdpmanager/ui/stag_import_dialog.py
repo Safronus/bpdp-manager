@@ -1551,6 +1551,11 @@ class StagImportDialog(QDialog):
                     self.service.sync_opposing_grades(oid)
                 except Exception:  # noqa: BLE001
                     pass
+            if tid:
+                try:
+                    self.service.sync_thesis_grades(tid)
+                except Exception:  # noqa: BLE001
+                    pass
 
     # --- pomocné helpers k importu --------------------------------------
 
@@ -2603,6 +2608,10 @@ class StagDownloadDialog(QDialog):
                     pass
                 last_opposing_id = op_id
             if thesis_id:
+                try:
+                    self._service.sync_thesis_grades(thesis_id)
+                except Exception:  # noqa: BLE001
+                    pass
                 last_thesis_id = thesis_id
 
         if attached == 0 and not attach_errors:

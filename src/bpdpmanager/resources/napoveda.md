@@ -155,9 +155,16 @@ Detail vybrané práce má vnitřní záložky:
 ### 📋 Souhrn
 Read-only přehled celé práce — barevný badge stavu, hlavička
 (typ / název / student / oponent), anotace, body zadání, literatura,
-výsledek plagiátorství a **náhled uložených posudků** (role, body,
-známka, kritéria, hodnocení). Každá sekce má tlačítko 📋 pro zkopírování
-do schránky.
+výsledek plagiátorství, sekce **Známky** (navržené z posudků — vedoucí +
+oponent) a **náhled uložených posudků** (role, body, známka, kritéria,
+hodnocení). Každá sekce má tlačítko 📋 pro zkopírování do schránky.
+
+> **Známky u historických prací.** Sekce *Známky* bere známku primárně
+> z posudku napsaného v aplikaci. Pokud posudek existuje jen jako **nahrané
+> PDF** (typicky u starších prací stažených ze STAG), aplikace se z PDF pokusí
+> navrženou známku **vyčíst** („navrhuji hodnocení B…", „Navržená známka: D"
+> apod.) a doplní ji. Děje se to automaticky při otevření práce i po stažení
+> posudku ze STAG; ručně zadanou známku nikdy nepřepíše.
 
 ### 📝 Téma zadání
 Název CZ + EN, anotace CZ + EN, body zadání a literární zdroje

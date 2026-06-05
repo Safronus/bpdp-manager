@@ -57,6 +57,12 @@ class Thesis(BaseModel):
     # v4+ (0.19.0): strukturované posudky (zdroj pravdy pro XLSX/PDF výstupy).
     reviews: list[Review] = Field(default_factory=list)
 
+    # Navržené známky (A–F / FX). Primárně z in-app posudků
+    # (Review.suggested_grade); u historických prací, kde je posudek jen jako
+    # nahrané PDF, se vyčtou z PDF — viz ThesisService.sync_thesis_grades.
+    grade_supervisor: str = ""
+    grade_opponent: str = ""
+
     # Výsledek kontroly plagiátorství
     plagiarism_similarity_pct: float | None = None  # 0–100
     plagiarism_comment: str = ""

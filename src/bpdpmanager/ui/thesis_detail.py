@@ -688,6 +688,11 @@ class ThesisDetail(QWidget):
             self._show_empty()
             self._update_save_state_label(idle=True)
             return
+        # Doplň chybějící známky i zpětně (z in-app posudku / nahraného PDF) —
+        # užitečné u historických prací s posudkem jen jako PDF.
+        synced = self.service.sync_thesis_grades(thesis.id)
+        if synced is not None:
+            self.thesis = thesis = synced
         self._show_form()
 
         self._loading = True
@@ -1090,16 +1095,23 @@ class ThesisDetail(QWidget):
         )
 
     def _build_grades_summary_html(self, thesis, e, section_header_style: str) -> str:
-        """Známky (navržené z posudků) — vedoucí + oponent, nad sekcí Posudky."""
+        """Známky (navržené z posudků) — vedoucí + oponent, nad sekcí Posudky.
+
+        Přednost má in-app posudek (``Review.suggested_grade``); pokud chybí,
+        použije se známka vyčtená z nahraného PDF (``thesis.grade_*``, plní
+        ``sync_thesis_grades``) — typicky u historických prací.
+        """
         reviews = [r for r in thesis.reviews if r.is_current]
         sup = next((r for r in reviews if r.role == "supervisor"), None)
         opp = next((r for r in reviews if r.role == "opponent"), None)
-        if sup is None and opp is None:
+        sup_grade = sup.suggested_grade if sup else (thesis.grade_supervisor or "")
+        opp_grade = opp.suggested_grade if opp else (thesis.grade_opponent or "")
+        if not sup_grade and not opp_grade:
             return ""
         table = (
             "<table style='margin:12px auto;'><tr>"
-            + self._grade_badge_cell("Vedoucí:", sup.suggested_grade if sup else "", e)
-            + self._grade_badge_cell("Oponent:", opp.suggested_grade if opp else "", e)
+            + self._grade_badge_cell("Vedoucí:", sup_grade, e)
+            + self._grade_badge_cell("Oponent:", opp_grade, e)
             + "</tr></table>"
         )
         return f'<h3 style="{section_header_style}">Známky</h3>{table}'

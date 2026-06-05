@@ -10,9 +10,21 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# „Navržená známka: D" / „Proposed grade: B" → A–F nebo FX (FX musí být první).
+# Navrženou známku hledáme u několika formulací (FAI UTB šablony, novější
+# i historické). Záměrně NE u boilerplate „...v případě hodnocení stupněm
+# F – nedostatečně...", které je v každém posudku — proto se vážeme na
+# konkrétní návrhovou frázi (navrhuji / doporučuji hodnotit / navržená známka).
+# FX musí být v alternaci první, jinak by „F" pohltilo „FX".
 _GRADE_RE = re.compile(
-    r"(?:navržená\s+známka|proposed\s+grade|suggested\s+grade)\s*[:\-]?\s*(FX|F|[A-E])\b",
+    r"(?:"
+    r"navržen[áé]\s+známka"                       # „Navržená známka: D"
+    r"|navrhuji\s+hodnocení"                       # „navrhuji hodnocení B - velmi dobře"
+    r"|navrhuji\s+(?:klasifikovat\s+stupněm|známku|hodnotit\s+stupněm)"
+    r"|doporučuji\s+hodnotit\s+stupněm"            # „doporučuji hodnotit stupněm B"
+    r"|hodnotit\s+stupněm"                         # „a doporučuji hodnotit stupněm B"
+    r"|proposed\s+grade|suggested\s+grade"         # EN šablony
+    r")"
+    r"\s*[:\-]?\s*(FX|F|[A-E])\b",
     re.IGNORECASE,
 )
 

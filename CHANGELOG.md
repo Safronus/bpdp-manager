@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-06-05
+
+### Added
+- **Známky z PDF posudků i u vedených prací.** Sekce *Známky* v souhrnu vedené
+  práce nově zobrazí navrženou známku i tehdy, když posudek existuje jen jako
+  nahrané PDF (historické práce) — známka se z PDF vyčte. In-app posudek má
+  přednost, ručně zadanou známku to nikdy nepřepíše. Doplnění probíhá
+  automaticky při otevření práce i po stažení posudku ze STAG (nová pole
+  `grade_supervisor` / `grade_opponent` u práce, schéma v7).
+
+### Changed
+- **Spolehlivější čtení známky z PDF posudku.** Parser navíc rozpozná
+  historické formulace FAI UTB („navrhuji hodnocení B - velmi dobře",
+  „doporučuji hodnotit stupněm A", „navrhuji klasifikovat stupněm C") — vedle
+  dosavadního „Navržená známka: D". Záměrně se vyhýbá boilerplate větě
+  „…v případě hodnocení stupněm F – nedostatečně…", aby nehlásil falešné F.
+  Týká se i čtení známky vedoucího u oponentur.
+
 ## [0.33.1] - 2026-06-05
 
 ### Fixed

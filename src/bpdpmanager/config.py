@@ -13,7 +13,10 @@ APP_NAME = "bpdpmanager"
 #     ReviewTemplate.criteria (cache schema kritérií).
 # v5: tituly před/za u Opponent a Supervisor (volitelná pole, default "").
 # v6: adipidno (STAG ID práce) u Thesis a OpposingThesis (volitelné, default "").
-SCHEMA_VERSION = 6
+# v7: grade_supervisor / grade_opponent u Thesis (navržené známky, volitelné,
+#     default ""). Plní se z in-app posudku, nebo se vyčtou z nahraného PDF
+#     posudku (historické práce) — viz ThesisService.sync_thesis_grades.
+SCHEMA_VERSION = 7
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

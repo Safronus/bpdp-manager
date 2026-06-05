@@ -661,6 +661,21 @@ class ThesisService:
             is_current=True,
         )
         thesis.attachments.append(attachment)
+
+        # Z nahraného PDF posudku (vedoucího/oponenta) zkus vyčíst navrženou
+        # známku a doplnit ji — užitečné u historických prací, kde posudek není
+        # psaný v aplikaci, ale jen přiložený jako hotové PDF. Plní jen prázdné
+        # pole (in-app posudek má přednost a řeší ho sync_thesis_grades).
+        if target_path.suffix.lower() == ".pdf":
+            if kind == AttachmentKind.SUPERVISOR_REVIEW and not thesis.grade_supervisor:
+                grade = extract_grade_from_pdf(target_path)
+                if grade:
+                    thesis.grade_supervisor = grade
+            elif kind == AttachmentKind.OPPONENT_REVIEW and not thesis.grade_opponent:
+                grade = extract_grade_from_pdf(target_path)
+                if grade:
+                    thesis.grade_opponent = grade
+
         self.upsert_thesis(thesis)
 
         # Pokud uživatel zaškrtl „smazat originál po nahrání", odstraníme
@@ -905,6 +920,58 @@ class ThesisService:
         if changed:
             self.upsert_opposing_thesis(op)
         return op
+
+    def sync_thesis_grades(self, thesis_id: str) -> Thesis | None:
+        """Doplní chybějící známky u vedené práce (i zpětně, pro historická data).
+
+        Pro každou roli (vedoucí / oponent):
+        - přednost má **in-app posudek** (``Review.suggested_grade`` z kritérií),
+        - jinak se zkusí **vyčíst z nahraného PDF** posudku dané role.
+
+        Plní jen prázdné hodnoty (nepřepisuje ručně zadané). Vrací (případně
+        aktualizovaný) ``Thesis``.
+        """
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return None
+        changed = False
+
+        roles = (
+            ("supervisor", "grade_supervisor", AttachmentKind.SUPERVISOR_REVIEW),
+            ("opponent", "grade_opponent", AttachmentKind.OPPONENT_REVIEW),
+        )
+        for role, field, kind in roles:
+            if getattr(thesis, field):
+                continue  # už vyplněno (ručně nebo dříve)
+            # 1) in-app posudek dané role
+            rev = next(
+                (r for r in thesis.reviews
+                 if r.role == role and r.is_current and r.criteria),
+                None,
+            )
+            if rev is not None:
+                setattr(thesis, field, rev.suggested_grade)
+                changed = True
+                continue
+            # 2) fallback: vyčíst z nahraného PDF posudku
+            for a in thesis.attachments:
+                if (
+                    a.kind == kind
+                    and a.is_file
+                    and a.is_current
+                    and a.url_or_path.lower().endswith(".pdf")
+                ):
+                    path = self.document_absolute_path(thesis_id, a)
+                    if path is not None and path.exists():
+                        grade = extract_grade_from_pdf(path)
+                        if grade:
+                            setattr(thesis, field, grade)
+                            changed = True
+                            break
+
+        if changed:
+            self.upsert_thesis(thesis)
+        return thesis
 
     # --- harmonogram napříč roky --------------------------------------------
 
