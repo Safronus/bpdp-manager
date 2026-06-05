@@ -88,6 +88,8 @@ class ThesesTreeWidget(QTreeWidget):
     generate_review_requested = Signal(str)
     # Vyžádaný export práce do ZIP — connect z _ThesesTab
     export_thesis_requested = Signal(str)
+    # Ruční přepnutí příznaku odeslání posudku sekretářce (thesis_id, sent)
+    mark_review_sent_requested = Signal(str, bool)
 
     HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Oponent", "Obor"]
     COL_STUDENT = 0
@@ -264,10 +266,12 @@ class ThesesTreeWidget(QTreeWidget):
             reviews_text = "📕 O"
         else:
             reviews_text = "—"
-        # Odeslání posudku vedoucího sekretářce: ✉ = odesláno.
+        # Odeslání posudku vedoucího sekretářce — jen když je posudek hotový:
+        #   ✉✓ odesláno · ✉✗ neodesláno
         sent_at = thesis.supervisor_review_sent_at
-        if sent_at:
-            reviews_text += "  ✉"
+        review_ready = thesis.supervisor_review_state == "done"
+        if thesis.status == ThesisStatus.IN_PROGRESS and review_ready:
+            reviews_text += "  ✉✓" if sent_at else "  ✉✗"
 
         leaf = QTreeWidgetItem(
             [
@@ -297,6 +301,8 @@ class ThesesTreeWidget(QTreeWidget):
                 parts.append(f"📕 Posudek oponenta ({n}×)")
             if sent_at:
                 parts.append(f"✉ Posudek vedoucího odeslán {sent_at.strftime('%d.%m.%Y')}")
+            elif thesis.status == ThesisStatus.IN_PROGRESS and review_ready:
+                parts.append("✉ Posudek vedoucího zatím NEODESLÁN sekretářce")
             leaf.setToolTip(self.COL_REVIEWS, "\n".join(parts))
         else:
             leaf.setToolTip(self.COL_REVIEWS, "Žádný posudek zatím nahrán")
@@ -384,6 +390,29 @@ class ThesesTreeWidget(QTreeWidget):
             lambda _checked=False, tid=thesis_id: self.generate_review_requested.emit(tid)
         )
         menu.addAction(act_generate)
+
+        # Označení posudku za odeslaný — jen u prací „V řešení" s hotovým posudkem.
+        thesis = self.service.get_thesis(thesis_id)
+        if (
+            thesis is not None
+            and thesis.status == ThesisStatus.IN_PROGRESS
+            and thesis.supervisor_review_state == "done"
+        ):
+            if thesis.supervisor_review_sent_at:
+                act_unsent = QAction("✉ Zrušit označení odeslání posudku", self)
+                act_unsent.triggered.connect(
+                    lambda _c=False, tid=thesis_id:
+                    self.mark_review_sent_requested.emit(tid, False)
+                )
+                menu.addAction(act_unsent)
+            else:
+                act_sent = QAction("✉ Označit posudek za odeslaný sekretářce", self)
+                act_sent.triggered.connect(
+                    lambda _c=False, tid=thesis_id:
+                    self.mark_review_sent_requested.emit(tid, True)
+                )
+                menu.addAction(act_sent)
+            menu.addSeparator()
 
         act_export = QAction("📦 Exportovat práci do ZIP…", self)
         act_export.setToolTip(

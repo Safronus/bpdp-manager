@@ -118,6 +118,7 @@ class _ThesesTab(QWidget):
         self.tree.rollback_requested.connect(self._on_rollback_requested)
         self.tree.generate_review_requested.connect(self._on_generate_review_requested)
         self.tree.export_thesis_requested.connect(self._on_export_thesis)
+        self.tree.mark_review_sent_requested.connect(self._on_mark_review_sent)
         # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
         # stejný signal a my ho zpracujeme jednou handlerem.
         self.detail.generate_review_requested.connect(self._on_generate_review_requested)
@@ -146,6 +147,14 @@ class _ThesesTab(QWidget):
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
             self.tree.refresh()
             self.data_changed.emit()
+
+    def _on_mark_review_sent(self, thesis_id: str, sent: bool) -> None:
+        """Ručně přepne příznak odeslání posudku vedoucího sekretářce."""
+        self.service.set_supervisor_review_sent(thesis_id, sent)
+        self.tree.refresh()
+        if self.detail.thesis and self.detail.thesis.id == thesis_id:
+            self.detail.set_thesis(self.service.get_thesis(thesis_id))
+        self.data_changed.emit()
 
     def _on_export_thesis(self, thesis_id: str) -> None:
         """Exportuje práci do ZIP balíku."""

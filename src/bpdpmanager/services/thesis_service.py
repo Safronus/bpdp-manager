@@ -1049,6 +1049,22 @@ class ThesisService:
         op.opponent_review_sent_at = when or datetime.now()
         self.upsert_opposing_thesis(op)
 
+    def set_supervisor_review_sent(self, thesis_id: str, sent: bool) -> None:
+        """Ručně přepne příznak odeslání posudku vedoucího (ano/ne)."""
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return
+        thesis.supervisor_review_sent_at = datetime.now() if sent else None
+        self.upsert_thesis(thesis)
+
+    def set_opponent_review_sent(self, op_id: str, sent: bool) -> None:
+        """Ručně přepne příznak odeslání oponentského posudku (ano/ne)."""
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return
+        op.opponent_review_sent_at = datetime.now() if sent else None
+        self.upsert_opposing_thesis(op)
+
     # --- harmonogram napříč roky --------------------------------------------
 
     def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:

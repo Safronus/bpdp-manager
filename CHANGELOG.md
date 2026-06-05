@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-06-06
+
+### Added
+- **Ruční označení posudku za odeslaný sekretářce.** Pravý klik na práci
+  *V řešení* s hotovým posudkem (i na oponentský posudek) → *✉ Označit posudek
+  za odeslaný sekretářce* (a zpět). Doplňuje automatické označení při odeslání
+  e-mailem.
+- **Indikátor odeslání v seznamu** *Aktuální* i *Oponentské posudky*: u prací
+  s hotovým posudkem **✉✓ odesláno** / **✉✗ neodesláno** (s tooltipem).
+
 ## [0.46.0] - 2026-06-06
 
 ### Added

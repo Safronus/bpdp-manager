@@ -243,10 +243,10 @@ class OpposingTab(QWidget):
                     dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
                     if dot:
                         title = f"{dot} {title}"
-                    # Odeslání oponentského posudku sekretářce: ✉ = odesláno.
+                    # Odeslání posudku sekretářce (jen u hotového): ✉✓/✉✗.
                     sent_at = op.opponent_review_sent_at
-                    if sent_at:
-                        title = f"{title}  ✉"
+                    if state == "done":
+                        title = f"{title}  " + ("✉✓" if sent_at else "✉✗")
                     grades = self._format_grades(op)
                     obor = op.student_obor or "—"
                     type_prefix = op.type.value
@@ -331,6 +331,27 @@ class OpposingTab(QWidget):
         from .rollback_dialog import RollbackOpposingDialog
 
         menu = QMenu(self.tree)
+
+        # Označení posudku za odeslaný — jen když je posudek hotový.
+        op = self.service.get_opposing_thesis(op_id)
+        if op is not None and op.opponent_review_state == "done":
+            sent = bool(op.opponent_review_sent_at)
+            label = (
+                "✉ Zrušit označení odeslání posudku" if sent
+                else "✉ Označit posudek za odeslaný sekretářce"
+            )
+            act_sent = QAction(label, self.tree)
+
+            def _toggle_sent(_c=False, oid=op_id, new=not sent) -> None:
+                self.service.set_opponent_review_sent(oid, new)
+                self.refresh()
+                self.detail.set_opposing(self.service.get_opposing_thesis(oid))
+                self.changed.emit()
+
+            act_sent.triggered.connect(_toggle_sent)
+            menu.addAction(act_sent)
+            menu.addSeparator()
+
         act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self.tree)
         act_rollback.setToolTip(
             "Nenávratně smaže posudek z databáze a všechny jeho soubory."
