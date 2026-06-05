@@ -17,8 +17,30 @@ from __future__ import annotations
 
 import re
 import unicodedata
+import warnings
 from pathlib import Path
 from typing import Any
+
+
+def load_template_workbook(path: Path, **kwargs: Any):
+    """Načte XLSX šablonu přes openpyxl a **potlačí** neškodná read-varování.
+
+    openpyxl při čtení šablon s rozšířeným ověřením dat (x14 data validation)
+    vypisuje ``UserWarning: Data Validation extension is not supported and will
+    be removed`` — to se týká jen openpyxl modelu, my šablonu pouze **čteme**
+    (zápis řeší :mod:`bpdpmanager.services.xlsx_cell_writer`, který původní
+    soubor zachová 1:1). Varování je tedy v tomto kontextu jen šum.
+    """
+    try:
+        import openpyxl  # type: ignore
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "openpyxl není nainstalován — `pip install openpyxl`."
+        ) from exc
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        return openpyxl.load_workbook(path, **kwargs)
 
 # ── Pattern → field name ────────────────────────────────────────────────────
 #
@@ -113,14 +135,6 @@ def fill_template(
         FileNotFoundError: template_path neexistuje.
         ValueError: cílový suffix není .xlsx.
     """
-    # Lazy import openpyxl (volitelná dep — modul jen pro tuto featuru)
-    try:
-        import openpyxl  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError(
-            "openpyxl není nainstalován — `pip install openpyxl`."
-        ) from exc
-
     template_path = Path(template_path)
     output_path = Path(output_path)
     if not template_path.is_file():
@@ -134,7 +148,7 @@ def fill_template(
         if v is not None and str(v).strip()
     }
 
-    wb = openpyxl.load_workbook(template_path, data_only=False)
+    wb = load_template_workbook(template_path, data_only=False)
     ws = wb.active
 
     stats = {
@@ -226,13 +240,6 @@ def plan_template_fill(
     Slouží k naplánování zápisu přes :mod:`bpdpmanager.services.xlsx_cell_writer`
     (který zachová logo a zbytek šablony 1:1).
     """
-    try:
-        import openpyxl  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError(
-            "openpyxl není nainstalován — `pip install openpyxl`."
-        ) from exc
-
     template_path = Path(template_path)
     if not template_path.is_file():
         raise FileNotFoundError(f"Šablona neexistuje: {template_path}")
@@ -243,7 +250,7 @@ def plan_template_fill(
         if v is not None and str(v).strip()
     }
 
-    wb = openpyxl.load_workbook(template_path, data_only=False)
+    wb = load_template_workbook(template_path, data_only=False)
     ws = wb.active
     out: list[tuple[str, str, str]] = []
     for coord, field_key, value, kind in _scan_fill_targets(

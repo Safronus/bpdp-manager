@@ -145,12 +145,9 @@ def extract_template_schema(template_path: Path) -> dict:
     Pokud žádné kritérium nedetekuje, ``criteria`` je prázdný list — UI
     si zvolí fallback ručního vyplnění bez bodování.
     """
-    try:
-        import openpyxl  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError("openpyxl není nainstalován.") from exc
+    from .review_template_filler import load_template_workbook
 
-    wb = openpyxl.load_workbook(template_path, data_only=False)
+    wb = load_template_workbook(template_path, data_only=False)
     ws = wb.active
 
     criteria: list[dict] = []
@@ -232,16 +229,13 @@ def extract_template_metadata(template_path: Path) -> dict:
     Všechna pole jsou best-effort; cokoli, co nelze detekovat, je prázdný
     string / prázdný list / prázdný dict.
     """
-    try:
-        import openpyxl  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError("openpyxl není nainstalován.") from exc
+    from .review_template_filler import load_template_workbook
 
     # Schema (criteria + field_cells)
     base = extract_template_schema(template_path)
 
     # Headers (typ/role/language z A6, study_program z B10 atd.)
-    wb = openpyxl.load_workbook(template_path, data_only=False)
+    wb = load_template_workbook(template_path, data_only=False)
     ws = wb.active
 
     title = (ws["A6"].value or "")

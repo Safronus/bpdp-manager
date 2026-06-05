@@ -33,7 +33,11 @@ from .file_naming import (
 )
 from .harmonogram_parser import parse_pdf
 from .review_schema import extract_template_schema
-from .review_template_filler import fill_template, plan_template_fill
+from .review_template_filler import (
+    fill_template,
+    load_template_workbook,
+    plan_template_fill,
+)
 from .xlsx_cell_writer import set_cells
 
 
@@ -1423,9 +1427,7 @@ class ThesisService:
         if not cell:
             return None
         try:
-            import openpyxl  # type: ignore
-
-            wb = openpyxl.load_workbook(tmpl_path, data_only=False)
+            wb = load_template_workbook(tmpl_path, data_only=False)
             ws = wb.active
             val = ws[cell].value
             wb.close()

@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-06-05
+
+### Fixed
+- **Vygenerovaný posudek šel poškozený — Excel ho neotevřel.** Zápis buněk
+  přes XML re-serializaci (ElementTree) zahazoval z kořene listu deklarace
+  namespace, které sice nebyly „použité" elementem, ale byly odkazované v
+  `mc:Ignorable` (např. `x14ac`, `xr`) — výsledek pak Excel odmítl otevřít.
+  Nově se cílové buňky upravují **čistě textově** (najdi/nahraď `<c r="…">`)
+  a zbytek XML zůstává byte-za-byte; soubor je tak validní a otevíratelný.
+- **Logo chybělo i v PDF.** Důsledek téhož poškození — z opraveného (1:1)
+  XLSX teď LibreOffice vyrenderuje logo i do PDF. Ověřeno end-to-end.
+- **Potlačeno neškodné varování** `Data Validation extension is not
+  supported and will be removed` při čtení šablon (openpyxl ho hlásí jen
+  pro svůj model; šablonu pouze čteme, zápis ji nemění). Načítání šablon
+  jde nově přes `load_template_workbook()`.
+
 ## [0.25.0] - 2026-06-05
 
 ### Fixed

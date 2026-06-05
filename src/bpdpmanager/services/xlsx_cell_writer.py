@@ -2,37 +2,34 @@
 
 Proč ne openpyxl: ``openpyxl.load_workbook(...)`` + ``wb.save(...)`` umí
 zahodit nebo poškodit části šablony, které nejsou v jeho datovém modelu —
-typicky **obrázky v záhlaví/zápatí** (logo fakulty „nahoře"), VML, některé
-typy kreseb, tisková nastavení apod. Pro posudky FAI UTB je požadavek
+typicky **obrázky v záhlaví/zápatí** (logo fakulty „nahoře"), VML, kresby,
+ověření dat (data validation) apod. Pro posudky FAI UTB je požadavek
 „výstup 1:1 jen s vyplněnými daty", takže nesmíme přepisovat celý sešit.
 
-Tento modul proto:
+Proč ne ani XML re-serializace (ElementTree): ta zahazuje deklarace
+namespace, které nejsou „použité" elementem, ale jsou odkazované v
+``mc:Ignorable`` (např. ``x14ac``, ``xr``). Výsledek pak Excel odmítne
+otevřít.
 
-1. otevře šablonu jako ZIP,
-2. přepíše **pouze XML aktivního listu** (`xl/worksheets/sheetN.xml`) —
-   nastaví hodnoty zadaných buněk a zachová jejich styl (`s`),
-3. všechny ostatní části (``xl/media/*``, ``xl/drawings/*``, styly,
-   ``[Content_Types].xml`` …) zkopíruje **beze změny**.
-
-Tím je výstup totožný se šablonou až na vyplněné buňky.
+Tento modul proto edituje **jen textové úseky cílových buněk** v XML
+aktivního listu (regexem najde/nahradí ``<c r="…">…</c>``) a zbytek souboru
+zkopíruje **byte za byte**. Výstup je tak prakticky totožný se šablonou až
+na vyplněné buňky.
 """
 
 from __future__ import annotations
 
 import re
-import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
-
-_MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-_XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
+from xml.sax.saxutils import escape as _xml_escape
 
 
 class XlsxWriteError(Exception):
     """Selhání zápisu hodnot do XLSX (poškozená/neočekávaná struktura)."""
 
 
-# ── Pomocné: souřadnice ──────────────────────────────────────────────────────
+# ── Souřadnice ───────────────────────────────────────────────────────────────
 
 
 def _split_coord(coord: str) -> tuple[str, int]:
@@ -49,22 +46,139 @@ def _col_to_index(col: str) -> int:
     return idx
 
 
-# ── Pomocné: namespace round-trip ────────────────────────────────────────────
+def _format_number(value: float | int) -> str:
+    if isinstance(value, bool):  # bool je podtyp int — ošetři zvlášť
+        return "1" if value else "0"
+    if isinstance(value, int):
+        return str(value)
+    f = float(value)
+    if f.is_integer():
+        return str(int(f))
+    return repr(f)
 
 
-def _register_namespaces(xml_text: str) -> None:
-    """Zaregistruje všechny namespace prefixy z kořene, aby je ET zachoval."""
-    for prefix, uri in re.findall(r'xmlns:([A-Za-z0-9_]+)="([^"]+)"', xml_text):
-        try:
-            ET.register_namespace(prefix, uri)
-        except ValueError:
-            pass
-    m = re.search(r'xmlns="([^"]+)"', xml_text)
+# ── Sestavení buňky ──────────────────────────────────────────────────────────
+
+
+def _clean_attrs(attrs: str) -> str:
+    """Z atributů ``<c>`` (bez ``r``) zahodí ``t`` (typ přepíšeme), zbytek
+    (zejména ``s`` = styl) ponechá v původním pořadí."""
+    kept: list[str] = []
+    for am in re.finditer(r'([\w:]+)="([^"]*)"', attrs):
+        if am.group(1) == "t":
+            continue
+        kept.append(f' {am.group(1)}="{am.group(2)}"')
+    return "".join(kept)
+
+
+def _cell_xml(coord: str, value: object, kept_attrs: str) -> str:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return f'<c r="{coord}"{kept_attrs}><v>{_format_number(value)}</v></c>'
+    text = str(value)
+    space = (
+        ' xml:space="preserve"'
+        if (text != text.strip() or "\n" in text)
+        else ""
+    )
+    return (
+        f'<c r="{coord}"{kept_attrs} t="inlineStr">'
+        f"<is><t{space}>{_xml_escape(text)}</t></is></c>"
+    )
+
+
+# ── Editace XML listu (čistě textově) ────────────────────────────────────────
+
+
+def _set_cell_in_xml(
+    xml: str, coord: str, col: str, rownum: int, value: object
+) -> str:
+    # Najdi existující buňku (předpoklad: ``r`` je první atribut, jako to píše
+    # Excel/openpyxl/LibreOffice). Pokrývá self-closing i plnou variantu.
+    pat = re.compile(
+        r'<c\s+r="' + re.escape(coord) + r'"'
+        r'(?P<attrs>(?:\s+[\w:]+="[^"]*")*)\s*(?:/>|>.*?</c>)',
+        re.DOTALL,
+    )
+    m = pat.search(xml)
     if m:
-        ET.register_namespace("", m.group(1))
+        kept = _clean_attrs(m.group("attrs"))
+        return xml[: m.start()] + _cell_xml(coord, value, kept) + xml[m.end():]
+    return _insert_cell(xml, coord, col, rownum, value)
 
 
-# ── Pomocné: resolve aktivního listu ─────────────────────────────────────────
+def _insert_cell(
+    xml: str, coord: str, col: str, rownum: int, value: object
+) -> str:
+    new_cell = _cell_xml(coord, value, "")
+
+    # 1) Řádek existuje (plná varianta s tělem)
+    row_pat = re.compile(
+        r'(<row\s+r="' + str(rownum) + r'"[^>]*>)(?P<body>.*?)(</row>)',
+        re.DOTALL,
+    )
+    m = row_pat.search(xml)
+    if m:
+        new_body = _insert_cell_into_body(m.group("body"), col, new_cell)
+        return (
+            xml[: m.start()]
+            + m.group(1) + new_body + m.group(3)
+            + xml[m.end():]
+        )
+
+    # 2) Řádek existuje jako self-closing (prázdný)
+    row_sc = re.compile(r'<row\s+r="' + str(rownum) + r'"(?P<attrs>[^>]*?)/>')
+    m = row_sc.search(xml)
+    if m:
+        new_row = f'<row r="{rownum}"{m.group("attrs")}>{new_cell}</row>'
+        return xml[: m.start()] + new_row + xml[m.end():]
+
+    # 3) Řádek neexistuje → vlož do <sheetData> ve správném pořadí
+    return _insert_row(xml, rownum, new_cell)
+
+
+def _insert_cell_into_body(body: str, col: str, new_cell: str) -> str:
+    target = _col_to_index(col)
+    for cm in re.finditer(r'<c\s+r="([A-Z]+)\d+"', body):
+        if _col_to_index(cm.group(1)) > target:
+            return body[: cm.start()] + new_cell + body[cm.start():]
+    return body + new_cell
+
+
+def _insert_row(xml: str, rownum: int, new_cell: str) -> str:
+    new_row = f'<row r="{rownum}">{new_cell}</row>'
+
+    sd = re.search(r"(<sheetData[^>]*>)(?P<body>.*?)(</sheetData>)", xml, re.DOTALL)
+    if sd:
+        body = sd.group("body")
+        insert_pos = None
+        for rm in re.finditer(r'<row\s+r="(\d+)"', body):
+            if int(rm.group(1)) > rownum:
+                insert_pos = rm.start()
+                break
+        new_body = (
+            body + new_row
+            if insert_pos is None
+            else body[:insert_pos] + new_row + body[insert_pos:]
+        )
+        return xml[: sd.start()] + sd.group(1) + new_body + sd.group(3) + xml[sd.end():]
+
+    # Prázdný self-closing <sheetData/>
+    sd_sc = re.search(r"<sheetData([^>]*)/>", xml)
+    if sd_sc:
+        replacement = f"<sheetData{sd_sc.group(1)}>{new_row}</sheetData>"
+        return xml[: sd_sc.start()] + replacement + xml[sd_sc.end():]
+
+    raise XlsxWriteError("List nemá <sheetData>.")
+
+
+def _edit_sheet_xml(sheet_xml: str, values: dict[str, object]) -> str:
+    for coord, value in values.items():
+        col, rownum = _split_coord(coord)
+        sheet_xml = _set_cell_in_xml(sheet_xml, coord, col, rownum, value)
+    return sheet_xml
+
+
+# ── Resolve aktivního listu ──────────────────────────────────────────────────
 
 
 def _resolve_active_sheet_part(zf: zipfile.ZipFile) -> str:
@@ -78,103 +192,27 @@ def _resolve_active_sheet_part(zf: zipfile.ZipFile) -> str:
     m_active = re.search(r'activeTab="(\d+)"', wb_xml)
     active = int(m_active.group(1)) if m_active else 0
 
-    # r:id listů v pořadí <sheets>
-    rids = re.findall(r"<sheet\b[^>]*\br:id=\"([^\"]+)\"", wb_xml)
+    rids = re.findall(r'<sheet\b[^>]*\br:id="([^"]+)"', wb_xml)
     if not rids:
-        rids = re.findall(r"<sheet\b[^>]*:id=\"([^\"]+)\"", wb_xml)
+        rids = re.findall(r'<sheet\b[^>]*:id="([^"]+)"', wb_xml)
     if not rids:
         raise XlsxWriteError("V workbook.xml nejsou žádné listy.")
     rid = rids[active] if 0 <= active < len(rids) else rids[0]
 
     m_target = re.search(
-        r"<Relationship\b[^>]*\bId=\"" + re.escape(rid) + r"\"[^>]*\bTarget=\"([^\"]+)\"",
+        r'<Relationship\b[^>]*\bId="' + re.escape(rid) + r'"[^>]*\bTarget="([^"]+)"',
         rels_xml,
     )
     if not m_target:
-        # Zkus opačné pořadí atributů (Target před Id)
         m_target = re.search(
-            r"<Relationship\b[^>]*\bTarget=\"([^\"]+)\"[^>]*\bId=\"" + re.escape(rid) + r"\"",
+            r'<Relationship\b[^>]*\bTarget="([^"]+)"[^>]*\bId="' + re.escape(rid) + r'"',
             rels_xml,
         )
     if not m_target:
         raise XlsxWriteError(f"Nenalezen list pro r:id={rid}.")
 
     target = m_target.group(1).lstrip("/")
-    if target.startswith("xl/"):
-        return target
-    return "xl/" + target
-
-
-# ── Pomocné: manipulace s buňkami ────────────────────────────────────────────
-
-
-def _find_or_create_row(sheet_data: ET.Element, rownum: int) -> ET.Element:
-    rows = sheet_data.findall(f"{{{_MAIN_NS}}}row")
-    for row in rows:
-        if int(row.get("r", "0")) == rownum:
-            return row
-    new_row = ET.Element(f"{{{_MAIN_NS}}}row")
-    new_row.set("r", str(rownum))
-    # Vlož v pořadí podle r
-    insert_at = len(list(sheet_data))
-    for i, child in enumerate(list(sheet_data)):
-        if int(child.get("r", "0")) > rownum:
-            insert_at = i
-            break
-    sheet_data.insert(insert_at, new_row)
-    return new_row
-
-
-def _find_or_create_cell(row: ET.Element, coord: str, col: str) -> ET.Element:
-    cells = row.findall(f"{{{_MAIN_NS}}}c")
-    for c in cells:
-        if c.get("r") == coord:
-            return c
-    new_cell = ET.Element(f"{{{_MAIN_NS}}}c")
-    new_cell.set("r", coord)
-    target_idx = _col_to_index(col)
-    insert_at = len(list(row))
-    for i, c in enumerate(list(row)):
-        c_coord = c.get("r", "")
-        m = re.match(r"^([A-Za-z]+)\d+$", c_coord)
-        if m and _col_to_index(m.group(1)) > target_idx:
-            insert_at = i
-            break
-    row.insert(insert_at, new_cell)
-    return new_cell
-
-
-def _format_number(value: float | int) -> str:
-    if isinstance(value, bool):  # bool je podtyp int — ošetři zvlášť
-        return "1" if value else "0"
-    if isinstance(value, int):
-        return str(value)
-    f = float(value)
-    if f.is_integer():
-        return str(int(f))
-    return repr(f)
-
-
-def _set_cell_value(cell: ET.Element, value: object) -> None:
-    # Odstraň existující obsah (v / f / is), styl `s` ponech.
-    for tag in ("v", "f", "is"):
-        for child in cell.findall(f"{{{_MAIN_NS}}}{tag}"):
-            cell.remove(child)
-
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        if "t" in cell.attrib:
-            del cell.attrib["t"]
-        v = ET.SubElement(cell, f"{{{_MAIN_NS}}}v")
-        v.text = _format_number(value)
-    else:
-        # Inline string — nezasahuje do sharedStrings.xml.
-        cell.set("t", "inlineStr")
-        is_el = ET.SubElement(cell, f"{{{_MAIN_NS}}}is")
-        t_el = ET.SubElement(is_el, f"{{{_MAIN_NS}}}t")
-        text = "" if value is None else str(value)
-        if text != text.strip() or "\n" in text:
-            t_el.set(_XML_SPACE, "preserve")
-        t_el.text = text
+    return target if target.startswith("xl/") else "xl/" + target
 
 
 # ── Veřejné API ──────────────────────────────────────────────────────────────
@@ -189,13 +227,10 @@ def set_cells(
 ) -> None:
     """Zapíše ``values`` (souřadnice → hodnota) do kopie ``template_path``.
 
-    Vše kromě XML aktivního listu se zkopíruje beze změny (logo, kresby,
-    styly…). Hodnoty: ``str`` → inline string, ``int``/``float`` → číslo.
-    Prázdné/None hodnoty se přeskočí.
-
-    Args:
-        sheet_part: volitelně cesta k listu uvnitř zipu
-            (např. ``xl/worksheets/sheet1.xml``). Default = aktivní list.
+    Vše kromě cílových buněk v XML aktivního listu se zkopíruje beze změny
+    (logo, kresby, ověření dat, styly, namespace deklarace…). Hodnoty:
+    ``str`` → inline string, ``int``/``float`` → číslo. Prázdné/None se
+    přeskočí.
     """
     template_path = Path(template_path)
     output_path = Path(output_path)
@@ -226,30 +261,3 @@ def set_cells(
         # Zachovej původní pořadí i metadata položek.
         for info in infos:
             zout.writestr(info, contents[info.filename])
-
-
-def _edit_sheet_xml(sheet_xml: str, values: dict[str, object]) -> str:
-    _register_namespaces(sheet_xml)
-    decl_match = re.match(r"^\s*(<\?xml[^>]*\?>)", sheet_xml)
-    declaration = (
-        decl_match.group(1)
-        if decl_match
-        else '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    )
-    try:
-        root = ET.fromstring(sheet_xml)
-    except ET.ParseError as exc:  # pragma: no cover
-        raise XlsxWriteError(f"List nelze rozparsovat: {exc}") from exc
-
-    sheet_data = root.find(f"{{{_MAIN_NS}}}sheetData")
-    if sheet_data is None:
-        raise XlsxWriteError("List nemá <sheetData>.")
-
-    for coord, value in values.items():
-        col, rownum = _split_coord(coord)
-        row = _find_or_create_row(sheet_data, rownum)
-        cell = _find_or_create_cell(row, f"{col}{rownum}", col)
-        _set_cell_value(cell, value)
-
-    body = ET.tostring(root, encoding="unicode")
-    return declaration + "\n" + body
