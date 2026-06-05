@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from bpdpmanager.models import Obor, Profile, Student, Thesis  # noqa: E402
-from bpdpmanager.models.enums import AttachmentKind, ThesisType  # noqa: E402
+from bpdpmanager.models.enums import AttachmentKind, ThesisStatus, ThesisType  # noqa: E402
 from bpdpmanager.services import ThesisService  # noqa: E402
 from bpdpmanager.storage import JsonRepository  # noqa: E402
 from bpdpmanager.ui.send_reviews_dialog import SendReviewsDialog  # noqa: E402
@@ -46,7 +46,8 @@ def _setup(service: ThesisService, tmp_path: Path) -> None:
                       obor="Softwarové inženýrství")
     service.upsert_student(student)
     t = Thesis(type=ThesisType.BP, academic_year="2024/2025",
-               student_id=student.id, title_cs="Téma práce")
+               student_id=student.id, title_cs="Téma práce",
+               status=ThesisStatus.IN_PROGRESS)
     service.upsert_thesis(t)
     pdf = tmp_path / "posudek.pdf"
     pdf.write_bytes(b"%PDF dummy")

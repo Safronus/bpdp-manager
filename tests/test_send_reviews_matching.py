@@ -17,7 +17,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from bpdpmanager.models import Obor, OpposingThesis, Student, Thesis  # noqa: E402
-from bpdpmanager.models.enums import AttachmentKind, ThesisType  # noqa: E402
+from bpdpmanager.models.enums import AttachmentKind, ThesisStatus, ThesisType  # noqa: E402
 from bpdpmanager.services import ThesisService  # noqa: E402
 from bpdpmanager.storage import JsonRepository  # noqa: E402
 from bpdpmanager.ui.send_reviews_dialog import SendReviewsDialog  # noqa: E402
@@ -56,7 +56,7 @@ def _obor_with_secretary(service: ThesisService) -> None:
     )
 
 
-def test_opponent_matches_by_stag_code(qapp, service: ThesisService, pm: ProfileManager, tmp_path: Path) -> None:
+def test_opponent_matches_by_stag_code(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
     _obor_with_secretary(service)
     op = OpposingThesis(
         type=ThesisType.BP, academic_year="2024/2025",
@@ -77,13 +77,13 @@ def test_opponent_matches_by_stag_code(qapp, service: ThesisService, pm: Profile
     assert items[0].student_name == "Novák, Jan" or "Novák" in items[0].student_name
 
 
-def test_supervisor_matches_by_name(qapp, service: ThesisService, pm: ProfileManager, tmp_path: Path) -> None:
+def test_supervisor_matches_by_name(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
     _obor_with_secretary(service)
     student = Student(first_name="Eva", last_name="Malá",
                       obor="Softwarové inženýrství", university_id="A1")
     service.upsert_student(student)
     t = Thesis(type=ThesisType.DP, academic_year="2024/2025", student_id=student.id,
-               title_cs="DP práce")
+               title_cs="DP práce", status=ThesisStatus.IN_PROGRESS)
     service.upsert_thesis(t)
     src = tmp_path / "pv.pdf"
     src.write_bytes(b"%PDF dummy")
@@ -97,7 +97,24 @@ def test_supervisor_matches_by_name(qapp, service: ThesisService, pm: ProfileMan
     assert items[0].type_code == "DP"
 
 
-def test_no_match_other_obor(qapp, service: ThesisService, pm: ProfileManager, tmp_path: Path) -> None:
+def test_supervisor_skips_history(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
+    """Práce z Historie (obhájeno) se k odeslání nenabízí — jen „V řešení"."""
+    _obor_with_secretary(service)
+    student = Student(first_name="Petr", last_name="Starý",
+                      obor="Softwarové inženýrství", university_id="A9")
+    service.upsert_student(student)
+    t = Thesis(type=ThesisType.BP, academic_year="2022/2023", student_id=student.id,
+               title_cs="Obhájená práce", status=ThesisStatus.DEFENDED)
+    service.upsert_thesis(t)
+    src = tmp_path / "pv.pdf"
+    src.write_bytes(b"%PDF dummy")
+    service.attach_document(t.id, src, kind=AttachmentKind.SUPERVISOR_REVIEW)
+
+    dlg = SendReviewsDialog(service, pm, "supervisor")
+    assert dlg._gather_items(dlg._current_secretary()) == []
+
+
+def test_no_match_other_obor(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
     _obor_with_secretary(service)
     op = OpposingThesis(
         type=ThesisType.BP, academic_year="2024/2025",

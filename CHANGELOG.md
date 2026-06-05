@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.36.4] - 2026-06-06
+
+### Fixed
+- **K odeslání se nabízejí jen aktuální vedené práce („V řešení").** Práce
+  z Historie (obhájeno / nedokončeno) už se v dialogu odesílání posudků
+  vedoucího neobjeví. (Oponentury stav nemají, odesílají se beze změny.)
+
+### Added
+- **Volitelný popisek o aplikaci v patičce e-mailu** — zaškrtávátko *Připojit
+  popisek o aplikaci (BPDPManager)* přidá řádek „Odesláno s podporou aplikace
+  BPDPManager" + odkaz na GitHub. Default vypnuto, projeví se v náhledu textu.
+
 ## [0.36.3] - 2026-06-06
 
 ### Fixed

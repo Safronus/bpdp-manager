@@ -328,15 +328,18 @@ V dialogu:
 1. **Vyber sekretářku** — nabízejí se sekretářky vyplněné u oborů (👤 e-mail
    u oboru). Podle jejích oborů se vyfiltrují práce.
 2. **Seznam prací** — nabídnou se jen práce s **hotovým PDF posudku**.
-   Nezaslané jsou předzaškrtnuté, **už odeslané** se defaultně skryjí
-   (zaškrtni *Zobrazit i už odeslané*, pokud chceš poslat znovu). BP i DP
-   můžeš poslat naráz.
+   U vedených prací **jen ty aktuální („V řešení")** — z Historie (obhájeno /
+   nedokončeno) se posudky nenabízejí. Nezaslané jsou předzaškrtnuté,
+   **už odeslané** se defaultně skryjí (zaškrtni *Zobrazit i už odeslané*,
+   pokud chceš poslat znovu). BP i DP můžeš poslat naráz.
 3. **Náhled e-mailu** — předmět a tělo se sestaví automaticky (pozdrav +
    seznam prací seskupený na **bakalářské / diplomové**, u každé jméno,
    osobní číslo a název). Text **lze upravit**; *↻ Přegenerovat text* ho
    sestaví znovu dle výběru.
 4. **Kopie mně** (default zapnuto) — pošle kopii na tvůj e-mail, abys měl(a)
-   jistotu, že mail odešel.
+   jistotu, že mail odešel. Volitelně lze zaškrtnout **Připojit popisek
+   o aplikaci** — do patičky se přidá řádek o BPDPManageru s odkazem na
+   GitHub (default vypnuto, projeví se v náhledu).
 5. **🧪 Test — poslat jen sobě** — *dry run*: pošle úplně stejný e-mail
    (včetně PDF příloh) **jen na tvůj e-mail**, abys ho zkontroloval(a), než
    ho pošleš sekretářce. Posudky **neoznačí** jako odeslané a dialog nechá

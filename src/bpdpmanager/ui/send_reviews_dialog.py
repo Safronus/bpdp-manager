@@ -39,7 +39,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..models.enums import ThesisStatus
 from ..services import ProfileManager, ThesisService, email_sender
+
+# Odkaz na projekt — volitelný podpis v patičce e-mailu.
+_APP_FOOTER = (
+    "— Odesláno s podporou aplikace BPDPManager "
+    "(https://github.com/safronus/bpdp-manager)"
+)
 
 
 def _norm_obor(s: str) -> str:
@@ -136,6 +143,15 @@ class SendReviewsDialog(QDialog):
         self.chk_show_sent.setChecked(False)
         self.chk_show_sent.stateChanged.connect(lambda _s: self._reload_table())
         form.addRow("", self.chk_show_sent)
+
+        self.chk_signature = QCheckBox("Připojit popisek o aplikaci (BPDPManager)")
+        self.chk_signature.setChecked(False)
+        self.chk_signature.setToolTip(
+            "Přidá do patičky e-mailu řádek o aplikaci BPDPManager s odkazem "
+            "na GitHub. Projeví se v náhledu textu."
+        )
+        self.chk_signature.stateChanged.connect(lambda _s: self._regenerate_body())
+        form.addRow("", self.chk_signature)
         outer.addLayout(form)
 
         # ── Tabulka prací ───────────────────────────────────────────────────
@@ -264,6 +280,10 @@ class SendReviewsDialog(QDialog):
         items: list[_ReviewItem] = []
         if self.role == "supervisor":
             for t in self.service.list_theses():
+                # Jen aktuální práce „V řešení" — z Historie (obhájeno /
+                # nedokončeno) posudky odesílat nechceme.
+                if t.status != ThesisStatus.IN_PROGRESS:
+                    continue
                 student = (
                     self.service.get_student(t.student_id) if t.student_id else None
                 )
@@ -424,6 +444,8 @@ class SendReviewsDialog(QDialog):
             secretary_name=sec.name if sec else "",
             sender_display=self._sender_display(),
         )
+        if self.chk_signature.isChecked():
+            body += f"\n\n{_APP_FOOTER}"
         self.ed_subject.setText(email_sender.compose_subject(self.role))
         self.ed_body.blockSignals(True)
         self.ed_body.setPlainText(body)
