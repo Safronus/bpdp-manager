@@ -37,7 +37,7 @@ from .file_naming import (
     subdir_for,
 )
 from .harmonogram_parser import parse_pdf
-from .review_schema import extract_template_schema
+from .review_schema import extract_template_metadata, extract_template_schema
 from .review_template_filler import (
     fill_template,
     load_template_workbook,
@@ -1097,13 +1097,23 @@ class ThesisService:
                 if existing is not None:
                     self.delete_review_template(existing.id, delete_file=True)
                     replaced += 1
+                # Akademický rok (a schema) vyčti ze šablony, ať se v manažeru
+                # nepropíše prázdný rok.
+                academic_year = ""
+                try:
+                    academic_year = (
+                        extract_template_metadata(spec.source_path).get("academic_year")
+                        or ""
+                    ).strip()
+                except Exception:  # noqa: BLE001
+                    academic_year = ""
                 tmpl = self.register_review_template(
                     name=spec.name,
                     type=spec.type,
                     role=spec.role,
                     language=spec.language,
                     obor=spec.obor,
-                    academic_year="",
+                    academic_year=academic_year,
                     source_path=spec.source_path,
                 )
                 try:
@@ -1113,6 +1123,24 @@ class ThesisService:
                 if existing is None:
                     added += 1
         return {"added": added, "replaced": replaced, "skipped": skipped}
+
+    def reset_obory_to_defaults(self) -> int:
+        """Smaže celý číselník oborů a nahradí ho výchozími (vč. STAG kódů).
+
+        Studentům se nemění uložený obor (je to jen string), jen se vyčistí a
+        znovu naplní číselník. Vrací počet výchozích oborů.
+        """
+        self._db.obory = [d.model_copy() for d in default_obory()]
+        self.save()
+        return len(self._db.obory)
+
+    def reset_templates_to_defaults(self) -> dict[str, int]:
+        """Smaže všechny šablony (vč. souborů) a založí znovu výchozí sadu."""
+        with self.batch():
+            for tmpl in list(self._db.review_templates):
+                self.delete_review_template(tmpl.id, delete_file=True)
+            res = self.seed_default_templates(overwrite_existing=False)
+        return res
 
     def maybe_seed_defaults(self) -> None:
         """Doseeduje defaulty do právě vytvořeného (nového) profilu.

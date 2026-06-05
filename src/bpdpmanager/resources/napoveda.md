@@ -51,11 +51,11 @@ V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
   že obor není namapovaný (a budeš ho muset doplnit ručně).
 - volitelně sekretářku oboru (jméno, email, telefon).
 
-> **⭐ Defaultní obory:** tlačítko **Defaultní…** v manažeru oborů doplní
-> předpřipravené obory FAI UTB i s STAG zkratkami (NSWI, NKYB, NUI, SWI,
-> ITA — prezenční/kombinované, vč. anglických variant). Existující obory
-> nechá být; jen se zeptá, jestli přepsat lišící se STAG kódy. Nový
-> (prázdný) profil je dostane rovnou.
+> **⭐ Defaultní obory:** tlačítko **Defaultní…** v manažeru oborů nabídne
+> buď **doplnit chybějící** výchozí obory FAI UTB i s STAG zkratkami (NSWI,
+> NKYB, NUI, SWI, ITA — prezenční/kombinované, vč. anglických variant; lze
+> přepsat lišící se STAG kódy), nebo **smazat celý číselník a nahradit ho
+> výchozími**. Nový (prázdný) profil obory dostane rovnou.
 
 ### 4. Šablony posudků
 V toolbaru **📝 Šablony posudků → + Přidat šablonu…** nahraj XLSX
@@ -63,10 +63,12 @@ V toolbaru **📝 Šablony posudků → + Přidat šablonu…** nahraj XLSX
 z šablony **sama rozpozná** typ, roli, jazyk, obor, rok i strukturu
 kritérií. Bez šablon nelze generovat posudky.
 
-> **⭐ Defaultní šablony:** tlačítko **Defaultní…** v knihovně šablon
-> doplní kompletní sadu šablon FAI UTB (BP/DP, vedoucí/oponent, CZ/EN,
-> podle oboru). Existující nechá být, volitelně přepíše. Nový profil je
-> dostane rovnou — můžeš tedy hned psát posudky bez ručního nahrávání.
+> **⭐ Defaultní šablony:** tlačítko **Defaultní…** v knihovně šablon nabídne
+> buď **doplnit chybějící** z kompletní sady FAI UTB (BP/DP, vedoucí/oponent,
+> CZ/EN, podle oboru; volitelně přepsat stejnojmenné), nebo **smazat všechny
+> šablony a nahradit je výchozí sadou**. Nový profil je dostane rovnou — můžeš
+> hned psát posudky bez ručního nahrávání. (Akademický rok se propíše z hlavičky
+> šablony.)
 
 ### 5. (Volitelně) LibreOffice pro PDF
 Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:
@@ -186,6 +188,8 @@ oponenta, Prezentace, STAG export, Jiné).
   z Downloads, kopie zůstává v `documents/`.
 - **📂 Ve Finderu** — označí vybraný soubor přímo ve správci souborů
   (Finder / Explorer), ať se k němu snadno dostaneš na disku.
+- **Pravý klik** na dokument otevře kontextové menu: *Otevřít* ·
+  *📂 Zobrazit ve Finderu* · *Odebrat* (funguje i u oponentských posudků).
 - **Chybějící soubory:** když soubor smažeš ručně mimo aplikaci (např.
   ve Finderu), aplikace se nerozbije — záznam zůstane, ale zobrazí se
   červeně s *⚠ chybí soubor*. Tlačítko **🧹 Odklidit chybějící** odebere
@@ -204,10 +208,12 @@ Tlačítko **📝 Napsat posudek…** je na **dvou místech**:
 
 Workflow:
 
-1. **Výběr šablony** — dialog nabídne šablony z knihovny. Správná se
-   předvybere podle typu (BP/DP), oboru a role. U oponovaných prací se
-   nabídnou jen šablony **oponenta**. Pokud už pro práci existuje
-   uložený posudek, nahoře je tlačítko
+1. **Výběr šablony** — dialog nabídne jen **relevantní** šablony,
+   **seskupené podle oboru**. Vždy se filtruje podle **typu práce** (u BP
+   se nenabízí DP a naopak) a **role**: u vedené práce jen posudek
+   *vedoucího*, u oponentury jen *oponenta*. Přepínač *Zobrazit i šablony
+   jiných oborů* uvolní už jen filtr oboru. Správná šablona se předvybere.
+   Pokud už pro práci existuje uložený posudek, nahoře je tlačítko
    **✏ Pokračovat v posledním posudku**.
 2. **Editor posudku** — formulář:
    - *Splnění bodů zadání* (splnil / nesplnil)

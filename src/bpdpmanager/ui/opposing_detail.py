@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -371,6 +372,8 @@ class OpposingDetail(QWidget):
         h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.table.doubleClicked.connect(self._open_doc)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._on_doc_context_menu)
         layout.addWidget(self.table, stretch=1)
 
         row = QHBoxLayout()
@@ -723,6 +726,24 @@ class OpposingDetail(QWidget):
             open_path(path)
         else:
             open_path(att.url_or_path)
+
+    def _on_doc_context_menu(self, pos) -> None:
+        item = self.table.itemAt(pos)
+        if item is None:
+            return
+        self.table.selectRow(item.row())
+        menu = QMenu(self)
+        act_open = menu.addAction("Otevřít")
+        act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
+        menu.addSeparator()
+        act_remove = menu.addAction("Odebrat")
+        chosen = menu.exec(self.table.viewport().mapToGlobal(pos))
+        if chosen == act_open:
+            self._open_doc()
+        elif chosen == act_reveal:
+            self._reveal_doc()
+        elif chosen == act_remove:
+            self._remove_doc()
 
     def _reveal_doc(self) -> None:
         if self.op is None:

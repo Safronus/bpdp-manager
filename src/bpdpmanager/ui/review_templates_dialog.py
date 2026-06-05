@@ -639,57 +639,57 @@ class ReviewTemplatesDialog(QDialog):
 
     def _load_defaults(self) -> None:
         missing, present = self.service.default_templates_seed_status()
-        total = missing + present
-        if total == 0:
+        if missing + present == 0:
             QMessageBox.information(
                 self, "Defaultní šablony",
                 "V balíčku nejsou žádné výchozí šablony.",
             )
             return
-        if missing == 0:
-            # Vše už existuje — nabídni jen případný přegen z aktuálního zdroje.
-            if QMessageBox.question(
-                self, "Defaultní šablony",
-                f"Všech {present} výchozích šablon už máš.\n\n"
-                "Přegenerovat je z aktuálních zdrojů (přepíše stejnojmenné)?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            ) != QMessageBox.StandardButton.Yes:
-                return
-            overwrite = True
-        else:
-            overwrite = False
-            if present:
-                box = QMessageBox(self)
-                box.setIcon(QMessageBox.Icon.Question)
-                box.setWindowTitle("Defaultní šablony")
-                box.setText(
-                    f"Doplnit {missing} chybějících výchozích šablon.\n\n"
-                    f"{present} šablon už existuje pod stejným názvem. "
-                    "Přepsat i je z aktuálních zdrojů?"
-                )
-                btn_add = box.addButton("Jen doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
-                btn_over = box.addButton("Doplnit + přepsat", QMessageBox.ButtonRole.AcceptRole)
-                box.addButton(QMessageBox.StandardButton.Cancel)
-                box.exec()
-                clicked = box.clickedButton()
-                if clicked == btn_over:
-                    overwrite = True
-                elif clicked != btn_add:
-                    return
-            else:
-                if QMessageBox.question(
-                    self, "Defaultní šablony",
-                    f"Doplnit {missing} výchozích šablon posudků?",
-                ) != QMessageBox.StandardButton.Yes:
-                    return
+
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle("Defaultní šablony")
+        box.setText(
+            "Výchozí šablony posudků FAI UTB (BP/DP, vedoucí/oponent, CZ/EN).\n\n"
+            f"Chybí: {missing}  ·  už existuje: {present}\n\n"
+            "Doplnit chybějící do knihovny, nebo smazat všechny šablony "
+            "a nahradit je výchozí sadou?"
+        )
+        chk = QCheckBox("Při doplnění přepsat i stejnojmenné existující")
+        if present:
+            box.setCheckBox(chk)
+        btn_add = box.addButton("Doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
+        btn_wipe = box.addButton(
+            "Smazat vše a nahradit", QMessageBox.ButtonRole.DestructiveRole
+        )
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked not in (btn_add, btn_wipe):
+            return
+
+        wipe = clicked == btn_wipe
+        if wipe and QMessageBox.question(
+            self, "Smazat vše a nahradit",
+            "Opravdu smazat VŠECHNY šablony (vč. jejich XLSX souborů) a "
+            "nahradit je výchozí sadou?\n\nUž vygenerované posudky u prací "
+            "zůstávají nedotčené.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) != QMessageBox.StandardButton.Yes:
+            return
 
         from PySide6.QtCore import Qt as _Qt
         from PySide6.QtGui import QGuiApplication
 
         QGuiApplication.setOverrideCursor(_Qt.CursorShape.WaitCursor)
         try:
-            res = self.service.seed_default_templates(overwrite_existing=overwrite)
+            if wipe:
+                res = self.service.reset_templates_to_defaults()
+            else:
+                res = self.service.seed_default_templates(
+                    overwrite_existing=chk.isChecked()
+                )
         finally:
             QGuiApplication.restoreOverrideCursor()
         self._refresh()
@@ -814,24 +814,24 @@ class GenerateReviewDialog(QDialog):
             outer.addLayout(cont_row)
 
         # ── Filtr ──────────────────────────────────────────────────────
-        # Default zaškrtnuto — auto-filtr podle oboru bývá příliš striktní
-        # (kód studenta „NSWI-P" se nemusí trefit do oboru šablony „SWI"),
-        # takže uživatel raději vidí vše a správnou šablonu mu předvybereme.
-        self.chk_all = QCheckBox("Zobrazit všechny šablony (vypnout auto-filtr)")
+        # Typ (BP/DP) a role (vedoucí u vedené práce / oponent u oponentury)
+        # se filtrují VŽDY — logicky nemá smysl nabízet DP u BP nebo posudek
+        # oponenta u vedené práce. Tenhle přepínač uvolní jen filtr OBORU.
+        self.chk_all = QCheckBox("Zobrazit i šablony jiných oborů")
         self.chk_all.setChecked(True)
         self.chk_all.toggled.connect(self._refresh_list)
         outer.addWidget(self.chk_all)
 
-        # ── Tabulka šablon ──────────────────────────────────────────────
+        # ── Strom šablon (seskupeno podle oboru) ────────────────────────
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(5)
-        self.tree.setHeaderLabels(["Název", "Typ", "Role", "Jazyk", "Obor"])
+        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["Šablona / Obor", "Jazyk", "Akad. rok"])
         self.tree.setAlternatingRowColors(True)
-        self.tree.setRootIsDecorated(False)
+        self.tree.setRootIsDecorated(True)
         self.tree.itemSelectionChanged.connect(self._update_button_state)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for i in range(1, 5):
+        for i in range(1, 3):
             h.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
         outer.addWidget(self.tree, stretch=1)
 
@@ -903,58 +903,67 @@ class GenerateReviewDialog(QDialog):
 
     def _refresh_list(self) -> None:
         self.tree.clear()
-        if self.chk_all.isChecked():
-            templates = self.service.list_review_templates()
-        else:
-            # Auto-filtr podle typu práce + oboru studenta
-            obor_code = self._student_obor_code()
-            templates = self.service.list_review_templates(
-                type_filter=self.work.type,
-                obor_filter=obor_code if obor_code else None,
-            )
-        # U oponovaných prací dává smysl jen oponentský posudek (uživatel je
-        # oponent) — zúžíme nabídku na role „opponent".
-        if self.opposing:
-            templates = [t for t in templates if t.role == "opponent"]
-        for tmpl in templates:
-            item = QTreeWidgetItem([
-                tmpl.name,
-                tmpl.type.value,
-                tmpl.role_label,
-                tmpl.language_label,
-                tmpl.obor or "—",
-            ])
-            item.setData(0, Qt.ItemDataRole.UserRole, tmpl.id)
-            self.tree.addTopLevelItem(item)
+        # Tvrdé filtry: typ práce + role (vedoucí u vedené, oponent u oponentury).
+        role = "opponent" if self.opposing else "supervisor"
+        obor_code = self._student_obor_code()
+        templates = self.service.list_review_templates(
+            type_filter=self.work.type,
+            role_filter=role,
+            obor_filter=(None if self.chk_all.isChecked() else (obor_code or None)),
+        )
 
-        # Auto-výběr šablony:
-        #  1) pokud pro práci existuje uložený posudek → jeho šablona
-        #  2) jinak jediná pasující šablona (typ + obor)
-        #  3) jinak první šablona role „supervisor" (u vedené práce je
-        #     uživatel vedoucí — to je nejčastější případ)
+        # Seskup podle oboru (univerzální „bez oboru" zvlášť na konec).
+        by_obor: dict[str, list] = {}
+        for tmpl in templates:
+            by_obor.setdefault(tmpl.obor or "(bez oboru)", []).append(tmpl)
+
+        from PySide6.QtGui import QBrush, QColor
+
+        for obor in sorted(by_obor, key=lambda o: (o == "(bez oboru)", o.lower())):
+            group = QTreeWidgetItem([f"{obor}  ·  {len(by_obor[obor])}×", "", ""])
+            gf = group.font(0)
+            gf.setBold(True)
+            group.setFont(0, gf)
+            group.setForeground(0, QBrush(QColor("#555")))
+            group.setFlags(group.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+            self.tree.addTopLevelItem(group)
+            for tmpl in sorted(by_obor[obor], key=lambda t: t.name.lower()):
+                leaf = QTreeWidgetItem([
+                    tmpl.name,
+                    tmpl.language_label,
+                    tmpl.academic_year or "—",
+                ])
+                leaf.setData(0, Qt.ItemDataRole.UserRole, tmpl.id)
+                group.addChild(leaf)
+            group.setExpanded(True)
+
         self._auto_select_template(templates)
 
-        if self.tree.topLevelItemCount() == 0 and not self.chk_all.isChecked():
-            # Žádná pasující — automaticky přepni na „Zobrazit všechny"
-            note = QTreeWidgetItem([
-                "Žádná šablona neodpovídá tomuto typu/oboru. "
-                'Zaškrtni „Zobrazit všechny šablony" nebo přidej '
-                "novou šablonu v menu Šablony posudků.",
-                "", "", "", "",
-            ])
+        if not templates:
+            if not self.chk_all.isChecked():
+                hint = (
+                    "Žádná šablona pro tento obor — zaškrtni „Zobrazit i šablony "
+                    "jiných oborů“."
+                )
+            else:
+                hint = (
+                    "Žádná šablona pro tento typ a roli. Přidej ji v menu "
+                    "Šablony posudků (tlačítko ⭐ Defaultní…)."
+                )
+            note = QTreeWidgetItem([hint, "", ""])
             note.setFlags(note.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-            from PySide6.QtGui import QBrush, QColor
-
-            for c in range(5):
+            for c in range(3):
                 note.setForeground(c, QBrush(QColor("#888")))
             self.tree.addTopLevelItem(note)
 
     def _select_template_id(self, template_id: str) -> bool:
         for i in range(self.tree.topLevelItemCount()):
-            item = self.tree.topLevelItem(i)
-            if item.data(0, Qt.ItemDataRole.UserRole) == template_id:
-                self.tree.setCurrentItem(item)
-                return True
+            group = self.tree.topLevelItem(i)
+            for j in range(group.childCount()):
+                leaf = group.child(j)
+                if leaf.data(0, Qt.ItemDataRole.UserRole) == template_id:
+                    self.tree.setCurrentItem(leaf)
+                    return True
         return False
 
     def _auto_select_template(self, templates: list) -> None:

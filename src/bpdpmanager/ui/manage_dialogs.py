@@ -828,46 +828,50 @@ class OboryManageDialog(QDialog):
 
     def _load_defaults(self) -> None:
         missing, conflicts = self.service.default_obory_seed_status()
-        if missing == 0 and conflicts == 0:
+
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle("Defaultní obory")
+        box.setText(
+            "Výchozí obory FAI UTB (vč. STAG zkratek).\n\n"
+            f"Chybí: {missing}  ·  liší se STAG: {conflicts}\n\n"
+            "Doplnit chybějící do tvého seznamu, nebo smazat celý číselník "
+            "a nahradit ho výchozími?"
+        )
+        chk = QCheckBox("Při doplnění přepsat i lišící se STAG kódy")
+        if conflicts:
+            box.setCheckBox(chk)
+        btn_add = box.addButton("Doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
+        btn_wipe = box.addButton(
+            "Smazat vše a nahradit", QMessageBox.ButtonRole.DestructiveRole
+        )
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.exec()
+        clicked = box.clickedButton()
+
+        if clicked == btn_add:
+            res = self.service.seed_default_obory(overwrite_conflicts=chk.isChecked())
+            self._refresh()
             QMessageBox.information(
                 self, "Defaultní obory",
-                "Všechny výchozí obory už máš (vč. STAG kódů).",
+                f"Přidáno: {res['added']} · přepsán STAG: {res['updated']} · "
+                f"ponecháno: {res['skipped']}.",
             )
-            return
-
-        overwrite = False
-        if conflicts:
-            box = QMessageBox(self)
-            box.setIcon(QMessageBox.Icon.Question)
-            box.setWindowTitle("Defaultní obory")
-            box.setText(
-                f"Doplnit {missing} chybějících výchozích oborů.\n\n"
-                f"{conflicts} oborů už existuje pod stejným názvem, ale s jiným "
-                "STAG kódem. Přepsat u nich STAG kód na výchozí?"
-            )
-            btn_add = box.addButton("Jen doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
-            btn_over = box.addButton("Doplnit + přepsat STAG", QMessageBox.ButtonRole.AcceptRole)
-            box.addButton(QMessageBox.StandardButton.Cancel)
-            box.exec()
-            clicked = box.clickedButton()
-            if clicked == btn_over:
-                overwrite = True
-            elif clicked != btn_add:
-                return
-        else:
+        elif clicked == btn_wipe:
             if QMessageBox.question(
-                self, "Defaultní obory",
-                f"Doplnit {missing} chybějících výchozích oborů?",
+                self, "Smazat vše a nahradit",
+                "Opravdu smazat celý číselník oborů a nahradit ho výchozími?\n\n"
+                "Studentům zůstane jejich uložený obor (je to jen text), jen se "
+                "přepíše seznam oborů.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
             ) != QMessageBox.StandardButton.Yes:
                 return
-
-        res = self.service.seed_default_obory(overwrite_conflicts=overwrite)
-        self._refresh()
-        QMessageBox.information(
-            self, "Defaultní obory",
-            f"Přidáno: {res['added']} · přepsán STAG: {res['updated']} · "
-            f"ponecháno: {res['skipped']}.",
-        )
+            n = self.service.reset_obory_to_defaults()
+            self._refresh()
+            QMessageBox.information(
+                self, "Defaultní obory", f"Číselník nahrazen — {n} výchozích oborů."
+            )
 
 
 class SupervisorsManageDialog(QDialog):

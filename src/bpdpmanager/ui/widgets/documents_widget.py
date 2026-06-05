@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QInputDialog,
     QLabel,
+    QMenu,
     QMessageBox,
     QPushButton,
     QTreeWidget,
@@ -55,6 +56,8 @@ class DocumentsWidget(QWidget):
         h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.tree.itemDoubleClicked.connect(self._open_selected)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._on_context_menu)
         layout.addWidget(self.tree)
 
         # Toggle pro starší verze (defaultně schované)
@@ -386,6 +389,25 @@ class DocumentsWidget(QWidget):
             open_path(path)
         else:
             open_path(att.url_or_path)
+
+    def _on_context_menu(self, pos) -> None:
+        item = self.tree.itemAt(pos)
+        # Jen nad konkrétní přílohou (leaf má UserRole index), ne nad skupinou.
+        if item is None or not isinstance(item.data(0, Qt.ItemDataRole.UserRole), int):
+            return
+        self.tree.setCurrentItem(item)
+        menu = QMenu(self)
+        act_open = menu.addAction("Otevřít")
+        act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
+        menu.addSeparator()
+        act_remove = menu.addAction("Odebrat")
+        chosen = menu.exec(self.tree.viewport().mapToGlobal(pos))
+        if chosen == act_open:
+            self._open_selected()
+        elif chosen == act_reveal:
+            self._reveal_selected()
+        elif chosen == act_remove:
+            self._remove_selected()
 
     def _reveal_selected(self) -> None:
         if not self.thesis_id:

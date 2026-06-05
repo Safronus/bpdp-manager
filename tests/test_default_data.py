@@ -145,6 +145,41 @@ def test_seed_default_templates(service: ThesisService) -> None:
     assert len(service.list_review_templates()) == 32
 
 
+def test_seed_propagates_academic_year(service: ThesisService) -> None:
+    service.seed_default_templates()
+    templates = service.list_review_templates()
+    # Šablony FAI UTB mají v hlavičce akademický rok → nesmí být všechny prázdné.
+    assert any(t.academic_year.strip() for t in templates)
+
+
+def test_reset_obory_to_defaults(service: ThesisService) -> None:
+    service.add_obor("CUSTOM-X")
+    assert "CUSTOM-X" in service.list_obory()
+    n = service.reset_obory_to_defaults()
+    assert n == 16
+    names = service.list_obory()
+    assert "CUSTOM-X" not in names
+    assert len(names) == 16
+    assert service.get_obor("NUI-K").stag_code == "knUI"
+
+
+def test_reset_templates_to_defaults(service: ThesisService) -> None:
+    service.seed_default_templates()
+    # přidej „cizí" šablonu navíc
+    from bpdpmanager.services.default_data import list_default_template_specs
+    spec = list_default_template_specs()[0]
+    service.register_review_template(
+        name="MOJE VLASTNÍ", type=spec.type, role=spec.role,
+        language=spec.language, obor="X", academic_year="", source_path=spec.source_path,
+    )
+    assert len(service.list_review_templates()) == 33
+    res = service.reset_templates_to_defaults()
+    assert res["added"] == 32
+    names = {t.name for t in service.list_review_templates()}
+    assert "MOJE VLASTNÍ" not in names
+    assert len(names) == 32
+
+
 def test_maybe_seed_defaults_only_on_fresh(tmp_path: Path) -> None:
     repo = JsonRepository(path=tmp_path / "db.json", backup_path=tmp_path / "db.json.bak")
     svc = ThesisService(repo)  # load() vytvořil čerstvou DB → created_fresh

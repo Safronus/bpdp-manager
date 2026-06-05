@@ -7,6 +7,28 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-06-05
+
+### Added
+- **Kontextové menu nad dokumenty** (pravý klik) — *Otevřít* · *📂 Zobrazit
+  ve Finderu* · *Odebrat*. Funguje v seznamu dokumentů u všech druhů prací
+  (Aktuální / Budoucí / Historie / Vše) i u oponentských posudků.
+- **„⭐ Defaultní…" nově nabízí i kompletní výměnu** — vedle *Doplnit
+  chybějící* je i *Smazat vše a nahradit* (číselník oborů i knihovna
+  šablon) s potvrzením. U doplnění lze zaškrtnout přepis lišících se
+  položek.
+
+### Changed
+- **Dialog generování posudku — chytřejší nabídka šablon.** Vždy se
+  filtruje podle **typu práce** (u BP se nenabízí DP a naopak) a **role**
+  (u vedené práce jen posudek *vedoucího*, u oponentury jen *oponenta*).
+  Seznam je navíc **seskupený podle oboru**. Přepínač uvolní už jen filtr
+  oboru.
+
+### Fixed
+- **Výchozí šablony nově propíšou akademický rok** (čte se z hlavičky
+  šablony) — v manažeru šablon už sloupec *Akad. rok* není prázdný.
+
 ## [0.29.0] - 2026-06-05
 
 ### Added
