@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-06-06
+
+### Changed
+- **„Obory" → „Obory + sekretářky".** Toolbarové tlačítko i manažer se
+  přejmenovaly. Manažer (už dřív seskupený podle sekretářky) má nově sloupec
+  **Oslovení** a **dvojklik na hlavičku sekretářky** otevře **hromadnou úpravu**
+  jejího kontaktu i oslovení **pro všechny obory dané sekretářky** najednou
+  (dvojklik na obor upravuje jen ten obor).
+
 ## [0.41.0] - 2026-06-06
 
 ### Added

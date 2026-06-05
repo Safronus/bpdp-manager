@@ -47,7 +47,7 @@ V **👤 → 🗂 Správa profilů**:
 > když píšeš za ně).
 
 ### 3. Studijní obory (+ STAG zkratky)
-V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
+V toolbaru **Obory + sekretářky** přidej obory, které vedeš. U každého můžeš vyplnit:
 
 - **STAG kód** (např. `knIT-KYB`) — **důležité pro STAG import**:
   podle něj se obor automaticky namapuje. Bez něj tě import upozorní,
@@ -55,6 +55,11 @@ V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
 - volitelně sekretářku oboru (jméno, email, telefon) a její **oslovení
   v mailu** (např. „Vážená paní Nováková") — použije se při odesílání posudků;
   prázdné = formální výchozí „Dobrý den, paní {jméno},".
+
+> Manažer **seskupuje obory podle sekretářky**; ve sloupci **Oslovení** vidíš
+> její oslovení. **Dvojklik na hlavičku sekretářky** upraví její kontakt
+> i oslovení **hromadně pro všechny její obory** (dvojklik na obor upraví
+> jen ten obor).
 
 > **⭐ Defaultní obory:** tlačítko **Defaultní…** v manažeru oborů nabídne
 > buď **doplnit chybějící** výchozí obory FAI UTB i s STAG zkratkami (NSWI,

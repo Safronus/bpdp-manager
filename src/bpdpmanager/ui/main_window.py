@@ -367,7 +367,11 @@ class MainWindow(QMainWindow):
             "👔 Vedoucí", self._manage_supervisors, self._GROUP_MANAGE,
             "Registr vedoucích cizích BP/DP — pro oponentské posudky",
         )
-        add("🏷 Obory", self._manage_obory, self._GROUP_MANAGE)
+        add(
+            "🏷 Obory + sekretářky", self._manage_obory, self._GROUP_MANAGE,
+            "Číselník oborů + sekretářky oborů. Dvojklik na hlavičku sekretářky "
+            "upraví její kontakt a oslovení hromadně pro všechny její obory.",
+        )
 
         toolbar.addSeparator()
 

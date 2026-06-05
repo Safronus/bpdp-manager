@@ -9,10 +9,13 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
+    QDialogButtonBox,
+    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
@@ -586,23 +589,25 @@ class OboryManageDialog(QDialog):
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self.setWindowTitle("Studijní obory")
-        self.setMinimumSize(820, 540)
+        self.setWindowTitle("Obory + sekretářky")
+        self.setMinimumSize(920, 540)
 
         layout = QVBoxLayout(self)
         layout.addWidget(
             QLabel(
                 "Seznam studijních oborů (např. NSWI-P, NKYB-K). U každého lze evidovat "
                 "STAG zkratku pro import (např. <code>knIT-KYB</code>) a sekretářku oboru. "
-                "Položky jsou agregovány podle sekretářky — dvojklik na obor upraví detail.",
+                "Položky jsou agregovány podle sekretářky — <b>dvojklik na obor</b> upraví "
+                "detail, <b>dvojklik na hlavičku sekretářky</b> upraví její kontakt "
+                "a oslovení <b>hromadně pro všechny její obory</b>.",
                 textFormat=Qt.TextFormat.RichText,
             )
         )
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(4)
+        self.tree.setColumnCount(5)
         self.tree.setHeaderLabels(
-            ["Obor / Sekretářka", "STAG zkratka", "Studentů", "Kontakt"]
+            ["Obor / Sekretářka", "STAG zkratka", "Studentů", "Kontakt", "Oslovení"]
         )
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
@@ -612,7 +617,8 @@ class OboryManageDialog(QDialog):
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         layout.addWidget(self.tree, stretch=1)
 
         self.lbl_info = QLabel("")
@@ -704,9 +710,16 @@ class OboryManageDialog(QDialog):
             total_count = sum(
                 self.service.obor_usage_count(o.name) for o in obory
             )
+            # Oslovení skupiny = první vyplněné mezi obory sekretářky.
+            greeting_label = next(
+                (o.secretary_greeting.strip() for o in obory
+                 if (o.secretary_greeting or "").strip()),
+                "",
+            )
             if key == empty_indicator:
                 header_label = "— bez sekretářky —"
                 contact_label = ""
+                greeting_label = ""
             else:
                 header_label = f"👤 {sec_name}"
                 contact_label = self._secretary_contact_label(
@@ -718,7 +731,7 @@ class OboryManageDialog(QDialog):
                 f"{self._cs_plural(total_count, 'student', 'studenti', 'studentů')}"
             )
             parent = QTreeWidgetItem(
-                [header_label, "", count_label, contact_label or "—"]
+                [header_label, "", count_label, contact_label or "—", greeting_label or "—"]
             )
             # Vizuálně odliš parent — bold + světle šedé pozadí na 0. sloupci
             font = parent.font(0)
@@ -732,7 +745,7 @@ class OboryManageDialog(QDialog):
                 count = self.service.obor_usage_count(obor.name)
                 stag = obor.stag_code or "—"
                 child = QTreeWidgetItem(
-                    [obor.name, stag, str(count), ""]
+                    [obor.name, stag, str(count), "", ""]
                 )
                 child.setData(0, Qt.ItemDataRole.UserRole, obor)
                 # STAG kód v monospace pro lepší čitelnost
@@ -805,13 +818,85 @@ class OboryManageDialog(QDialog):
         if dlg.exec():
             self._refresh()
 
-    def _edit(self) -> None:
-        obor = self._current_obor()
-        if obor is None:
+    def _edit(self, *args) -> None:
+        """Upraví obor (child) nebo hromadně sekretářku (hlavička skupiny)."""
+        item = self.tree.currentItem()
+        data = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if isinstance(data, Obor):
+            dlg = OborDialog(self.service, data, parent=self)
+            if dlg.exec():
+                self._refresh()
+        elif (
+            isinstance(data, tuple) and len(data) == 2 and data[0] == "__group__"
+            and data[1] != ("", "", "")
+        ):
+            self._edit_group(data[1])
+
+    def _edit_group(self, key: tuple[str, str, str]) -> None:
+        """Hromadná úprava sekretářky pro všechny obory dané skupiny."""
+        obory = [
+            o for o in self.service.list_obor_objects()
+            if self._secretary_group_key(o) == key
+        ]
+        if not obory:
             return
-        dlg = OborDialog(self.service, obor, parent=self)
-        if dlg.exec():
-            self._refresh()
+        greeting = next(
+            (o.secretary_greeting for o in obory if (o.secretary_greeting or "").strip()),
+            "",
+        )
+        sec_name, sec_email, sec_phone = key
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Sekretářka — hromadná úprava")
+        dlg.setMinimumWidth(460)
+        lay = QVBoxLayout(dlg)
+        form = QFormLayout()
+        ed_name = QLineEdit(sec_name)
+        ed_email = QLineEdit(sec_email)
+        ed_phone = QLineEdit(sec_phone)
+        ed_greeting = QLineEdit(greeting or "")
+        ed_greeting.setPlaceholderText("např. Vážená paní Nováková (prázdné = formální)")
+        form.addRow("Jméno", ed_name)
+        form.addRow("E-mail", ed_email)
+        form.addRow("Telefon", ed_phone)
+        form.addRow("Oslovení v mailu", ed_greeting)
+        lay.addLayout(form)
+
+        names = ", ".join(o.name for o in sorted(obory, key=lambda o: o.name.lower()))
+        info = QLabel(f"Změny se uloží u <b>{len(obory)}</b> oborů této sekretářky: {names}")
+        info.setWordWrap(True)
+        info.setTextFormat(Qt.TextFormat.RichText)
+        info.setStyleSheet("color:#888;")
+        lay.addWidget(info)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        lay.addWidget(buttons)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._apply_secretary_to_group(
+            obory,
+            ed_name.text().strip() or None,
+            ed_email.text().strip() or None,
+            ed_phone.text().strip() or None,
+            ed_greeting.text().strip() or None,
+        )
+        self._refresh()
+
+    def _apply_secretary_to_group(
+        self, obory, name, email, phone, greeting
+    ) -> None:
+        """Nastaví kontakt + oslovení sekretářky u všech zadaných oborů."""
+        for o in obory:
+            o.secretary_name = name
+            o.secretary_email = email
+            o.secretary_phone = phone
+            o.secretary_greeting = greeting
+            self.service.upsert_obor(o)
 
     def _delete(self) -> None:
         obor = self._current_obor()
