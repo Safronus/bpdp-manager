@@ -1554,31 +1554,52 @@ class ThesisService:
         Vrátí cestu k vytvořenému PDF, nebo ``None`` pokud LibreOffice
         není dostupný / konverze selhala. Volající by měl gracefully
         pokračovat bez PDF.
+
+        Před převodem se na **dočasné kopii** zploští případný „obrázek
+        v buňce" (Excel rich-value image) na klasický plovoucí obrázek —
+        LibreOffice ho jinak neumí vykreslit a v PDF chybí logo + zobrazí
+        ``#VALUE!``. Uložený XLSX zůstává s nativním obrázkem v buňce
+        (Excel uživatel ho má 1:1).
         """
         import subprocess
+        import tempfile
+
+        from .xlsx_image_in_cell import flatten_image_in_cell
 
         soffice = self._find_soffice()
         if soffice is None:
             return None
 
         pdf_path = xlsx_path.with_suffix(".pdf")
-        try:
-            proc = subprocess.run(
-                [
-                    str(soffice),
-                    "--headless",
-                    "--convert-to", "pdf",
-                    "--outdir", str(xlsx_path.parent),
-                    str(xlsx_path),
-                ],
-                capture_output=True,
-                timeout=120,
-                check=False,
-            )
-        except (subprocess.TimeoutExpired, OSError):
-            return None
-        if proc.returncode != 0 or not pdf_path.is_file():
-            return None
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            convert_src = tmp_dir / xlsx_path.name
+            try:
+                flatten_image_in_cell(xlsx_path, convert_src)
+            except Exception:  # noqa: BLE001 — fail-safe, převeď aspoň originál
+                convert_src = xlsx_path
+            try:
+                proc = subprocess.run(
+                    [
+                        str(soffice),
+                        "--headless",
+                        "--convert-to", "pdf",
+                        "--outdir", str(tmp_dir),
+                        str(convert_src),
+                    ],
+                    capture_output=True,
+                    timeout=120,
+                    check=False,
+                )
+            except (subprocess.TimeoutExpired, OSError):
+                return None
+            produced = tmp_dir / (convert_src.stem + ".pdf")
+            if proc.returncode != 0 or not produced.is_file():
+                return None
+            try:
+                shutil.move(str(produced), str(pdf_path))
+            except OSError:
+                return None
         return pdf_path
 
     @staticmethod

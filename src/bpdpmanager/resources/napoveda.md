@@ -208,6 +208,13 @@ přegenerovat. Náhled posudku je v záložce **Souhrn**.
 > **PDF:** vyžaduje LibreOffice (`brew install --cask libreoffice`
 > nebo z libreoffice.org). Bez něj se vygeneruje jen XLSX.
 
+> **Logo v PDF:** pokud je logo v šabloně vložené jako *„obrázek
+> v buňce"* (Excel funkce *Umístit do buňky*), LibreOffice ho sám neumí
+> vykreslit (v PDF by chybělo a objevilo by se `#VALUE!`). Aplikace to
+> řeší automaticky — při převodu do PDF logo na dočasné kopii převede na
+> klasický obrázek, takže PDF vypadá stejně jako export z Excelu.
+> Uložený XLSX zůstává beze změny.
+
 ---
 
 ## Knihovna šablon posudků
