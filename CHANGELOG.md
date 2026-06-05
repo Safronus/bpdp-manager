@@ -7,7 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.31.1] - 2026-06-05
+## [0.31.2] - 2026-06-05
+
+### Fixed
+- **Robustnější přepojení šablony posudku.** Předchozí oprava (0.31.1)
+  přepojovala jen podle názvu — to nestačilo, když byl původní posudek
+  vyrobený z *vlastní* šablony (jiný název) a pak se knihovna nahradila
+  defaultními. Nově se při stalém ID dohledá vhodná šablona i podle
+  **typu práce + role + jazyka + oboru** (z kontextu práce) — generování
+  uspěje, kdykoli existuje aspoň jedna pasující šablona. Není potřeba
+  nic mazat; posudek se opraví sám při dalším vygenerování.
 
 ### Fixed
 - **„Šablona posudku nebyla nalezena" při generování.** Po „Smazat vše a

@@ -28,6 +28,7 @@ from ..storage import Database, Repository
 from .default_data import (
     DefaultTemplateSpec,
     default_obory,
+    discipline_from_app_code,
     list_default_template_specs,
 )
 from .file_naming import (
@@ -1418,13 +1419,24 @@ class ThesisService:
             t.reviews = [r for r in t.reviews if r.id != review_id]
             self.upsert_thesis(t)
 
-    def _relink_review_template(self, review: Review) -> ReviewTemplate | None:
+    def _relink_review_template(
+        self,
+        review: Review,
+        *,
+        expected_type: ThesisType | None = None,
+        obor_hint: str = "",
+    ) -> ReviewTemplate | None:
         """Dohledá aktuální šablonu pro posudek, jehož ``template_id`` už nesedí.
 
-        ID se mění např. po „Smazat vše a nahradit" v knihovně šablon. Posudek
-        si ale drží **snapshot názvu** (``template_name``), který je u defaultních
-        šablon stabilní → podle něj (a sekundárně podle role+jazyka+počtu
-        kritérií) najdeme ekvivalentní současnou šablonu a posudek přepojíme.
+        ID se mění např. po „Smazat vše a nahradit" v knihovně šablon. Pořadí:
+
+        1. přesně podle uloženého názvu (``template_name``),
+        2. jinak podle **role (+ typ práce + jazyk + obor)** — vybere se nejlepší
+           současná šablona; pokud existuje aspoň jedna vhodná, nikdy neselže.
+
+        ``expected_type`` a ``obor_hint`` (kód disciplíny, např. „SWI") předává
+        ``generate_review_files`` z kontextu práce. Posudek se přepojí
+        (přepíše se ``template_id`` i ``template_name``).
         """
         templates = self._db.review_templates
         # 1) přesně podle uloženého názvu
@@ -1433,21 +1445,30 @@ class ThesisService:
                 if t.name == review.template_name:
                     review.template_id = t.id
                     return t
-        # 2) heuristika: role + jazyk (+ stejný počet kritérií, je-li jednoznačné)
-        cands = [
-            t for t in templates
-            if t.role == review.role and t.language == review.language
-        ]
+        # 2) heuristika podle kontextu práce
+        cands = [t for t in templates if t.role == review.role]
+        if expected_type is not None:
+            typed = [t for t in cands if t.type == expected_type]
+            cands = typed or cands
+        lang = [t for t in cands if t.language == review.language]
+        cands = lang or cands
+        if not cands:
+            return None
+        if obor_hint:
+            by_obor = [
+                t for t in cands if t.obor and t.obor.upper() == obor_hint.upper()
+            ]
+            if by_obor:
+                cands = by_obor
         if review.criteria:
             n = len(review.criteria)
-            narrowed = [t for t in cands if t.criteria and len(t.criteria) == n]
-            if len(narrowed) == 1:
-                review.template_id = narrowed[0].id
-                return narrowed[0]
-        if len(cands) == 1:
-            review.template_id = cands[0].id
-            return cands[0]
-        return None
+            by_crit = [t for t in cands if t.criteria and len(t.criteria) == n]
+            if by_crit:
+                cands = by_crit
+        chosen = cands[0]
+        review.template_id = chosen.id
+        review.template_name = chosen.name
+        return chosen
 
     def generate_review_files(
         self,
@@ -1470,8 +1491,23 @@ class ThesisService:
         tmpl = self.get_review_template(review.template_id) if review.template_id else None
         if tmpl is None:
             # Stalé ID (např. po „Smazat vše a nahradit" / přegenerování
-            # defaultů dostaly šablony nová ID) — zkus přepojit podle názvu.
-            tmpl = self._relink_review_template(review)
+            # defaultů) — přepoj podle názvu, jinak podle kontextu práce.
+            exp_type: ThesisType | None = None
+            obor_hint = ""
+            if opposing:
+                _w = self.get_opposing_thesis(thesis_id)
+                if _w is not None:
+                    exp_type = _w.type
+                    obor_hint = discipline_from_app_code(_w.student_obor or "")
+            else:
+                _w = self.get_thesis(thesis_id)
+                if _w is not None:
+                    exp_type = _w.type
+                    _st = self.get_student(_w.student_id) if _w.student_id else None
+                    obor_hint = discipline_from_app_code((_st.obor if _st else "") or "")
+            tmpl = self._relink_review_template(
+                review, expected_type=exp_type, obor_hint=obor_hint
+            )
         if tmpl is None:
             raise ValueError(
                 "Šablona posudku nebyla nalezena. Pravděpodobně byla smazána "

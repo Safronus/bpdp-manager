@@ -197,9 +197,18 @@ def test_relink_review_template_by_name(service: ThesisService) -> None:
     assert relinked.id == tmpl.id
     assert review.template_id == tmpl.id  # posudek se opravil
 
-    # nesmyslné jméno + víc supervisor šablon bez jednoznačné heuristiky → None
-    bad = Review(template_id="x", template_name="ZCELA NEEXISTUJE", role="supervisor")
-    assert service._relink_review_template(bad) is None
+    # Neznámý název → robustní fallback dle role/typu/oboru vybere vhodnou
+    # šablonu (nikdy neselže, když nějaká pasující existuje).
+    from bpdpmanager.models.enums import ThesisType
+    bad = Review(template_id="x", template_name="ZCELA NEEXISTUJE",
+                 role="supervisor", language="cs")
+    got = service._relink_review_template(bad, expected_type=ThesisType.BP, obor_hint="SWI")
+    assert got is not None
+    assert got.role == "supervisor" and got.type == ThesisType.BP and got.obor == "SWI"
+
+    # Když pro danou roli žádná šablona není → None
+    none_role = Review(template_id="x", template_name="NIC", role="nonexistent-role")
+    assert service._relink_review_template(none_role) is None
 
 
 def test_maybe_seed_defaults_only_on_fresh(tmp_path: Path) -> None:
