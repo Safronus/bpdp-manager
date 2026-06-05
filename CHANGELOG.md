@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-06-05
+
+### Fixed
+- **Celkové body, procenta a známka v posudku se nepřepočítaly.** Šablona je
+  počítá vzorci a má v sobě uloženou starou cache hodnotu (z prázdné šablony).
+  Při 1:1 kopii zůstávala cache stará a Excel ani LibreOffice (při exportu do
+  PDF) vzorce nepřepočítaly → špatné body/%/známka v XLSX i PDF. Nově se při
+  zápisu **cache vzorců zahodí** (vzorce zůstávají) a nastaví se
+  `fullCalcOnLoad="1"`, takže se vše při otevření spočítá znovu z vyplněných
+  bodů (ověřeno přes LibreOffice). Přesně tak se choval i původní openpyxl.
+
 ## [0.25.1] - 2026-06-05
 
 ### Fixed

@@ -178,6 +178,55 @@ def _edit_sheet_xml(sheet_xml: str, values: dict[str, object]) -> str:
     return sheet_xml
 
 
+# Cache vzorce: ``</f><v>…</v>`` nebo ``<f …/><v>…</v>`` → zahodit ``<v>``.
+_FORMULA_CACHE_RE = re.compile(
+    r"(</f>|<f\b[^>]*/>)\s*<v\b[^>]*?(?:/>|>.*?</v>)", re.DOTALL
+)
+
+
+def _clear_formula_caches(sheet_xml: str) -> str:
+    """Odstraní uložené (cache) výsledky vzorcových buněk.
+
+    KRITICKÉ pro posudky: celkové body / procenta / známka jsou ve vzorcích
+    a šablona má uložený jejich starý výsledek (z prázdné šablony). Excel ani
+    LibreOffice vzorec při otevření nepřepočítají, dokud má uloženou hodnotu —
+    proto cache zahodíme a oba ji musí spočítat znovu (přesně tak se chová
+    openpyxl, který dříve soubor ukládal). Vzorce samotné (``<f>``) zůstávají.
+    """
+    return _FORMULA_CACHE_RE.sub(r"\1", sheet_xml)
+
+
+def _force_full_calc(workbook_xml: str) -> str:
+    """Zajistí ``fullCalcOnLoad="1"`` v ``<calcPr>`` workbooku.
+
+    KRITICKÉ pro posudky: šablona počítá celkové body / procenta / známku
+    **vzorci** a má v sobě uloženou starou cache hodnotu (z prázdné šablony).
+    Bez tohoto flagu Excel ani LibreOffice (při exportu do PDF) vzorce při
+    otevření nepřepočítají a zobrazí starou cache. openpyxl tento flag
+    nastavoval automaticky — při 1:1 kopii šablony ho musíme doplnit sami.
+    """
+    m = re.search(r"<calcPr\b[^>]*>", workbook_xml)
+    if m:
+        tag = m.group(0)
+        if "fullCalcOnLoad" in tag:
+            new_tag = re.sub(
+                r'fullCalcOnLoad="[^"]*"', 'fullCalcOnLoad="1"', tag
+            )
+        elif tag.endswith("/>"):
+            new_tag = tag[:-2].rstrip() + ' fullCalcOnLoad="1"/>'
+        else:
+            new_tag = tag[:-1].rstrip() + ' fullCalcOnLoad="1">'
+        return workbook_xml[: m.start()] + new_tag + workbook_xml[m.end():]
+
+    # Žádné <calcPr> — vlož ho (před <extLst> nebo </workbook>).
+    calc = '<calcPr calcId="0" fullCalcOnLoad="1"/>'
+    for anchor in (r"<extLst\b", r"</workbook>"):
+        am = re.search(anchor, workbook_xml)
+        if am:
+            return workbook_xml[: am.start()] + calc + workbook_xml[am.start():]
+    return workbook_xml
+
+
 # ── Resolve aktivního listu ──────────────────────────────────────────────────
 
 
@@ -254,7 +303,17 @@ def set_cells(
 
     if clean:
         sheet_xml = _edit_sheet_xml(sheet_xml, clean)
+    # Zahoď cache vzorců → Excel/LibreOffice přepočítají body/procenta/známku.
+    sheet_xml = _clear_formula_caches(sheet_xml)
     contents[part] = sheet_xml.encode("utf-8")
+
+    # Vynuť přepočet vzorců při otevření (celkové body / procenta / známka).
+    if "xl/workbook.xml" in contents:
+        try:
+            wb_xml = contents["xl/workbook.xml"].decode("utf-8")
+            contents["xl/workbook.xml"] = _force_full_calc(wb_xml).encode("utf-8")
+        except (UnicodeDecodeError, ValueError):
+            pass
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zout:

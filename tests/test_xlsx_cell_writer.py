@@ -125,3 +125,55 @@ def test_col_to_index() -> None:
     assert xw._col_to_index("Z") == 26
     assert xw._col_to_index("AA") == 27
     assert xw._col_to_index("AB") == 28
+
+
+def test_clear_formula_caches_strips_value_keeps_formula() -> None:
+    # Numerická i řetězcová cache + self-closing varianta
+    xml = (
+        '<c r="B30"><f>C18*D18</f><v>0</v></c>'
+        '<c r="B32"><f>IF(B31&gt;=50,"E","F")</f><v>F</v></c>'
+        '<c r="B33"><f>SUM(A1:A2)</f><v/></c>'
+    )
+    out = xw._clear_formula_caches(xml)
+    assert "<f>C18*D18</f>" in out
+    assert "<v>0</v>" not in out
+    assert "<v>F</v>" not in out
+    # formula bez cache zůstane formulí
+    assert out.count("<f>") == 3
+
+
+def test_clear_formula_caches_leaves_plain_values() -> None:
+    # Buňka bez <f> (prostá hodnota) se nesmí dotknout
+    xml = '<c r="A1" t="inlineStr"><is><t>Label</t></is></c><c r="A2"><v>5</v></c>'
+    assert xw._clear_formula_caches(xml) == xml
+
+
+def test_force_full_calc_adds_attribute() -> None:
+    wb = '<workbook><sheets/><calcPr calcId="124519"/></workbook>'
+    out = xw._force_full_calc(wb)
+    assert 'fullCalcOnLoad="1"' in out
+
+
+def test_force_full_calc_replaces_zero() -> None:
+    wb = '<workbook><calcPr calcId="1" fullCalcOnLoad="0"/></workbook>'
+    out = xw._force_full_calc(wb)
+    assert 'fullCalcOnLoad="1"' in out
+    assert 'fullCalcOnLoad="0"' not in out
+
+
+def test_force_full_calc_inserts_when_missing() -> None:
+    wb = "<workbook><sheets/></workbook>"
+    out = xw._force_full_calc(wb)
+    assert "<calcPr" in out and 'fullCalcOnLoad="1"' in out
+
+
+def test_set_cells_sets_full_calc_on_output(
+    logo_template: Path, tmp_path: Path
+) -> None:
+    import zipfile
+
+    out = tmp_path / "out.xlsx"
+    xw.set_cells(logo_template, out, {"B6": "Jan"})
+    with zipfile.ZipFile(out) as z:
+        wbxml = z.read("xl/workbook.xml").decode("utf-8")
+    assert 'fullCalcOnLoad="1"' in wbxml
