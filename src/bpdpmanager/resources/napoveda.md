@@ -122,9 +122,14 @@ v *Aktuální* jsou nahoře).
 ### 🟢🟡🔴 Stav posudku barevně
 V **Aktuální** se buňka *názvu práce* podbarví podle posudku vedoucího:
 🟢 vyrobený soubor · 🟡 jen rozpracovaná data (uložená bez XLSX) · 🔴 nic.
-V **🧐 Oponentské posudky** stejně podle oponentského posudku. **Dolní
-lišta** ukazuje barevný souhrn *hotovo / chybí* (vedoucí i oponentury),
-ať máš přehled, kolik práce tě ještě čeká.
+Stav je navíc jako **barevný puntík přímo v názvu**, takže ho vidíš i
+u **vybraného** řádku (výběr by jinak pozadí překryl). V **🧐 Oponentské
+posudky** stejně podle oponentského posudku. **Dolní lišta** ukazuje barevný
+souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik práce
+tě ještě čeká.
+
+Vedle posudků je značka **✉**, pokud už byl posudek **odeslán sekretářce**
+(stejná informace je i v Souhrnu práce — *Odeslání posudku: ✓/✗*).
 
 Každý tab prací má nahoře **strom** (rok → BP/DP → práce) a dole
 **detail** vybrané práce. Po startu se automaticky otevře první práce
@@ -208,8 +213,15 @@ oponenta, Prezentace, STAG export, Jiné).
   z Downloads, kopie zůstává v `documents/`.
 - **📂 Ve Finderu** — označí vybraný soubor přímo ve správci souborů
   (Finder / Explorer), ať se k němu snadno dostaneš na disku.
-- **Pravý klik** na dokument otevře kontextové menu: *Otevřít* ·
-  *📂 Zobrazit ve Finderu* · *Odebrat* (funguje i u oponentských posudků).
+- **Pravý klik** na dokument otevře kontextové menu (funguje i u oponentur):
+  *Otevřít* · *📂 Zobrazit ve Finderu* · *Odebrat*, a u **souborů** navíc:
+  - **📋 Kopírovat soubor** — zkopíruje **samotný soubor** do schránky
+    (vložíš ho do Finderu, mailu apod.) — ne jen cestu.
+  - **💾 Exportovat na disk…** — uloží kopii souboru na zvolené místo.
+  - **✉ Odeslat mailem…** — pošle soubor jako přílohu: zvolíš příjemce,
+    předmět a text; odesílá se z tvého e-mailu přes **SMTP** (heslo se ptá při
+    odeslání, neukládá se — viz *Nastavení e-mailu*). Při selhání SMTP nabídne
+    fallback přes .eml.
 - **Chybějící soubory:** když soubor smažeš ručně mimo aplikaci (např.
   ve Finderu), aplikace se nerozbije — záznam zůstane, ale zobrazí se
   červeně s *⚠ chybí soubor*. Tlačítko **🧹 Odklidit chybějící** odebere

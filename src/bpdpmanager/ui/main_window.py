@@ -83,6 +83,8 @@ class _ThesesTab(QWidget):
         filter_predicate,
         year_mode: str = YEAR_MODE_ALL,
         parent=None,
+        *,
+        profile_manager=None,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -92,7 +94,9 @@ class _ThesesTab(QWidget):
         self.tree = ThesesTreeWidget(service)
         self.tree.setMinimumHeight(160)
         self.tree.set_filter(filter_predicate)
-        self.detail = ThesisDetail(service, year_mode=year_mode)
+        self.detail = ThesisDetail(
+            service, year_mode=year_mode, profile_manager=profile_manager
+        )
         self.detail.setMinimumHeight(520)
 
         splitter.addWidget(self.tree)
@@ -180,23 +184,29 @@ class MainWindow(QMainWindow):
         # 'assigned' už neexistuje — všechny takové práce jsou v IN_PROGRESS.
 
         self.tabs = QTabWidget()
+        pm = self.profile_manager
         self.tab_current = _ThesesTab(
             service,
             lambda t: t.status in STATUSES_CURRENT,
             year_mode=YEAR_MODE_CURRENT,
+            profile_manager=pm,
         )
         self.tab_future = _ThesesTab(
             service,
             lambda t: t.status in STATUSES_FUTURE,
             year_mode=YEAR_MODE_FUTURE,
+            profile_manager=pm,
         )
         self.tab_history = _ThesesTab(
             service,
             lambda t: t.status in STATUSES_HISTORY,
             year_mode=YEAR_MODE_HISTORY,
+            profile_manager=pm,
         )
-        self.tab_all = _ThesesTab(service, lambda t: True, year_mode=YEAR_MODE_ALL)
-        self.tab_opposing = OpposingTab(service)
+        self.tab_all = _ThesesTab(
+            service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm
+        )
+        self.tab_opposing = OpposingTab(service, profile_manager=pm)
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
         self.tab_harmonogram = HarmonogramTab(service)
 

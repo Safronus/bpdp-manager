@@ -108,15 +108,6 @@ class ThesesTreeWidget(QTreeWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setSortingEnabled(False)
-        # Výběr řádku poloprůhledně + tučně, aby ZŮSTALO vidět barevné pozadí
-        # stavu posudku ve sloupci „Téma" (plný výběr ho dřív překryl).
-        self.setStyleSheet(
-            "QTreeWidget::item:selected { "
-            "background-color: rgba(64,132,240,0.28); color: palette(text); "
-            "font-weight: bold; }"
-            "QTreeWidget::item:selected:!active { "
-            "background-color: rgba(64,132,240,0.20); color: palette(text); }"
-        )
 
         h = self.header()
         h.setSectionResizeMode(self.COL_STUDENT, QHeaderView.ResizeMode.ResizeToContents)
@@ -243,6 +234,14 @@ class ThesesTreeWidget(QTreeWidget):
 
         student_name = student.full_name if student else "—"
         title = thesis.display_title
+        # Stav posudku vedoucího jako barevný puntík v názvu — viditelný i když
+        # je řádek vybraný (na rozdíl od pozadí buňky, které výběr překryje).
+        if thesis.status == ThesisStatus.IN_PROGRESS:
+            dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(
+                thesis.supervisor_review_state, ""
+            )
+            if dot:
+                title = f"{dot} {title}"
         opponent_name = opponent.display_name if opponent else "—"
         obor = student.obor if student and student.obor else "—"
 
@@ -263,6 +262,10 @@ class ThesesTreeWidget(QTreeWidget):
             reviews_text = "📕 O"
         else:
             reviews_text = "—"
+        # Odeslání posudku vedoucího sekretářce: ✉ = odesláno.
+        sent_at = thesis.supervisor_review_sent_at
+        if sent_at:
+            reviews_text += "  ✉"
 
         leaf = QTreeWidgetItem(
             [
@@ -290,6 +293,8 @@ class ThesesTreeWidget(QTreeWidget):
                     if a.kind == AttachmentKind.OPPONENT_REVIEW
                 )
                 parts.append(f"📕 Posudek oponenta ({n}×)")
+            if sent_at:
+                parts.append(f"✉ Posudek vedoucího odeslán {sent_at.strftime('%d.%m.%Y')}")
             leaf.setToolTip(self.COL_REVIEWS, "\n".join(parts))
         else:
             leaf.setToolTip(self.COL_REVIEWS, "Žádný posudek zatím nahrán")

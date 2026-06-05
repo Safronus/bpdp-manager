@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QMimeData, Qt, QUrl, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QFileDialog,
@@ -36,9 +38,10 @@ class DocumentsWidget(QWidget):
 
     changed = Signal()
 
-    def __init__(self, service: ThesisService, parent=None) -> None:
+    def __init__(self, service: ThesisService, parent=None, *, profile_manager=None) -> None:
         super().__init__(parent)
         self.service = service
+        self.profile_manager = profile_manager  # pro „Odeslat mailem" (SMTP)
         self.thesis_id: str | None = None
         # Když True, widget pracuje s OpposingThesis (oponentský posudek) —
         # volá opposing_* metody služby. Jinak s vedenou Thesis.
@@ -453,18 +456,86 @@ class DocumentsWidget(QWidget):
         if item is None or not isinstance(item.data(0, Qt.ItemDataRole.UserRole), int):
             return
         self.tree.setCurrentItem(item)
+        idx = item.data(0, Qt.ItemDataRole.UserRole)
+        work = self._get_work()
+        att = work.attachments[idx] if (work and 0 <= idx < len(work.attachments)) else None
+        is_file = att is not None and att.is_file
+
         menu = QMenu(self)
         act_open = menu.addAction("Otevřít")
         act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
+        # Akce nad souborem (ne nad odkazem/URL)
+        act_copy = act_export = act_email = None
+        if is_file:
+            menu.addSeparator()
+            act_copy = menu.addAction("📋 Kopírovat soubor (do schránky)")
+            act_export = menu.addAction("💾 Exportovat na disk…")
+            act_email = menu.addAction("✉ Odeslat mailem…")
         menu.addSeparator()
         act_remove = menu.addAction("Odebrat")
         chosen = menu.exec(self.tree.viewport().mapToGlobal(pos))
+        if chosen is None:
+            return
         if chosen == act_open:
             self._open_selected()
         elif chosen == act_reveal:
             self._reveal_selected()
         elif chosen == act_remove:
             self._remove_selected()
+        elif chosen == act_copy:
+            self._copy_file_to_clipboard(att)
+        elif chosen == act_export:
+            self._export_file(att)
+        elif chosen == act_email:
+            self._email_file(att)
+
+    # --- akce nad souborem ---------------------------------------------------
+
+    def _copy_file_to_clipboard(self, att: Attachment) -> None:
+        """Zkopíruje SOUBOR do schránky (jde vložit do Finderu / mailu), ne cestu."""
+        path = self._abs_path(att)
+        if path is None or not path.exists():
+            QMessageBox.warning(self, "Kopírovat", f"Soubor neexistuje:\n{path}")
+            return
+        mime = QMimeData()
+        mime.setUrls([QUrl.fromLocalFile(str(path))])
+        mime.setText(str(path))  # fallback (cesta jako text)
+        QApplication.clipboard().setMimeData(mime)
+
+    def _export_file(self, att: Attachment) -> None:
+        path = self._abs_path(att)
+        if path is None or not path.exists():
+            QMessageBox.warning(self, "Exportovat", f"Soubor neexistuje:\n{path}")
+            return
+        target, _ = QFileDialog.getSaveFileName(
+            self, "Exportovat soubor", str(Path.home() / path.name)
+        )
+        if not target:
+            return
+        try:
+            shutil.copy2(path, target)
+        except OSError as exc:
+            QMessageBox.critical(self, "Exportovat", f"Nepodařilo se uložit:\n{exc}")
+            return
+
+    def _email_file(self, att: Attachment) -> None:
+        path = self._abs_path(att)
+        if path is None or not path.exists():
+            QMessageBox.warning(self, "Odeslat mailem", f"Soubor neexistuje:\n{path}")
+            return
+        if self.profile_manager is None or self.profile_manager.active is None:
+            QMessageBox.information(
+                self, "Odeslat mailem",
+                "Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem "
+                "(👤 → Nastavení e-mailu).",
+            )
+            return
+        from ..send_file_dialog import SendFileDialog
+
+        SendFileDialog(
+            self.profile_manager, path,
+            default_subject=f"{att.kind.label} — {path.name}", parent=self,
+        ).exec()
 
     def _reveal_selected(self) -> None:
         if not self.thesis_id:

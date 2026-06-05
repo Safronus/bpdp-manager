@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import OpposingThesis
-from ..models.enums import ThesisType
+from ..models.enums import AttachmentKind, ThesisType
 from ..services import ThesisService
 from .supervisor_dialog import SupervisorDialog
 from .thesis_detail import (
@@ -68,9 +68,10 @@ class OpposingDetail(QWidget):
     deleted = Signal(str)
     generate_review_requested = Signal(str)  # opposing thesis id
 
-    def __init__(self, service: ThesisService, parent=None) -> None:
+    def __init__(self, service: ThesisService, parent=None, *, profile_manager=None) -> None:
         super().__init__(parent)
         self.service = service
+        self.profile_manager = profile_manager
         self.op: OpposingThesis | None = None
         self._loading = False
         self._dirty = False
@@ -361,7 +362,9 @@ class OpposingDetail(QWidget):
 
         # Stejný agregovaný widget jako u vedených prací (strom podle typu,
         # verzování, otevřít / Finder / odebrat, indikace chybějících…).
-        self.documents_widget = DocumentsWidget(self.service)
+        self.documents_widget = DocumentsWidget(
+            self.service, profile_manager=self.profile_manager
+        )
         self.documents_widget.changed.connect(self._on_documents_changed)
         layout.addWidget(self.documents_widget, stretch=1)
         return w
@@ -789,7 +792,26 @@ class OpposingDetail(QWidget):
             if reviews_html else ""
         )
 
-        # Pořadí sekcí: Body zadání → Známky → Napsaný posudek → Dokumenty.
+        # Odeslání oponentského posudku sekretářce.
+        has_review = any(
+            a.kind == AttachmentKind.OPPONENT_REVIEW for a in op.attachments
+        ) or any(r.role == "opponent" for r in op.reviews)
+        if op.opponent_review_sent_at:
+            sent_body = (
+                '<span style="color:#2e7d32;">✓ odesláno '
+                f'{e(op.opponent_review_sent_at.strftime("%d.%m.%Y"))}</span>'
+            )
+        elif has_review:
+            sent_body = '<span style="color:#c62828;">✗ neodesláno</span>'
+        else:
+            sent_body = ""
+        sent_section = (
+            f'<h3 style="{section_style}">Odeslání posudku</h3>'
+            f"<p>📨 Oponentský posudek sekretářce: {sent_body}</p>"
+            if sent_body else ""
+        )
+
+        # Pořadí sekcí: Body zadání → Známky → Napsaný posudek → Odeslání → Dokumenty.
         return (
             "<html><body>"
             f"{header_bar}"
@@ -802,6 +824,7 @@ class OpposingDetail(QWidget):
             f'<h3 style="{section_style}">Známky</h3>'
             f"{grades_table}"
             f"{reviews_section}"
+            f"{sent_section}"
             f'<h3 style="{section_style}">📎 Dokumenty</h3>'
             f"{docs_html}"
             "</body></html>"

@@ -117,6 +117,7 @@ def _setup_searchable_combo(combo: QComboBox) -> None:
 from ..models import Thesis
 from ..models.enums import (
     ALLOWED_TRANSITIONS,
+    AttachmentKind,
     PlagiarismVerdict,
     ThesisStatus,
     ThesisType,
@@ -151,9 +152,12 @@ class ThesisDetail(QWidget):
         service: ThesisService,
         year_mode: str = YEAR_MODE_ALL,
         parent=None,
+        *,
+        profile_manager=None,
     ) -> None:
         super().__init__(parent)
         self.service = service
+        self.profile_manager = profile_manager
         self.thesis: Thesis | None = None
         self._year_mode = year_mode
 
@@ -504,7 +508,9 @@ class ThesisDetail(QWidget):
         lbl = QLabel("Dokumenty k práci (posudky, text práce, prezentace, odkazy…)")
         lbl.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl)
-        self.documents_widget = DocumentsWidget(self.service)
+        self.documents_widget = DocumentsWidget(
+            self.service, profile_manager=self.profile_manager
+        )
         self.documents_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.documents_widget, stretch=1)
         return w
@@ -1084,6 +1090,7 @@ class ThesisDetail(QWidget):
         # ── Známky + Posudky (strukturovaná data) ──────────────────────────
         grades_section = self._build_grades_summary_html(thesis, e, section_header_style)
         reviews_section = self._build_reviews_summary_html(thesis, e, section_header_style)
+        sent_section = self._build_sent_summary_html(thesis, e, section_header_style)
         documents_section = self._build_documents_summary_html(
             thesis, e, section_header_style
         )
@@ -1119,6 +1126,7 @@ class ThesisDetail(QWidget):
             f"{plag_section}"
             f"{grades_section}"
             f"{reviews_section}"
+            f"{sent_section}"
             f"{documents_section}"
             "</body></html>"
         )
@@ -1140,6 +1148,26 @@ class ThesisDetail(QWidget):
             'font-size:18pt;padding:6px 16px;border-radius:6px;'
             f'display:inline-block;text-align:center;min-width:28px;">{disp}</div>'
             "</td>"
+        )
+
+    def _build_sent_summary_html(self, thesis, e, section_header_style: str) -> str:
+        """Indikace, zda byl posudek vedoucího odeslán sekretářce."""
+        has_review = any(
+            a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in thesis.attachments
+        ) or any(r.role == "supervisor" for r in thesis.reviews)
+        sent = thesis.supervisor_review_sent_at
+        if not has_review and not sent:
+            return ""
+        if sent:
+            body = (
+                '<span style="color:#2e7d32;">✓ odesláno '
+                f'{e(sent.strftime("%d.%m.%Y"))}</span>'
+            )
+        else:
+            body = '<span style="color:#c62828;">✗ neodesláno</span>'
+        return (
+            f'<h3 style="{section_header_style}">Odeslání posudku</h3>'
+            f"<p>📨 Posudek vedoucího sekretářce: {body}</p>"
         )
 
     def _build_documents_summary_html(self, thesis, e, section_header_style: str) -> str:

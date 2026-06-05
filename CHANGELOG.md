@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-06-06
+
+### Added
+- **Kontextové akce nad soubory** (pravý klik na dokument): **📋 Kopírovat
+  soubor** do schránky (samotný soubor, ne cestu — vložíš do Finderu/mailu),
+  **💾 Exportovat na disk…** (kopie na zvolené místo) a **✉ Odeslat mailem…**
+  (soubor jako příloha — volba příjemce, předmětu a textu; odesílá z e-mailu
+  uživatele přes SMTP s dotazem na heslo, fallback přes .eml).
+- **Indikace odeslání posudku** v seznamu prací i v Souhrnu — značka **✉**
+  u odeslaných a v Souhrnu sekce *Odeslání posudku* (✓ s datem / ✗ neodesláno).
+  Platí pro posudky vedoucího i oponentské.
+
+### Changed
+- **Stav posudku jako barevný puntík v názvu práce** (🟢🟡🔴) — viditelný
+  i u vybraného řádku (výběr dřív barevné pozadí překryl). Platí pro vedené
+  i oponentské.
+
 ## [0.38.0] - 2026-06-06
 
 ### Added

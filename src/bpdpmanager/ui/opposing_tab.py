@@ -104,9 +104,10 @@ class OpposingTab(QWidget):
     # který má přístup k profilu / e-mailovým nastavením).
     send_reviews_requested = Signal()
 
-    def __init__(self, service: ThesisService, parent=None) -> None:
+    def __init__(self, service: ThesisService, parent=None, *, profile_manager=None) -> None:
         super().__init__(parent)
         self.service = service
+        self.profile_manager = profile_manager
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -156,7 +157,7 @@ class OpposingTab(QWidget):
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
         splitter.addWidget(self.tree)
 
-        self.detail = OpposingDetail(service)
+        self.detail = OpposingDetail(service, profile_manager=self.profile_manager)
         self.detail.setMinimumHeight(520)
         self.detail.saved.connect(lambda _: (self.refresh(), self.changed.emit()))
         self.detail.deleted.connect(lambda _: (self.refresh(), self.changed.emit()))
@@ -236,6 +237,16 @@ class OpposingTab(QWidget):
                         else "(neuvedený student)"
                     )
                     title = op.title_cs or "(bez názvu)"
+                    state = op.opponent_review_state
+                    # Stav posudku jako barevný puntík v názvu — viditelný i při
+                    # výběru řádku (pozadí buňky výběr překryje).
+                    dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
+                    if dot:
+                        title = f"{dot} {title}"
+                    # Odeslání oponentského posudku sekretářce: ✉ = odesláno.
+                    sent_at = op.opponent_review_sent_at
+                    if sent_at:
+                        title = f"{title}  ✉"
                     grades = self._format_grades(op)
                     obor = op.student_obor or "—"
                     type_prefix = op.type.value
@@ -251,14 +262,14 @@ class OpposingTab(QWidget):
                     leaf.setData(0, ROLE_ID, op.id)
                     # Oponentský posudek — podbarvi sloupec názvu práce:
                     #   🟢 hotový soubor · 🟡 jen data · 🔴 chybí
-                    state = op.opponent_review_state
                     tint = REVIEW_STATE_TINTS.get(state)
                     if tint:
                         leaf.setBackground(1, QBrush(QColor(tint)))
                         leaf.setForeground(1, QBrush(QColor("#212121")))
-                        leaf.setToolTip(
-                            1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
-                        )
+                        tip = f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
+                        if sent_at:
+                            tip += f"\n✉ Odesláno sekretářce {sent_at.strftime('%d.%m.%Y')}"
+                        leaf.setToolTip(1, tip)
                     year_item.addChild(leaf)
                 year_item.setExpanded(True)
 
