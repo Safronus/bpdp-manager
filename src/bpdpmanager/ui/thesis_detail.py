@@ -344,6 +344,23 @@ class ThesisDetail(QWidget):
         row.addWidget(self.btn_new_student)
         row.addSpacing(12)
 
+        # Obor studenta — editovatelný combobox z evidovaných oborů (uloží se
+        # ke studentovi). Dropdown nabízí jen obory založené v manažeru, aby
+        # obor seděl na sekretářku (odesílání posudků); ruční hodnota zůstane.
+        row.addWidget(QLabel("Obor:"))
+        self.cb_thesis_obor = QComboBox()
+        self.cb_thesis_obor.setEditable(True)
+        self.cb_thesis_obor.setMinimumWidth(130)
+        self.cb_thesis_obor.setMaximumWidth(200)
+        if self.cb_thesis_obor.lineEdit() is not None:
+            self.cb_thesis_obor.lineEdit().setPlaceholderText("Obor")
+        self.cb_thesis_obor.setToolTip(
+            "Obor studenta — uloží se ke studentovi. Dropdown nabízí evidované "
+            "obory (manažer Obory)."
+        )
+        row.addWidget(self.cb_thesis_obor)
+        row.addSpacing(12)
+
         # Oponent — totéž
         row.addWidget(QLabel("Oponent:"))
         self.cb_opponent = QComboBox()
@@ -675,8 +692,32 @@ class ThesisDetail(QWidget):
             for o in self.service.list_opponents():
                 self.cb_opponent.addItem(o.name, o.id)
             self._set_combo_to_id(self.cb_opponent, current_opponent_id)
+
+            # Obor (dropdown evidovaných oborů; text se zachová)
+            obor_text = self.cb_thesis_obor.currentText()
+            self.cb_thesis_obor.clear()
+            self.cb_thesis_obor.addItem("")
+            for o in self.service.list_obor_objects():
+                self.cb_thesis_obor.addItem(o.name)
+            self.cb_thesis_obor.setCurrentText(obor_text)
         finally:
             self._loading = was_loading
+
+    def _sync_thesis_obor_combo(self) -> None:
+        """Nastaví obor combobox podle oboru aktuálně vybraného studenta."""
+        student_id = self._resolve_combo_id(self.cb_student)
+        student = self.service.get_student(student_id) if student_id else None
+        was_loading = self._loading
+        self._loading = True
+        try:
+            self.cb_thesis_obor.setCurrentText((student.obor if student else "") or "")
+        finally:
+            self._loading = was_loading
+
+    def _on_student_changed(self) -> None:
+        """Po RUČNÍ změně studenta sjednoť obor combobox s jeho oborem."""
+        if not self._loading:
+            self._sync_thesis_obor_combo()
 
     def set_thesis(self, thesis: Thesis | None) -> None:
         # Před přepnutím flushni rozpracované změny aktuální práce
@@ -713,6 +754,7 @@ class ThesisDetail(QWidget):
 
             self._set_combo_to_id(self.cb_student, thesis.student_id)
             self._set_combo_to_id(self.cb_opponent, thesis.opponent_id)
+            self._sync_thesis_obor_combo()
             self.ed_stag_url.setText(thesis.stag_url or "")
 
             self.ed_title_cs.setText(thesis.title_cs)
@@ -772,7 +814,9 @@ class ThesisDetail(QWidget):
         self.rb_verdict_pl.toggled.connect(self._mark_dirty)
         self.rb_verdict_np.toggled.connect(self._mark_dirty)
         self.cb_student.currentIndexChanged.connect(self._mark_dirty)
+        self.cb_student.currentIndexChanged.connect(self._on_student_changed)
         self.cb_opponent.currentIndexChanged.connect(self._mark_dirty)
+        self.cb_thesis_obor.currentTextChanged.connect(self._mark_dirty)
         self.ed_title_cs.textChanged.connect(self._mark_dirty)
         self.ed_annotation.textChanged.connect(self._mark_dirty)
         self.ed_annotation_en.textChanged.connect(self._mark_dirty)
@@ -1338,6 +1382,14 @@ class ThesisDetail(QWidget):
         self.thesis.stag_url = self.ed_stag_url.text().strip()
         self.thesis.student_id = self._resolve_combo_id(self.cb_student)
         self.thesis.opponent_id = self._resolve_combo_id(self.cb_opponent)
+
+        # Obor patří studentovi — ulož ho k aktuálně vybranému studentovi.
+        if self.thesis.student_id:
+            obor_text = self.cb_thesis_obor.currentText().strip()
+            student = self.service.get_student(self.thesis.student_id)
+            if student is not None and (student.obor or "") != obor_text:
+                student.obor = obor_text
+                self.service.upsert_student(student)
         self.thesis.title_cs = self.ed_title_cs.text().strip()
         self.thesis.annotation = self.ed_annotation.toPlainText().strip()
         self.thesis.annotation_en = self.ed_annotation_en.toPlainText().strip()

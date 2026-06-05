@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-06-06
+
+### Added
+- **Editace oboru přímo u práce.** V záložce *📝 Téma zadání* (vedené práce) je
+  nový **rozbalovací seznam Obor** (evidované obory z manažeru) — uloží se ke
+  studentovi. U **oponentur** je obor nově také rozbalovací seznam evidovaných
+  oborů. Cíl: aby obor seděl na sekretářku při odesílání posudků a nevznikal
+  konflikt kódů oborů. Ručně zadaná / importovaná hodnota zůstane zachovaná.
+
+### Changed
+- **Vybraný řádek v seznamu prací už nepřekryje barevný stav.** Výběr je nově
+  poloprůhledný + tučný, takže ve sloupci *Téma* zůstane vidět barevné pozadí
+  stavu posudku (🟢🟡🔴).
+
+### Fixed
+- **Příčina nenabízených oponentských posudků.** Práce vznikla nad oborem,
+  který po synchronizaci výchozích oborů přestal odpovídat evidovaným kódům —
+  proto se nepárovala na sekretářku. Combobox oboru tomu předchází; navíc lze
+  použít přepínač *Zobrazit i práce z jiných oborů* (z 0.37.0).
+
 ## [0.37.0] - 2026-06-06
 
 ### Added

@@ -209,9 +209,14 @@ class OpposingDetail(QWidget):
         self.ed_student_first.setPlaceholderText("Jméno")
         self.ed_student_last = QLineEdit()
         self.ed_student_last.setPlaceholderText("Příjmení")
-        self.ed_student_obor = QLineEdit()
-        self.ed_student_obor.setPlaceholderText("Obor (např. NSWI-K)")
-        self.ed_student_obor.setMaximumWidth(160)
+        # Obor jako editovatelný combobox — dropdown nabízí jen obory založené
+        # v manažeru (aby se obor spároval na sekretářku), ale zachová i ručně
+        # zadanou / importovanou hodnotu.
+        self.ed_student_obor = QComboBox()
+        self.ed_student_obor.setEditable(True)
+        self.ed_student_obor.setMaximumWidth(180)
+        self.ed_student_obor.lineEdit().setPlaceholderText("Obor")
+        self._reload_obor_items()
         self.ed_student_uni_id = QLineEdit()
         self.ed_student_uni_id.setPlaceholderText("Os. č.")
         self.ed_student_uni_id.setMaximumWidth(120)
@@ -386,6 +391,19 @@ class OpposingDetail(QWidget):
         self.placeholder.setVisible(False)
         self.container.setVisible(True)
 
+    def _reload_obor_items(self) -> None:
+        """Naplní dropdown oboru názvy oborů z manažeru (zachová zadaný text)."""
+        current = self.ed_student_obor.currentText() if self.ed_student_obor.count() else ""
+        self.ed_student_obor.blockSignals(True)
+        try:
+            self.ed_student_obor.clear()
+            self.ed_student_obor.addItem("")
+            for o in self.service.list_obor_objects():
+                self.ed_student_obor.addItem(o.name)
+            self.ed_student_obor.setCurrentText(current)
+        finally:
+            self.ed_student_obor.blockSignals(False)
+
     def set_opposing(self, op: OpposingThesis | None) -> None:
         # flush rozdělané z předchozího posudku
         if self._dirty and self.op is not None:
@@ -413,7 +431,7 @@ class OpposingDetail(QWidget):
 
             self.ed_student_first.setText(op.student_first_name or "")
             self.ed_student_last.setText(op.student_last_name or "")
-            self.ed_student_obor.setText(op.student_obor or "")
+            self.ed_student_obor.setCurrentText(op.student_obor or "")
             self.ed_student_uni_id.setText(op.student_university_id or "")
 
             self._refresh_supervisors_combo()
@@ -455,10 +473,11 @@ class OpposingDetail(QWidget):
     def _connect_dirty_signals(self) -> None:
         for w in (
             self.ed_stag_url, self.ed_student_first, self.ed_student_last,
-            self.ed_student_obor, self.ed_student_uni_id,
+            self.ed_student_uni_id,
             self.ed_sup_email, self.ed_title_cs,
         ):
             w.textChanged.connect(self._mark_dirty)
+        self.ed_student_obor.currentTextChanged.connect(self._mark_dirty)
         self.cb_sup_name.currentTextChanged.connect(self._mark_dirty)
         self.cb_year.currentTextChanged.connect(self._mark_dirty)
         self.cb_grade_sup.currentTextChanged.connect(self._mark_dirty)
@@ -532,7 +551,7 @@ class OpposingDetail(QWidget):
         self.op.stag_url = self.ed_stag_url.text().strip()
         self.op.student_first_name = self.ed_student_first.text().strip()
         self.op.student_last_name = self.ed_student_last.text().strip()
-        self.op.student_obor = self.ed_student_obor.text().strip()
+        self.op.student_obor = self.ed_student_obor.currentText().strip()
         self.op.student_university_id = self.ed_student_uni_id.text().strip()
         self.op.supervisor_name = self.cb_sup_name.currentText().strip()
         self.op.supervisor_email = self.ed_sup_email.text().strip()

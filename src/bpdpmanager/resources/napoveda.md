@@ -173,8 +173,13 @@ posudky, přílohy…). Každá sekce má tlačítko 📋 pro zkopírování do 
 > posudku ze STAG; ručně zadanou známku nikdy nepřepíše.
 
 ### 📝 Téma zadání
-Název CZ + EN, anotace CZ + EN, body zadání a literární zdroje
-(volný text s vlastním číslováním), odkaz na STAG.
+Rok, student, **obor**, oponent, název CZ + EN, anotace CZ + EN, body zadání
+a literární zdroje (volný text s vlastním číslováním), odkaz na STAG.
+
+> **Obor** je rozbalovací seznam **evidovaných oborů** (z manažeru *Obory*) —
+> uloží se ke studentovi. Drž ho na některém z evidovaných oborů, ať se práce
+> správně spáruje na sekretářku při odesílání posudků. Ručně zadanou hodnotu
+> lze ponechat, ale nemusí sednout na žádnou sekretářku.
 
 ### Poznámky
 Volný text + termíny/konzultace.
@@ -299,6 +304,8 @@ profilu (kopie v `profile_dir/templates/`).
 Samostatná záložka **🧐 Oponentské posudky** pro práce, kde vystupuješ
 jako **oponent** (recenzuješ cizí BP/DP). Vlastní model — inline údaje
 o studentovi a vedoucím (přes registr vedoucích s našeptáváním),
+**obor** (rozbalovací seznam evidovaných oborů — drž ho na evidovaném oboru,
+ať se posudek spáruje na sekretářku; ručně zadaná hodnota zůstane),
 známky, dokumenty, generovaný souhrn. **Souhrn nově ukazuje i napsaný
 posudek** (body, procenta, navržená známka, kritéria, komentář) — stejně
 jako u vedených prací posudek vedoucího. **Známky se doplní samy:** známka

@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.37.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.38.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -32,7 +32,8 @@ o budoucí témata.
 - **🔍 Plagiátorství**: u každé práce verdikt (*Neposouzen* / *Posouzen — je plagiát* / *Posouzen — není plagiát* s barevným odlišením), procento shody, komentář k výsledku a PDF protokol s odkazem na otevření v systémové aplikaci
 - **Pohledy**: *Aktuální rok*, *Budoucí zájemci*, *Historie*, *Vše* — vertikální rozvržení: nahoře strom prací grupovaný *Akademický rok → BP/DP* s sloupci (Student / Téma / Stav / Oponent / Obor) a barevně odlišenými stavy, dole detail vybrané práce
 - **🔍 Globální vyhledávání a navigace** — pole nad záložkami najde práci napříč vedenými pracemi i oponenturami podle **jména studenta**, **názvu práce** nebo **osobního čísla (Axxxxx)**. Při jediné shodě rovnou skočí na práci (přepne záložku a vybere ji), při více shodách nabídne výběr (práce v *Aktuální* jsou první).
-- **Stav posudku barevně** — v *Aktuální* se buňka názvu práce podbarví podle posudku vedoucího (🟢 vyrobený · 🟡 jen rozpracovaná data · 🔴 chybí); v *🧐 Oponentské posudky* obdobně podle oponentského posudku. **Dolní lišta** ukazuje barevný souhrn *kolik posudků chybí / je hotových* (vedoucí i oponentury) — rychlý přehled, co ještě musíš posoudit.
+- **Stav posudku barevně** — v *Aktuální* se buňka názvu práce podbarví podle posudku vedoucího (🟢 vyrobený · 🟡 jen rozpracovaná data · 🔴 chybí); v *🧐 Oponentské posudky* obdobně podle oponentského posudku. Výběr řádku je **poloprůhledný** (barevný stav zůstane vidět i u vybrané práce). **Dolní lišta** ukazuje barevný souhrn *kolik posudků chybí / je hotových* (vedoucí i oponentury) — rychlý přehled, co ještě musíš posoudit.
+- **Obor jako rozbalovací seznam** — v *📝 Téma zadání* (vedené práce, uloží se ke studentovi) i u oponentur je obor combobox **evidovaných oborů** (z manažeru *Obory*); drží obor na platné hodnotě, aby se práce správně spárovala na sekretářku při odesílání posudků (ručně zadaná hodnota zůstane).
 - **Tituly před/za** u uživatele profilu i u oponentů/vedoucích v registrech (ukládají se jako string). Tituly uživatele se **automaticky skládají do jména autora** v posudku („doc. Ing. Petr Novák, Ph.D.").
 - **🧐 Oponentské posudky** — samostatná záložka pro práce, kde vystupuješ jako oponent (recenzuješ cizí BP/DP). Vlastní datový model — typ, rok, STAG odkaz, student + vedoucí (vedoucí přes registr s našeptáváním a auto-doplněním emailu), název CZ, body zadání, **známky vedoucího + oponenta s barevným badge**, dokumenty (plný text práce, posudek vedoucího, můj posudek oponenta), automaticky generovaný Souhrn.
 - **Registr vedoucích** (toolbar *Vedoucí*) pro oponentské posudky — analogický k registru oponentů, používá se pro našeptávání při vyplňování.

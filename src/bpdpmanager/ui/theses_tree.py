@@ -108,6 +108,15 @@ class ThesesTreeWidget(QTreeWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setSortingEnabled(False)
+        # Výběr řádku poloprůhledně + tučně, aby ZŮSTALO vidět barevné pozadí
+        # stavu posudku ve sloupci „Téma" (plný výběr ho dřív překryl).
+        self.setStyleSheet(
+            "QTreeWidget::item:selected { "
+            "background-color: rgba(64,132,240,0.28); color: palette(text); "
+            "font-weight: bold; }"
+            "QTreeWidget::item:selected:!active { "
+            "background-color: rgba(64,132,240,0.20); color: palette(text); }"
+        )
 
         h = self.header()
         h.setSectionResizeMode(self.COL_STUDENT, QHeaderView.ResizeMode.ResizeToContents)
