@@ -190,15 +190,22 @@ class SendReviewsDialog(QDialog):
         btn_settings.clicked.connect(self._open_settings)
         btn_cancel = QPushButton("Zavřít")
         btn_cancel.clicked.connect(self.reject)
+        self.btn_test = QPushButton("🧪 Test — poslat jen sobě")
+        self.btn_test.setToolTip(
+            "Pošle stejný e-mail (včetně PDF příloh) jen na tvůj e-mail — pro "
+            "kontrolu, než ho pošleš sekretářce. Posudky NEoznačí jako odeslané."
+        )
+        self.btn_test.clicked.connect(lambda: self._send(dry_run=True))
         self.btn_send = QPushButton("✉ Odeslat…")
         f = self.btn_send.font()
         f.setBold(True)
         self.btn_send.setFont(f)
         self.btn_send.setDefault(True)
-        self.btn_send.clicked.connect(self._send)
+        self.btn_send.clicked.connect(lambda: self._send(dry_run=False))
         row.addWidget(btn_settings)
         row.addStretch()
         row.addWidget(btn_cancel)
+        row.addWidget(self.btn_test)
         row.addWidget(self.btn_send)
         outer.addLayout(row)
 
@@ -376,6 +383,7 @@ class SendReviewsDialog(QDialog):
         total = len(self._row_items)
         self.lbl_count.setText(f"Vybráno {n} z {total}")
         self.btn_send.setEnabled(n > 0)
+        self.btn_test.setEnabled(n > 0)
 
     # --- text ----------------------------------------------------------------
 
@@ -432,7 +440,9 @@ class SendReviewsDialog(QDialog):
             if not self._user_email:
                 self.chk_cc.setChecked(False)
 
-    def _build_draft(self, items: list[_ReviewItem]) -> email_sender.MailDraft | None:
+    def _build_draft(
+        self, items: list[_ReviewItem], *, dry_run: bool = False
+    ) -> email_sender.MailDraft | None:
         sec = self._current_secretary()
         if sec is None:
             QMessageBox.warning(self, "Sekretářka", "Vyber sekretářku.")
@@ -446,30 +456,53 @@ class SendReviewsDialog(QDialog):
                 "a doplň ho.",
             )
             return None
-        cc = [from_addr] if (self.chk_cc.isChecked() and from_addr) else []
+
+        subject = self.ed_subject.text().strip() or email_sender.compose_subject(self.role)
+        body = self.ed_body.toPlainText()
+        if dry_run:
+            # Testovací odeslání jen sobě — nepřijde sekretářce.
+            to = [from_addr]
+            cc: list[str] = []
+            subject = f"[TEST] {subject}"
+            real_to = f"{sec.name} <{sec.email}>" if sec.name else sec.email
+            body = (
+                "‼ TESTOVACÍ ODESLÁNÍ — tento e-mail jde jen tobě, sekretářce "
+                f"se neodeslal.\nOstrý příjemce by byl: {real_to}\n"
+                "─────────────────────────────────────────────\n\n"
+            ) + body
+        else:
+            to = [sec.email]
+            cc = [from_addr] if (self.chk_cc.isChecked() and from_addr) else []
+
         return email_sender.MailDraft(
             from_addr=from_addr,
             from_name=self._sender_display(),
-            to=[sec.email],
+            to=to,
             cc=cc,
-            subject=self.ed_subject.text().strip() or email_sender.compose_subject(self.role),
-            body=self.ed_body.toPlainText(),
+            subject=subject,
+            body=body,
             attachments=[it.pdf_path for it in items],
         )
 
-    def _send(self) -> None:
+    def _send(self, dry_run: bool = False) -> None:
         items = self._checked_items()
         if not items:
             return
-        draft = self._build_draft(items)
+        draft = self._build_draft(items, dry_run=dry_run)
         if draft is None:
             return
 
         # Náhled / potvrzení před odesláním
         cc_line = f"\nKopie: {', '.join(draft.cc)}" if draft.cc else ""
+        header = (
+            "🧪 TEST — poslat jen sobě (sekretářce se nic nepošle):\n\n"
+            if dry_run
+            else ""
+        )
         confirm = QMessageBox.question(
             self,
-            "Odeslat e-mail?",
+            "Testovací odeslání?" if dry_run else "Odeslat e-mail?",
+            f"{header}"
             f"Komu: {', '.join(draft.to)}{cc_line}\n"
             f"Předmět: {draft.subject}\n"
             f"Příloh (PDF posudků): {len(draft.attachments)}\n\n"
@@ -500,7 +533,7 @@ class SendReviewsDialog(QDialog):
             sent_ok = True
         except email_sender.EmailError as exc:
             QApplication.restoreOverrideCursor()
-            self._offer_eml_fallback(draft, items, str(exc))
+            self._offer_eml_fallback(draft, items, str(exc), dry_run=dry_run)
             return
         except Exception as exc:  # noqa: BLE001
             QApplication.restoreOverrideCursor()
@@ -510,6 +543,15 @@ class SendReviewsDialog(QDialog):
             QApplication.restoreOverrideCursor()
 
         if sent_ok:
+            if dry_run:
+                # Test — neoznačovat jako odeslané, nechat dialog otevřený.
+                QMessageBox.information(
+                    self, "Testovací e-mail odeslán",
+                    f"Testovací e-mail s {len(items)} posudky byl odeslán na "
+                    f"{draft.to[0]} (jen tobě). Posudky nebyly označeny jako "
+                    "odeslané — zkontroluj e-mail a pak pošli sekretářce.",
+                )
+                return
             self._mark_sent(items)
             QMessageBox.information(
                 self, "Odesláno",
@@ -518,7 +560,8 @@ class SendReviewsDialog(QDialog):
             self.accept()
 
     def _offer_eml_fallback(
-        self, draft: email_sender.MailDraft, items: list[_ReviewItem], reason: str
+        self, draft: email_sender.MailDraft, items: list[_ReviewItem], reason: str,
+        *, dry_run: bool = False,
     ) -> None:
         choice = QMessageBox.question(
             self,
@@ -540,6 +583,14 @@ class SendReviewsDialog(QDialog):
             QMessageBox.critical(self, "Chyba", f"Nepodařilo se vytvořit .eml:\n{exc}")
             return
         _open_path(target)
+        if dry_run:
+            # Test — žádné označení odeslání, dialog zůstane otevřený.
+            QMessageBox.information(
+                self, "Testovací e-mail otevřen",
+                "Otevřel jsem testovací e-mail (jen tobě) v mailovém klientovi. "
+                "Posudky nebyly označeny jako odeslané.",
+            )
+            return
         mark = QMessageBox.question(
             self,
             "Otevřeno v mailu",

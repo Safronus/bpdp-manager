@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.36.2] - 2026-06-06
+
+### Added
+- **Testovací odeslání posudků (dry run).** V dialogu odesílání nové tlačítko
+  **🧪 Test — poslat jen sobě**: pošle stejný e-mail včetně PDF příloh jen na
+  vlastní e-mail (předmět „[TEST] …", v těle upozornění s ostrým příjemcem).
+  Posudky **neoznačí** jako odeslané a dialog nechá otevřený — pro kontrolu,
+  než se pošle sekretářce.
+
 ## [0.36.1] - 2026-06-05
 
 ### Changed

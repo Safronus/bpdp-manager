@@ -333,7 +333,11 @@ V dialogu:
    sestaví znovu dle výběru.
 4. **Kopie mně** (default zapnuto) — pošle kopii na tvůj e-mail, abys měl(a)
    jistotu, že mail odešel.
-5. **✉ Odeslat…** — po potvrzení tě aplikace vyzve k **heslu** (nikam se
+5. **🧪 Test — poslat jen sobě** — *dry run*: pošle úplně stejný e-mail
+   (včetně PDF příloh) **jen na tvůj e-mail**, abys ho zkontroloval(a), než
+   ho pošleš sekretářce. Posudky **neoznačí** jako odeslané a dialog nechá
+   otevřený.
+6. **✉ Odeslat…** — po potvrzení tě aplikace vyzve k **heslu** (nikam se
    neukládá) a odešle e-mail s **PDF posudky v příloze**. Odeslané práce se
    označí jako *odeslané*.
 
