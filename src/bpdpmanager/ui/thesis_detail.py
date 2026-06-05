@@ -1032,6 +1032,9 @@ class ThesisDetail(QWidget):
                 f"<p><b>PDF protokol:</b> {pdf_html}</p>"
             )
 
+        # ── Posudky (strukturovaná data) ───────────────────────────────────
+        reviews_section = self._build_reviews_summary_html(thesis, e, section_header_style)
+
         # ── STAG link ──────────────────────────────────────────────────────
         stag_html = ""
         if stag_url:
@@ -1061,7 +1064,72 @@ class ThesisDetail(QWidget):
             f"{cp('references', 'Zkopírovat literární zdroje')}</h3>"
             f"{ref_html}"
             f"{plag_section}"
+            f"{reviews_section}"
             "</body></html>"
+        )
+
+    def _build_reviews_summary_html(self, thesis, e, section_header_style: str) -> str:
+        """Náhled uložených posudků (current verze) pro Souhrn tab."""
+        reviews = [r for r in thesis.reviews if r.is_current]
+        if not reviews:
+            return ""
+        # Vedoucí první, pak oponent
+        reviews.sort(key=lambda r: 0 if r.role == "supervisor" else 1)
+
+        blocks: list[str] = []
+        for r in reviews:
+            role_label = "🎓 Posudek vedoucího" if r.role == "supervisor" else "🧐 Posudek oponenta"
+            grade = r.suggested_grade
+            grade_color = {
+                "A": "#2e7d32", "B": "#43a047", "C": "#fb8c00",
+                "D": "#f57c00", "E": "#e65100", "F": "#c62828", "FX": "#c62828",
+            }.get(grade, "#666")
+            grade_badge = (
+                f'<span style="background-color:{grade_color};color:white;'
+                f'padding:2px 10px;border-radius:8px;font-weight:bold;">{e(grade)}</span>'
+            )
+            # Kritéria — kompaktní seznam
+            crit_rows = ""
+            for c in r.criteria:
+                crit_rows += (
+                    f"<tr><td style='padding:1px 10px 1px 0;color:#555;'>{e(c.label)}</td>"
+                    f"<td style='padding:1px 6px;color:#888;text-align:center;'>×{c.weight:g}</td>"
+                    f"<td style='padding:1px 6px;text-align:center;'><b>{c.score:g}</b>/5</td></tr>"
+                )
+            crit_table = (
+                f"<table style='margin:4px 0 4px 12px;'>{crit_rows}</table>"
+                if crit_rows else ""
+            )
+            comment_html = (
+                e(r.overall_comment.strip()).replace("\n", "<br>")
+                if r.overall_comment.strip()
+                else "<span style='color:#888;font-style:italic;'>(bez komentáře)</span>"
+            )
+            files_bits = []
+            if r.xlsx_filename:
+                files_bits.append("📄 XLSX")
+            if r.pdf_filename:
+                files_bits.append("📕 PDF")
+            files_str = (
+                " · ".join(files_bits) if files_bits
+                else "<span style='color:#888;'>(soubory nevygenerovány)</span>"
+            )
+            blocks.append(
+                f"<div style='margin:6px 0 12px 0;padding:8px;"
+                f"border-left:3px solid {grade_color};background:rgba(128,128,128,0.06);'>"
+                f"<p style='margin:0 0 4px 0;'><b>{role_label}</b> &nbsp; "
+                f"body {r.total_weighted_points:.1f}/{r.max_points:g} &nbsp; "
+                f"známka {grade_badge}</p>"
+                f"{crit_table}"
+                f"<p style='margin:4px 0 0 0;'><b>Hodnocení:</b> {comment_html}</p>"
+                f"<p style='margin:2px 0 0 0;color:#888;font-size:11px;'>"
+                f"{files_str} &nbsp;·&nbsp; {e(r.place_date)}</p>"
+                f"</div>"
+            )
+
+        return (
+            f'<h3 style="{section_header_style}">📝 Posudky:</h3>'
+            + "".join(blocks)
         )
 
     def _on_summary_anchor_clicked(self, url: QUrl) -> None:

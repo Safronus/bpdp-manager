@@ -780,6 +780,14 @@ class GenerateReviewDialog(QDialog):
             ])
             item.setData(0, Qt.ItemDataRole.UserRole, tmpl.id)
             self.tree.addTopLevelItem(item)
+
+        # Auto-výběr šablony:
+        #  1) pokud pro práci existuje uložený posudek → jeho šablona
+        #  2) jinak jediná pasující šablona (typ + obor)
+        #  3) jinak první šablona role „supervisor" (u vedené práce je
+        #     uživatel vedoucí — to je nejčastější případ)
+        self._auto_select_template(templates)
+
         if self.tree.topLevelItemCount() == 0 and not self.chk_all.isChecked():
             # Žádná pasující — automaticky přepni na „Zobrazit všechny"
             note = QTreeWidgetItem([
@@ -794,6 +802,38 @@ class GenerateReviewDialog(QDialog):
             for c in range(5):
                 note.setForeground(c, QBrush(QColor("#888")))
             self.tree.addTopLevelItem(note)
+
+    def _select_template_id(self, template_id: str) -> bool:
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            if item.data(0, Qt.ItemDataRole.UserRole) == template_id:
+                self.tree.setCurrentItem(item)
+                return True
+        return False
+
+    def _auto_select_template(self, templates: list) -> None:
+        """Předvybere nejvhodnější šablonu (viz pravidla v _refresh_list)."""
+        if not templates:
+            return
+        # 1) Existující posudek (vedoucí preferován — uživatel je vedoucí práce)
+        for role in ("supervisor", "opponent"):
+            existing = self.service.get_current_review(
+                self.thesis.id, role, opposing=False
+            )
+            if existing is not None and existing.template_id:
+                if self._select_template_id(existing.template_id):
+                    return
+        # 2) Jediná pasující šablona
+        if len(templates) == 1:
+            self._select_template_id(templates[0].id)
+            return
+        # 3) První supervisor šablona
+        supervisors = [t for t in templates if t.role == "supervisor"]
+        if supervisors:
+            self._select_template_id(supervisors[0].id)
+            return
+        # 4) jinak první v seznamu
+        self._select_template_id(templates[0].id)
 
     def _update_button_state(self) -> None:
         current = self.tree.currentItem()
@@ -841,7 +881,40 @@ class GenerateReviewDialog(QDialog):
             self.thesis.id, tmpl.role, opposing=False
         )
 
+        continue_existing = False
         if existing is not None and existing.template_id == tmpl.id:
+            # Auto-návrh: pokračovat v rozpracovaných datech?
+            pts = existing.total_weighted_points
+            max_pts = existing.max_points
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Question)
+            msg.setWindowTitle("Rozpracovaný posudek")
+            msg.setText(
+                f"Pro tuto práci už existuje uložený posudek "
+                f"({'vedoucího' if tmpl.role == 'supervisor' else 'oponenta'}).\n\n"
+                f"Body: {pts:.1f} / {max_pts:g}  ·  "
+                f"známka {existing.suggested_grade}\n"
+                f"Naposledy upraveno: "
+                f"{existing.updated_at.strftime('%d.%m.%Y %H:%M')}"
+            )
+            btn_continue = msg.addButton(
+                "✏ Pokračovat v datech", QMessageBox.ButtonRole.AcceptRole
+            )
+            btn_fresh = msg.addButton(
+                "🆕 Začít znovu", QMessageBox.ButtonRole.DestructiveRole
+            )
+            msg.addButton(QMessageBox.StandardButton.Cancel)
+            msg.setDefaultButton(btn_continue)
+            msg.exec()
+            clicked = msg.clickedButton()
+            if clicked == btn_continue:
+                continue_existing = True
+            elif clicked == btn_fresh:
+                continue_existing = False
+            else:
+                return  # Cancel
+
+        if continue_existing:
             review = existing
         else:
             # Předvyplnění plagiátorství z práce (vedoucí ho v posudku uvádí).

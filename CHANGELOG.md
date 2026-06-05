@@ -7,6 +7,35 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-06-04
+
+### Added
+- **Auto-výběr šablony** v dialogu *Generovat posudek z šablony*.
+  Předvybere se nejvhodnější šablona:
+  1. Pokud pro práci existuje uložený posudek → jeho šablona.
+  2. Jinak jediná pasující šablona (typ + obor).
+  3. Jinak první šablona role *vedoucí* (u vedené práce je uživatel
+     vedoucí — nejčastější případ).
+  Tlačítko *Vyplnit a připojit* je rovnou aktivní.
+- **Náhled posudku v záložce 📋 Souhrn** u práce. Uložené posudky
+  (current verze) se zobrazí jako sekce *📝 Posudky*: role (🎓/🧐),
+  body / max, navržená známka (barevný badge), kompaktní výpis kritérií
+  se skóre, celkové hodnocení, indikace vygenerovaných souborů
+  (XLSX/PDF) + místo a datum.
+- **Auto-návrh „pokračovat v rozpracovaných datech"**. Když pro práci
+  + roli + šablonu už existuje uložený posudek, dialog se zeptá:
+  *✏ Pokračovat v datech* (body z minula) / *🆕 Začít znovu* / *Zrušit*.
+  Ukáže aktuální body, známku a datum poslední úpravy.
+
+### Changed
+- **Body v dílčích kritériích jsou nyní po celých bodech** (0–5),
+  ne po půlkách. ``QDoubleSpinBox`` → ``QSpinBox`` (krok 1, bez
+  desetinných míst). Vážený součet může být díky vahám stále desetinný
+  (např. 0,5 × 4 = 2,0).
+- **Editor posudku se otevírá ve větší velikosti** (960 × 940, minimum
+  900 × 600) — uživatel už nemusí dialog ručně zvětšovat, aby viděl
+  všechny sekce (kritéria, plagiátorství, hodnocení).
+
 ## [0.21.0] - 2026-06-04
 
 ### Added

@@ -28,7 +28,6 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -39,6 +38,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -78,7 +78,11 @@ class ReviewEditorDialog(QDialog):
         self.saved = False  # True po úspěšném Save (i bez generování souborů)
 
         self.setWindowTitle(f"Posudek — {review.template_name or review.role}")
-        self.setMinimumSize(880, 720)
+        # Minimum + výchozí velikost — editor má hodně sekcí (kritéria,
+        # plagiátorství, komentář), takže otevři rovnou dost vysoko, ať
+        # uživatel nemusí ručně zvětšovat.
+        self.setMinimumSize(900, 600)
+        self.resize(960, 940)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
@@ -149,7 +153,7 @@ class ReviewEditorDialog(QDialog):
             w.setTextFormat(Qt.TextFormat.RichText)
         crit_layout.addLayout(hdr_row)
 
-        self.score_spinboxes: list[QDoubleSpinBox] = []
+        self.score_spinboxes: list[QSpinBox] = []
         for cs in review.criteria:
             row = QHBoxLayout()
             lbl = QLabel(escape(cs.label))
@@ -163,12 +167,12 @@ class ReviewEditorDialog(QDialog):
             weight_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             row.addWidget(weight_lbl)
 
-            spin = QDoubleSpinBox()
-            spin.setRange(0.0, 5.0)
-            spin.setDecimals(1)
-            spin.setSingleStep(0.5)
-            spin.setValue(float(cs.score))
-            spin.setFixedWidth(70)
+            # Body 0–5 po celých bodech (ne po půlkách).
+            spin = QSpinBox()
+            spin.setRange(0, 5)
+            spin.setSingleStep(1)
+            spin.setValue(int(round(float(cs.score))))
+            spin.setFixedWidth(64)
             spin.valueChanged.connect(self._refresh_summary)
             row.addWidget(spin)
 
