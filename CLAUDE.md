@@ -17,6 +17,10 @@ akademického vedoucího. Komunikace v češtině, kód a identifikátory v angl
 4. **Stavy práce.** Přechody mezi stavy validuj v `services/thesis_service.py`,
    nesvazuj je s UI vrstvou.
 5. **Před většími změnami se ptej.** Uživatel preferuje konzultaci nad iterací.
+6. **Nápověda je jediný zdroj pravdy.** Při každé změně funkcí aktualizuj
+   `src/bpdpmanager/resources/napoveda.md` — renderuje ji in-app okno
+   (toolbar ❓ Nápověda / F1) i odkaz v README. Drž ji aktuální se stavem
+   aplikace.
 
 ## Spouštění
 

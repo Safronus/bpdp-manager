@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-06-05
+
+### Added
+- **Okno nápovědy ❓** (toolbar *❓ Nápověda* nebo klávesa **F1**).
+  Renderuje markdown s popisem všech funkcí a jak aplikace funguje —
+  rozcestník po sekcích (přehled, stavy, detail práce, psaní posudku,
+  šablony, oponentské posudky, STAG import, harmonogram, profily,
+  tipy). Obsahuje vyhledávací pole (Enter / *Další*) a tlačítko *Nahoru*.
+- **Jediný zdroj pravdy pro nápovědu** — obsah žije v
+  ``src/bpdpmanager/resources/napoveda.md``. In-app okno ho renderuje
+  přes ``QTextBrowser.setMarkdown`` a README na něj odkazuje, takže
+  se nikde neduplikuje. Při změně funkcí se aktualizuje jen tento soubor.
+- README dostal sekci s odkazem na nápovědu (in-app i markdown).
+- CLAUDE.md: nové pravidlo č. 6 — udržovat ``napoveda.md`` aktuální
+  se změnami funkcí.
+
 ## [0.21.4] - 2026-06-05
 
 ### Fixed

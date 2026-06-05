@@ -51,6 +51,7 @@ from .manage_dialogs import (
 )
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
+from .help_dialog import HelpDialog
 from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
 from .review_templates_dialog import GenerateReviewDialog, ReviewTemplatesDialog
@@ -326,6 +327,15 @@ class MainWindow(QMainWindow):
         act_refresh = QAction("Obnovit", self)
         act_refresh.triggered.connect(self._refresh_all)
         toolbar.addAction(act_refresh)
+
+        act_help = QAction("❓ Nápověda", self)
+        act_help.setToolTip("Popis funkcí a jak aplikace funguje (F1).")
+        act_help.setShortcut("F1")
+        act_help.triggered.connect(self._show_help)
+        toolbar.addAction(act_help)
+
+    def _show_help(self) -> None:
+        HelpDialog(self).exec()
 
     # --- profil --------------------------------------------------------------
 
