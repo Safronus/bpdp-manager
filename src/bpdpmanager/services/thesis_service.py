@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -1334,11 +1335,30 @@ class ThesisService:
         }
         for key, value in extras.items():
             cell = tmpl.field_cells.get(key)
-            if cell and value:
-                try:
+            if not cell or not value:
+                continue
+            try:
+                if key == "place_date":
+                    # POZOR: buňka „Místo, datum:" obvykle obsahuje v jednom
+                    # textu i podpisový blok, např.:
+                    #   "Místo, datum: ........   Podpis: ........"
+                    # Přímý zápis hodnoty by zničil label i pole pro podpis.
+                    # Proto nahradíme jen PRVNÍ souvislou tečkovanou linku
+                    # (za „Místo, datum:") hodnotou a zbytek (Podpis: …)
+                    # ponecháme nedotčený.
+                    existing = ws[cell].value
+                    if isinstance(existing, str) and "..." in existing:
+                        new_text = re.sub(r"\.{3,}", f" {value} ", existing, count=1)
+                        ws[cell] = new_text
+                    elif isinstance(existing, str) and existing.strip():
+                        # Label bez teček → připoj hodnotu za něj
+                        ws[cell] = f"{existing.rstrip()} {value}"
+                    else:
+                        ws[cell] = value
+                else:
                     ws[cell] = value
-                except Exception:  # noqa: BLE001
-                    pass
+            except Exception:  # noqa: BLE001
+                pass
 
         wb.save(target_path)
 

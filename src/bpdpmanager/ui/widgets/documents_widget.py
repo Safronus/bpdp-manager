@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,8 +16,8 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QMessageBox,
     QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -44,23 +44,19 @@ class DocumentsWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # tabulka — 5 sloupců (přidán Verze)
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(
-            ["Typ", "Verze", "Popis / soubor", "Zdroj", "Cesta / URL"]
-        )
-        self.table.verticalHeader().setVisible(False)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setAlternatingRowColors(True)
-        h = self.table.horizontalHeader()
-        h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        # Strom — agregace podle typu souboru (AttachmentKind → soubory).
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(4)
+        self.tree.setHeaderLabels(["Typ / soubor", "Verze", "Zdroj", "Cesta / URL"])
+        self.tree.setRootIsDecorated(True)
+        self.tree.setAlternatingRowColors(True)
+        h = self.tree.header()
+        h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        self.table.doubleClicked.connect(self._open_selected)
-        layout.addWidget(self.table)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.tree.itemDoubleClicked.connect(self._open_selected)
+        layout.addWidget(self.tree)
 
         # Toggle pro starší verze (defaultně schované)
         self.chk_show_old = QCheckBox("Zobrazit starší verze (superseded)")
@@ -126,91 +122,76 @@ class DocumentsWidget(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
-        self.table.setRowCount(0)
+        self.tree.clear()
         if not self.thesis_id:
             return
         thesis = self.service.get_thesis(self.thesis_id)
         if thesis is None:
             return
 
-        # Filtruj a setřiď:
-        # - default (chk_show_old=False): jen is_current=True
-        # - se zaškrtnutým chk_show_old: všechny, řadit kind asc → version desc
         show_old = self.chk_show_old.isChecked()
-        rows: list[tuple[int, "Attachment"]] = list(enumerate(thesis.attachments))
-        if not show_old:
-            rows = [(i, a) for i, a in rows if a.is_current]
-        # Sort: kind label asc, current first, version desc
-        rows.sort(
-            key=lambda pair: (
-                pair[1].kind.label.lower(),
-                0 if pair[1].is_current else 1,
-                -pair[1].version,
-            )
-        )
 
-        # Spočti počet superseded per kind pro hint v záhlaví current řádku
-        superseded_per_kind: dict[AttachmentKind, int] = {}
-        for _, att in enumerate(thesis.attachments):
-            if not att.is_current:
-                superseded_per_kind[att.kind] = (
-                    superseded_per_kind.get(att.kind, 0) + 1
-                )
+        # Seskup přílohy podle AttachmentKind. Pořadí skupin podle pořadí
+        # v enumu AttachmentKind (Text práce, Přílohy, Deník, Zadání,
+        # Posudky, Prezentace, STAG export, Jiné).
+        by_kind: dict[AttachmentKind, list[tuple[int, "Attachment"]]] = {}
+        for idx, att in enumerate(thesis.attachments):
+            by_kind.setdefault(att.kind, []).append((idx, att))
 
         gray_fg = QBrush(QColor("#888"))
-        for vis_row, (real_idx, att) in enumerate(rows):
-            self.table.insertRow(vis_row)
-            # Sloupec 0 = Typ
-            kind_item = QTableWidgetItem(att.kind.label)
-            f: QFont = kind_item.font()
-            f.setBold(att.is_current)
-            kind_item.setFont(f)
-            kind_item.setData(Qt.ItemDataRole.UserRole, real_idx)
-            self.table.setItem(vis_row, 0, kind_item)
+        kind_order = list(AttachmentKind)
 
-            # Sloupec 1 = Verze (např. "v3 ✓ current" nebo "v1 (superseded)")
-            if att.is_current:
-                older = superseded_per_kind.get(att.kind, 0)
-                version_text = (
-                    f"v{att.version} ✓"
-                    + (f"   (+{older} starší)" if older and not show_old else "")
-                )
-            else:
-                version_text = f"v{att.version}"
-            ver_item = QTableWidgetItem(version_text)
-            if not att.is_current:
-                ver_item.setForeground(gray_fg)
-            self.table.setItem(vis_row, 1, ver_item)
+        for kind in kind_order:
+            items = by_kind.get(kind)
+            if not items:
+                continue
+            # Filtruj superseded podle toggle
+            visible = items if show_old else [(i, a) for i, a in items if a.is_current]
+            if not visible:
+                continue
+            # Řazení uvnitř skupiny: current first, pak version desc
+            visible.sort(key=lambda pair: (0 if pair[1].is_current else 1, -pair[1].version))
 
-            # Sloupec 2 = Popis
-            label_item = QTableWidgetItem(att.label)
-            if not att.is_current:
-                label_item.setForeground(gray_fg)
-                lf = label_item.font()
-                lf.setItalic(True)
-                label_item.setFont(lf)
-            self.table.setItem(vis_row, 2, label_item)
+            superseded_count = sum(1 for _, a in items if not a.is_current)
+            group_label = kind.label
+            count_visible = len(visible)
+            extra = ""
+            if superseded_count and not show_old:
+                extra = f"  (+{superseded_count} starší verze)"
+            group_item = QTreeWidgetItem([f"{group_label}  ·  {count_visible}×{extra}", "", "", ""])
+            gf = group_item.font(0)
+            gf.setBold(True)
+            group_item.setFont(0, gf)
+            # group nemá UserRole index → není „vybíratelný" jako příloha
+            self.tree.addTopLevelItem(group_item)
 
-            # Sloupec 3 = Zdroj
-            source_item = QTableWidgetItem("📄 soubor" if att.is_file else "🔗 odkaz")
-            if not att.is_current:
-                source_item.setForeground(gray_fg)
-            self.table.setItem(vis_row, 3, source_item)
+            for real_idx, att in visible:
+                version_text = f"v{att.version}" + (" ✓" if att.is_current else "")
+                leaf = QTreeWidgetItem([
+                    att.label,
+                    version_text,
+                    "📄 soubor" if att.is_file else "🔗 odkaz",
+                    att.url_or_path,
+                ])
+                leaf.setData(0, Qt.ItemDataRole.UserRole, real_idx)
+                if not att.is_current:
+                    for c in range(4):
+                        leaf.setForeground(c, gray_fg)
+                    lf = leaf.font(0)
+                    lf.setItalic(True)
+                    leaf.setFont(0, lf)
+                group_item.addChild(leaf)
 
-            # Sloupec 4 = Cesta / URL
-            path_item = QTableWidgetItem(att.url_or_path)
-            if not att.is_current:
-                path_item.setForeground(gray_fg)
-            self.table.setItem(vis_row, 4, path_item)
+            group_item.setExpanded(True)
 
     # --- akce ----------------------------------------------------------------
 
     def _selected_index(self) -> int | None:
-        row = self.table.currentRow()
-        if row < 0:
+        item = self.tree.currentItem()
+        if item is None:
             return None
-        item = self.table.item(row, 0)
-        return item.data(Qt.ItemDataRole.UserRole) if item else None
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        return data if isinstance(data, int) else None
 
     def _current_kind(self) -> AttachmentKind:
         return AttachmentKind(self.cb_kind.currentData())
@@ -335,7 +316,7 @@ class DocumentsWidget(QWidget):
         self.refresh()
         self.changed.emit()
 
-    def _open_selected(self) -> None:
+    def _open_selected(self, *_args) -> None:
         if not self.thesis_id:
             return
         idx = self._selected_index()

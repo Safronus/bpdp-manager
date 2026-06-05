@@ -7,6 +7,27 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.21.4] - 2026-06-05
+
+### Fixed
+- **Vyplnění místa a data v posudku rozbíjelo podpisový blok.** Buňka
+  „Místo, datum:" v šabloně obsahuje v jednom textu i pole pro podpis
+  (např. ``„Místo, datum: ........  Podpis: ........"``). Filler hodnotu
+  zapisoval přes celou buňku → zmizel label „Místo, datum:", tečkovaná
+  linka i celá sekce „Podpis:" (a tedy i v PDF). Nově se nahradí jen
+  **první tečkovaná linka** za „Místo, datum:" — label i podpisový blok
+  zůstanou zachované. Výsledek:
+  ``„Místo, datum:  Zlín, 4. 6. 2026   …   Podpis: ........"``.
+
+### Changed
+- **Dokumenty u práce jsou agregované podle typu souboru.** Místo ploché
+  tabulky je strom seskupený podle ``AttachmentKind`` (Text práce,
+  Přílohy, Pracovní deník, Oficiální zadání, Posudek vedoucího, Posudek
+  oponenta, Prezentace, STAG export, Jiné). Posudky (XLSX/PDF generované
+  z šablony) jsou tak rovnou viditelné pod vlastní skupinou. Skupina
+  ukazuje počet souborů a počet starších verzí; toggle *Zobrazit starší
+  verze* je rozbalí. Pořadí skupin podle pracovního flow.
+
 ## [0.21.3] - 2026-06-05
 
 ### Fixed
