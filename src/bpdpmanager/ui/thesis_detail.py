@@ -1032,7 +1032,8 @@ class ThesisDetail(QWidget):
                 f"<p><b>PDF protokol:</b> {pdf_html}</p>"
             )
 
-        # ── Posudky (strukturovaná data) ───────────────────────────────────
+        # ── Známky + Posudky (strukturovaná data) ──────────────────────────
+        grades_section = self._build_grades_summary_html(thesis, e, section_header_style)
         reviews_section = self._build_reviews_summary_html(thesis, e, section_header_style)
 
         # ── STAG link ──────────────────────────────────────────────────────
@@ -1064,9 +1065,44 @@ class ThesisDetail(QWidget):
             f"{cp('references', 'Zkopírovat literární zdroje')}</h3>"
             f"{ref_html}"
             f"{plag_section}"
+            f"{grades_section}"
             f"{reviews_section}"
             "</body></html>"
         )
+
+    _GRADE_COLORS = {
+        "A": "#2e7d32", "B": "#43a047", "C": "#fb8c00",
+        "D": "#f57c00", "E": "#e65100", "F": "#c62828", "FX": "#c62828",
+    }
+
+    @classmethod
+    def _grade_badge_cell(cls, label: str, value: str, e) -> str:
+        """Vycentrovaná buňka se známkou (label nad barevným badge)."""
+        color = cls._GRADE_COLORS.get((value or "").upper(), "#9e9e9e")
+        disp = e(value) if value else "—"
+        return (
+            '<td style="padding:0 24px;text-align:center;vertical-align:top;">'
+            f'<div style="color:#666;font-size:10pt;text-align:center;">{e(label)}</div>'
+            f'<div style="background-color:{color};color:white;font-weight:bold;'
+            'font-size:18pt;padding:6px 16px;border-radius:6px;'
+            f'display:inline-block;text-align:center;min-width:28px;">{disp}</div>'
+            "</td>"
+        )
+
+    def _build_grades_summary_html(self, thesis, e, section_header_style: str) -> str:
+        """Známky (navržené z posudků) — vedoucí + oponent, nad sekcí Posudky."""
+        reviews = [r for r in thesis.reviews if r.is_current]
+        sup = next((r for r in reviews if r.role == "supervisor"), None)
+        opp = next((r for r in reviews if r.role == "opponent"), None)
+        if sup is None and opp is None:
+            return ""
+        table = (
+            "<table style='margin:12px auto;'><tr>"
+            + self._grade_badge_cell("Vedoucí:", sup.suggested_grade if sup else "", e)
+            + self._grade_badge_cell("Oponent:", opp.suggested_grade if opp else "", e)
+            + "</tr></table>"
+        )
+        return f'<h3 style="{section_header_style}">Známky</h3>{table}'
 
     def _build_reviews_summary_html(self, thesis, e, section_header_style: str) -> str:
         """Náhled uložených posudků (current verze) pro Souhrn tab."""

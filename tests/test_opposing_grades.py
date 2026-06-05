@@ -49,6 +49,31 @@ def test_opponent_grade_autofilled_from_review(service: ThesisService) -> None:
     assert refreshed.grade_opponent == review.suggested_grade == "E"
 
 
+def test_sync_opposing_grades_backfills_opponent(service: ThesisService) -> None:
+    """Existující oponentura bez známky se doplní z napsaného posudku."""
+    op = OpposingThesis(type=ThesisType.DP, academic_year="2025/2026")
+    op.reviews = [Review(
+        role="opponent", is_current=True,
+        criteria=[CriterionScore(row=10 + i, label=f"K{i}", weight=1.0, score=3.0)
+                  for i in range(7)],
+    )]
+    service.upsert_opposing_thesis(op)
+    assert service.get_opposing_thesis(op.id).grade_opponent == ""
+
+    synced = service.sync_opposing_grades(op.id)
+    assert synced.grade_opponent == "E"
+    assert service.get_opposing_thesis(op.id).grade_opponent == "E"
+
+
+def test_sync_does_not_overwrite_manual_grade(service: ThesisService) -> None:
+    op = OpposingThesis(type=ThesisType.DP, academic_year="2025/2026", grade_opponent="A")
+    op.reviews = [Review(role="opponent", is_current=True,
+                         criteria=[CriterionScore(row=10, label="K", weight=1.0, score=0.0)])]
+    service.upsert_opposing_thesis(op)
+    service.sync_opposing_grades(op.id)
+    assert service.get_opposing_thesis(op.id).grade_opponent == "A"  # ruční zůstane
+
+
 def test_supervisor_grade_from_uploaded_pdf(service: ThesisService, tmp_path: Path) -> None:
     op = OpposingThesis(type=ThesisType.DP, academic_year="2025/2026",
                         student_last_name="Pohanka")

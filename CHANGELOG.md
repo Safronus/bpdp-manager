@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-06-05
+
+### Changed
+- **Známky v Souhrnu jsou vycentrované** (vedoucí i oponent, u oponentur i
+  vedených prací).
+- **U vedených prací má Souhrn novou sekci „Známky"** (navržené z posudků)
+  hned nad sekcí „📝 Posudky" — stejně jako u oponentur.
+
+### Fixed
+- **Známky se doplní i zpětně.** Při otevření oponentury se chybějící známky
+  dopočítají z dříve napsaného posudku (oponent) a z dříve nahraného PDF
+  posudku vedoucího — ruční hodnoty se nepřepisují.
+
 ## [0.32.0] - 2026-06-05
 
 ### Added

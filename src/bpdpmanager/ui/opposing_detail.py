@@ -396,6 +396,10 @@ class OpposingDetail(QWidget):
             self.documents_widget.set_opposing_id(None)
             self._show_empty()
             return
+        # Doplň chybějící známky i zpětně (z napsaného posudku / nahraného PDF).
+        synced = self.service.sync_opposing_grades(op.id)
+        if synced is not None:
+            self.op = op = synced
         self._show_form()
 
         self._loading = True
@@ -722,21 +726,22 @@ class OpposingDetail(QWidget):
         else:
             obj_html = "<p style='color:#888;font-style:italic;'>(bez bodů zadání)</p>"
 
-        # Známky — velké barevné badge
+        # Známky — velké barevné badge (vycentrované)
         def grade_badge(label: str, value: str) -> str:
             color = self._grade_color(value)
             disp = e(value) if value else "—"
             return (
-                f'<td style="padding-right:24px;">'
-                f"<div style='color:#666;font-size:10pt;'>{label}</div>"
+                '<td style="padding:0 24px;text-align:center;vertical-align:top;">'
+                f"<div style='color:#666;font-size:10pt;text-align:center;'>{label}</div>"
                 f'<div style="background-color:{color};color:white;'
-                f"font-weight:bold;font-size:18pt;padding:6px 16px;"
-                f"border-radius:6px;display:inline-block;\">{disp}</div>"
-                f"</td>"
+                "font-weight:bold;font-size:18pt;padding:6px 16px;"
+                "border-radius:6px;display:inline-block;text-align:center;"
+                f'min-width:28px;">{disp}</div>'
+                "</td>"
             )
 
         grades_table = (
-            "<table style='margin:12px 0;'><tr>"
+            "<table style='margin:12px auto;'><tr>"
             + grade_badge("Vedoucí:", op.grade_supervisor)
             + grade_badge("Oponent (moje):", op.grade_opponent)
             + "</tr></table>"

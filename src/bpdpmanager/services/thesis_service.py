@@ -863,6 +863,49 @@ class ThesisService:
             return None
         return thesis_documents_dir(f"opposing-{op_id}") / attachment.url_or_path
 
+    def sync_opposing_grades(self, op_id: str) -> OpposingThesis | None:
+        """Doplní chybějící známky u oponentury (i zpětně, pro existující data).
+
+        - *Oponent (moje)* ← navržená známka z aktuálního napsaného posudku,
+        - *Vedoucí* ← vyčtená z nahraného PDF posudku vedoucího.
+
+        Plní jen prázdné hodnoty (nepřepisuje ručně zadané). Vrací (případně
+        aktualizovaný) ``OpposingThesis``.
+        """
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return None
+        changed = False
+
+        if not op.grade_opponent:
+            rev = next(
+                (r for r in op.reviews
+                 if r.role == "opponent" and r.is_current and r.criteria),
+                None,
+            )
+            if rev is not None:
+                op.grade_opponent = rev.suggested_grade
+                changed = True
+
+        if not op.grade_supervisor:
+            for a in op.attachments:
+                if (
+                    a.kind == AttachmentKind.SUPERVISOR_REVIEW
+                    and a.is_file
+                    and a.url_or_path.lower().endswith(".pdf")
+                ):
+                    path = self.opposing_document_absolute_path(op_id, a)
+                    if path is not None and path.exists():
+                        grade = extract_grade_from_pdf(path)
+                        if grade:
+                            op.grade_supervisor = grade
+                            changed = True
+                            break
+
+        if changed:
+            self.upsert_opposing_thesis(op)
+        return op
+
     # --- harmonogram napříč roky --------------------------------------------
 
     def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:
