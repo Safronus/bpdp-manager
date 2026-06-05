@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-06-06
+
+### Added
+- **Hromadné akce nad soubory.** V seznamu dokumentů lze označit více souborů
+  (Cmd/Ctrl/Shift) a přes pravý klik je **hromadně exportovat** do zvolené
+  složky nebo **odeslat jedním e-mailem** (všechny jako přílohy). Dialog
+  odeslání souboru nově umí více příloh.
+
 ## [0.42.1] - 2026-06-06
 
 ### Fixed

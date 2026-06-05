@@ -45,11 +45,15 @@ def _open_path(path: Path) -> None:
 
 class SendFileDialog(QDialog):
     def __init__(
-        self, profile_manager, file_path: Path, *, default_subject: str = "", parent=None
+        self, profile_manager, file_paths, *, default_subject: str = "", parent=None
     ) -> None:
         super().__init__(parent)
         self.profile_manager = profile_manager
-        self.file_path = Path(file_path)
+        # Přijmi jeden Path i seznam.
+        if isinstance(file_paths, (str, Path)):
+            self.file_paths = [Path(file_paths)]
+        else:
+            self.file_paths = [Path(p) for p in file_paths]
 
         self.setWindowTitle("Odeslat soubor e-mailem")
         self.setMinimumWidth(560)
@@ -74,15 +78,21 @@ class SendFileDialog(QDialog):
         self.ed_to.setPlaceholderText("příjemce@example.cz")
         form.addRow("Příjemce", self.ed_to)
 
-        self.ed_subject = QLineEdit(default_subject or self.file_path.name)
+        self.ed_subject = QLineEdit(default_subject or self.file_paths[0].name)
         form.addRow("Předmět", self.ed_subject)
 
-        self.lbl_attach = QLabel(f"📎 {self.file_path.name}")
-        form.addRow("Příloha", self.lbl_attach)
+        names = ", ".join(p.name for p in self.file_paths)
+        self.lbl_attach = QLabel(f"📎 {names}")
+        self.lbl_attach.setWordWrap(True)
+        self.lbl_attach.setToolTip(names)
+        form.addRow(f"Přílohy ({len(self.file_paths)})", self.lbl_attach)
         outer.addLayout(form)
 
+        word = "soubor" if len(self.file_paths) == 1 else "soubory"
         outer.addWidget(QLabel("Text e-mailu:"))
-        self.ed_body = QPlainTextEdit("Dobrý den,\n\nv příloze zasílám soubor.\n\nS pozdravem")
+        self.ed_body = QPlainTextEdit(
+            f"Dobrý den,\n\nv příloze zasílám {word}.\n\nS pozdravem"
+        )
         self.ed_body.setMinimumHeight(160)
         outer.addWidget(self.ed_body, stretch=1)
 
@@ -124,22 +134,25 @@ class SendFileDialog(QDialog):
         if not recipient:
             QMessageBox.warning(self, "Chybí příjemce", "Zadej e-mail příjemce.")
             return
-        if not self.file_path.is_file():
-            QMessageBox.warning(self, "Soubor", f"Soubor neexistuje:\n{self.file_path}")
+        missing = [p.name for p in self.file_paths if not p.is_file()]
+        if missing:
+            QMessageBox.warning(
+                self, "Soubor", "Neexistují soubory:\n" + "\n".join(missing)
+            )
             return
 
         profile = self.profile_manager.active
         draft = email_sender.MailDraft(
             from_addr=self._user_email,
             to=[recipient],
-            subject=self.ed_subject.text().strip() or self.file_path.name,
+            subject=self.ed_subject.text().strip() or self.file_paths[0].name,
             body=self.ed_body.toPlainText(),
-            attachments=[self.file_path],
+            attachments=list(self.file_paths),
         )
         confirm = QMessageBox.question(
             self, "Odeslat e-mail?",
-            f"Komu: {recipient}\nPředmět: {draft.subject}\nPříloha: {self.file_path.name}\n\n"
-            "Odeslat nyní?",
+            f"Komu: {recipient}\nPředmět: {draft.subject}\n"
+            f"Příloh: {len(self.file_paths)}\n\nOdeslat nyní?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Yes,
         )

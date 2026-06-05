@@ -56,6 +56,7 @@ class DocumentsWidget(QWidget):
         self.tree.setHeaderLabels(["Typ / soubor", "Verze", "Zdroj", "Cesta / URL"])
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
+        self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -450,23 +451,45 @@ class DocumentsWidget(QWidget):
         else:
             open_path(att.url_or_path)
 
+    def _selected_file_attachments(self) -> list[Attachment]:
+        """Vrátí přílohy-soubory napříč aktuálním výběrem (ne odkazy/skupiny)."""
+        work = self._get_work()
+        if work is None:
+            return []
+        out: list[Attachment] = []
+        for it in self.tree.selectedItems():
+            idx = it.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(idx, int) and 0 <= idx < len(work.attachments):
+                att = work.attachments[idx]
+                if att.is_file:
+                    out.append(att)
+        return out
+
     def _on_context_menu(self, pos) -> None:
         item = self.tree.itemAt(pos)
         # Jen nad konkrétní přílohou (leaf má UserRole index), ne nad skupinou.
         if item is None or not isinstance(item.data(0, Qt.ItemDataRole.UserRole), int):
             return
-        self.tree.setCurrentItem(item)
+        # Když kliknutý není ve výběru, vyber jen jeho (jinak zachovej multi-výběr).
+        if item not in self.tree.selectedItems():
+            self.tree.setCurrentItem(item)
         idx = item.data(0, Qt.ItemDataRole.UserRole)
         work = self._get_work()
         att = work.attachments[idx] if (work and 0 <= idx < len(work.attachments)) else None
         is_file = att is not None and att.is_file
+        sel_files = self._selected_file_attachments()
+        multi = len(sel_files) > 1
 
         menu = QMenu(self)
         act_open = menu.addAction("Otevřít")
         act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
-        # Akce nad souborem (ne nad odkazem/URL)
         act_copy = act_export = act_email = None
-        if is_file:
+        act_export_many = act_email_many = None
+        if multi:
+            menu.addSeparator()
+            act_export_many = menu.addAction(f"💾 Exportovat vybrané ({len(sel_files)})…")
+            act_email_many = menu.addAction(f"✉ Odeslat vybrané mailem ({len(sel_files)})…")
+        elif is_file:
             menu.addSeparator()
             act_copy = menu.addAction("📋 Kopírovat soubor (do schránky)")
             act_export = menu.addAction("💾 Exportovat na disk…")
@@ -488,8 +511,60 @@ class DocumentsWidget(QWidget):
             self._export_file(att)
         elif chosen == act_email:
             self._email_file(att)
+        elif chosen == act_export_many:
+            self._export_files(sel_files)
+        elif chosen == act_email_many:
+            self._email_files(sel_files)
 
     # --- akce nad souborem ---------------------------------------------------
+
+    def _export_files(self, atts: list[Attachment]) -> None:
+        """Exportuje více souborů do zvolené složky."""
+        paths = [(att, self._abs_path(att)) for att in atts]
+        paths = [(att, p) for att, p in paths if p is not None and p.exists()]
+        if not paths:
+            QMessageBox.warning(self, "Exportovat", "Žádný z vybraných souborů neexistuje.")
+            return
+        target_dir = QFileDialog.getExistingDirectory(
+            self, "Exportovat vybrané soubory do složky", str(Path.home())
+        )
+        if not target_dir:
+            return
+        ok, errors = 0, []
+        for _att, p in paths:
+            try:
+                shutil.copy2(p, Path(target_dir) / p.name)
+                ok += 1
+            except OSError as exc:
+                errors.append(f"{p.name}: {exc}")
+        msg = f"Exportováno {ok} z {len(paths)} souborů do:\n{target_dir}"
+        if errors:
+            msg += "\n\nChyby:\n" + "\n".join(errors)
+        QMessageBox.information(self, "Export", msg)
+
+    def _email_files(self, atts: list[Attachment]) -> None:
+        """Odešle více souborů jako přílohy jednoho e-mailu."""
+        paths = []
+        for att in atts:
+            p = self._abs_path(att)
+            if p is not None and p.exists():
+                paths.append(p)
+        if not paths:
+            QMessageBox.warning(self, "Odeslat mailem", "Žádný z vybraných souborů neexistuje.")
+            return
+        if self.profile_manager is None or self.profile_manager.active is None:
+            QMessageBox.information(
+                self, "Odeslat mailem",
+                "Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem "
+                "(👤 → Nastavení e-mailu).",
+            )
+            return
+        from ..send_file_dialog import SendFileDialog
+
+        SendFileDialog(
+            self.profile_manager, paths,
+            default_subject=f"Soubory ({len(paths)})", parent=self,
+        ).exec()
 
     def _copy_file_to_clipboard(self, att: Attachment) -> None:
         """Zkopíruje SOUBOR do schránky (jde vložit do Finderu / mailu), ne cestu."""

@@ -231,6 +231,10 @@ oponenta, Prezentace, STAG export, Jiné).
     předmět a text; odesílá se z tvého e-mailu přes **SMTP** (heslo se ptá při
     odeslání, neukládá se — viz *Nastavení e-mailu*). Při selhání SMTP nabídne
     fallback přes .eml.
+
+  > **Více souborů najednou:** označ více souborů (Cmd/Ctrl/Shift klik) a přes
+  > pravý klik je můžeš **hromadně exportovat** do zvolené složky nebo
+  > **odeslat jedním e-mailem** (všechny jako přílohy).
 - **Chybějící soubory:** když soubor smažeš ručně mimo aplikaci (např.
   ve Finderu), aplikace se nerozbije — záznam zůstane, ale zobrazí se
   červeně s *⚠ chybí soubor*. Tlačítko **🧹 Odklidit chybějící** odebere
