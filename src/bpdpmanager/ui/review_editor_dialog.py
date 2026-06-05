@@ -23,7 +23,7 @@ from __future__ import annotations
 from html import escape
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPlainTextEdit,
+    QProgressDialog,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -46,6 +47,33 @@ from PySide6.QtWidgets import (
 from ..models import Review
 from ..services import ThesisService
 from ._os_actions import open_path, reveal_in_file_manager
+
+
+class _GenerateWorker(QThread):
+    """Generuje XLSX + PDF mimo hlavní vlákno, ať se UI (progress) nezasekne.
+
+    LibreOffice převod do PDF je blokující subprocess — kdyby běžel v hlavním
+    vlákně, progress bar by zamrznul. Worker jen volá službu a hlásí výsledek.
+    """
+
+    finished_ok = Signal(object, object)  # (xlsx_path, pdf_path|None)
+    failed = Signal(str)
+
+    def __init__(self, service, thesis_id, review, opposing, parent=None) -> None:
+        super().__init__(parent)
+        self._service = service
+        self._thesis_id = thesis_id
+        self._review = review
+        self._opposing = opposing
+
+    def run(self) -> None:
+        try:
+            xlsx, pdf = self._service.generate_review_files(
+                self._thesis_id, self._review, opposing=self._opposing, also_pdf=True
+            )
+            self.finished_ok.emit(xlsx, pdf)
+        except Exception as exc:  # noqa: BLE001
+            self.failed.emit(str(exc))
 
 
 class ReviewEditorDialog(QDialog):
@@ -347,27 +375,50 @@ class ReviewEditorDialog(QDialog):
             QMessageBox.critical(self, "Uložení dat selhalo", str(exc))
             return
 
-        try:
-            xlsx, pdf = self.service.generate_review_files(
-                self.thesis_id, self.review, opposing=self.opposing,
-                also_pdf=True,
-            )
-        except Exception as exc:  # noqa: BLE001
+        # Generování XLSX + PDF běží ve vlákně, ať progress nezamrzne (PDF
+        # převod je blokující). Ukážeme „busy" indikátor po dobu generování.
+        progress = QProgressDialog(
+            "Generuji posudek (vyplňuji XLSX a převádím do PDF)…",
+            "", 0, 0, self,
+        )
+        progress.setWindowTitle("Generování posudku")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setCancelButton(None)  # krátká operace — bez rušení
+        progress.setAutoClose(False)
+        progress.setAutoReset(False)
+
+        result: dict[str, object] = {"xlsx": None, "pdf": None, "error": None}
+        worker = _GenerateWorker(
+            self.service, self.thesis_id, self.review, self.opposing, self
+        )
+        worker.finished_ok.connect(
+            lambda x, p: (result.update(xlsx=x, pdf=p), progress.reset())
+        )
+        worker.failed.connect(
+            lambda msg: (result.update(error=msg), progress.reset())
+        )
+        worker.start()
+        progress.exec()
+        worker.wait()
+
+        if result["error"] is not None:
             QMessageBox.critical(
                 self,
                 "Generování selhalo",
-                f"Data byla uložena, ale generování XLSX/PDF skončilo chybou:\n{exc}",
+                f"Data byla uložena, ale generování XLSX/PDF skončilo chybou:\n"
+                f"{result['error']}",
             )
             self.saved = True
             self.accept()
             return
 
         self.saved = True
-        self.generated_xlsx = xlsx
-        self.generated_pdf = pdf
+        self.generated_xlsx = result["xlsx"]
+        self.generated_pdf = result["pdf"]
 
         # Sumární dialog s tlačítky pro otevření
-        self._show_done_dialog(xlsx, pdf)
+        self._show_done_dialog(result["xlsx"], result["pdf"])
         self.accept()
 
     def _show_done_dialog(self, xlsx: Path, pdf: Path | None) -> None:

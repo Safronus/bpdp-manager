@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-06-05
+
+### Added
+- **Indikátor průběhu při generování posudku.** Při „Uložit & vyrobit XLSX +
+  PDF" se ukáže okno *Generování posudku…* s animovaným ukazatelem. Generování
+  (vč. blokujícího převodu do PDF přes LibreOffice) běží v **odděleném vlákně**,
+  takže se UI nezasekne a ukazatel se hýbe.
+
+### Changed
+- **Přehlednější toolbar.** Tlačítka mají emoji ikony a jsou **barevně
+  seskupená** (jemné podbarvení): zelená *Vytvořit* (➕ Nová práce · 🌱 Zájemce ·
+  🕘 Minulá práce), modrá *Správa* (🎓 Studenti · 🧐 Oponenti · 👔 Vedoucí ·
+  🏷 Obory), fialová 📝 *Šablony posudků*, tyrkysová 📥 *Import ze STAG*, šedá
+  👤 Profil · 🔄 Obnovit · ❓ Nápověda. Funguje i v tmavém režimu (průhledné
+  podbarvení).
+
 ## [0.31.8] - 2026-06-05
 
 ### Added

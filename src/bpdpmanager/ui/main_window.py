@@ -284,93 +284,113 @@ class MainWindow(QMainWindow):
 
     # --- toolbar -------------------------------------------------------------
 
+    # Barvy skupin toolbaru (RGB) — jen jako jemný podklad tlačítek (rgba),
+    # aby to fungovalo i v tmavém režimu.
+    _GROUP_CREATE = (76, 175, 80)    # zelená — vytvořit
+    _GROUP_MANAGE = (33, 150, 243)   # modrá — správa registrů
+    _GROUP_REVIEW = (156, 39, 176)   # fialová — posudky
+    _GROUP_IMPORT = (0, 150, 136)    # tyrkysová — import
+    _GROUP_NEUTRAL = (120, 120, 120)  # šedá — profil / akce
+
+    def _tint_toolbar_button(self, toolbar: QToolBar, action: QAction, rgb) -> None:
+        btn = toolbar.widgetForAction(action)
+        if btn is not None:
+            self._tint_widget(btn, rgb)
+
+    @staticmethod
+    def _tint_widget(widget, rgb) -> None:
+        r, g, b = rgb
+        widget.setStyleSheet(
+            f"QToolButton {{ background: rgba({r},{g},{b},0.13); "
+            f"border: 1px solid rgba({r},{g},{b},0.34); border-radius: 5px; "
+            f"padding: 4px 9px; margin: 2px 2px; }} "
+            f"QToolButton:hover {{ background: rgba({r},{g},{b},0.26); }} "
+            f"QToolButton:pressed {{ background: rgba({r},{g},{b},0.40); }}"
+        )
+
     def _build_toolbar(self, current_year: str, next_year: str) -> None:
         toolbar = QToolBar("Hlavní")
         toolbar.setMovable(False)
+        toolbar.setIconSize(toolbar.iconSize())
         self.addToolBar(toolbar)
 
-        act_new_thesis = QAction("+ Nová práce", self)
-        act_new_thesis.setToolTip(
+        def add(label: str, handler, rgb, tooltip: str = "", shortcut: str = ""):
+            act = QAction(label, self)
+            if tooltip:
+                act.setToolTip(tooltip)
+            if shortcut:
+                act.setShortcut(shortcut)
+            act.triggered.connect(handler)
+            toolbar.addAction(act)
+            self._tint_toolbar_button(toolbar, act, rgb)
+            return act
+
+        # ── Skupina: Vytvořit (zelená) ──────────────────────────────────
+        add(
+            "➕ Nová práce", lambda: self._new_thesis_smart(), self._GROUP_CREATE,
             "Vytvoří novou práci. Výchozí stav se odvodí z aktuálního tabu:\n"
             "  Aktuální → V řešení\n  Budoucí → Vypsané téma\n"
-            "  Historie → Obhájeno\n  Vše → Vypsané téma"
+            "  Historie → Obhájeno\n  Vše → Vypsané téma",
         )
-        act_new_thesis.triggered.connect(lambda: self._new_thesis_smart())
-        toolbar.addAction(act_new_thesis)
-
-        act_new_interest = QAction("+ Zájemce (bez tématu)", self)
-        act_new_interest.setToolTip(
-            "Rychlé přidání zájemce o budoucí téma (status: Zájemce bez tématu)."
+        add(
+            "🌱 Zájemce", lambda: self._new_thesis(next_year, ThesisStatus.INTERESTED),
+            self._GROUP_CREATE,
+            "Rychlé přidání zájemce o budoucí téma (status: Zájemce bez tématu).",
         )
-        act_new_interest.triggered.connect(
-            lambda: self._new_thesis(next_year, ThesisStatus.INTERESTED)
+        add(
+            "🕘 Minulá práce", self._new_past_thesis, self._GROUP_CREATE,
+            "Rychlý formulář pro historickou práci (vlastní rok + stav).",
         )
-        toolbar.addAction(act_new_interest)
-
-        act_new_past = QAction("+ Minulá práce", self)
-        act_new_past.setToolTip("Rychlý formulář pro historickou práci (vlastní rok + stav).")
-        act_new_past.triggered.connect(self._new_past_thesis)
-        toolbar.addAction(act_new_past)
 
         toolbar.addSeparator()
 
-        act_students = QAction("Studenti", self)
-        act_students.triggered.connect(self._manage_students)
-        toolbar.addAction(act_students)
-
-        act_opponents = QAction("Oponenti", self)
-        act_opponents.triggered.connect(self._manage_opponents)
-        toolbar.addAction(act_opponents)
-
-        act_supervisors = QAction("Vedoucí", self)
-        act_supervisors.setToolTip("Registr vedoucích cizích BP/DP — pro oponentské posudky")
-        act_supervisors.triggered.connect(self._manage_supervisors)
-        toolbar.addAction(act_supervisors)
-
-        act_obory = QAction("Obory", self)
-        act_obory.triggered.connect(self._manage_obory)
-        toolbar.addAction(act_obory)
+        # ── Skupina: Správa registrů (modrá) ────────────────────────────
+        add("🎓 Studenti", self._manage_students, self._GROUP_MANAGE)
+        add("🧐 Oponenti", self._manage_opponents, self._GROUP_MANAGE)
+        add(
+            "👔 Vedoucí", self._manage_supervisors, self._GROUP_MANAGE,
+            "Registr vedoucích cizích BP/DP — pro oponentské posudky",
+        )
+        add("🏷 Obory", self._manage_obory, self._GROUP_MANAGE)
 
         toolbar.addSeparator()
 
-        act_templates = QAction("📝 Šablony posudků", self)
-        act_templates.setToolTip(
+        # ── Skupina: Posudky (fialová) ──────────────────────────────────
+        add(
+            "📝 Šablony posudků", self._manage_review_templates, self._GROUP_REVIEW,
             "Knihovna XLSX šablon posudků (vedoucího / oponenta) — "
-            "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek."
+            "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek.",
         )
-        act_templates.triggered.connect(self._manage_review_templates)
-        toolbar.addAction(act_templates)
 
         toolbar.addSeparator()
 
-        act_stag_import = QAction("📥 Import ze STAG…", self)
-        act_stag_import.setToolTip(
+        # ── Skupina: Import (tyrkysová) ─────────────────────────────────
+        add(
+            "📥 Import ze STAG…", self._import_from_stag, self._GROUP_IMPORT,
             "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
-            "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky."
+            "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.",
         )
-        act_stag_import.triggered.connect(self._import_from_stag)
-        toolbar.addAction(act_stag_import)
 
         toolbar.addSeparator()
 
-        # Profile switcher (pouze pokud máme ProfileManager)
+        # ── Profil (šedá) + akce ────────────────────────────────────────
         if self.profile_manager is not None:
             self._profile_button = QToolButton()
-            self._profile_button.setText("👤 " + (self.profile_manager.active.name if self.profile_manager.active else "Profil"))
+            self._profile_button.setText(
+                "👤 "
+                + (self.profile_manager.active.name if self.profile_manager.active else "Profil")
+            )
             self._profile_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            self._tint_widget(self._profile_button, self._GROUP_NEUTRAL)
             self._refresh_profile_menu()
             toolbar.addWidget(self._profile_button)
             toolbar.addSeparator()
 
-        act_refresh = QAction("Obnovit", self)
-        act_refresh.triggered.connect(self._refresh_all)
-        toolbar.addAction(act_refresh)
-
-        act_help = QAction("❓ Nápověda", self)
-        act_help.setToolTip("Popis funkcí a jak aplikace funguje (F1).")
-        act_help.setShortcut("F1")
-        act_help.triggered.connect(self._show_help)
-        toolbar.addAction(act_help)
+        add("🔄 Obnovit", self._refresh_all, self._GROUP_NEUTRAL)
+        add(
+            "❓ Nápověda", self._show_help, self._GROUP_NEUTRAL,
+            "Popis funkcí a jak aplikace funguje (F1).", shortcut="F1",
+        )
 
     def _show_help(self) -> None:
         HelpDialog(self).exec()

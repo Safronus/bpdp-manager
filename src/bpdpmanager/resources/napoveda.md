@@ -91,8 +91,10 @@ Teď můžeš:
 
 ## Přehled obrazovky
 
-Hlavní okno má nahoře **toolbar**, pod ním **🔍 vyhledávací pole** a pak
-**záložky** (taby):
+Hlavní okno má nahoře **toolbar** (tlačítka jsou barevně seskupená:
+zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
+*Import ze STAG*, šedá *Profil / Obnovit / Nápověda*), pod ním
+**🔍 vyhledávací pole** a pak **záložky** (taby):
 
 - **Aktuální** — práce ve stavu *V řešení*
 - **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
@@ -229,6 +231,8 @@ Workflow:
 3. **Uložit & vyrobit XLSX + PDF** — data se uloží do práce (JSON),
    vyplní se XLSX šablona a (pokud je nainstalován LibreOffice)
    vygeneruje PDF. Oba soubory se připojí jako příloha typu posudek.
+   Během generování (pár sekund — hlavně převod do PDF) se ukáže okno
+   s **ukazatelem průběhu**; běží na pozadí, takže aplikace nezamrzne.
 4. **Po vygenerování** zůstane otevřené okno s akcemi **📄 Otevřít XLSX**,
    **📕 Otevřít PDF** a **📂 Ukázat ve Finderu** — můžeš otevřít obojí
    z jednoho místa, okno se zavře až tlačítkem *Zavřít*. Seznam dokumentů
