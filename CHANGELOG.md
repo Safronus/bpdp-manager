@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.5] - 2026-06-05
+
+### Added
+- **Souhrn oponentského posudku ukazuje napsaný posudek.** V záložce
+  *🧐 Oponentské posudky* → *📋 Souhrn* je nově sekce **📝 Napsaný posudek**
+  se strukturovanými daty (body, procenta, navržená známka, kritéria,
+  komentář, vygenerované soubory) — stejně jako u vedených prací posudek
+  vedoucího.
+
 ## [0.31.4] - 2026-06-05
 
 ### Changed
