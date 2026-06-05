@@ -700,13 +700,37 @@ class GenerateReviewDialog(QDialog):
         )
         outer.addWidget(ctx)
 
+        # ── Pokračovat v posledním posudku ──────────────────────────────
+        # Pokud pro práci existuje uložený posudek, nabídni přímý vstup do
+        # editoru bez výběru šablony (naváže na poslední vyplnění).
+        last_review = self._latest_current_review()
+        if last_review is not None:
+            cont_row = QHBoxLayout()
+            role_lbl = "vedoucího" if last_review.role == "supervisor" else "oponenta"
+            self.btn_continue_last = QPushButton(
+                f"✏ Pokračovat v posledním posudku ({role_lbl}, "
+                f"{last_review.suggested_grade}, "
+                f"upraveno {last_review.updated_at.strftime('%d.%m.%Y %H:%M')})"
+            )
+            self.btn_continue_last.setToolTip(
+                "Otevře editor s naposledy uloženými daty posudku — "
+                "navážeš tam, kde jsi přestal."
+            )
+            bf2 = self.btn_continue_last.font()
+            bf2.setBold(True)
+            self.btn_continue_last.setFont(bf2)
+            self.btn_continue_last.clicked.connect(self._continue_last_review)
+            cont_row.addWidget(self.btn_continue_last, stretch=1)
+            outer.addLayout(cont_row)
+
         # ── Filtr ──────────────────────────────────────────────────────
+        # Default zaškrtnuto — auto-filtr podle oboru bývá příliš striktní
+        # (kód studenta „NSWI-P" se nemusí trefit do oboru šablony „SWI"),
+        # takže uživatel raději vidí vše a správnou šablonu mu předvybereme.
         self.chk_all = QCheckBox("Zobrazit všechny šablony (vypnout auto-filtr)")
+        self.chk_all.setChecked(True)
         self.chk_all.toggled.connect(self._refresh_list)
         outer.addWidget(self.chk_all)
-
-        # (chk_auto_open zrušeno v 0.19.0 — editor sám nabízí
-        # otevření XLSX/PDF přes tlačítka po dokončení.)
 
         # ── Tabulka šablon ──────────────────────────────────────────────
         self.tree = QTreeWidget()
@@ -739,6 +763,32 @@ class GenerateReviewDialog(QDialog):
         self._refresh_list()
 
     # ── helpers ─────────────────────────────────────────────────────────
+
+    def _latest_current_review(self):
+        """Vrátí naposledy upravený current Review pro tuto práci (libovolná role)."""
+        reviews = [r for r in self.service.list_reviews(self.thesis.id) if r.is_current]
+        if not reviews:
+            return None
+        return max(reviews, key=lambda r: r.updated_at)
+
+    def _continue_last_review(self) -> None:
+        """Otevře editor přímo s posledním uloženým posudkem."""
+        review = self._latest_current_review()
+        if review is None:
+            return
+        # Pokud má posudek šablonu, doplň jí schema (kvůli generování souborů).
+        if review.template_id:
+            tmpl = self.service.get_review_template(review.template_id)
+            if tmpl is not None:
+                self.service.ensure_template_schema(tmpl)
+        from .review_editor_dialog import ReviewEditorDialog
+
+        editor = ReviewEditorDialog(
+            self.service, self.thesis.id, review, opposing=False, parent=self
+        )
+        if editor.exec() and editor.saved:
+            self.generated_path = editor.generated_xlsx
+            self.accept()
 
     def _student_obor_code(self) -> str:
         """Pokus odvodit kód oboru pro filtr (např. „SWI") z student.obor.

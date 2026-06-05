@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.21.3] - 2026-06-05
+
+### Fixed
+- **Dialog „Generovat posudek" defaultně neukazoval žádné šablony.**
+  Auto-filtr podle oboru byl příliš striktní — kód odvozený ze
+  studentova oboru (např. „NSWI-P" → „NSWI") se netrefil do oboru
+  šablony („SWI"), takže filtrovaný seznam byl prázdný. Checkbox
+  *Zobrazit všechny šablony* je nyní **defaultně zaškrtnutý** —
+  uživatel vidí všechny šablony a tu správnou mu i nadále auto-vybereme.
+
+### Added
+- **Tlačítko „✏ Pokračovat v posledním posudku"** v dialogu pro
+  napsání posudku. Pokud pro práci existuje uložený posudek, tlačítko
+  (s rolí, navrženou známkou a datem poslední úpravy) otevře editor
+  přímo s uloženými daty — bez nutnosti znovu vybírat šablonu.
+  Naváže tam, kde uživatel přestal.
+
 ## [0.21.2] - 2026-06-05
 
 ### Fixed
