@@ -494,6 +494,26 @@ v následujících 60 dnech.
 
 ---
 
+## Statistiky
+
+Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný přehled napříč
+budoucími, aktuálními i historickými pracemi. Přepočítá se při každém otevření
+(nebo tlačítkem *🔄 Přepočítat*). Obsahuje:
+
+- **Souhrn** — KPI karty: vedené práce, V řešení, budoucí, historie,
+  oponentury, studenti.
+- **Podle stavu** — kolik prací je v jednotlivých stavech (barevné pruhy).
+- **Bakalářské vs diplomové** — poměr BP/DP.
+- **Podle akademického roku** — tabulka rok → celkem / BP / DP / V řešení /
+  obhájeno / nedokončeno.
+- **Podle oboru** — rozložení prací mezi obory.
+- **Úspěšnost obhajob** — z dokončených prací (obhájeno vs nedokončeno) + %.
+- **Známky obhájených** — rozložení navržených známek vedoucího (A–F).
+- **Posudky** — hotové / rozpracované / chybí (vedoucí), hotové / chybí
+  (oponentské) a kolik jich bylo odesláno sekretářce.
+
+---
+
 ## Profily a data
 
 Aplikace podporuje **víc datových profilů** (osobní / sdílený / pro

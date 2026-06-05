@@ -47,6 +47,7 @@ from ..services import (
 from ..storage import JsonRepository
 from .backup_dialog import BackupBrowserDialog
 from .harmonogram_tab import HarmonogramTab
+from .stats_tab import StatsTab
 from .import_into_current_dialog import ImportIntoCurrentDialog
 from .manage_dialogs import (
     OboryManageDialog,
@@ -210,6 +211,7 @@ class MainWindow(QMainWindow):
         self.tab_opposing = OpposingTab(service, profile_manager=pm)
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
         self.tab_harmonogram = HarmonogramTab(service)
+        self.tab_stats = StatsTab(service)
 
         # Tab labely (bez roku — status-driven, jeden tab = jeden bucket napříč roky)
         self.tabs.addTab(self.tab_current, "Aktuální")
@@ -218,6 +220,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_all, "Vše")
         self.tabs.addTab(self.tab_opposing, "🧐 Oponentské posudky")
         self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
+        self.tabs.addTab(self.tab_stats, "📊 Statistiky")
 
         # Globální vyhledávání + navigace nad záložkami.
         central = QWidget()
@@ -249,6 +252,7 @@ class MainWindow(QMainWindow):
             tab.data_changed.connect(self._update_status)
         self.tab_opposing.changed.connect(self._update_status)
         self.tabs.currentChanged.connect(lambda _: self._update_status())
+        self.tabs.currentChanged.connect(self._on_tab_changed)
 
         self._build_toolbar(current_year, next_year)
         self._update_status()
@@ -419,6 +423,12 @@ class MainWindow(QMainWindow):
             "❓ Nápověda", self._show_help, self._GROUP_NEUTRAL,
             "Popis funkcí a jak aplikace funguje (F1).", shortcut="F1",
         )
+
+    def _on_tab_changed(self, index: int) -> None:
+        """Při přepnutí na Statistiky je přepočítej z aktuálních dat."""
+        widget = self.tabs.widget(index)
+        if isinstance(widget, StatsTab):
+            widget.refresh()
 
     def _show_help(self) -> None:
         HelpDialog(self).exec()
@@ -1024,6 +1034,8 @@ class MainWindow(QMainWindow):
                 widget.refresh_combos()
             elif isinstance(widget, HarmonogramTab):
                 widget._refresh_year_combo()
+            elif isinstance(widget, StatsTab):
+                widget.refresh()
         self._update_status()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt API)

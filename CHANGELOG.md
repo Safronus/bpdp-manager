@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-06-06
+
+### Added
+- **Záložka 📊 Statistiky** (za Harmonogramem) — souhrnný přehled napříč
+  budoucími, aktuálními i historickými pracemi: KPI karty (vedené / V řešení /
+  budoucí / historie / oponentury / studenti), rozpady podle stavu, BP vs DP,
+  akademického roku, oboru, úspěšnost obhajob, rozložení známek a přehled
+  posudků (hotové / chybí / odesláno). Přepočítá se při otevření i tlačítkem.
+
 ## [0.40.0] - 2026-06-06
 
 ### Changed
