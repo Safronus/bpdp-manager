@@ -38,6 +38,7 @@ from .file_naming import (
     subdir_for,
 )
 from .harmonogram_parser import parse_pdf
+from .review_pdf import extract_grade_from_pdf
 from .review_schema import extract_template_metadata, extract_template_schema
 from .review_template_filler import (
     fill_template,
@@ -820,6 +821,17 @@ class ThesisService:
             is_current=True,
         )
         op.attachments.append(attachment)
+
+        # Z nahraného PDF posudku VEDOUCÍHO zkus vyčíst navrženou známku a
+        # doplnit ji (externí vedoucí dodá hotové PDF — nemáme strukturovaná data).
+        if (
+            kind == AttachmentKind.SUPERVISOR_REVIEW
+            and target_path.suffix.lower() == ".pdf"
+        ):
+            grade = extract_grade_from_pdf(target_path)
+            if grade:
+                op.grade_supervisor = grade
+
         self.upsert_opposing_thesis(op)
 
         if delete_source:
@@ -1397,6 +1409,13 @@ class ThesisService:
                         r.is_current = False
 
         if opposing:
+            # Známku v OpposingThesis automaticky doplň z napsaného posudku
+            # (oponentova z opponent role, vedoucího z případné supervisor role).
+            if review.is_current and review.criteria:
+                if review.role == "opponent":
+                    op.grade_opponent = review.suggested_grade
+                elif review.role == "supervisor":
+                    op.grade_supervisor = review.suggested_grade
             self.upsert_opposing_thesis(op)
         else:
             self.upsert_thesis(t)

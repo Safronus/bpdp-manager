@@ -362,10 +362,19 @@ class OpposingDetail(QWidget):
         return w
 
     def _on_documents_changed(self) -> None:
-        # Dokumenty se mění přímo přes službu — jen přenačti detail/souhrn.
-        if self.op is not None:
-            self.op = self.service.get_opposing_thesis(self.op.id)
-            self._refresh_summary()
+        # Dokumenty se mění přímo přes službu — přenačti op a souhrn. Nahrání PDF
+        # posudku vedoucího mohlo doplnit známku → promítni i do polí v Detailu.
+        if self.op is None:
+            return
+        self.op = self.service.get_opposing_thesis(self.op.id)
+        was_loading = self._loading
+        self._loading = True
+        try:
+            self.cb_grade_sup.setCurrentText(self.op.grade_supervisor or "")
+            self.cb_grade_opp.setCurrentText(self.op.grade_opponent or "")
+        finally:
+            self._loading = was_loading
+        self._refresh_summary()
 
     # --- pomocné: zobrazení -------------------------------------------------
 
@@ -756,18 +765,19 @@ class OpposingDetail(QWidget):
             if reviews_html else ""
         )
 
+        # Pořadí sekcí: Body zadání → Známky → Napsaný posudek → Dokumenty.
         return (
             "<html><body>"
             f"{header_bar}"
             f"{title_line}"
             f"{sup_line}"
             f"{stag_html}"
-            f'<h3 style="{section_style}">Známky</h3>'
-            f"{grades_table}"
-            f"{reviews_section}"
             f'<h3 style="{section_style}">Body zadání'
             f"{cp('objectives', 'Zkopírovat body zadání')}</h3>"
             f"{obj_html}"
+            f'<h3 style="{section_style}">Známky</h3>'
+            f"{grades_table}"
+            f"{reviews_section}"
             f'<h3 style="{section_style}">📎 Dokumenty</h3>'
             f"{docs_html}"
             "</body></html>"

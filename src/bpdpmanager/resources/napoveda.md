@@ -284,7 +284,11 @@ jako **oponent** (recenzuješ cizí BP/DP). Vlastní model — inline údaje
 o studentovi a vedoucím (přes registr vedoucích s našeptáváním),
 známky, dokumenty, generovaný souhrn. **Souhrn nově ukazuje i napsaný
 posudek** (body, procenta, navržená známka, kritéria, komentář) — stejně
-jako u vedených prací posudek vedoucího. **Seznam dokumentů je úplně stejný
+jako u vedených prací posudek vedoucího. **Známky se doplní samy:** známka
+*oponenta* z napsaného posudku, známka *vedoucího* se vyčte z nahraného **PDF
+posudku vedoucího** (z textu „Navržená známka / Proposed grade"). Sekce Souhrnu
+jsou v pořadí: Body zadání → Známky → Napsaný posudek → Dokumenty.
+**Seznam dokumentů je úplně stejný
 jako u vedených prací** — agregovaný strom podle typu, verzování, **📂 Ve
 Finderu**, pravý klik (Otevřít / Finder / Odebrat), indikace chybějících
 souborů i **🧹 Odklidit chybějící**. Archivace posudků (1 aktuální + archiv

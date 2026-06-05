@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.8] - 2026-06-05
+
+### Added
+- **Známky u oponentur se doplňují automaticky.** Známka *oponenta (moje)*
+  se vezme z navržené známky napsaného posudku. Známka *vedoucího* se vyčte
+  z **nahraného PDF posudku vedoucího** (externí vedoucí dodá hotové PDF) —
+  z textu „Navržená známka / Proposed grade" (CZ i EN).
+
+### Changed
+- **Pořadí sekcí v Souhrnu oponentury**: Body zadání → Známky → 📝 Napsaný
+  posudek → 📎 Dokumenty.
+
 ## [0.31.7] - 2026-06-05
 
 ### Fixed
