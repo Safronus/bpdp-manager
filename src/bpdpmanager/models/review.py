@@ -106,11 +106,12 @@ class Review(BaseModel):
 
     @property
     def suggested_grade(self) -> str:
-        """ECTS stupnice podle BP/DP — pravidlo FAI UTB.
+        """ECTS stupnice podle BP/DP — 1:1 se vzorcem v XLSX šablonách FAI UTB.
 
-        BP (max 30): A≥29, B≥26, C≥23, D≥20, E≥17, jinak FX
-        DP (max 35): A≥33, B≥30, C≥27, D≥24, E≥21, jinak F
+        BP (max 30): A≥29, B≥26, C≥23, D≥20, E≥18, jinak FX  (E≥18 = 60 %)
+        DP (max 35): A≥33, B≥30, C≥27, D≥24, E≥21, jinak F   (E≥21 = 60 %)
 
+        Hranice E je u obou na 60 % → cokoli pod 60 % je FX (BP) / F (DP).
         Pokud uživatel zvolil 'nesplnil(a)' / 'not fulfilled', vrátí FX/F.
         """
         afv = self.assignment_fulfilled.lower()
@@ -124,7 +125,7 @@ class Review(BaseModel):
                     return grade
             return "F"
         # BP
-        for threshold, grade in [(29, "A"), (26, "B"), (23, "C"), (20, "D"), (17, "E")]:
+        for threshold, grade in [(29, "A"), (26, "B"), (23, "C"), (20, "D"), (18, "E")]:
             if pts >= threshold:
                 return grade
         return "FX"

@@ -191,7 +191,11 @@ Workflow:
 2. **Editor posudku** — formulář:
    - *Splnění bodů zadání* (splnil / nesplnil)
    - **Kritéria hodnocení** — body 0–5 po celých bodech, váhy ze šablony
-   - **Živý souhrn** — vážené body, procenta, navržená známka (ECTS)
+   - **Živý souhrn** — vážené body, procenta, navržená známka (ECTS).
+     Stupnice je 1:1 se vzorcem v šabloně: **BP** (max 30 b) A≥29, B≥26,
+     C≥23, D≥20, **E≥18**, jinak FX; **DP** (max 35 b) A≥33, B≥30, C≥27,
+     D≥24, **E≥21**, jinak F. Hranice E je u obou na **60 %** — cokoli pod
+     60 % je FX (BP) / F (DP).
    - *Plagiátorství* (u vedoucího) — předvyplní se z práce
    - *Celkové hodnocení, připomínky a dotazy*
    - *Místo, datum* — místo z profilu (default Zlín), datum dnešní

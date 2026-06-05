@@ -7,6 +7,57 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-06-05
+
+### Fixed
+- **Špatná známka u BP pod 60 %.** Aplikace navrhovala u bakalářské práce
+  známku **E** už od 17 bodů (56,7 %), ale XLSX šablony FAI UTB mají hranici
+  **E ≥ 18 bodů = 60 %** (cokoli pod 60 % je FX). Např. 58,3 % (17,5 b) se
+  ukazovalo jako E, správně je **FX**. Práh E u BP opraven 17 → 18, takže
+  živý náhled v editoru je nově 1:1 se vzorcem v šabloně. DP (E ≥ 21 = 60 %)
+  bylo správně. Pokryto testy pro celou stupnici BP i DP.
+
+## [0.28.0] - 2026-06-05
+
+### Added
+- **Výchozí obory a šablony posudků dodávané v aplikaci.** 16 oborů FAI UTB
+  se STAG zkratkami a 32 prázdných XLSX šablon (BP/DP, vedoucí/oponent,
+  CZ/EN, podle oboru). Tlačítko **⭐ Defaultní…** v manažeru oborů i v
+  knihovně šablon je doplní (chybějící přidá, u existujících se zeptá na
+  přepis). Nový (prázdný) profil je dostane automaticky.
+
+### Fixed
+- `derive_form_from_obor` nově zvládá anglické obory se suffixem `-EN`
+  (např. `NSWI-P-EN` → prezenční).
+- Oprava STAG kódu `NUI-K` (`knUI`) — dřív kolidoval s `NUI-P` (`pnUI`).
+
+## [0.27.0] - 2026-06-05
+
+### Fixed
+- **Logo chybělo v PDF u šablon s „obrázkem v buňce".** Když je logo v
+  šabloně vložené jako Excel rich-value („Umístit do buňky"), LibreOffice
+  ho neumí vykreslit a v PDF se navíc objevilo `#VALUE!`. Při převodu do PDF
+  se nově na dočasné kopii „obrázek v buňce" převede na klasický plovoucí
+  obrázek a chybová buňka se vyčistí — PDF pak vypadá stejně jako export
+  z Excelu. Uložený XLSX zůstává s nativním obrázkem v buňce.
+
+## [0.26.0] - 2026-06-05
+
+### Added
+- **Zobrazit ve Finderu** v seznamu dokumentů (vedené práce i oponentury).
+- **Indikace chybějících souborů** (smazaných mimo aplikaci) + tlačítko
+  **Odklidit chybějící** pro úklid mrtvých záznamů.
+- Dokončovací dialog po vygenerování posudku nově nezavírá okno po prvním
+  kliknutí — z jednoho místa jde otevřít XLSX i PDF a ukázat ve Finderu.
+
+### Changed
+- **Archivace posudků:** vždy se drží 1 aktuální posudek; starší XLSX se
+  přesune do `posudky/archiv/` s časovým razítkem a stará PDF se smaže.
+
+### Fixed
+- Seznam dokumentů se po vygenerování posudku správně obnoví (dřív podmínka
+  na vždy-prázdné `generated_attachment`).
+
 ## [0.25.2] - 2026-06-05
 
 ### Fixed
