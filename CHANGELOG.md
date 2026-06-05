@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.31.7] - 2026-06-05
+
+### Fixed
+- **PDF posudku přetékalo na další stránku.** Roztažení tabulky na šířku
+  (0.31.4) se dělalo měřítkem tisku (`scale`), které zvětšovalo i výšku → obsah
+  se posunul o stránku navíc. Nově se na šířku roztáhnou **jen sloupce tabulky**
+  (vodorovně), takže výška a počet stran zůstávají (ověřeno 2 strany u BP/DP,
+  CZ/EN). Volná textová pole (zdůvodnění, komentář) tím přestala posouvat obsah.
+- README ukazoval starou verzi (0.25.2) — synchronizováno.
+
 ## [0.31.6] - 2026-06-05
 
 ### Changed

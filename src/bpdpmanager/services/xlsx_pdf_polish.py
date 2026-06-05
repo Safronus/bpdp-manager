@@ -71,6 +71,12 @@ def _fit_table_width(parts: dict[str, bytes], names: list[str]) -> bool:
     Tisk omezíme na ``A1:{pravý}{poslední}`` a nastavíme měřítko, aby tabulka
     vyplnila šířku stránky (levý okraj zůstává, mezera vpravo se zmenší).
     """
+    # Idempotence — pokud už máme oblast tisku, je soubor upravený (neroztahuj
+    # sloupce podruhé).
+    wbx = parts.get("xl/workbook.xml", b"").decode("utf-8", "ignore")
+    if "_xlnm.Print_Area" in wbx:
+        return False
+
     sheet_part = "xl/worksheets/sheet1.xml"
     if sheet_part not in parts:
         ws = [n for n in names if _SHEET_RE.match(n)]
@@ -86,19 +92,26 @@ def _fit_table_width(parts: dict[str, bytes], names: list[str]) -> bool:
     rows = [int(m) for m in re.findall(r'<row r="(\d+)"', sx)]
     max_row = max(rows) if rows else 49
 
-    table_emu = _columns_width_emu(sx, _col_num(right_col))
+    right_col_num = _col_num(right_col)
+    table_emu = _columns_width_emu(sx, right_col_num)
     paper_w = _paper_width_emu(sx)
     left_in, right_in = _margins_inches(sx)
     printable = paper_w - int((left_in + right_in) * _EMU_PER_INCH)
     if table_emu <= 0 or printable <= 0:
         return False
 
-    # +3 % kompenzuje hrubší odhad šířky sloupců; drž v bezpečném rozsahu.
-    scale = round(printable / table_emu * 100) + 3
-    scale = max(105, min(120, scale))
-
     _set_print_area(parts, right_col, max_row)
-    sx = _set_scale(sx, scale)
+
+    # Roztáhni POUZE šířku sloupců A..D na šířku stránky (vodorovně). Nepoužíváme
+    # měřítko celého tisku (`scale`) — to by zvětšilo i výšku a posunulo obsah na
+    # další stránku. Odhad šířky sloupců (px) skutečnou rezervu podhodnocuje, tak
+    # ho zkorigujeme (×1.06) a omezíme stropem 1.10 (ověřeno: vyplní šířku a drží
+    # počet stran). Když tabulka už šířku stránky vyplňuje, neroztahuje se.
+    headroom = printable / table_emu
+    if headroom > 1.02:
+        factor = min(1.10, headroom * 1.06)
+        sx = _scale_column_widths(sx, right_col_num, factor)
+
     parts[sheet_part] = sx.encode("utf-8")
     return True
 
@@ -118,6 +131,22 @@ def _columns_width_emu(sx: str, right_col_num: int) -> int:
     for c in range(1, right_col_num + 1):
         total_px += round(widths.get(c, default) * 7 + 5)  # Calibri/Arial ~MDW 7
     return total_px * _EMU_PER_PX
+
+
+def _scale_column_widths(sx: str, right_col_num: int, factor: float) -> str:
+    """Vynásobí šířku sloupců, které patří do tabulky (min <= right_col)."""
+    def repl(m: re.Match[str]) -> str:
+        tag = m.group(0)
+        cmin = int(re.search(r'min="(\d+)"', tag).group(1))
+        if cmin > right_col_num:  # sloupce mimo tabulku nech být
+            return tag
+        wm = re.search(r'width="([0-9.]+)"', tag)
+        if not wm:
+            return tag
+        new_w = round(float(wm.group(1)) * factor, 4)
+        return tag.replace(wm.group(0), f'width="{new_w}"')
+
+    return re.sub(r"<col\b[^>]*/>", repl, sx)
 
 
 def _paper_width_emu(sx: str) -> int:
@@ -149,16 +178,6 @@ def _set_print_area(parts: dict[str, bytes], right_col: str, max_row: int) -> No
     else:
         wbx = re.sub(r"(</sheets>)", r"\1<definedNames>" + dn + "</definedNames>", wbx, 1)
     parts["xl/workbook.xml"] = wbx.encode("utf-8")
-
-
-def _set_scale(sx: str, scale: int) -> str:
-    if "<pageSetup" not in sx:
-        return sx
-    if re.search(r"<pageSetup[^>]*\bscale=", sx):
-        return re.sub(
-            r'(<pageSetup[^>]*\bscale=")\d+(")', rf"\g<1>{scale}\g<2>", sx, count=1
-        )
-    return sx.replace("<pageSetup ", f'<pageSetup scale="{scale}" ', 1)
 
 
 def _restyle_body_header(parts: dict[str, bytes], names: list[str]) -> bool:
