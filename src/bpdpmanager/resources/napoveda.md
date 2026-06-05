@@ -313,11 +313,15 @@ starších) funguje shodně.
 
 ## Odeslání posudků e-mailem sekretářce
 
-Připravené posudky (PDF) pošleš sekretářce oboru přímo z aplikace:
+Připravené posudky (PDF) pošleš sekretářce oboru přímo z aplikace.
+V toolbaru je tlačítko **✉ Odeslat posudky** s volbou:
 
-- **Posudky vedoucího** (vedené práce) → toolbar **✉ Odeslat posudky**.
-- **Oponentské posudky** → v záložce *🧐 Oponentské posudky* tlačítko
-  **✉ Odeslat sekretářce…**.
+- **🎓 Posudky vedoucího (vedené práce)** — posudky, které jsi napsal(a) jako
+  vedoucí.
+- **🧐 Oponentské posudky** — posudky, které jsi napsal(a) jako oponent.
+
+(Oponentské posudky lze poslat i přímo z jejich záložky tlačítkem
+**✉ Odeslat sekretářce…**.)
 
 V dialogu:
 

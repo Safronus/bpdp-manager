@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.36.3] - 2026-06-06
+
+### Fixed
+- **Oponentské posudky šly teď opravdu odeslat.** Dialog je dříve nenašel,
+  protože `student_obor` u oponentur bývá STAG kód (např. „NSWI-K"), ale
+  párovalo se jen proti názvu oboru. Nově se obor práce matchuje proti
+  **názvu i STAG kódu** oboru sekretářky (case-insensitive).
+
+### Changed
+- **Sjednocené odesílání posudků.** Toolbarové tlačítko **✉ Odeslat posudky**
+  je teď rozbalovací s volbou *Posudky vedoucího (vedené práce)* /
+  *Oponentské posudky* (dřív poslalo rovnou jen vedoucího). Přímé tlačítko
+  v záložce *Oponentské posudky* zůstává.
+- **Předmět e-mailu přes celou šířku** dialogu (popisek vlevo nad polem).
+
 ## [0.36.2] - 2026-06-06
 
 ### Added

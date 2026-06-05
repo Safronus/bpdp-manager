@@ -362,11 +362,22 @@ class MainWindow(QMainWindow):
             "Knihovna XLSX šablon posudků (vedoucího / oponenta) — "
             "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek.",
         )
-        add(
-            "✉ Odeslat posudky", self._send_supervisor_reviews, self._GROUP_REVIEW,
-            "Odeslání připravených posudků vedoucího sekretářce e-mailem "
-            "(vybere se podle oborů sekretářky; přiloží se PDF posudků).",
+        # „Odeslat posudky" s volbou: vedoucího (vedené práce) / oponentské.
+        self._send_button = QToolButton()
+        self._send_button.setText("✉ Odeslat posudky")
+        self._send_button.setToolTip(
+            "Odeslání připravených posudků sekretářce e-mailem — vyber, zda "
+            "posudky vedoucího (vedené práce) nebo oponentské."
         )
+        self._send_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        send_menu = QMenu(self._send_button)
+        act_send_sup = send_menu.addAction("🎓 Posudky vedoucího (vedené práce)…")
+        act_send_sup.triggered.connect(self._send_supervisor_reviews)
+        act_send_opp = send_menu.addAction("🧐 Oponentské posudky…")
+        act_send_opp.triggered.connect(self._send_opponent_reviews)
+        self._send_button.setMenu(send_menu)
+        self._tint_widget(self._send_button, self._GROUP_REVIEW)
+        toolbar.addWidget(self._send_button)
 
         toolbar.addSeparator()
 

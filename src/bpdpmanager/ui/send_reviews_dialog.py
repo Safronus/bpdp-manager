@@ -42,6 +42,11 @@ from PySide6.QtWidgets import (
 from ..services import ProfileManager, ThesisService, email_sender
 
 
+def _norm_obor(s: str) -> str:
+    """Normalizace oboru pro párování (název i STAG kód)."""
+    return (s or "").strip().lower()
+
+
 @dataclass
 class _ReviewItem:
     work_id: str
@@ -58,7 +63,10 @@ class _ReviewItem:
 class _Secretary:
     name: str
     email: str
-    obory: set[str]       # názvy oborů, které spravuje
+    # Normalizované klíče oborů, které spravuje — název i STAG kód (lowercase).
+    # Práce se páruje přes svůj obor: u vedených je to název oboru, u oponentur
+    # volný text (často STAG kód), proto matchujeme proti oběma.
+    obor_keys: set[str]
 
 
 def _open_path(path: Path) -> None:
@@ -164,10 +172,10 @@ class SendReviewsDialog(QDialog):
         outer.addLayout(sel_row)
 
         # ── Předmět + tělo (náhled, editovatelné) ───────────────────────────
-        subj_row = QFormLayout()
+        subj_lbl = QLabel("Předmět:")
+        outer.addWidget(subj_lbl)
         self.ed_subject = QLineEdit()
-        subj_row.addRow("Předmět", self.ed_subject)
-        outer.addLayout(subj_row)
+        outer.addWidget(self.ed_subject)
 
         body_head = QHBoxLayout()
         body_lbl = QLabel("Text e-mailu (náhled — lze upravit):")
@@ -223,10 +231,13 @@ class SendReviewsDialog(QDialog):
             sec = by_email.get(key)
             if sec is None:
                 sec = _Secretary(
-                    name=(o.secretary_name or "").strip(), email=email, obory=set()
+                    name=(o.secretary_name or "").strip(), email=email, obor_keys=set()
                 )
                 by_email[key] = sec
-            sec.obory.add(o.name)
+            for token in (o.name, o.stag_code):
+                nk = _norm_obor(token or "")
+                if nk:
+                    sec.obor_keys.add(nk)
             if not sec.name and o.secretary_name:
                 sec.name = o.secretary_name.strip()
 
@@ -257,7 +268,7 @@ class SendReviewsDialog(QDialog):
                     self.service.get_student(t.student_id) if t.student_id else None
                 )
                 obor = (student.obor if student else "") or ""
-                if obor not in secretary.obory:
+                if _norm_obor(obor) not in secretary.obor_keys:
                     continue
                 pdf = self.service.current_supervisor_review_pdf(t)
                 if pdf is None or not pdf.exists():
@@ -283,7 +294,7 @@ class SendReviewsDialog(QDialog):
         else:
             for op in self.service.list_opposing_theses():
                 obor = (op.student_obor or "").strip()
-                if obor not in secretary.obory:
+                if _norm_obor(obor) not in secretary.obor_keys:
                     continue
                 pdf = self.service.current_opponent_review_pdf(op)
                 if pdf is None or not pdf.exists():
