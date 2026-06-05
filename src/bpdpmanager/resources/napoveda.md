@@ -47,11 +47,22 @@ V toolbaru **Obory** přidej obory, které vedeš. U každého můžeš vyplnit:
   že obor není namapovaný (a budeš ho muset doplnit ručně).
 - volitelně sekretářku oboru (jméno, email, telefon).
 
+> **⭐ Defaultní obory:** tlačítko **Defaultní…** v manažeru oborů doplní
+> předpřipravené obory FAI UTB i s STAG zkratkami (NSWI, NKYB, NUI, SWI,
+> ITA — prezenční/kombinované, vč. anglických variant). Existující obory
+> nechá být; jen se zeptá, jestli přepsat lišící se STAG kódy. Nový
+> (prázdný) profil je dostane rovnou.
+
 ### 4. Šablony posudků
 V toolbaru **📝 Šablony posudků → + Přidat šablonu…** nahraj XLSX
 šablony posudků (vedoucího / oponenta, BP / DP, CZ / EN). Aplikace
 z šablony **sama rozpozná** typ, roli, jazyk, obor, rok i strukturu
 kritérií. Bez šablon nelze generovat posudky.
+
+> **⭐ Defaultní šablony:** tlačítko **Defaultní…** v knihovně šablon
+> doplní kompletní sadu šablon FAI UTB (BP/DP, vedoucí/oponent, CZ/EN,
+> podle oboru). Existující nechá být, volitelně přepíše. Nový profil je
+> dostane rovnou — můžeš tedy hned psát posudky bez ručního nahrávání.
 
 ### 5. (Volitelně) LibreOffice pro PDF
 Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:

@@ -25,6 +25,11 @@ from ..models import (
 )
 from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus, ThesisType
 from ..storage import Database, Repository
+from .default_data import (
+    DefaultTemplateSpec,
+    default_obory,
+    list_default_template_specs,
+)
 from .file_naming import (
     build_plagiarism_name,
     build_target_name,
@@ -984,6 +989,113 @@ class ThesisService:
             t for t in self._db.review_templates if t.id != template_id
         ]
         self.save()
+
+    # ── výchozí (default) data — obory + šablony ─────────────────────────
+
+    def default_obory_seed_status(self) -> tuple[int, int]:
+        """Vrátí ``(chybějící, konfliktní)`` pro výchozí obory.
+
+        - *chybějící* = výchozí obor, který v DB zatím není (podle ``name``),
+        - *konfliktní* = existuje pod stejným ``name``, ale s jiným STAG kódem.
+        """
+        missing = conflicts = 0
+        for d in default_obory():
+            existing = self.get_obor(d.name)
+            if existing is None:
+                missing += 1
+            elif (existing.stag_code or "") != (d.stag_code or ""):
+                conflicts += 1
+        return missing, conflicts
+
+    def seed_default_obory(self, *, overwrite_conflicts: bool = False) -> dict[str, int]:
+        """Doplní chybějící výchozí obory; volitelně přepíše STAG u konfliktních.
+
+        Existující obory (vč. kontaktů na sekretářku) zůstávají; přepisuje se
+        jen ``stag_code`` a jen když ``overwrite_conflicts=True``. Vrací počty
+        ``{added, updated, skipped}``.
+        """
+        added = updated = skipped = 0
+        with self.batch():
+            for d in default_obory():
+                existing = self.get_obor(d.name)
+                if existing is None:
+                    self._db.obory.append(d.model_copy())
+                    added += 1
+                elif (existing.stag_code or "") != (d.stag_code or ""):
+                    if overwrite_conflicts:
+                        existing.stag_code = d.stag_code
+                        updated += 1
+                    else:
+                        skipped += 1
+        return {"added": added, "updated": updated, "skipped": skipped}
+
+    def default_template_specs(self) -> list[DefaultTemplateSpec]:
+        """Specifikace všech dodávaných šablon (z balíčku)."""
+        return list_default_template_specs()
+
+    def default_templates_seed_status(self) -> tuple[int, int]:
+        """Vrátí ``(chybějící, existující)`` pro výchozí šablony (podle názvu)."""
+        existing_names = {t.name for t in self._db.review_templates}
+        missing = present = 0
+        for spec in list_default_template_specs():
+            if spec.name in existing_names:
+                present += 1
+            else:
+                missing += 1
+        return missing, present
+
+    def seed_default_templates(self, *, overwrite_existing: bool = False) -> dict[str, int]:
+        """Doplní chybějící výchozí šablony (zkopíruje XLSX + nascanuje schema).
+
+        Při ``overwrite_existing`` se šablona se stejným názvem nejdřív smaže
+        a založí znovu z aktuálního zdroje. Vrací ``{added, replaced, skipped}``.
+        """
+        added = replaced = skipped = 0
+        with self.batch():
+            for spec in list_default_template_specs():
+                existing = next(
+                    (t for t in self._db.review_templates if t.name == spec.name),
+                    None,
+                )
+                if existing is not None and not overwrite_existing:
+                    skipped += 1
+                    continue
+                if existing is not None:
+                    self.delete_review_template(existing.id, delete_file=True)
+                    replaced += 1
+                tmpl = self.register_review_template(
+                    name=spec.name,
+                    type=spec.type,
+                    role=spec.role,
+                    language=spec.language,
+                    obor=spec.obor,
+                    academic_year="",
+                    source_path=spec.source_path,
+                )
+                try:
+                    self.ensure_template_schema(tmpl)
+                except Exception:  # noqa: BLE001 — schema necháme dořešit při generování
+                    pass
+                if existing is None:
+                    added += 1
+        return {"added": added, "replaced": replaced, "skipped": skipped}
+
+    def maybe_seed_defaults(self) -> None:
+        """Doseeduje defaulty do právě vytvořeného (nového) profilu.
+
+        Spouští se jen pokud podkladový repozitář právě vytvořil novou DB
+        (``created_fresh``) — pro existující profily i v testech je to no-op.
+        Obory už naseedovala storage vrstva; tady jen doplníme šablony (a pro
+        jistotu i chybějící obory).
+        """
+        if not getattr(self._repo, "created_fresh", False):
+            return
+        self._repo.created_fresh = False
+        try:
+            self.seed_default_obory(overwrite_conflicts=False)
+            self.seed_default_templates(overwrite_existing=False)
+        except Exception:  # noqa: BLE001 — seed nesmí shodit start aplikace
+            pass
 
     def generate_review_from_template(
         self,

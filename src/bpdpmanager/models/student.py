@@ -44,10 +44,16 @@ class Student(BaseModel):
 
 
 def derive_form_from_obor(obor: str | None) -> StudyForm | None:
-    """Z přípony oboru (``-P``/``-K``, case-insensitive) odvodí formu studia."""
+    """Z přípony oboru (``-P``/``-K``, case-insensitive) odvodí formu studia.
+
+    Zvládá i anglické varianty se suffixem ``-EN`` (např. ``NSWI-P-EN``) —
+    ten se před vyhodnocením formy odřízne.
+    """
     if not obor:
         return None
     stripped = obor.strip().upper()
+    if stripped.endswith("-EN"):
+        stripped = stripped[:-3]
     if stripped.endswith("-P"):
         return StudyForm.PRESENTIAL
     if stripped.endswith("-K"):

@@ -434,6 +434,8 @@ class MainWindow(QMainWindow):
             backup_manager=BackupManager(data_dir),
         )
         self.service.reset(new_repo)
+        # Nově vytvořený profil dostane výchozí obory + šablony.
+        self.service.maybe_seed_defaults()
 
         # Refresh UI a window title
         self.setWindowTitle(self._compose_title())

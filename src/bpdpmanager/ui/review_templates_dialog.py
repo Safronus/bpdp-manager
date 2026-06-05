@@ -444,18 +444,25 @@ class ReviewTemplatesDialog(QDialog):
         btn_open = QPushButton("📂 Otevřít v Excelu")
         btn_reveal = QPushButton("🔍 Ukázat ve Finderu")
         btn_delete = QPushButton("Smazat")
+        btn_defaults = QPushButton("⭐ Defaultní…")
+        btn_defaults.setToolTip(
+            "Doplní výchozí šablony posudků FAI UTB (BP/DP, vedoucí/oponent, "
+            "CZ/EN, podle oboru). Existující nechá být; volitelně přepíše."
+        )
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._add)
         btn_edit.clicked.connect(self._edit)
         btn_open.clicked.connect(self._open_in_app)
         btn_reveal.clicked.connect(self._reveal)
         btn_delete.clicked.connect(self._delete)
+        btn_defaults.clicked.connect(self._load_defaults)
         btn_close.clicked.connect(self.accept)
         row.addWidget(btn_new)
         row.addWidget(btn_edit)
         row.addWidget(btn_open)
         row.addWidget(btn_reveal)
         row.addWidget(btn_delete)
+        row.addWidget(btn_defaults)
         row.addStretch()
         row.addWidget(btn_close)
         outer.addLayout(row)
@@ -629,6 +636,68 @@ class ReviewTemplatesDialog(QDialog):
             return
         self.service.delete_review_template(tmpl.id, delete_file=True)
         self._refresh()
+
+    def _load_defaults(self) -> None:
+        missing, present = self.service.default_templates_seed_status()
+        total = missing + present
+        if total == 0:
+            QMessageBox.information(
+                self, "Defaultní šablony",
+                "V balíčku nejsou žádné výchozí šablony.",
+            )
+            return
+        if missing == 0:
+            # Vše už existuje — nabídni jen případný přegen z aktuálního zdroje.
+            if QMessageBox.question(
+                self, "Defaultní šablony",
+                f"Všech {present} výchozích šablon už máš.\n\n"
+                "Přegenerovat je z aktuálních zdrojů (přepíše stejnojmenné)?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            ) != QMessageBox.StandardButton.Yes:
+                return
+            overwrite = True
+        else:
+            overwrite = False
+            if present:
+                box = QMessageBox(self)
+                box.setIcon(QMessageBox.Icon.Question)
+                box.setWindowTitle("Defaultní šablony")
+                box.setText(
+                    f"Doplnit {missing} chybějících výchozích šablon.\n\n"
+                    f"{present} šablon už existuje pod stejným názvem. "
+                    "Přepsat i je z aktuálních zdrojů?"
+                )
+                btn_add = box.addButton("Jen doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
+                btn_over = box.addButton("Doplnit + přepsat", QMessageBox.ButtonRole.AcceptRole)
+                box.addButton(QMessageBox.StandardButton.Cancel)
+                box.exec()
+                clicked = box.clickedButton()
+                if clicked == btn_over:
+                    overwrite = True
+                elif clicked != btn_add:
+                    return
+            else:
+                if QMessageBox.question(
+                    self, "Defaultní šablony",
+                    f"Doplnit {missing} výchozích šablon posudků?",
+                ) != QMessageBox.StandardButton.Yes:
+                    return
+
+        from PySide6.QtCore import Qt as _Qt
+        from PySide6.QtGui import QGuiApplication
+
+        QGuiApplication.setOverrideCursor(_Qt.CursorShape.WaitCursor)
+        try:
+            res = self.service.seed_default_templates(overwrite_existing=overwrite)
+        finally:
+            QGuiApplication.restoreOverrideCursor()
+        self._refresh()
+        QMessageBox.information(
+            self, "Defaultní šablony",
+            f"Přidáno: {res['added']} · přepsáno: {res['replaced']} · "
+            f"ponecháno: {res['skipped']}.",
+        )
 
 
 # ── Generate review from thesis context ────────────────────────────────────

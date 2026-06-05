@@ -26,11 +26,15 @@ class JsonRepository(Repository):
         self.path = path or db_path()
         self.backup_path = backup_path or db_backup_path()
         self.backup_manager = backup_manager
+        # True, pokud ``load()`` právě vytvořil novou (prázdnou) DB — vyšší
+        # vrstva (app) podle toho doseeduje defaultní šablony do nového profilu.
+        self.created_fresh = False
 
     def load(self) -> Database:
         if not self.path.exists():
             db = Database(version=SCHEMA_VERSION, obory=list(DEFAULT_OBORY))
             self.save(db)
+            self.created_fresh = True
             return db
 
         raw = self.path.read_text(encoding="utf-8")

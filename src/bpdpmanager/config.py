@@ -14,15 +14,28 @@ APP_NAME = "bpdpmanager"
 SCHEMA_VERSION = 4
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
-DEFAULT_OBORY: list[str] = [
-    "NSWI-P",
-    "NSWI-K",
-    "NKYB-P",
-    "NKYB-K",
-    "NIB-P",
-    "NIB-K",
-    "NAI-P",
-    "NAI-K",
+# Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).
+# Konvence názvů: prefix „N" = navazující (DP), bez prefixu = bakalářské (BP);
+# suffix „-P"/„-K" = prezenční/kombinovaná forma; suffix „-EN" = anglická verze.
+# STAG prefix „p"/„k" = prezenční/kombinovaná, „b"/„n" = bakalářský/navazující.
+# Seedují se do nové (prázdné) DB a jsou k dispozici přes tlačítko „Defaultní".
+DEFAULT_OBORY: list[dict[str, str]] = [
+    {"name": "NSWI-P", "stag_code": "pnIT-SWI"},
+    {"name": "NSWI-K", "stag_code": "knIT-SWI"},
+    {"name": "NKYB-P", "stag_code": "pnIT-KYB"},
+    {"name": "NKYB-K", "stag_code": "knIT-KYB"},
+    {"name": "SWI-P", "stag_code": "pbSWI"},
+    {"name": "SWI-K", "stag_code": "kbSWI"},
+    {"name": "NSWI-P-EN", "stag_code": "pnIT-SWI-E"},
+    {"name": "NSWI-K-EN", "stag_code": "knIT-SWI-E"},
+    {"name": "NKYB-P-EN", "stag_code": "pnIT-KYB-E"},
+    {"name": "NKYB-K-EN", "stag_code": "knIT-KYB-E"},
+    {"name": "SWI-P-EN", "stag_code": "pbSWI-E"},
+    {"name": "SWI-K-EN", "stag_code": "kbSWI-E"},
+    {"name": "ITA-P", "stag_code": "pbITA"},
+    {"name": "ITA-K", "stag_code": "kbITA"},
+    {"name": "NUI-P", "stag_code": "pnUI"},
+    {"name": "NUI-K", "stag_code": "knUI"},
 ]
 
 

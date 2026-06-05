@@ -117,6 +117,9 @@ def run() -> int:
         repo = _build_repo_for_profile(pm)
         service = ThesisService(repo)
 
+    # Nový (právě vytvořený) profil dostane výchozí obory + šablony.
+    service.maybe_seed_defaults()
+
     window = MainWindow(service, profile_manager=pm)
     if icon_path is not None:
         window.setWindowIcon(QIcon(str(icon_path)))
