@@ -51,6 +51,23 @@ class StagError(Exception):
     """Chyba při komunikaci se STAG (síť, neočekávaná odpověď, prázdný výsledek)."""
 
 
+# Detail práce (veřejný, bez přihlášení) — odtud se tahá seznam souborů.
+DETAIL_URL = (
+    f"{BASE_URL}/StagPortletsJSR168/CleanUrl"
+    "?urlid=prohlizeni-prace-detail&praceIdno={praceidno}"
+)
+
+
+@dataclass
+class StagFile:
+    """Jeden soubor u práce ve STAG (plný text / příloha / posudek)."""
+
+    soubidno: str          # ID souboru ve STAG
+    filename: str          # název souboru (např. „Novak_M_v.pdf")
+    download_path: str     # relativní cesta ke stažení (k BASE_URL)
+    section: str = "other"  # text | appendix | supervisor_review | opponent_review | other
+
+
 @dataclass
 class StagThesisResult:
     """Jeden řádek z výsledků vyhledávání kvalifikačních prací."""
@@ -100,13 +117,20 @@ class StagClient:
     # --- nízkoúrovňové HTTP ------------------------------------------------
 
     def _request(
-        self, url: str, data: bytes | None = None, *, decode: bool = True
+        self,
+        url: str,
+        data: bytes | None = None,
+        *,
+        decode: bool = True,
+        ajax: bool = False,
     ) -> str | bytes:
         headers = {"User-Agent": _USER_AGENT, "Accept": "text/html,*/*"}
         if data is not None:
             headers["Content-Type"] = (
                 "application/x-www-form-urlencoded; charset=UTF-8"
             )
+        if ajax:
+            headers["X-Requested-With"] = "XMLHttpRequest"
         req = urllib.request.Request(url, data=data, headers=headers)
         try:
             with self._opener.open(req, timeout=self.timeout) as resp:
@@ -181,6 +205,57 @@ class StagClient:
             raise StagError(
                 "STAG nevrátil platné CSV (možná byl záznam mezitím odebrán)."
             )
+        return raw
+
+    def list_thesis_files(self, praceidno: str) -> list[StagFile]:
+        """Vrátí seznam veřejných souborů práce (plný text, přílohy, posudky).
+
+        Replikuje AJAX volání z detailu práce (``GenericAjaxLoad2`` — pro každou
+        sekci jeden POST do resource fáze portletu se seznamem souborů).
+        """
+        praceidno = (praceidno or "").strip()
+        if not praceidno.isdigit():
+            raise StagError(f"Neplatné STAG ID práce: {praceidno!r}")
+
+        detail = self._request(DETAIL_URL.format(praceidno=praceidno))
+        assert isinstance(detail, str)
+
+        files: list[StagFile] = []
+        for url_b64, body_b64 in _find_ajax_loads(detail):
+            url = _b64_std(url_b64)
+            body = _b64_std(body_b64)
+            if not url or not body:
+                continue
+            section = _section_from_body(body)
+            try:
+                frag = self._request(
+                    BASE_URL + url, data=body.encode("utf-8"), ajax=True
+                )
+            except StagError:
+                continue
+            assert isinstance(frag, str)
+            for soubidno, fname, href in _parse_file_fragment(frag):
+                files.append(
+                    StagFile(
+                        soubidno=soubidno,
+                        filename=fname,
+                        download_path=href,
+                        section=section,
+                    )
+                )
+        _refine_sections(files)
+        return files
+
+    def download_file(self, download_path: str) -> bytes:
+        """Stáhne jeden soubor dle relativní cesty (``StagFile.download_path``)."""
+        path = (download_path or "").strip()
+        if not path:
+            raise StagError("Chybí cesta ke stažení souboru.")
+        url = path if path.startswith("http") else BASE_URL + path
+        raw = self._request(url, decode=False)
+        assert isinstance(raw, bytes)
+        if not raw:
+            raise StagError("STAG vrátil prázdný soubor.")
         return raw
 
     # --- vnitřní -----------------------------------------------------------
@@ -265,6 +340,65 @@ def _extract_praceidno(href: str) -> str | None:
     raw = _b64_jbpns(m.group(1))
     mm = re.search(rb"praceIdno[^0-9]{0,10}(\d{2,})", raw)
     return mm.group(1).decode() if mm else None
+
+
+def _b64_std(token: str) -> str:
+    """Dekóduje standardní base64 (argumenty ``GenericAjaxLoad2``) na text."""
+    try:
+        return base64.b64decode(token + "=" * (-len(token) % 4)).decode("utf-8", "replace")
+    except (ValueError, TypeError):
+        return ""
+
+
+# GenericAjaxLoad2('<b64 url>', '<b64 post body>', ...) — sekce souborů v detailu.
+_AJAX_LOAD_RE = re.compile(
+    r"GenericAjaxLoad2\(\s*'([A-Za-z0-9+/=]+)'\s*,\s*'([A-Za-z0-9+/=]+)'", re.S
+)
+
+
+def _find_ajax_loads(detail_html: str) -> list[tuple[str, str]]:
+    """Vrátí dvojice (b64 URL, b64 POST tělo) ze všech sekcí souborů detailu."""
+    return _AJAX_LOAD_RE.findall(detail_html)
+
+
+def _section_from_body(body: str) -> str:
+    """Z POST těla (``pp_page`` / ``sou_aplikace``) odvodí typ sekce souborů."""
+    up = body.upper()
+    if "VEDOUCIHO" in up:
+        return "supervisor_review"
+    if "OPONENTA" in up or "OPONENTSKE" in up:
+        return "opponent_review"
+    if "PRILOHY" in up:
+        return "appendix"
+    if "ELPODOBA" in up or "EL_PODOBA" in up:
+        return "elpodoba"  # plný text + případné přílohy (rozliší se pořadím)
+    return "other"
+
+
+# <a ... href="...PagesDispatcherServlet?...soubidno=NNN...">název.pdf</a>
+_FILE_LINK_RE = re.compile(
+    r'<a\b[^>]*href="([^"]*soubidno=(\d+)[^"]*)"[^>]*>(.*?)</a>', re.S
+)
+
+
+def _parse_file_fragment(fragment_html: str) -> list[tuple[str, str, str]]:
+    """Z fragmentu se seznamem souborů vytáhne (soubidno, název, download href)."""
+    out: list[tuple[str, str, str]] = []
+    for href, soubidno, label in _FILE_LINK_RE.findall(fragment_html):
+        path = html.unescape(href)
+        name = _WS_RE.sub(" ", html.unescape(_TAG_RE.sub("", label))).strip()
+        out.append((soubidno, name, path))
+    return out
+
+
+def _refine_sections(files: list[StagFile]) -> None:
+    """V sekci „el. podoba" je 1. soubor plný text, další jsou přílohy."""
+    first_elpodoba = True
+    for f in files:
+        if f.section != "elpodoba":
+            continue
+        f.section = "text" if first_elpodoba else "appendix"
+        first_elpodoba = False
 
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -388,3 +522,10 @@ def search_theses(
 def download_csv(adipidno: str, *, timeout: float = _DEFAULT_TIMEOUT) -> bytes:
     """Jednorázové stažení CSV dle ``adipIdno``."""
     return StagClient(timeout=timeout).download_csv(adipidno)
+
+
+def list_thesis_files(
+    praceidno: str, *, timeout: float = _DEFAULT_TIMEOUT
+) -> list[StagFile]:
+    """Jednorázový výpis souborů práce dle ``praceIdno`` (= ``adipIdno``)."""
+    return StagClient(timeout=timeout).list_thesis_files(praceidno)

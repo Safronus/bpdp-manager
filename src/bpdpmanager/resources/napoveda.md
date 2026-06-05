@@ -317,10 +317,32 @@ V import dialogu klikni na **🌐 Stáhnout ze STAG**:
    nové jsou předzaškrtnuté. Můžeš tak v jednom kroku stáhnout třeba **BP
    i DP** stejného studenta.
 4. **⬇ Stáhnout vybrané (N)** → všechna zaškrtnutá CSV se stáhnou a sloučí
-   do jednoho náhledu; ke každé práci se připojí její vlastní CSV.
+   do jednoho náhledu; ke každé práci se připojí její vlastní CSV. Spolu
+   s prací se **automaticky stáhnou i její veřejné soubory** (viz níže).
 
 Hledá se ve veřejném *Prohlížení → Kvalifikační práce* na **stag.utb.cz**,
 takže přihlášení obvykle není potřeba.
+
+### Soubory práce (plný text, přílohy, posudky)
+
+Pokud STAG u práce nabízí soubory, stáhnou se spolu s ní a otevře se
+**📎 náhled souborů**:
+
+- typicky **plný text práce**, **přílohy**, **posudek vedoucího** a
+  **posudek oponenta** (ne vždy jsou všechny k dispozici),
+- každý soubor je **předzaškrtnutý** — odznač, co nechceš importovat
+  (tlačítka **☑ Vše** / **☐ Nic**),
+- **typ přílohy** je odhadnutý ze STAG; pokud nesedí (nebo se nepodařilo
+  rozpoznat), přepiš ho v posledním sloupci.
+
+Vybrané soubory se po importu **připojí k té správné práci** (párováno přes
+STAG ID) jako přílohy příslušného typu — objeví se v záložce **Dokumenty**.
+Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená známka**.
+
+> **📎 Stáhnout jen soubory:** když práci už v databázi máš a chceš jen
+> doplnit soubory, použij ve vyhledávacím okně tlačítko **📎 Stáhnout jen
+> soubory**. Stáhne soubory a připojí je k odpovídající práci (párováno přes
+> STAG ID, jinak jméno + typ). Pokud práci v databázi nenajde, upozorní tě.
 
 > **BP × DP:** BP a DP jsou samostatné záznamy (párují se podle typu),
 > takže import DP **nepřepíše** dříve naimportovanou BP. Práce se navíc

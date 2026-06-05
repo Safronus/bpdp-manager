@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-06-05
+
+### Added
+- **Stahování souborů práce ze STAG.** Při „🌐 Stáhnout ze STAG" se spolu
+  s prací automaticky stáhnou i její veřejné soubory — **plný text**,
+  **přílohy**, **posudek vedoucího** a **posudek oponenta** (pokud jsou
+  k dispozici).
+- **Náhled stažených souborů** s výběrem (vše předzaškrtnuté, lze odznačit,
+  tlačítka *☑ Vše* / *☐ Nic*) a **typem přílohy** odhadnutým ze STAG —
+  pokud detekce selže, typ lze ručně přepsat.
+- Vybrané soubory se po importu **připojí k odpovídající práci** (párováno
+  přes STAG ID) jako přílohy příslušného typu; u oponentur se z PDF posudku
+  vedoucího dosynchronizuje navržená známka.
+- Nové tlačítko **📎 Stáhnout jen soubory** — stáhne jen soubory a připojí
+  je k práci, kterou už máš v databázi (párování přes STAG ID, jinak jméno +
+  typ); pokud práce v DB není, upozorní.
+
 ## [0.32.1] - 2026-06-05
 
 ### Changed

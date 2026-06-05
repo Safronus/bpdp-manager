@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 import tempfile
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -65,6 +66,45 @@ from .obor_dialog import OborDialog
 ACTION_CREATE = "create"
 ACTION_UPDATE = "update"
 ACTION_SKIP = "skip"
+
+# Mapování STAG sekce (viz stag_api.StagFile.section) → typ přílohy v DB.
+_SECTION_TO_KIND: dict[str, AttachmentKind] = {
+    "text": AttachmentKind.THESIS_TEXT,
+    "appendix": AttachmentKind.THESIS_APPENDIX,
+    "supervisor_review": AttachmentKind.SUPERVISOR_REVIEW,
+    "opponent_review": AttachmentKind.OPPONENT_REVIEW,
+    "other": AttachmentKind.OTHER,
+}
+
+# Typy příloh nabízené v náhledu stažených souborů (v pořadí rozbalovače).
+_FILE_KIND_CHOICES: list[AttachmentKind] = [
+    AttachmentKind.THESIS_TEXT,
+    AttachmentKind.THESIS_APPENDIX,
+    AttachmentKind.SUPERVISOR_REVIEW,
+    AttachmentKind.OPPONENT_REVIEW,
+    AttachmentKind.OTHER,
+]
+
+
+@dataclass
+class _DownloadedStagFile:
+    """Soubor stažený ze STAG do dočasného úložiště — čeká na import do práce."""
+
+    path: Path                 # dočasná lokální cesta
+    filename: str              # původní název ze STAG
+    kind: AttachmentKind       # typ přílohy (předvyplněn ze sekce, lze přepsat)
+    section: str = "other"     # původní STAG sekce
+    size: int = 0              # velikost v bajtech
+    selected: bool = True      # zda importovat (náhled umožní odznačit)
+
+
+def _fmt_size(n: int) -> str:
+    """Lidsky čitelná velikost souboru."""
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{n / 1024:.0f} KB"
+    return f"{n / (1024 * 1024):.1f} MB"
 
 # STAG kódy stavu práce (sloupec ``stavPrace``) → náš ``ThesisStatus``.
 # Zdroj: konzultace s uživatelem (FAI UTB STAG export).
@@ -133,6 +173,9 @@ class StagImportDialog(QDialog):
         self.imported_opposing_ids: list[str] = []
         self.focus_thesis_id: str | None = None      # poslední vytvořená/aktualizovaná vedená
         self.focus_opposing_id: str | None = None    # poslední vytvořený/aktualizovaný posudek
+        # Soubory stažené ze STAG spolu s prací (klíč = adipIdno). Importér je
+        # po založení práce připojí k té správné (přes adipIdno).
+        self._stag_downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
 
         self.setWindowTitle("Import dat ze STAG CSV")
         self.setMinimumSize(1240, 820)
@@ -407,7 +450,18 @@ class StagImportDialog(QDialog):
         dlg = StagDownloadDialog(
             default_person_surname=default_surname, parent=self, service=self.service
         )
-        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result_items:
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        if dlg.files_only_done:
+            # Soubory byly připojeny rovnou k existující práci v DB — žádný CSV
+            # import. Naviguj na práci a zavři dialog, MainWindow refreshne.
+            self.focus_thesis_id = dlg.focus_thesis_id
+            self.focus_opposing_id = dlg.focus_opposing_id
+            self.accept()
+            return
+        if dlg.result_items:
+            # Zapamatuj si stažené soubory — připojí se po importu práce.
+            self._stag_downloaded_files = dict(dlg.downloaded_files)
             # Po stažení (i více prací najednou) rovnou načti náhled.
             self._load_preview_from_stag(dlg.result_items)
 
@@ -1304,7 +1358,7 @@ class StagImportDialog(QDialog):
             "created_opposing": 0, "updated_opposing": 0,
             "created_student": 0, "created_opponent": 0,
             "created_supervisor": 0, "skipped": 0,
-            "attached_csv": 0,
+            "attached_csv": 0, "attached_files": 0,
         }
         errors: list[str] = []
         affected_thesis_ids: list[str] = []
@@ -1313,6 +1367,9 @@ class StagImportDialog(QDialog):
         # připojí to její). Fallback je společný ``csv_source``.
         thesis_csv: dict[str, str] = {}
         opposing_csv: dict[str, str] = {}
+        # adipIdno → id práce/posudku (pro připojení stažených STAG souborů).
+        thesis_by_adip: dict[str, str] = {}
+        opposing_by_adip: dict[str, str] = {}
         last_thesis_id: str | None = None
         last_opposing_id: str | None = None
 
@@ -1344,6 +1401,8 @@ class StagImportDialog(QDialog):
                             affected_thesis_ids.append(thesis_id)
                             if record.source_csv:
                                 thesis_csv[thesis_id] = record.source_csv
+                            if record.adipidno:
+                                thesis_by_adip[record.adipidno] = thesis_id
                             last_thesis_id = thesis_id
                         else:
                             op_id, _is_new = self._apply_opponent_role(
@@ -1352,6 +1411,8 @@ class StagImportDialog(QDialog):
                             affected_opposing_ids.append(op_id)
                             if record.source_csv:
                                 opposing_csv[op_id] = record.source_csv
+                            if record.adipidno:
+                                opposing_by_adip[record.adipidno] = op_id
                             last_opposing_id = op_id
                     except Exception as exc:  # noqa: BLE001
                         errors.append(
@@ -1381,6 +1442,11 @@ class StagImportDialog(QDialog):
                         stats["attached_csv"] += 1
                     except Exception as exc:  # noqa: BLE001
                         errors.append(f"Přiložení CSV k posudku {oid[:8]}: {exc}")
+
+                # 3b2) Připoj soubory stažené ze STAG (text/přílohy/posudky)
+                self._attach_downloaded_files(
+                    thesis_by_adip, opposing_by_adip, stats, errors
+                )
 
                 # 3c) Pokud se cokoli nepovedlo a uživatel je dotazuje, dej mu
                 #     šanci rollback udělat výjimkou z bloku.
@@ -1447,6 +1513,42 @@ class StagImportDialog(QDialog):
         except OSError:
             stats["source_csv_deleted"] = 0
 
+    def _attach_downloaded_files(
+        self,
+        thesis_by_adip: dict[str, str],
+        opposing_by_adip: dict[str, str],
+        stats: dict,
+        errors: list[str],
+    ) -> None:
+        """Připojí soubory stažené ze STAG k odpovídající práci (přes adipIdno).
+
+        U oponentských posudků navíc dosynchronizuje známky (z PDF posudku
+        vedoucího se vyčte navržená známka).
+        """
+        if not self._stag_downloaded_files:
+            return
+        for adip, files in self._stag_downloaded_files.items():
+            tid = thesis_by_adip.get(adip)
+            oid = opposing_by_adip.get(adip)
+            if not tid and not oid:
+                continue
+            for f in files:
+                if not (f.path and f.path.exists()):
+                    continue
+                try:
+                    if tid:
+                        self.service.attach_document(tid, f.path, kind=f.kind)
+                    else:
+                        self.service.opposing_attach_document(oid, f.path, kind=f.kind)
+                    stats["attached_files"] += 1
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(f"Přiložení souboru {f.filename}: {exc}")
+            if oid:
+                try:
+                    self.service.sync_opposing_grades(oid)
+                except Exception:  # noqa: BLE001
+                    pass
+
     # --- pomocné helpers k importu --------------------------------------
 
     def _ask_continue_with_errors(
@@ -1496,6 +1598,8 @@ class StagImportDialog(QDialog):
         affected_opposing_ids: list[str] = []
         thesis_csv: dict[str, str] = {}
         opposing_csv: dict[str, str] = {}
+        thesis_by_adip: dict[str, str] = {}
+        opposing_by_adip: dict[str, str] = {}
         last_thesis_id: str | None = None
         last_opposing_id: str | None = None
 
@@ -1518,12 +1622,16 @@ class StagImportDialog(QDialog):
                         affected_thesis_ids.append(tid)
                         if record.source_csv:
                             thesis_csv[tid] = record.source_csv
+                        if record.adipidno:
+                            thesis_by_adip[record.adipidno] = tid
                         last_thesis_id = tid
                     else:
                         oid, _ = self._apply_opponent_role(record, obor_name, stats)
                         affected_opposing_ids.append(oid)
                         if record.source_csv:
                             opposing_csv[oid] = record.source_csv
+                        if record.adipidno:
+                            opposing_by_adip[record.adipidno] = oid
                         last_opposing_id = oid
                 except Exception as exc:  # noqa: BLE001
                     errors.append(
@@ -1551,6 +1659,11 @@ class StagImportDialog(QDialog):
                     stats["attached_csv"] += 1
                 except Exception:
                     pass
+
+            # Soubory stažené ze STAG (text/přílohy/posudky)
+            self._attach_downloaded_files(
+                thesis_by_adip, opposing_by_adip, stats, errors
+            )
 
         self.imported_thesis_ids = affected_thesis_ids
         self.imported_opposing_ids = affected_opposing_ids
@@ -1589,6 +1702,10 @@ class StagImportDialog(QDialog):
         rows.append(
             f"<tr><td>📎 CSV přiloženo k pracem</td>"
             f"<td colspan='2'>{stats['attached_csv']}</td></tr>"
+        )
+        rows.append(
+            f"<tr><td>📄 Soubory ze STAG přiloženy</td>"
+            f"<td colspan='2'>{stats.get('attached_files', 0)}</td></tr>"
         )
         if stats.get("source_csv_deleted"):
             rows.append(
@@ -1924,6 +2041,137 @@ class StagImportDialog(QDialog):
         return None
 
 
+class StagFilesPreviewDialog(QDialog):
+    """Náhled souborů stažených ze STAG — výběr, co importovat, a typ přílohy.
+
+    Soubory přijdou předzaškrtnuté (lze odznačit) a s typem přílohy odhadnutým
+    z původní STAG sekce. Typ lze ručně přepsat (fallback při chybě detekce).
+    Dialog mutuje předané ``_DownloadedStagFile`` objekty (``selected`` + ``kind``).
+    """
+
+    def __init__(
+        self,
+        groups: list[tuple[str, list[_DownloadedStagFile]]],
+        parent=None,
+        *,
+        intro: str = "",
+    ) -> None:
+        super().__init__(parent)
+        self._rows: list[tuple[_DownloadedStagFile, QComboBox, int]] = []
+
+        self.setWindowTitle("Soubory ke stažení ze STAG")
+        self.setMinimumSize(720, 460)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(14, 14, 14, 14)
+        outer.setSpacing(10)
+
+        title = QLabel("📎 Soubory práce ze STAG")
+        title.setStyleSheet("font-size:16px;font-weight:bold;")
+        outer.addWidget(title)
+
+        lead = QLabel(
+            intro
+            or "Vyber, které soubory importovat. Typ přílohy je odhadnutý "
+            "ze STAG — pokud nesedí, přepiš ho v posledním sloupci."
+        )
+        lead.setWordWrap(True)
+        lead.setStyleSheet("color:#888;")
+        outer.addWidget(lead)
+
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(
+            ["", "Práce", "Soubor", "Velikost", "Typ přílohy"]
+        )
+        self.table.verticalHeader().setVisible(False)
+        self.table.setAlternatingRowColors(True)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        h = self.table.horizontalHeader()
+        h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+
+        combo_qss = (
+            "QComboBox { background-color: palette(base); color: palette(text); "
+            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px 4px; }"
+            "QComboBox QAbstractItemView { background-color: palette(base); "
+            "color: palette(text); }"
+        )
+
+        for header, files in groups:
+            for f in files:
+                row = self.table.rowCount()
+                self.table.insertRow(row)
+
+                chk = QTableWidgetItem()
+                chk.setFlags(
+                    Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled
+                )
+                chk.setCheckState(
+                    Qt.CheckState.Checked if f.selected else Qt.CheckState.Unchecked
+                )
+                self.table.setItem(row, 0, chk)
+
+                self.table.setItem(row, 1, QTableWidgetItem(header))
+                name_item = QTableWidgetItem(f.filename)
+                name_item.setToolTip(f.filename)
+                self.table.setItem(row, 2, name_item)
+                size_item = QTableWidgetItem(_fmt_size(f.size))
+                size_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.table.setItem(row, 3, size_item)
+
+                cb_kind = QComboBox()
+                cb_kind.setStyleSheet(combo_qss)
+                for kind in _FILE_KIND_CHOICES:
+                    cb_kind.addItem(kind.label, kind.value)
+                idx = cb_kind.findData(f.kind.value)
+                if idx >= 0:
+                    cb_kind.setCurrentIndex(idx)
+                self.table.setCellWidget(row, 4, cb_kind)
+
+                self._rows.append((f, cb_kind, row))
+
+        outer.addWidget(self.table, stretch=1)
+
+        # ── Tlačítka (zaškrtnout/odznačit vše + potvrzení) ──────────────────
+        row = QHBoxLayout()
+        btn_all = QPushButton("☑ Vše")
+        btn_all.clicked.connect(lambda: self._set_all(True))
+        btn_none = QPushButton("☐ Nic")
+        btn_none.clicked.connect(lambda: self._set_all(False))
+        row.addWidget(btn_all)
+        row.addWidget(btn_none)
+        row.addStretch()
+        btn_skip = QPushButton("Přeskočit soubory")
+        btn_skip.clicked.connect(self.reject)
+        btn_ok = QPushButton("✓ Importovat vybrané")
+        bf = btn_ok.font()
+        bf.setBold(True)
+        btn_ok.setFont(bf)
+        btn_ok.setDefault(True)
+        btn_ok.clicked.connect(self._accept)
+        row.addWidget(btn_skip)
+        row.addWidget(btn_ok)
+        outer.addLayout(row)
+
+    def _set_all(self, checked: bool) -> None:
+        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        for _f, _cb, r in self._rows:
+            item = self.table.item(r, 0)
+            if item is not None:
+                item.setCheckState(state)
+
+    def _accept(self) -> None:
+        for f, cb, r in self._rows:
+            item = self.table.item(r, 0)
+            f.selected = bool(item) and item.checkState() == Qt.CheckState.Checked
+            f.kind = AttachmentKind(cb.currentData())
+        self.accept()
+
+
 class StagDownloadDialog(QDialog):
     """Vyhledání a stažení CSV s prací přímo ze STAG (stag.utb.cz).
 
@@ -1944,6 +2192,14 @@ class StagDownloadDialog(QDialog):
         self.result_meta: stag_api.StagThesisResult | None = None
         self._results: list[stag_api.StagThesisResult] = []
         self._service = service
+        # Soubory stažené spolu s prací (klíč = adipIdno) — importér je připojí
+        # k odpovídající práci po jejím založení.
+        self.downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
+        # Režim „jen soubory" — soubory připojeny rovnou k existující práci v DB,
+        # CSV import se neprovádí. MainWindow pak jen refreshne + naviguje.
+        self.files_only_done = False
+        self.focus_thesis_id: str | None = None
+        self.focus_opposing_id: str | None = None
 
         self.setWindowTitle("Stáhnout práci ze STAG")
         self.setMinimumSize(740, 560)
@@ -2020,15 +2276,28 @@ class StagDownloadDialog(QDialog):
         row = QHBoxLayout()
         btn_cancel = QPushButton("Zrušit")
         btn_cancel.clicked.connect(self.reject)
+        self.btn_files_only = QPushButton("📎 Stáhnout jen soubory")
+        self.btn_files_only.setEnabled(False)
+        self.btn_files_only.setToolTip(
+            "Stáhne jen soubory (text, přílohy, posudky) a připojí je k "
+            "odpovídající práci, kterou už máš v databázi (CSV se neimportuje). "
+            "Pokud práce v databázi není, upozorní."
+        )
+        self.btn_files_only.clicked.connect(self._download_files_only)
         self.btn_download = QPushButton("⬇ Stáhnout vybrané")
         self.btn_download.setEnabled(False)
         self.btn_download.setDefault(True)
         df = self.btn_download.font()
         df.setBold(True)
         self.btn_download.setFont(df)
+        self.btn_download.setToolTip(
+            "Stáhne CSV s prací i její soubory — v dalším kroku zvolíš, "
+            "co naimportovat."
+        )
         self.btn_download.clicked.connect(self._download_selected)
         row.addStretch()
         row.addWidget(btn_cancel)
+        row.addWidget(self.btn_files_only)
         row.addWidget(self.btn_download)
         outer.addLayout(row)
 
@@ -2187,6 +2456,8 @@ class StagDownloadDialog(QDialog):
         self.btn_download.setText(
             "⬇ Stáhnout vybrané" if n == 0 else f"⬇ Stáhnout vybrané ({n})"
         )
+        # „Jen soubory" má smysl jen když máme službu (k dohledání práce v DB).
+        self.btn_files_only.setEnabled(n > 0 and self._service is not None)
 
     def _download_selected(self) -> None:
         results = self._checked_results()
@@ -2194,14 +2465,19 @@ class StagDownloadDialog(QDialog):
             return
 
         self.btn_download.setEnabled(False)
+        self.btn_files_only.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
         items: list[tuple[Path, stag_api.StagThesisResult]] = []
         errors: list[str] = []
+        files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
+        # Jeden klient (session) na celé stažení — odkaz na soubor je vázán
+        # na session, kterou založí dotaz na detail práce.
+        client = stag_api.StagClient()
         try:
             for result in results:
                 try:
-                    data = stag_api.download_csv(result.adipidno)
+                    data = client.download_csv(result.adipidno)
                 except Exception as exc:  # noqa: BLE001
                     errors.append(f"{result.student_full}: {exc}")
                     continue
@@ -2217,11 +2493,16 @@ class StagDownloadDialog(QDialog):
                     errors.append(f"{result.student_full}: zápis CSV: {exc}")
                     continue
                 items.append((target, result))
+                # Spolu s prací stáhni i její soubory (text, přílohy, posudky).
+                dl = self._download_files_for(client, result)
+                if dl:
+                    files_by_adip[result.adipidno] = dl
         finally:
             QApplication.restoreOverrideCursor()
 
         if not items:
             self.btn_download.setEnabled(True)
+            self._update_download_btn()
             QMessageBox.warning(
                 self, "STAG",
                 "Nepodařilo se stáhnout žádnou práci.\n\n" + "\n".join(errors),
@@ -2233,7 +2514,223 @@ class StagDownloadDialog(QDialog):
                 "Některé práce se nepodařilo stáhnout:\n\n" + "\n".join(errors),
             )
 
+        # Náhled stažených souborů — výběr, co naimportovat (default vše).
+        self.downloaded_files = self._preview_and_pick(
+            [(self._group_label(r), files_by_adip[r.adipidno])
+             for (_, r) in items if r.adipidno in files_by_adip],
+            files_by_adip,
+        )
+
         self.result_items = items
         self.result_path = items[0][0]   # zpětná kompatibilita
         self.result_meta = items[0][1]
         self.accept()
+
+    def _download_files_only(self) -> None:
+        """Stáhne jen soubory a připojí je k odpovídající práci v DB."""
+        results = self._checked_results()
+        if not results or self._service is None:
+            return
+
+        self.btn_download.setEnabled(False)
+        self.btn_files_only.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QApplication.processEvents()
+        files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
+        # (result, thesis_id|None, opposing_id|None)
+        matched: list[tuple[stag_api.StagThesisResult, str | None, str | None]] = []
+        unmatched: list[stag_api.StagThesisResult] = []
+        no_files: list[stag_api.StagThesisResult] = []
+        client = stag_api.StagClient()
+        try:
+            for result in results:
+                dl = self._download_files_for(client, result)
+                if not dl:
+                    no_files.append(result)
+                    continue
+                thesis_id, op_id = self._find_db_target(result)
+                if not thesis_id and not op_id:
+                    unmatched.append(result)
+                    continue
+                files_by_adip[result.adipidno] = dl
+                matched.append((result, thesis_id, op_id))
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        if not matched:
+            self._update_download_btn()
+            msg = "Soubory nebylo k čemu připojit."
+            if unmatched:
+                names = ", ".join(r.student_full for r in unmatched)
+                msg += (
+                    "\n\nTyto práce zatím nemáš v databázi (nejdřív je naimportuj "
+                    f"přes „Stáhnout vybrané\"):\n{names}"
+                )
+            if no_files:
+                names = ", ".join(r.student_full for r in no_files)
+                msg += f"\n\nU těchto prací STAG nenabízí žádné soubory:\n{names}"
+            QMessageBox.warning(self, "STAG — jen soubory", msg)
+            return
+
+        # Náhled výběru souborů
+        picked = self._preview_and_pick(
+            [(self._group_label(r), files_by_adip[r.adipidno]) for r, _, _ in matched],
+            files_by_adip,
+            intro="Vyber soubory k připojení k odpovídající práci v databázi.",
+        )
+
+        attached = 0
+        attach_errors: list[str] = []
+        last_thesis_id: str | None = None
+        last_opposing_id: str | None = None
+        for result, thesis_id, op_id in matched:
+            for f in picked.get(result.adipidno, []):
+                try:
+                    if thesis_id:
+                        self._service.attach_document(thesis_id, f.path, kind=f.kind)
+                    else:
+                        self._service.opposing_attach_document(op_id, f.path, kind=f.kind)
+                    attached += 1
+                except Exception as exc:  # noqa: BLE001
+                    attach_errors.append(f"{result.student_full} / {f.filename}: {exc}")
+            if op_id:
+                try:
+                    self._service.sync_opposing_grades(op_id)
+                except Exception:  # noqa: BLE001
+                    pass
+                last_opposing_id = op_id
+            if thesis_id:
+                last_thesis_id = thesis_id
+
+        if attached == 0 and not attach_errors:
+            self._update_download_btn()
+            QMessageBox.information(
+                self, "STAG — jen soubory",
+                "Žádné soubory nebyly vybrány k importu.",
+            )
+            return
+
+        summary = [f"✓ Připojeno souborů: {attached}"]
+        if unmatched:
+            summary.append(
+                "⚠ Bez odpovídající práce v DB: "
+                + ", ".join(r.student_full for r in unmatched)
+            )
+        if no_files:
+            summary.append(
+                "• Bez souborů ve STAG: " + ", ".join(r.student_full for r in no_files)
+            )
+        if attach_errors:
+            summary.append("⚠ Chyby:\n" + "\n".join(attach_errors))
+        QMessageBox.information(self, "STAG — jen soubory", "\n\n".join(summary))
+
+        self.files_only_done = True
+        self.focus_thesis_id = last_thesis_id
+        self.focus_opposing_id = last_opposing_id if not last_thesis_id else None
+        self.accept()
+
+    # --- stahování souborů ---------------------------------------------------
+
+    def _download_files_for(
+        self, client: stag_api.StagClient, result: stag_api.StagThesisResult
+    ) -> list[_DownloadedStagFile]:
+        """Stáhne všechny veřejné soubory práce do dočasného úložiště."""
+        try:
+            stag_files = client.list_thesis_files(result.adipidno)
+        except Exception:  # noqa: BLE001
+            return []
+        out: list[_DownloadedStagFile] = []
+        for sf in stag_files:
+            try:
+                data = client.download_file(sf.download_path)
+            except Exception:  # noqa: BLE001
+                continue
+            safe = re.sub(r"[^0-9A-Za-zÀ-ž._-]+", "_", sf.filename).strip("_")
+            if not safe:
+                safe = f"soubor_{sf.soubidno}"
+            target = (
+                Path(tempfile.gettempdir())
+                / f"stag_{result.adipidno}_{sf.soubidno}_{safe}"
+            )
+            try:
+                target.write_bytes(data)
+            except OSError:
+                continue
+            out.append(
+                _DownloadedStagFile(
+                    path=target,
+                    filename=sf.filename,
+                    kind=_SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER),
+                    section=sf.section,
+                    size=len(data),
+                )
+            )
+        return out
+
+    def _preview_and_pick(
+        self,
+        groups: list[tuple[str, list[_DownloadedStagFile]]],
+        files_by_adip: dict[str, list[_DownloadedStagFile]],
+        intro: str = "",
+    ) -> dict[str, list[_DownloadedStagFile]]:
+        """Zobrazí náhled souborů a vrátí jen vybrané (klíč = adipIdno).
+
+        Když uživatel náhled přeskočí, vrátí prázdný výběr.
+        """
+        if not groups:
+            return {}
+        dlg = StagFilesPreviewDialog(groups, parent=self, intro=intro)
+        accepted = dlg.exec() == QDialog.DialogCode.Accepted
+        picked: dict[str, list[_DownloadedStagFile]] = {}
+        for adip, files in files_by_adip.items():
+            chosen = [f for f in files if accepted and f.selected]
+            if chosen:
+                picked[adip] = chosen
+        return picked
+
+    @staticmethod
+    def _group_label(result: stag_api.StagThesisResult) -> str:
+        bits = [result.student_full]
+        meta = [m for m in (result.type_label, result.year) if m]
+        if meta:
+            bits.append("(" + ", ".join(meta) + ")")
+        return " ".join(bits)
+
+    def _find_db_target(
+        self, result: stag_api.StagThesisResult
+    ) -> tuple[str | None, str | None]:
+        """Najde v DB práci/posudek odpovídající STAG výsledku.
+
+        Vrací ``(thesis_id, opposing_id)`` — vždy nanejvýš jeden je vyplněn.
+        Páruje primárně přes ``adipIdno``, jinak přes jméno + typ práce.
+        """
+        svc = self._service
+        if svc is None:
+            return None, None
+        adip = (result.adipidno or "").strip()
+        type_code = self._result_type_code(result)
+        name_key = f"{result.name} {result.surname}".strip().lower()
+
+        if adip:
+            for t in svc.list_theses():
+                if t.adipidno and t.adipidno == adip:
+                    return t.id, None
+            for o in svc.list_opposing_theses():
+                if o.adipidno and o.adipidno == adip:
+                    return None, o.id
+        # Fallback: jméno + typ
+        for t in svc.list_theses():
+            student = svc.get_student(t.student_id) if t.student_id else None
+            if (
+                student
+                and student.full_name.strip().lower() == name_key
+                and (not type_code or t.type.value == type_code)
+            ):
+                return t.id, None
+        for o in svc.list_opposing_theses():
+            if (
+                o.student_full_name.strip().lower() == name_key
+                and (not type_code or o.type.value == type_code)
+            ):
+                return None, o.id
+        return None, None
