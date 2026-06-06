@@ -7,7 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.62.0] - 2026-06-06
+## [0.62.1] - 2026-06-06
+
+### Changed
+- **Úvodní průvodce doporučí prvotní stažení prací ze STAG.** Po nastavení
+  jména a oborů průvodce (i sekce *Začínáme* v nápovědě) navádí jako první
+  krok na **📥 Import ze STAG → 🎓 Moje vedené práce… / 🧐 Moje oponentury…**
+  — databáze se naplní během chvíle (u velkého objemu příloh stačí *„Jen
+  data"*).
 
 ### Added
 - **Sloupec „Známky" v seznamu vedených prací.** Ve všech záložkách s pracemi

@@ -89,11 +89,25 @@ brew install --cask libreoffice
 
 Bez něj se vygeneruje jen XLSX (PDF si vyrobíš v Excelu přes Export).
 
-### 6. Hotovo — můžeš pracovat
-Teď můžeš:
+### 6. Doporučený první krok — stáhnout své práce ze STAG
+Jakmile máš nastavené **jméno** (krok 2) a **obory s STAG zkratkami**
+(krok 3), je nejrychlejší start **hromadně stáhnout své práce přímo ze STAG**:
 
-- **📥 Importovat ze STAG** vedené i oponované práce (toolbar
-  *Import ze STAG…*),
+1. Toolbar **📥 Import ze STAG…**
+2. **🎓 Moje vedené práce…** — najde a předvybere všechny tvé vedené práce
+   (historické i aktuální) podle jména z profilu.
+3. **🧐 Moje oponentury…** — totéž pro práce, kde jsi oponent.
+4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. U velkého objemu příloh
+   zvol *„Jen data (bez příloh)"* — gigabajty plných textů dotáhneš později
+   cíleně. Stav a chybějící soubory pak průběžně doplníš přes
+   *🔄 Aktualizovat …* a zkontroluješ tlačítkem *🔍 Kontrola se STAG*.
+
+Tím máš databázi naplněnou během chvíle. (Detaily importu viz sekce
+*Import ze STAG* níže.)
+
+### 7. Co dál
+Dále můžeš:
+
 - nebo **ručně přidat práci** (toolbar *+ Nová práce*),
 - **🌱 Zájemce** — nová budoucí práce s dialogem, kde rovnou (volitelně)
   vyplníš **studenta, obor, název a anotaci** (nic není povinné — co
