@@ -2346,7 +2346,10 @@ class StagDownloadDialog(QDialog):
         self.focus_opposing_id: str | None = None
 
         self.setWindowTitle("Stáhnout práci ze STAG")
-        self.setMinimumSize(740, 560)
+        # Vyšší (+70 %) a širší — u hromadného stažení bývá výsledků hodně
+        # a labely (rok / student / téma) jsou dlouhé.
+        self.setMinimumSize(900, 950)
+        self.resize(1040, 980)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
@@ -2570,7 +2573,12 @@ class StagDownloadDialog(QDialog):
             if not is_existing:
                 new_count += 1
             badge = "✓ už máš" if is_existing else "🆕 nové"
-            item = QListWidgetItem(f"{badge}   {r.display_label}")
+            # Akademický rok napřed (přehlednější u hromadného seznamu).
+            year = f"[{r.year}]" if r.year else "[—]"
+            type_part = f"  ·  {r.type_label}" if r.type_label else ""
+            item = QListWidgetItem(
+                f"{badge}   {year}   {r.student_full} — {r.title or '(bez názvu)'}{type_part}"
+            )
             item.setData(Qt.ItemDataRole.UserRole, r.adipidno)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(

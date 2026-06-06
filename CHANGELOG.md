@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.53.1] - 2026-06-06
+
+### Changed
+- **Dialog stahování ze STAG je větší** (vyšší o ~70 %, širší) a v seznamu
+  výsledků je teď **akademický rok napřed** — přehlednější u hromadného
+  stažení mnoha prací.
+
 ## [0.53.0] - 2026-06-06
 
 ### Added
