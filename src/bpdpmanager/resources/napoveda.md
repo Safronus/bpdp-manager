@@ -472,8 +472,11 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > **Přílohy (📎).** Počet a velikost příloh se u práce zobrazí, **jakmile ji
 > zaškrtneš** (např. „📎 4 · 14.0 MB") — dotahuje se z detailu jen u
 > zaškrtnutých prací. Samotné **stahování** ukazuje **průběh** (která práce a
-> která příloha se zrovna stahuje) a lze ho přerušit. Co se nakonec naimportuje
-> (a vyloučení velkých příloh) vybereš v **náhledu souborů** v dalším kroku.
+> která příloha se zrovna stahuje, **vč. staženo/celkem MB** u velkých příloh)
+> a lze ho **přerušit** — po přerušení se **dočasně stažené soubory uklidí**.
+> Pokud se nějaká příloha nestáhne, aplikace to vypíše. Co se nakonec
+> naimportuje (a vyloučení velkých příloh) vybereš v **náhledu souborů**
+> v dalším kroku.
 >
 > **„✓ už máš" — co se stane při opětovném stažení (merge).** Práce, které už
 > v databázi jsou, mají odznak **✓ už máš** a jsou **předem odškrtnuté** (ve

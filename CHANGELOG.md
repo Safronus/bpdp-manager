@@ -7,7 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.58.0] - 2026-06-06
+## [0.58.1] - 2026-06-06
+
+### Changed
+- **Plynulý průběh stahování příloh ze STAG.** Soubory se nově stahují
+  **po blocích** a progres okno ukazuje **kolik z kolika MB** se u dané
+  přílohy stáhlo (`3.2 / 14.0 MB`). U velkých příloh už to nevypadá, že
+  aplikace zamrzla.
+
+### Fixed
+- **Úklid dočasných souborů po přerušení.** Když stahování **přerušíš**,
+  všechny dočasně stažené soubory (CSV i přílohy) se **smažou** a operace
+  se korektně ukončí (nepokračuje se do náhledu).
+- **Nestažené přílohy se vypíšou.** Pokud se nějakou přílohu nepodaří
+  stáhnout, aplikace to **oznámí** (dřív se tiše přeskočila, což budilo
+  dojem, že stahování skončilo předčasně).
 
 ### Added
 - **Nová záložka „💡 Návrhy témat".** Seznam vymyšlených potenciálních témat

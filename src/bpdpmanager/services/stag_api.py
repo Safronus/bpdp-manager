@@ -24,6 +24,7 @@ import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
 from http.cookiejar import CookieJar
 
@@ -49,6 +50,14 @@ ROLE_OPPONENT = "oponent"
 
 class StagError(Exception):
     """Chyba při komunikaci se STAG (síť, neočekávaná odpověď, prázdný výsledek)."""
+
+
+class StagCancelledError(StagError):
+    """Stahování bylo přerušeno uživatelem (progress callback vrátil ``False``)."""
+
+
+# Velikost bloku pro streamované stahování souborů (průběžný progres).
+_DOWNLOAD_CHUNK = 64 * 1024
 
 
 # Detail práce (veřejný, bez přihlášení) — odtud se tahá seznam souborů.
@@ -281,6 +290,53 @@ class StagClient:
         url = path if path.startswith("http") else BASE_URL + path
         raw = self._request(url, decode=False)
         assert isinstance(raw, bytes)
+        if not raw:
+            raise StagError("STAG vrátil prázdný soubor.")
+        return raw
+
+    def download_file_streamed(
+        self,
+        download_path: str,
+        on_progress: Callable[[int, int | None], bool | None] | None = None,
+    ) -> bytes:
+        """Stáhne soubor **po blocích** a po každém zavolá ``on_progress``.
+
+        ``on_progress(downloaded, total)`` dostane počet stažených bajtů a
+        celkovou velikost (z ``Content-Length``; ``None`` když není známá).
+        Když callback vrátí ``False``, stahování se přeruší a vyhodí se
+        :class:`StagCancelledError`. Vrací kompletní obsah souboru.
+        """
+        path = (download_path or "").strip()
+        if not path:
+            raise StagError("Chybí cesta ke stažení souboru.")
+        url = path if path.startswith("http") else BASE_URL + path
+        headers = {"User-Agent": _USER_AGENT, "Accept": "*/*"}
+        req = urllib.request.Request(url, headers=headers)
+        chunks: list[bytes] = []
+        downloaded = 0
+        try:
+            with self._opener.open(req, timeout=self.timeout) as resp:
+                cl = resp.headers.get("Content-Length")
+                total = int(cl) if cl and cl.isdigit() else None
+                if on_progress is not None and on_progress(0, total) is False:
+                    raise StagCancelledError("Stahování přerušeno.")
+                while True:
+                    chunk = resp.read(_DOWNLOAD_CHUNK)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    downloaded += len(chunk)
+                    if on_progress is not None and on_progress(downloaded, total) is False:
+                        raise StagCancelledError("Stahování přerušeno.")
+        except urllib.error.HTTPError as exc:
+            raise StagError(
+                f"STAG odpověděl chybou HTTP {exc.code} při stahování souboru."
+            ) from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise StagError(
+                "Nepodařilo se stáhnout soubor ze STAG (spojení / timeout)."
+            ) from exc
+        raw = b"".join(chunks)
         if not raw:
             raise StagError("STAG vrátil prázdný soubor.")
         return raw

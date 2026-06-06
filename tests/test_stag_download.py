@@ -137,3 +137,69 @@ def test_attachments_error_shows_question_mark(qapp, monkeypatch) -> None:
     dlg._fetch_attachments(["1"])
     assert "1" not in dlg._attach_info
     assert _cell_text(dlg, "1", mod._ATTACH_COL) == "?"
+
+
+# ── Streamované stahování souborů (průběžný progres) ─────────────────────────
+
+class _FakeResp:
+    """Falešná HTTP odpověď pro download_file_streamed (čte po blocích)."""
+
+    def __init__(self, data: bytes, total=None):
+        self._data = data
+        self._pos = 0
+        self.headers = {} if total is None else {"Content-Length": str(total)}
+
+    def read(self, n=-1):
+        if n is None or n < 0:
+            chunk = self._data[self._pos:]
+            self._pos = len(self._data)
+            return chunk
+        chunk = self._data[self._pos:self._pos + n]
+        self._pos += len(chunk)
+        return chunk
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def test_download_file_streamed_reports_progress(monkeypatch) -> None:
+    client = stag_api.StagClient()
+    data = b"x" * (200 * 1024)  # 200 KB → víc 64KB bloků
+    monkeypatch.setattr(
+        client._opener, "open", lambda req, timeout=None: _FakeResp(data, len(data))
+    )
+    calls: list = []
+
+    def cb(downloaded, total):
+        calls.append((downloaded, total))
+        return True
+
+    out = client.download_file_streamed("/x", cb)
+    assert out == data
+    assert calls[0][1] == len(data)         # celková velikost z Content-Length
+    assert calls[-1][0] == len(data)        # nakonec staženo = celé
+    assert len(calls) > 2                    # průběžné aktualizace (po blocích)
+
+
+def test_download_file_streamed_cancel(monkeypatch) -> None:
+    client = stag_api.StagClient()
+    data = b"y" * (200 * 1024)
+    monkeypatch.setattr(
+        client._opener, "open", lambda req, timeout=None: _FakeResp(data, len(data))
+    )
+    # Callback povolí start (downloaded==0) a pak přeruší.
+    with pytest.raises(stag_api.StagCancelledError):
+        client.download_file_streamed("/x", lambda d, t: d == 0)
+
+
+def test_cleanup_temp_files(tmp_path) -> None:
+    a = tmp_path / "a.bin"
+    a.write_bytes(b"x")
+    b = tmp_path / "b.bin"
+    b.write_bytes(b"y")
+    missing = tmp_path / "nope.bin"
+    StagDownloadDialog._cleanup_temp_files([a, b, missing])
+    assert not a.exists() and not b.exists()  # smazáno, na chybějící nespadne

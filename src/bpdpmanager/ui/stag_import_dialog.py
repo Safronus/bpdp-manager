@@ -3163,6 +3163,8 @@ class StagDownloadDialog(QDialog):
         errors: list[str] = []
         files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
         listings: dict[str, list[stag_api.StagFile]] = {}
+        # Dočasně stažené soubory (CSV + přílohy) — při zrušení se uklidí.
+        temp_files: list[Path] = []
         # Jeden klient (session) na celé stažení — odkaz na soubor je vázán
         # na session, kterou založí dotaz na detail práce.
         client = stag_api.StagClient()
@@ -3207,12 +3209,14 @@ class StagDownloadDialog(QDialog):
                 progress.setValue(i + 1)
                 continue
             items.append((target, result))
+            temp_files.append(target)
             listings[result.adipidno] = self._list_files_for(client, result)
             progress.setValue(i + 1)
             QApplication.processEvents()
 
         if canceled:
             progress.close()
+            self._cleanup_temp_files(temp_files)
             self._update_download_btn()
             return
 
@@ -3237,7 +3241,8 @@ class StagDownloadDialog(QDialog):
             {r.adipidno: listings.get(r.adipidno, []) for (_, r) in items}
         )
 
-        # Fáze 3: stáhni soubory (text, přílohy, posudky), po jednom s progress.
+        # Fáze 3: stáhni soubory (text, přílohy, posudky) — streamovaně, ať je
+        # u velkých příloh vidět průběh (jinak to vypadá jako zamrznutí).
         to_download = [
             (result, sf)
             for (_, result) in items
@@ -3245,27 +3250,72 @@ class StagDownloadDialog(QDialog):
             if sf.soubidno not in skip_ids
         ]
         total_files = len(to_download)
-        progress.setRange(0, max(1, total_files))
+        total_bytes = sum(max(0, sf.size_hint) for (_, sf) in to_download)
+        use_bytes = total_bytes > 0
+        progress.setRange(0, total_bytes if use_bytes else max(1, total_files))
         progress.setValue(0)
         progress.setLabelText("Stahuji přílohy…")
         if total_files:
             progress.show()
         QApplication.processEvents()
-        for done, (result, sf) in enumerate(to_download):
+
+        failed: list[str] = []
+        canceled3 = False
+        bytes_done = 0
+        for idx, (result, sf) in enumerate(to_download):
             if progress.wasCanceled():
+                canceled3 = True
                 break
-            size_hint = f" ({_fmt_size(sf.size_hint)})" if sf.size_hint else ""
-            progress.setLabelText(
-                f"Stahuji přílohy ({done + 1}/{total_files}):\n"
-                f"{result.student_full}\n↳ {sf.filename}{size_hint}"
+            base = (
+                f"Stahuji přílohy ({idx + 1}/{total_files}):\n"
+                f"{result.student_full}\n↳ {sf.filename}"
             )
-            QApplication.processEvents()
-            dl = self._download_one_file(client, result, sf)
+
+            def _on_progress(downloaded, total, _base=base, _bd=bytes_done,
+                             _hint=sf.size_hint):
+                tot = total or _hint or 0
+                suffix = (
+                    f"  ({_fmt_size(downloaded)} / {_fmt_size(tot)})"
+                    if tot else f"  ({_fmt_size(downloaded)})"
+                )
+                progress.setLabelText(_base + suffix)
+                if use_bytes:
+                    progress.setValue(min(total_bytes, _bd + downloaded))
+                QApplication.processEvents()
+                return not progress.wasCanceled()
+
+            try:
+                dl = self._download_one_file(
+                    client, result, sf, on_progress=_on_progress
+                )
+            except stag_api.StagCancelledError:
+                canceled3 = True
+                break
             if dl is not None:
                 files_by_adip.setdefault(result.adipidno, []).append(dl)
-            progress.setValue(done + 1)
+                temp_files.append(dl.path)
+                bytes_done += dl.size or sf.size_hint or 0
+            else:
+                failed.append(f"{result.student_full}: {sf.filename}")
+                bytes_done += sf.size_hint or 0
+            if not use_bytes:
+                progress.setValue(idx + 1)
             QApplication.processEvents()
         progress.close()
+
+        if canceled3:
+            # Uživatel přerušil → ukliď VŠE dočasně stažené (CSV i přílohy).
+            self._cleanup_temp_files(temp_files)
+            self._update_download_btn()
+            self.lbl_status.setText("⚠ Stahování přerušeno, dočasné soubory uklizeny.")
+            return
+
+        if failed:
+            QMessageBox.warning(
+                self, "STAG — některé přílohy se nestáhly",
+                "Tyto přílohy se nepodařilo stáhnout (přeskočeny):\n\n"
+                + "\n".join(f"• {x}" for x in failed),
+            )
 
         # Náhled stažených souborů — výběr, co naimportovat (default vše).
         self.downloaded_files = self._preview_and_pick(
@@ -3483,10 +3533,17 @@ class StagDownloadDialog(QDialog):
         client: stag_api.StagClient,
         result: stag_api.StagThesisResult,
         sf: stag_api.StagFile,
+        on_progress=None,
     ) -> _DownloadedStagFile | None:
-        """Stáhne jeden vypsaný soubor do dočasného úložiště (None při chybě)."""
+        """Stáhne jeden vypsaný soubor do dočasného úložiště (None při chybě).
+
+        ``on_progress(downloaded, total)`` se volá průběžně; přerušení
+        (callback vrátí ``False``) propustí jako :class:`stag_api.StagCancelledError`.
+        """
         try:
-            data = client.download_file(sf.download_path)
+            data = client.download_file_streamed(sf.download_path, on_progress)
+        except stag_api.StagCancelledError:
+            raise
         except Exception:  # noqa: BLE001
             return None
         safe = re.sub(r"[^0-9A-Za-zÀ-ž._-]+", "_", sf.filename).strip("_")
@@ -3507,6 +3564,16 @@ class StagDownloadDialog(QDialog):
             section=sf.section,
             size=len(data),
         )
+
+    @staticmethod
+    def _cleanup_temp_files(paths: list[Path]) -> None:
+        """Smaže dočasně stažené soubory (po zrušení stahování)."""
+        for p in paths:
+            try:
+                if p and Path(p).exists():
+                    Path(p).unlink()
+            except OSError:
+                pass
 
     def _preview_and_pick(
         self,
