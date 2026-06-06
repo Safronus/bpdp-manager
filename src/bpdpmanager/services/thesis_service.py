@@ -976,6 +976,22 @@ class ThesisService:
             if rev is not None:
                 op.grade_opponent = rev.suggested_grade
                 changed = True
+            else:
+                # Fallback: vyčti z nahraného PDF posudku oponenta (typicky
+                # vlastní posudek stažený ze STAG, bez napsaného posudku v appce).
+                for a in op.attachments:
+                    if (
+                        a.kind == AttachmentKind.OPPONENT_REVIEW
+                        and a.is_file
+                        and a.url_or_path.lower().endswith(".pdf")
+                    ):
+                        path = self.opposing_document_absolute_path(op_id, a)
+                        if path is not None and path.exists():
+                            grade = extract_grade_from_pdf(path)
+                            if grade:
+                                op.grade_opponent = grade
+                                changed = True
+                                break
 
         if not op.grade_supervisor:
             for a in op.attachments:

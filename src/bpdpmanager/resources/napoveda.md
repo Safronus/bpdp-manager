@@ -158,6 +158,12 @@ Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
 „—" když chybí; plný popis v tooltipu). Stejné známky jsou i ve sloupci
 záložky *Oponentské posudky*.
 
+> **Oponentury — sloupec Stav a indikace dle roku.** Tabulka oponentur má
+> sloupec **Stav** (ze STAG, např. *nedokončeno / obhájeno*). Barevný puntík
+> stavu posudku, podbarvení a sloupec *Odesláno* se ukazují **jen u aktuálního
+> akademického roku** (u starších je to irelevantní). Známka oponenta se
+> u stažených oponentur doplní z nahraného **PDF posudku** automaticky.
+
 Seznam prací v *Aktuální* i *Oponentské posudky* má jednotný sloupec
 **Odesláno**: u prací s **hotovým posudkem** ukazuje **✉ ✓ odesláno** /
 **✉ ✗ neodesláno** (stejná informace je i v Souhrnu — *Odeslání posudku:

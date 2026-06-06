@@ -32,11 +32,13 @@ from ..models.enums import (
     REVIEW_STATE_LABELS,
     REVIEW_STATE_STRONG,
     REVIEW_STATE_TINTS,
+    AttachmentKind,
     ThesisType,
     review_sent_indicator,
 )
 from ..services import ThesisService
 from .opposing_detail import OpposingDetail
+from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
 
@@ -109,6 +111,9 @@ class OpposingTab(QWidget):
         super().__init__(parent)
         self.service = service
         self.profile_manager = profile_manager
+        # id oponentur, u kterých už proběhl pokus o dotažení známky z PDF
+        # (ať se PDF nečte opakovaně při každém refresh).
+        self._grade_synced: set[str] = set()
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -137,9 +142,10 @@ class OpposingTab(QWidget):
         splitter.setChildrenCollapsible(False)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(6)
+        self.tree.setColumnCount(7)
         self.tree.setHeaderLabels(
-            ["Student / Skupina", "Téma", "Vedoucí", "Známky", "Obor", "Odesláno"]
+            ["Student / Skupina", "Téma", "Stav", "Vedoucí", "Známky",
+             "Obor", "Odesláno"]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
@@ -150,10 +156,8 @@ class OpposingTab(QWidget):
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        for col in range(2, 7):
+            h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
@@ -210,6 +214,24 @@ class OpposingTab(QWidget):
         try:
             self.tree.clear()
             opposings = self.service.list_opposing_theses()
+            current_year = self.service.current_academic_year()
+            # Doplň chybějící známku oponenta z nahraného PDF posudku (typicky
+            # vlastní posudek stažený ze STAG). Jednorázově za session, jen u
+            # prací s PDF a bez známky — jakmile se doplní, příště se přeskočí.
+            for o in opposings:
+                if (
+                    not o.grade_opponent
+                    and o.id not in self._grade_synced
+                    and any(
+                        a.kind == AttachmentKind.OPPONENT_REVIEW
+                        and a.is_file
+                        and a.url_or_path.lower().endswith(".pdf")
+                        for a in o.attachments
+                    )
+                ):
+                    self._grade_synced.add(o.id)
+                    self.service.sync_opposing_grades(o.id)
+            opposings = self.service.list_opposing_theses()  # re-fetch po sync
             # group by academic_year
             groups: dict[str, list[OpposingThesis]] = {}
             for op in opposings:
@@ -242,17 +264,27 @@ class OpposingTab(QWidget):
                     )
                     title = op.title_cs or "(bez názvu)"
                     state = op.opponent_review_state
-                    # Stav posudku jako barevný puntík v názvu — viditelný i při
-                    # výběru řádku (pozadí buňky výběr překryje).
-                    dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
-                    if dot:
-                        title = f"{dot} {title}"
+                    # Indikace stavu posudku (puntík / Odesláno / podbarvení) má
+                    # smysl jen u AKTUÁLNÍHO akademického roku — u starších let je
+                    # irelevantní, takže ji potlačíme.
+                    is_current = op.academic_year == current_year
+                    if is_current:
+                        dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
+                        if dot:
+                            title = f"{dot} {title}"
                     if op.related_thesis_id:
                         title = f"🔁 {title}"
-                    # Odeslání posudku sekretářce — vlastní sloupec „Odesláno"
-                    # (jednotná indikace jako u vedených prací).
-                    sent_at = op.opponent_review_sent_at
-                    sent_text, sent_tip = review_sent_indicator(state == "done", sent_at)
+                    # Stav práce ze STAG (DUO/ND/…) — užitečné hlavně u
+                    # nedokončených.
+                    code = op.stag_state_code
+                    stav = STAG_STATE_SHORT.get(code, code) if code else "—"
+                    # Odeslání posudku sekretářce — jen aktuální rok.
+                    if is_current:
+                        sent_text, sent_tip = review_sent_indicator(
+                            state == "done", op.opponent_review_sent_at
+                        )
+                    else:
+                        sent_text, sent_tip = "", ""
                     grades = self._format_grades(op)
                     obor = op.student_obor or "—"
                     type_prefix = op.type.value
@@ -260,6 +292,7 @@ class OpposingTab(QWidget):
                         [
                             f"{type_prefix} · {name}",
                             title,
+                            stav,
                             op.supervisor_name or "—",
                             grades,
                             obor,
@@ -267,14 +300,18 @@ class OpposingTab(QWidget):
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    if code:
+                        leaf.setToolTip(
+                            2, STAG_STATE_LABELS.get(code, code) + f" ({code})"
+                        )
                     leaf.setTextAlignment(
-                        5, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                        6, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                     )
                     if sent_tip:
-                        leaf.setToolTip(5, sent_tip)
-                    # Oponentský posudek — podbarvi sloupec názvu práce:
-                    #   🟢 hotový soubor · 🟡 jen data · 🔴 chybí
-                    tint = REVIEW_STATE_TINTS.get(state)
+                        leaf.setToolTip(6, sent_tip)
+                    # Oponentský posudek — podbarvi sloupec názvu práce
+                    # (🟢 hotový · 🟡 jen data · 🔴 chybí) — jen aktuální rok.
+                    tint = REVIEW_STATE_TINTS.get(state) if is_current else None
                     if tint:
                         leaf.setBackground(1, QBrush(QColor(tint)))
                         leaf.setForeground(1, QBrush(QColor("#212121")))
@@ -284,11 +321,13 @@ class OpposingTab(QWidget):
                     year_item.addChild(leaf)
                 year_item.setExpanded(True)
 
-            # Souhrn s počty hotovo/chybí (barevně).
-            done = sum(1 for o in opposings if o.opponent_review_state == "done")
-            missing = sum(1 for o in opposings if o.opponent_review_state == "none")
+            # Souhrn hotovo/chybí — jen za AKTUÁLNÍ rok (u starších je irelevantní).
+            cur = [o for o in opposings if o.academic_year == current_year]
+            done = sum(1 for o in cur if o.opponent_review_state == "done")
+            missing = sum(1 for o in cur if o.opponent_review_state == "none")
             self.lbl_count.setText(
                 f"Posudků celkem: {len(opposings)}  ·  "
+                f"aktuální rok ({current_year}): "
                 f"<span style='color:{REVIEW_STATE_STRONG['done']};'>hotovo {done}</span>  ·  "
                 f"<span style='color:{REVIEW_STATE_STRONG['none']};'>chybí {missing}</span>"
             )

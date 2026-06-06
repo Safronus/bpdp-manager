@@ -7,7 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.62.1] - 2026-06-06
+## [0.63.0] - 2026-06-06
+
+### Fixed
+- **Známka oponenta se u stažených oponentur nedoplnila.** Doplnění známky
+  oponenta bralo hodnotu jen z *napsaného* posudku, ne ze **staženého PDF**
+  posudku oponenta. Nově se u oponentur bez známky **vyčte i z nahraného PDF**
+  posudku oponenta (jako u posudku vedoucího). U existujících oponentur se
+  doplní automaticky při otevření záložky *Oponentské posudky*.
+
+### Added
+- **Sloupec „Stav" v oponenturách.** Tabulka oponentur ukazuje stav práce ze
+  STAG (např. *nedokončeno* / *obhájeno*) — užitečné hlavně u nedokončených.
+  Stav se ukládá při importu ze STAG (`stag_state_code`); u dříve stažených
+  oponentur ho doplníš opětovným stažením přes *🧐 Moje oponentury…*.
+
+### Changed
+- **Indikace posudků jen pro aktuální akademický rok.** V seznamu oponentur
+  se barevný puntík stavu posudku, podbarvení i sloupec *Odesláno* zobrazují
+  **jen u aktuálního roku** (u starších let jsou irelevantní). Souhrn
+  *hotovo / chybí* dole se počítá také za aktuální rok.
 
 ### Changed
 - **Úvodní průvodce doporučí prvotní stažení prací ze STAG.** Po nastavení

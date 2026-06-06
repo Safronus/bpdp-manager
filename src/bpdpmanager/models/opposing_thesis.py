@@ -48,6 +48,9 @@ class OpposingThesis(BaseModel):
     # Odkaz na práci v IS/STAG
     stag_url: str = ""
     adipidno: str = ""  # STAG ID práce (adipIdno) — pro přesné párování při importu
+    # v13: STAG kód stavu práce (DUO/ND/DBPOO/OPUNO…) — oponentury nemají vlastní
+    # stav jako vedené práce, tohle drží informaci ze STAG (např. „nedokončeno").
+    stag_state_code: str = ""
 
     # Dokumenty: plný text práce, posudek vedoucího, posudek oponenta + příp. další
     attachments: list[Attachment] = Field(default_factory=list)

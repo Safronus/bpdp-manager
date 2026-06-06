@@ -24,7 +24,9 @@ APP_NAME = "bpdpmanager"
 #      řádný ↔ opravný pokus; volitelné, default "").
 # v12: Database.proposals (návrhy témat prací — nekompletní nápady bez
 #      studenta/stavu; pydantic doplní z defaultu, žádná datová migrace).
-SCHEMA_VERSION = 12
+# v13: OpposingThesis.stag_state_code (STAG kód stavu práce u oponentur;
+#      default "", bez datové migrace).
+SCHEMA_VERSION = 13
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

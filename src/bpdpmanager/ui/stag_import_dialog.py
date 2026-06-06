@@ -2137,6 +2137,7 @@ class StagImportDialog(QDialog):
         op.objectives = record.objectives_text or op.objectives
         op.grade_supervisor = record.grade_supervisor or op.grade_supervisor
         op.grade_opponent = record.grade_opponent or op.grade_opponent
+        op.stag_state_code = record.stag_state_code or op.stag_state_code
         if record.adipidno:
             op.adipidno = record.adipidno
 
