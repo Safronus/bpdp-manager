@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-06-06
+
+### Added
+- **Statistiky: přehled souborů.** Nová sekce **Soubory (přílohy)** — kolik
+  máš celkem souborů a kolik zabírají, rozpad **podle druhu dokumentu**
+  (text práce / přílohy / posudky / …) a **největší práce** podle objemu
+  (top 10). Počítá se z reálných souborů na disku (vč. starších verzí).
+
 ## [0.60.0] - 2026-06-06
 
 ### Added

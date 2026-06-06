@@ -669,6 +669,10 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
   **vedoucího** i **oponenta** (A–F).
 - **Oponentury** — souhrn oponovaných prací: počet, rozpad BP/DP, po letech
   a **mnou navržené známky** (jako oponent).
+- **Soubory (přílohy)** — kolik máš celkem souborů a kolik zabírají, rozpad
+  **podle druhu dokumentu** (text práce / přílohy / posudky / …) a **největší
+  práce** podle objemu (top 10). Počítá se z reálných souborů na disku
+  (vč. starších verzí).
 - **Odměny (orientačně)** — per rok: odměna za vedení (3 000 Kč/obhájenou
   práci, max 12/rok) a oponentury (600 Kč/posudek) + celkový součet.
 - **Posudky** — hotové / rozpracované / chybí (vedoucí), hotové / chybí

@@ -12,6 +12,7 @@ from collections import Counter
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextBrowser, QVBoxLayout, QWidget
 
+from ..config import thesis_documents_dir
 from ..models.enums import (
     STATUSES_CURRENT,
     STATUSES_FUTURE,
@@ -19,6 +20,16 @@ from ..models.enums import (
     ThesisStatus,
 )
 from ..services import ThesisService
+
+
+def _human_size(num_bytes: int) -> str:
+    """Lidsky čitelná velikost (B/kB/MB/GB)."""
+    size = float(num_bytes)
+    for unit in ("B", "kB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} GB"
 
 _GRADE_COLORS = {
     "A": "#2e7d32", "B": "#43a047", "C": "#fb8c00",
@@ -90,6 +101,7 @@ class StatsTab(QWidget):
         parts.append(self._defense_success(theses))
         parts.append(self._grades(theses))
         parts.append(self._opposing_summary(opposings))
+        parts.append(self._files(theses, opposings))
         parts.append(self._finance(theses, opposings))
         parts.append(self._reviews(theses, opposings))
         parts.append("</body></html>")
@@ -400,6 +412,98 @@ class StatsTab(QWidget):
                 "(oponent)</b></p>" + self._grade_table(grades)
             )
         return out
+
+    def _size_bar(self, label: str, size_bytes: int, total_bytes: int,
+                  color: str) -> str:
+        """Pruh úměrný velikosti; vpravo lidsky čitelná velikost."""
+        pct = (size_bytes / total_bytes * 100.0) if total_bytes else 0.0
+        width = max(2, round(pct)) if size_bytes else 0
+        return (
+            "<tr>"
+            f"<td style='padding:2px 10px 2px 0;white-space:nowrap;'>{label}</td>"
+            "<td style='width:100%;padding:2px 0;'>"
+            f"<div style='background:{color};height:14px;width:{width}%;"
+            "border-radius:3px;display:inline-block;min-width:2px;'></div></td>"
+            f"<td style='padding:2px 0 2px 10px;white-space:nowrap;"
+            f"color:{self._muted};'>{_human_size(size_bytes)}</td>"
+            "</tr>"
+        )
+
+    def _files(self, theses, opposings) -> str:
+        """Počty a velikost příloh — celkem, podle druhu dokumentu a podle prací."""
+        by_kind: dict = {}                 # kind -> [count, bytes]
+        per_work: list = []                # (label, count, bytes)
+        total_count = 0
+        total_bytes = 0
+
+        def scan(atts, docs_id: str, label: str) -> None:
+            nonlocal total_count, total_bytes
+            docs_dir = thesis_documents_dir(docs_id)
+            c = 0
+            b = 0
+            for att in atts:
+                if not att.is_file:
+                    continue
+                p = docs_dir / att.url_or_path
+                try:
+                    if not p.is_file():
+                        continue
+                    size = p.stat().st_size
+                except OSError:
+                    continue
+                c += 1
+                b += size
+                slot = by_kind.setdefault(att.kind, [0, 0])
+                slot[0] += 1
+                slot[1] += size
+            if c:
+                per_work.append((label, c, b))
+                total_count += c
+                total_bytes += b
+
+        for t in theses:
+            student = self.service.get_student(t.student_id) if t.student_id else None
+            name = student.full_name if student else "(neznámý student)"
+            scan(t.attachments, t.id,
+                 f"{name} — {t.title_cs or '(bez názvu)'} ({t.type.value})")
+        for o in opposings:
+            name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+            scan(o.attachments, f"opposing-{o.id}",
+                 f"{name} — {o.title_cs or '(bez názvu)'} ({o.type.value}, oponentura)")
+
+        if not total_count:
+            return ""
+
+        denom = total_bytes or 1
+        kind_rows = "".join(
+            self._size_bar(f"{kind.label}  ({c}×)", b, denom, "#3949ab")
+            for kind, (c, b) in sorted(
+                by_kind.items(), key=lambda kv: kv[1][1], reverse=True
+            )
+        )
+        top = sorted(per_work, key=lambda w: w[2], reverse=True)[:10]
+        work_rows = "".join(
+            self._size_bar(f"{lbl}  ({c}×)", b, denom, "#00897b")
+            for lbl, c, b in top
+        )
+        more = (
+            f"<p style='color:{self._muted};font-size:11px;'>"
+            f"(zobrazeno 10 největších z {len(per_work)} prací se soubory)</p>"
+            if len(per_work) > 10 else ""
+        )
+
+        return (
+            self._h("Soubory (přílohy)")
+            + f"<p>Celkem <b>{total_count}</b> souborů · "
+            f"<b>{_human_size(total_bytes)}</b> "
+            f"napříč <b>{len(per_work)}</b> pracemi "
+            f"<span style='color:{self._muted};'>(včetně starších verzí)</span>.</p>"
+            + "<p style='margin:6px 0 2px 0;'><b>Podle druhu dokumentu</b></p>"
+            + f"<table style='width:100%;'>{kind_rows}</table>"
+            + "<p style='margin:8px 0 2px 0;'><b>Největší práce</b></p>"
+            + f"<table style='width:100%;'>{work_rows}</table>"
+            + more
+        )
 
     def _reviews(self, theses, opposings) -> str:
         in_progress = [t for t in theses if t.status == ThesisStatus.IN_PROGRESS]

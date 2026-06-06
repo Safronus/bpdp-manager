@@ -83,3 +83,26 @@ def test_stats_opponent_grades_and_opposing_summary(qapp, service: ThesisService
 def test_stats_palette_muted_color_set(qapp, service: ThesisService) -> None:
     w = StatsTab(service)
     assert w._muted and w._border  # barvy dle motivu nastaveny
+
+
+def test_stats_files_section(qapp, service: ThesisService, tmp_path: Path) -> None:
+    from bpdpmanager.models.enums import AttachmentKind
+
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    t = Thesis(type=ThesisType.BP, academic_year="2024/2025", student_id=s.id,
+               status=ThesisStatus.IN_PROGRESS)
+    service.upsert_thesis(t)
+    src = tmp_path / "text.pdf"
+    src.write_bytes(b"x" * 100_000)
+    service.attach_document(t.id, src, kind=AttachmentKind.THESIS_TEXT)
+
+    w = StatsTab(service)
+    html = w.view.toHtml()
+    assert "Soubory (přílohy)" in html
+    assert "Podle druhu dokumentu" in html
+    assert "Největší práce" in html
+    # bez souborů sekce zmizí
+    service.delete_thesis(t.id)
+    w2 = StatsTab(service)
+    assert "Soubory (přílohy)" not in w2.view.toHtml()
