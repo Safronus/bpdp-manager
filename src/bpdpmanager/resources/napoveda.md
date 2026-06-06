@@ -567,6 +567,10 @@ Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená zná
   lokální obor), stavu a akce (Vytvořit / Aktualizovat / Přeskočit).
   Stav se předvyplní podle STAG kódu (`R`, `DBPOO` → V řešení;
   `DUO` → Obhájeno; `DBUO`, `ND` → Nedokončeno) nebo podle datumů.
+  U **nenamapovaného oboru** (jantarový řádek) zvol existující obor, nebo
+  **„➕ Nový obor…"** (předvyplní STAG kód). Nově založený obor se **hned
+  nabídne i v ostatních řádcích** a u všech řádků **se stejným STAG kódem**
+  se rovnou předvybere — nemusíš ho zakládat znovu.
 - **Studenti** — u vedených prací se chybějící student automaticky
   založí a přiřadí k práci. Volba **✎ Před založením zkontrolovat /
   doplnit nové studenty** otevře pro každého nového studenta jeho kartu

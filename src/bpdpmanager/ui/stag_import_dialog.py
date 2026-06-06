@@ -1135,12 +1135,39 @@ class StagImportDialog(QDialog):
         new_obor = Obor(name="", stag_code=record.student_obor_stag or None)
         dlg = OborDialog(self.service, new_obor, parent=self)
         if dlg.exec():
-            # Reload obory v combu (a vyber nově vytvořený)
-            self._reload_obor_options(cb_obor, prefer_name=new_obor.name)
+            # Propíše nový obor do VŠECH řádků — a u nenamapovaných řádků se
+            # stejným STAG kódem ho rovnou předvybere (ať ho nezakládáš znovu).
+            self._propagate_new_obor(new_obor, cb_obor)
         else:
             # Cancel — vrať zpět na první volbu (Nemapováno)
             cb_obor.setCurrentIndex(0)
         self._refresh_detail_if_current(row_idx)
+
+    def _propagate_new_obor(self, new_obor: Obor, trigger_cb: QComboBox) -> None:
+        """Po vytvoření nového oboru doplní volbu do všech řádků a u
+        nenamapovaných řádků se shodným STAG kódem ho rovnou předvybere.
+
+        Existující ruční volby (řádky už namapované na jiný obor) nechá být.
+        """
+        stag = (new_obor.stag_code or "").strip()
+        for w in self.row_widgets:
+            cb: QComboBox = w["cb_obor"]
+            record: ParsedRecord = w["record"]
+            cur = cb.currentData()
+            if cb is trigger_cb:
+                prefer = new_obor.name
+            elif (
+                cur == "__keep__"
+                and stag
+                and (record.student_obor_stag or "").strip() == stag
+            ):
+                prefer = new_obor.name          # stejný nenamapovaný obor → namapuj
+            elif cur not in ("__keep__", "__new__"):
+                prefer = cur                     # zachovej už zvolený obor
+            else:
+                prefer = ""                      # zůstane „Nemapováno"
+            self._reload_obor_options(cb, prefer_name=prefer)
+            self._style_obor_combo(cb)
 
     def _reload_obor_options(self, cb_obor: QComboBox, prefer_name: str = "") -> None:
         all_obory = self.service.list_obor_objects()

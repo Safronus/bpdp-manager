@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.57.1] - 2026-06-06
+
+### Fixed
+- **Nový obor v importu ze STAG se hned propíše do dalších řádků.** Při importu
+  více prací se stejným **nenamapovaným** oborem se nově založený obor („➕ Nový
+  obor…") okamžitě nabídne i v ostatních řádcích a u všech řádků **se stejným
+  STAG kódem** se rovnou předvybere — nemusíš ho zakládat znovu. (Dřív se nový
+  obor objevil jen v tom jednom řádku; opětovné založení stejného oboru by ho
+  jen přepsalo, ne zdvojilo, ale bylo to matoucí.) Ručně zvolené obory v jiných
+  řádcích zůstávají beze změny.
+
 ## [0.57.0] - 2026-06-06
 
 ### Added
