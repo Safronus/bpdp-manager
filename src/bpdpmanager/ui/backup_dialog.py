@@ -67,6 +67,12 @@ class BackupBrowserDialog(QDialog):
         layout.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
+        self.btn_backup_now = QPushButton("💾 Zálohovat teď")
+        self.btn_backup_now.setToolTip("Vytvoří ruční zálohu aktuálního stavu databáze.")
+        bf = self.btn_backup_now.font()
+        bf.setBold(True)
+        self.btn_backup_now.setFont(bf)
+        self.btn_backup_now.clicked.connect(self._backup_now)
         self.btn_restore = QPushButton("🔄 Obnovit vybranou zálohu")
         self.btn_restore.clicked.connect(self._restore)
         self.btn_open_folder = QPushButton("📂 Otevřít složku záloh")
@@ -75,6 +81,7 @@ class BackupBrowserDialog(QDialog):
         self.btn_delete.clicked.connect(self._delete)
         self.btn_close = QPushButton("Zavřít")
         self.btn_close.clicked.connect(self.accept)
+        row.addWidget(self.btn_backup_now)
         row.addWidget(self.btn_restore)
         row.addWidget(self.btn_open_folder)
         row.addWidget(self.btn_delete)
@@ -114,6 +121,25 @@ class BackupBrowserDialog(QDialog):
         return data if isinstance(data, BackupInfo) else None
 
     # --- akce -----------------------------------------------------------
+
+    def _backup_now(self) -> None:
+        """Vytvoří ruční zálohu aktuálního stavu databáze."""
+        if not self.db_path.exists():
+            QMessageBox.warning(self, "Záloha", "Databáze zatím neexistuje.")
+            return
+        try:
+            info = self.backup_manager.create_backup(
+                self.db_path, suffix="manual", dedupe=False
+            )
+        except OSError as exc:
+            QMessageBox.critical(self, "Záloha selhala", str(exc))
+            return
+        self._refresh()
+        if info is not None:
+            QMessageBox.information(
+                self, "Záloha vytvořena",
+                f"Vytvořena ruční záloha:\n{info.path.name}",
+            )
 
     def _restore(self) -> None:
         backup = self._current()

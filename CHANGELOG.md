@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-06-06
+
+### Added
+- **Ruční záloha kdykoliv.** Nová položka **👤 → 💾 Zálohovat teď** vytvoří
+  zálohu aktuálního stavu databáze jedním klikem. Stejné tlačítko je i v
+  manažeru záloh (**👤 → 💾 Zálohy**), který už uměl seznam, obnovu a mazání.
+
 ## [0.52.0] - 2026-06-06
 
 ### Added

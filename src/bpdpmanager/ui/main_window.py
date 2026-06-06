@@ -591,6 +591,10 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         act_manage = menu.addAction("🗂 Správa profilů…")
         act_manage.triggered.connect(self._action_manage_profiles)
+        act_backup_now = menu.addAction("💾 Zálohovat teď")
+        act_backup_now.setToolTip("Rychlá ruční záloha aktuálního stavu databáze.")
+        act_backup_now.triggered.connect(self._action_backup_now)
+        act_backup_now.setEnabled(active is not None)
         act_backups = menu.addAction("💾 Zálohy…")
         act_backups.triggered.connect(self._action_show_backups)
         self._profile_button.setMenu(menu)
@@ -807,6 +811,27 @@ class MainWindow(QMainWindow):
         dlg = ProfileManageDialog(self.profile_manager, self)
         dlg.exec()
         self._refresh_profile_menu()
+
+    def _action_backup_now(self) -> None:
+        """Rychlá ruční záloha aktuálního stavu (bez otevírání manažeru)."""
+        if self.profile_manager is None or self.profile_manager.active is None:
+            return
+        data_dir = self.profile_manager.active_data_dir()
+        db_path = data_dir / "db.json"
+        if not db_path.exists():
+            QMessageBox.warning(self, "Záloha", "Databáze zatím neexistuje.")
+            return
+        try:
+            info = BackupManager(data_dir).create_backup(
+                db_path, suffix="manual", dedupe=False
+            )
+        except OSError as exc:
+            QMessageBox.critical(self, "Záloha selhala", str(exc))
+            return
+        name = info.path.name if info else "(záloha)"
+        QMessageBox.information(
+            self, "Záloha vytvořena", f"Vytvořena ruční záloha:\n{name}"
+        )
 
     def _action_show_backups(self) -> None:
         if self.profile_manager is None or self.profile_manager.active is None:

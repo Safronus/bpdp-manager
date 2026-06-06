@@ -576,7 +576,10 @@ různé instituce). Přepínání přes toolbar **👤** menu.
   a **📍 Místo posudku** (default Zlín) se nastavují v *🗂 Správa profilů*.
 - **🔒 Lock soubor** — varuje, když je profil otevřený na jiném zařízení
   (např. přes iCloud), aby nedošlo k přepsání.
-- **💾 Zálohy** — 10 rotujících záloh, obnovitelných z dialogu.
+- **💾 Zálohy** — 10 rotujících záloh + ruční zálohy. **👤 → 💾 Zálohovat teď**
+  vytvoří zálohu kdykoliv jedním klikem; **👤 → 💾 Zálohy** otevře manažer
+  (seznam, **obnova**, mazání, *Zálohovat teď*, otevřít složku). Při obnově se
+  aktuální stav předtím uloží jako `before-restore`, takže i obnova jde vrátit.
 - **📤 Export profilu do ZIPu** — přenosný balík (db + dokumenty +
   šablony + harmonogramy). Na druhém zařízení **📥 Import profilu ze
   ZIPu** (i z welcome okna při prvním spuštění). Lze i **sloučit**
