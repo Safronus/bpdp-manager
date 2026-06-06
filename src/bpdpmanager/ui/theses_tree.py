@@ -22,6 +22,7 @@ from ..models.enums import (
     AttachmentKind,
     ThesisStatus,
     ThesisType,
+    review_sent_indicator,
 )
 from ..services import ThesisService
 
@@ -91,13 +92,14 @@ class ThesesTreeWidget(QTreeWidget):
     # Ruční přepnutí příznaku odeslání posudku sekretářce (thesis_id, sent)
     mark_review_sent_requested = Signal(str, bool)
 
-    HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Oponent", "Obor"]
+    HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Odesláno", "Oponent", "Obor"]
     COL_STUDENT = 0
     COL_TITLE = 1
     COL_STATUS = 2
     COL_REVIEWS = 3
-    COL_OPPONENT = 4
-    COL_OBOR = 5
+    COL_SENT = 4
+    COL_OPPONENT = 5
+    COL_OBOR = 6
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -118,6 +120,7 @@ class ThesesTreeWidget(QTreeWidget):
         h.setSectionResizeMode(self.COL_TITLE, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(self.COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_REVIEWS, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(self.COL_SENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OPPONENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OBOR, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
@@ -266,12 +269,13 @@ class ThesesTreeWidget(QTreeWidget):
             reviews_text = "📕 O"
         else:
             reviews_text = "—"
-        # Odeslání posudku vedoucího sekretářce — jen když je posudek hotový:
-        #   ✉✓ odesláno · ✉✗ neodesláno
+        # Odeslání posudku vedoucího sekretářce — vlastní sloupec „Odesláno"
+        # (jednotná indikace jako u oponentur). Jen u prací „V řešení"
+        # s hotovým posudkem.
         sent_at = thesis.supervisor_review_sent_at
         review_ready = thesis.supervisor_review_state == "done"
-        if thesis.status == ThesisStatus.IN_PROGRESS and review_ready:
-            reviews_text += "  ✉✓" if sent_at else "  ✉✗"
+        sent_prepared = thesis.status == ThesisStatus.IN_PROGRESS and review_ready
+        sent_text, sent_tip = review_sent_indicator(sent_prepared, sent_at)
 
         leaf = QTreeWidgetItem(
             [
@@ -279,10 +283,16 @@ class ThesesTreeWidget(QTreeWidget):
                 title,
                 f"  {thesis.status.label}  ",
                 reviews_text,
+                sent_text,
                 opponent_name,
                 obor,
             ]
         )
+        leaf.setTextAlignment(
+            self.COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+        if sent_tip:
+            leaf.setToolTip(self.COL_SENT, sent_tip)
 
         # Tooltip vysvětlující ikony
         if has_supervisor_review or has_opponent_review:
@@ -299,10 +309,6 @@ class ThesesTreeWidget(QTreeWidget):
                     if a.kind == AttachmentKind.OPPONENT_REVIEW
                 )
                 parts.append(f"📕 Posudek oponenta ({n}×)")
-            if sent_at:
-                parts.append(f"✉ Posudek vedoucího odeslán {sent_at.strftime('%d.%m.%Y')}")
-            elif thesis.status == ThesisStatus.IN_PROGRESS and review_ready:
-                parts.append("✉ Posudek vedoucího zatím NEODESLÁN sekretářce")
             leaf.setToolTip(self.COL_REVIEWS, "\n".join(parts))
         else:
             leaf.setToolTip(self.COL_REVIEWS, "Žádný posudek zatím nahrán")

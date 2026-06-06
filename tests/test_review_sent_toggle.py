@@ -54,19 +54,17 @@ def test_tree_sent_indicator(qapp, service: ThesisService, tmp_path: Path) -> No
     tree = ThesesTreeWidget(service)
     tree.set_filter(lambda th: True)
 
-    def _reviews_text() -> str:
-        # najdi leaf práce a vrať text sloupce Posudky
+    def _sent_text() -> str:
+        # najdi leaf práce a vrať text sloupce Odesláno
         for i in range(tree.topLevelItemCount()):
             yr = tree.topLevelItem(i)
             for j in range(yr.childCount()):
                 grp = yr.child(j)
                 for k in range(grp.childCount()):
-                    leaf = grp.child(k)
-                    if leaf.data(0, tree.COL_STUDENT) is not None or True:
-                        return leaf.text(tree.COL_REVIEWS)
+                    return grp.child(k).text(tree.COL_SENT)
         return ""
 
-    assert "✉✗" in _reviews_text()  # neodesláno
+    assert "✗" in _sent_text()  # neodesláno
     service.set_supervisor_review_sent(t.id, True)
     tree.refresh()
-    assert "✉✓" in _reviews_text()  # odesláno
+    assert "✓" in _sent_text()  # odesláno

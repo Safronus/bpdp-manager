@@ -139,11 +139,12 @@ posudky** stejně podle oponentského posudku. **Dolní lišta** ukazuje barevn�
 souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik práce
 tě ještě čeká.
 
-U prací **V řešení** (a u oponentur) s **hotovým posudkem** je vedle posudků
-indikátor odeslání sekretářce: **✉✓ odesláno** / **✉✗ neodesláno** (stejná
-informace je i v Souhrnu — *Odeslání posudku: ✓/✗*). Posudek se označí jako
-odeslaný **automaticky** při odeslání e-mailem, nebo **ručně** přes pravý klik
-na práci → *✉ Označit posudek za odeslaný sekretářce* (a zpět).
+Seznam prací v *Aktuální* i *Oponentské posudky* má jednotný sloupec
+**Odesláno**: u prací s **hotovým posudkem** ukazuje **✉ ✓ odesláno** /
+**✉ ✗ neodesláno** (stejná informace je i v Souhrnu — *Odeslání posudku:
+✓/✗*). Posudek se označí jako odeslaný **automaticky** při odeslání e-mailem,
+nebo **ručně** přes pravý klik na práci → *✉ Označit posudek za odeslaný
+sekretářce* (a zpět).
 
 Každý tab prací má nahoře **strom** (rok → BP/DP → práce) a dole
 **detail** vybrané práce. Po startu se automaticky otevře první práce

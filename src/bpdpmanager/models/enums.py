@@ -155,6 +155,19 @@ REVIEW_STATE_STRONG: dict[str, str] = {
 }
 
 
+def review_sent_indicator(prepared: bool, sent_at) -> tuple[str, str]:
+    """Jednotná indikace odeslání posudku sekretářce (text do sloupce, tooltip).
+
+    Používá se shodně v seznamu vedených prací i oponentur. Vrací prázdné,
+    pokud posudek ještě není hotový (není co odeslat).
+    """
+    if not prepared:
+        return "", ""
+    if sent_at:
+        return "✉ ✓", f"Posudek odeslán sekretářce {sent_at.strftime('%d.%m.%Y')}"
+    return "✉ ✗", "Posudek zatím NEODESLÁN sekretářce"
+
+
 # ── Tab buckety (status-driven, bez ohledu na rok) ──────────────────────────
 #
 # Status-driven filtrace pro hlavní záložky. Rok se používá jen pro

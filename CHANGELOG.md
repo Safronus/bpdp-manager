@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.48.1] - 2026-06-06
+
+### Changed
+- **Sjednocená indikace odeslání posudku** v seznamu prací — místo dosavadní
+  odlišné značky u *Aktuální* a *Oponentských posudků* je nově jednotný
+  **sloupec „Odesláno"** v obou seznamech (✉ ✓ odesláno / ✉ ✗ neodesláno).
+
 ## [0.48.0] - 2026-06-06
 
 ### Changed

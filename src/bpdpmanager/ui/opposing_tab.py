@@ -33,6 +33,7 @@ from ..models.enums import (
     REVIEW_STATE_STRONG,
     REVIEW_STATE_TINTS,
     ThesisType,
+    review_sent_indicator,
 )
 from ..services import ThesisService
 from .opposing_detail import OpposingDetail
@@ -136,8 +137,10 @@ class OpposingTab(QWidget):
         splitter.setChildrenCollapsible(False)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(5)
-        self.tree.setHeaderLabels(["Student / Skupina", "Téma", "Vedoucí", "Známky", "Obor"])
+        self.tree.setColumnCount(6)
+        self.tree.setHeaderLabels(
+            ["Student / Skupina", "Téma", "Vedoucí", "Známky", "Obor", "Odesláno"]
+        )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -150,6 +153,7 @@ class OpposingTab(QWidget):
         h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
@@ -243,10 +247,10 @@ class OpposingTab(QWidget):
                     dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
                     if dot:
                         title = f"{dot} {title}"
-                    # Odeslání posudku sekretářce (jen u hotového): ✉✓/✉✗.
+                    # Odeslání posudku sekretářce — vlastní sloupec „Odesláno"
+                    # (jednotná indikace jako u vedených prací).
                     sent_at = op.opponent_review_sent_at
-                    if state == "done":
-                        title = f"{title}  " + ("✉✓" if sent_at else "✉✗")
+                    sent_text, sent_tip = review_sent_indicator(state == "done", sent_at)
                     grades = self._format_grades(op)
                     obor = op.student_obor or "—"
                     type_prefix = op.type.value
@@ -257,19 +261,24 @@ class OpposingTab(QWidget):
                             op.supervisor_name or "—",
                             grades,
                             obor,
+                            sent_text,
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    leaf.setTextAlignment(
+                        5, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    if sent_tip:
+                        leaf.setToolTip(5, sent_tip)
                     # Oponentský posudek — podbarvi sloupec názvu práce:
                     #   🟢 hotový soubor · 🟡 jen data · 🔴 chybí
                     tint = REVIEW_STATE_TINTS.get(state)
                     if tint:
                         leaf.setBackground(1, QBrush(QColor(tint)))
                         leaf.setForeground(1, QBrush(QColor("#212121")))
-                        tip = f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
-                        if sent_at:
-                            tip += f"\n✉ Odesláno sekretářce {sent_at.strftime('%d.%m.%Y')}"
-                        leaf.setToolTip(1, tip)
+                        leaf.setToolTip(
+                            1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
+                        )
                     year_item.addChild(leaf)
                 year_item.setExpanded(True)
 
