@@ -421,7 +421,8 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 ### A) Stáhnout přímo ze STAG (doporučeno)
 
 > **Hromadně všechny moje práce:** v import dialogu jsou tlačítka
-> **🎓 Moje vedené práce…** a **🧐 Moje oponentury…**. Najdou ve STAG podle
+> **🎓 Moje vedené práce…** a **🧐 Moje oponentury…**. Každé otevře dialog
+> **uzamčený na danou roli** (žádné přepínání). Najdou ve STAG podle
 > tvého jména z profilu **všechny** práce dané role (historické, aktuální
 > i vypsané na další rok), seřazené **dle akademického roku**. Příjmení nemusí
 > být jednoznačné (víc vedoucích stejného příjmení) — proto je zapnutý filtr

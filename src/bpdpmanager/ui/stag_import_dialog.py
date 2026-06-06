@@ -2314,12 +2314,14 @@ class StagDownloadDialog(QDialog):
         person_row = QHBoxLayout()
         person_row.setContentsMargins(0, 0, 0, 0)
         person_row.addWidget(self.ed_person, stretch=1)
-        person_row.addWidget(QLabel("role:"))
+        self._role_label = QLabel("role:")
+        person_row.addWidget(self._role_label)
         person_row.addWidget(self.rb_supervisor)
         person_row.addWidget(self.rb_opponent)
         person_widget = QWidget()
         person_widget.setLayout(person_row)
-        form.addRow("Příjmení vedoucího/oponenta", person_widget)
+        self._person_form_label = QLabel("Příjmení vedoucího/oponenta")
+        form.addRow(self._person_form_label, person_widget)
 
         outer.addLayout(form)
 
@@ -2380,17 +2382,29 @@ class StagDownloadDialog(QDialog):
         row.addWidget(self.btn_download)
         outer.addLayout(row)
 
-        # Hromadný režim — předvyplň roli, vypni studenta a rovnou hledej.
+        # Hromadný režim — uzamkni roli (žádné přepínání), vypni studenta
+        # a rovnou hledej.
         if auto_role:
             what = "vedené práce" if auto_role == "supervisor" else "oponentury"
+            role_word = "vedoucího" if auto_role == "supervisor" else "oponenta"
             self.setWindowTitle(f"Stáhnout moje {what} ze STAG")
             title.setText(f"🌐 Moje {what} ze STAG")
             self.ed_student.clear()
             self.ed_student.setEnabled(False)
+            self.ed_student.setVisible(False)
+            student_lbl = form.labelForField(self.ed_student)
+            if student_lbl is not None:
+                student_lbl.setVisible(False)
             if auto_role == "supervisor":
                 self.rb_supervisor.setChecked(True)
             else:
                 self.rb_opponent.setChecked(True)
+            # Skryj přepínač role — dialog je zamčený na jednu roli.
+            self._role_label.setVisible(False)
+            self.rb_supervisor.setVisible(False)
+            self.rb_opponent.setVisible(False)
+            self._person_form_label.setText(f"Příjmení {role_word} (= tvoje)")
+            self.ed_person.setPlaceholderText("tvé příjmení z profilu")
             QTimer.singleShot(0, self._do_search)
 
     # --- akce ----------------------------------------------------------------

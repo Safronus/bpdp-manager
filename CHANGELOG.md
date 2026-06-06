@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.50.1] - 2026-06-06
+
+### Changed
+- **Hromadné stažení ze STAG má zamčenou roli.** „Moje vedené práce" a „Moje
+  oponentury" otevřou dialog **bez přepínače Vedoucí/Oponent** (každé tlačítko
+  = jedna role) — odstraněn matoucí mix.
+
 ## [0.50.0] - 2026-06-06
 
 ### Added
