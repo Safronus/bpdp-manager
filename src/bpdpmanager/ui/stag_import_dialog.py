@@ -2961,34 +2961,57 @@ class StagDownloadDialog(QDialog):
         # na session, kterou založí dotaz na detail práce.
         client = stag_api.StagClient()
 
+        progress = QProgressDialog(
+            "Stahuji práce ze STAG…", "Přerušit", 0, len(results), self
+        )
+        progress.setWindowTitle("Stahování ze STAG")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setMinimumWidth(460)
+        progress.setValue(0)
+
         # Fáze 1: stáhni CSV a vypiš soubory (bez stahování jejich obsahu).
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        QApplication.processEvents()
-        try:
-            for result in results:
-                try:
-                    data = client.download_csv(result.adipidno)
-                except Exception as exc:  # noqa: BLE001
-                    errors.append(f"{result.student_full}: {exc}")
-                    continue
-                surname = result.surname or "prace"
-                safe = re.sub(r"[^0-9A-Za-zÀ-ž_-]+", "_", surname).strip("_") or "prace"
-                target = (
-                    Path(tempfile.gettempdir())
-                    / f"stag_{safe}_{result.adipidno}.csv"
-                )
-                try:
-                    target.write_bytes(data)
-                except OSError as exc:
-                    errors.append(f"{result.student_full}: zápis CSV: {exc}")
-                    continue
-                items.append((target, result))
-                listings[result.adipidno] = self._list_files_for(client, result)
-        finally:
-            QApplication.restoreOverrideCursor()
+        n = len(results)
+        canceled = False
+        for i, result in enumerate(results):
+            if progress.wasCanceled():
+                canceled = True
+                break
+            progress.setLabelText(
+                f"Stahuji údaje a seznam příloh ({i + 1}/{n}):\n"
+                f"{result.student_full}"
+            )
+            QApplication.processEvents()
+            try:
+                data = client.download_csv(result.adipidno)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{result.student_full}: {exc}")
+                progress.setValue(i + 1)
+                continue
+            surname = result.surname or "prace"
+            safe = re.sub(r"[^0-9A-Za-zÀ-ž_-]+", "_", surname).strip("_") or "prace"
+            target = (
+                Path(tempfile.gettempdir())
+                / f"stag_{safe}_{result.adipidno}.csv"
+            )
+            try:
+                target.write_bytes(data)
+            except OSError as exc:
+                errors.append(f"{result.student_full}: zápis CSV: {exc}")
+                progress.setValue(i + 1)
+                continue
+            items.append((target, result))
+            listings[result.adipidno] = self._list_files_for(client, result)
+            progress.setValue(i + 1)
+            QApplication.processEvents()
+
+        if canceled:
+            progress.close()
+            self._update_download_btn()
+            return
 
         if not items:
-            self.btn_download.setEnabled(True)
+            progress.close()
             self._update_download_btn()
             QMessageBox.warning(
                 self, "STAG",
@@ -2996,28 +3019,47 @@ class StagDownloadDialog(QDialog):
             )
             return
         if errors:
+            progress.hide()
             QMessageBox.warning(
                 self, "STAG",
                 "Některé práce se nepodařilo stáhnout:\n\n" + "\n".join(errors),
             )
 
-        # Fáze 2: varování u velkých příloh (mimo čekací kurzor — ptá se uživatele).
+        # Fáze 2: varování u velkých příloh (mimo progress — ptá se uživatele).
+        progress.hide()
         skip_ids = self._confirm_oversized(
             {r.adipidno: listings.get(r.adipidno, []) for (_, r) in items}
         )
 
-        # Fáze 3: stáhni soubory (text, přílohy, posudky), velké přeskoč dle volby.
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        # Fáze 3: stáhni soubory (text, přílohy, posudky), po jednom s progress.
+        to_download = [
+            (result, sf)
+            for (_, result) in items
+            for sf in listings.get(result.adipidno, [])
+            if sf.soubidno not in skip_ids
+        ]
+        total_files = len(to_download)
+        progress.setRange(0, max(1, total_files))
+        progress.setValue(0)
+        progress.setLabelText("Stahuji přílohy…")
+        if total_files:
+            progress.show()
         QApplication.processEvents()
-        try:
-            for _, result in items:
-                dl = self._download_listed(
-                    client, result, listings.get(result.adipidno, []), skip_ids
-                )
-                if dl:
-                    files_by_adip[result.adipidno] = dl
-        finally:
-            QApplication.restoreOverrideCursor()
+        for done, (result, sf) in enumerate(to_download):
+            if progress.wasCanceled():
+                break
+            size_hint = f" ({_fmt_size(sf.size_hint)})" if sf.size_hint else ""
+            progress.setLabelText(
+                f"Stahuji přílohy ({done + 1}/{total_files}):\n"
+                f"{result.student_full}\n↳ {sf.filename}{size_hint}"
+            )
+            QApplication.processEvents()
+            dl = self._download_one_file(client, result, sf)
+            if dl is not None:
+                files_by_adip.setdefault(result.adipidno, []).append(dl)
+            progress.setValue(done + 1)
+            QApplication.processEvents()
+        progress.close()
 
         # Náhled stažených souborů — výběr, co naimportovat (default vše).
         self.downloaded_files = self._preview_and_pick(
@@ -3194,7 +3236,8 @@ class StagDownloadDialog(QDialog):
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle("Velké přílohy ze STAG")
         msg.setText(
-            f"{len(big)} {self._cs_plural(len(big), 'příloha je velká', 'přílohy jsou velké', 'příloh je velkých')} "
+            f"{len(big)} "
+            f"{StagImportDialog._cs_plural(len(big), 'příloha je velká', 'přílohy jsou velké', 'příloh je velkých')} "
             f"(celkem ~{_fmt_size(total)}):"
         )
         msg.setInformativeText(lines + "\n\nStáhnout je i tak?")
@@ -3224,31 +3267,40 @@ class StagDownloadDialog(QDialog):
         for sf in stag_files:
             if sf.soubidno in skip_soubidno:
                 continue
-            try:
-                data = client.download_file(sf.download_path)
-            except Exception:  # noqa: BLE001
-                continue
-            safe = re.sub(r"[^0-9A-Za-zÀ-ž._-]+", "_", sf.filename).strip("_")
-            if not safe:
-                safe = f"soubor_{sf.soubidno}"
-            target = (
-                Path(tempfile.gettempdir())
-                / f"stag_{result.adipidno}_{sf.soubidno}_{safe}"
-            )
-            try:
-                target.write_bytes(data)
-            except OSError:
-                continue
-            out.append(
-                _DownloadedStagFile(
-                    path=target,
-                    filename=sf.filename,
-                    kind=_SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER),
-                    section=sf.section,
-                    size=len(data),
-                )
-            )
+            dl = self._download_one_file(client, result, sf)
+            if dl is not None:
+                out.append(dl)
         return out
+
+    def _download_one_file(
+        self,
+        client: stag_api.StagClient,
+        result: stag_api.StagThesisResult,
+        sf: stag_api.StagFile,
+    ) -> _DownloadedStagFile | None:
+        """Stáhne jeden vypsaný soubor do dočasného úložiště (None při chybě)."""
+        try:
+            data = client.download_file(sf.download_path)
+        except Exception:  # noqa: BLE001
+            return None
+        safe = re.sub(r"[^0-9A-Za-zÀ-ž._-]+", "_", sf.filename).strip("_")
+        if not safe:
+            safe = f"soubor_{sf.soubidno}"
+        target = (
+            Path(tempfile.gettempdir())
+            / f"stag_{result.adipidno}_{sf.soubidno}_{safe}"
+        )
+        try:
+            target.write_bytes(data)
+        except OSError:
+            return None
+        return _DownloadedStagFile(
+            path=target,
+            filename=sf.filename,
+            kind=_SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER),
+            section=sf.section,
+            size=len(data),
+        )
 
     def _preview_and_pick(
         self,

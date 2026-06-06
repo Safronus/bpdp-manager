@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.55.2] - 2026-06-06
+
+### Fixed
+- **Hromadné stažení ze STAG padalo, když měla práce velkou přílohu.** Dialog
+  s varováním o velkých přílohách volal neexistující metodu (`_cs_plural`) a
+  import se po dotočení kolečka tiše zastavil — práce se nikdy nedostala do
+  okna „Import dat ze STAG (CSV)". Opraveno; import nyní doběhne do náhledu
+  souborů a předá práce k dokončení tlačítkem **Provést import**.
+
+### Added
+- **Vizualizace průběhu stahování ze STAG.** Místo neurčitého kolečka je teď
+  **progress okno** ukazující, která práce se zpracovává (CSV + seznam příloh)
+  a poté **stahování jednotlivých příloh** po jedné (student → název přílohy +
+  velikost), s možností **přerušit**.
+
 ## [0.55.1] - 2026-06-06
 
 ### Fixed
