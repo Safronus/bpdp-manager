@@ -2394,10 +2394,10 @@ class StagDownloadDialog(QDialog):
         self.focus_opposing_id: str | None = None
 
         self.setWindowTitle("Stáhnout práci ze STAG")
-        # Vyšší (+70 %) a širší — u hromadného stažení bývá výsledků hodně
-        # a labely (rok / student / téma) jsou dlouhé.
-        self.setMinimumSize(900, 950)
-        self.resize(1040, 980)
+        # Vyšší a širší — u hromadného stažení bývá výsledků hodně a sloupec
+        # „Práce" (student + dlouhý název) potřebuje šířku dle obsahu.
+        self.setMinimumSize(1000, 980)
+        self.resize(1440, 1470)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
@@ -2497,7 +2497,11 @@ class StagDownloadDialog(QDialog):
         self.tree_results.setAlternatingRowColors(True)
         self.tree_results.setUniformRowHeights(True)
         hdr = self.tree_results.header()
-        hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        hdr.setStretchLastSection(False)
+        # Sloupec „Práce" (student + dlouhý název) ať se roztáhne dle obsahu,
+        # ne na šířku okna — jinak se název ořízne a okno zůstane úzké.
+        # Uživatel ho navíc může ručně doladit (Interactive).
+        hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         for col in range(1, len(_RESULT_COLUMNS)):
             hdr.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         self.tree_results.itemChanged.connect(self._on_tree_item_changed)
@@ -2747,6 +2751,8 @@ class StagDownloadDialog(QDialog):
                 self._sync_group_check(header)
 
         tree.blockSignals(False)
+        # Sloupec „Práce" roztáhni dle nejdelšího názvu (uživatel může doladit).
+        tree.resizeColumnToContents(0)
 
         shown = len(results)
         status = (

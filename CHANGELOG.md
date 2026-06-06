@@ -7,7 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.55.0] - 2026-06-06
+## [0.55.1] - 2026-06-06
+
+### Fixed
+- **Nápověda se zavírala při hledání.** Stisk Enter ve vyhledávacím poli
+  nápovědy spouštěl tlačítko „Zavřít" (výchozí) a okno se zavřelo. Nově je
+  výchozí tlačítko „Další" — Enter hledá dál, okno zůstane otevřené.
+- **Dialog hromadného stažení ze STAG: sloupec „Práce" dle obsahu.** Sloupec
+  s názvem práce se už neořezává na šířku okna, ale roztáhne se podle nejdelšího
+  názvu (a lze ho ručně doladit). Dialog je výrazně širší a o ~50 % vyšší, ať
+  se dlouhé názvy i všechny sloupce vejdou.
 
 ### Added
 - **Hromadné stažení ze STAG: tabulka s rokem, obhajobou, oponentem a stavem.**

@@ -73,6 +73,9 @@ class HelpDialog(QDialog):
         search_row.addWidget(self.ed_search, stretch=1)
         btn_next = QPushButton("Další")
         btn_next.clicked.connect(self._find_next)
+        # „Další" je výchozí tlačítko, aby Enter hledal a NEzavíral okno.
+        btn_next.setDefault(True)
+        btn_next.setAutoDefault(True)
         search_row.addWidget(btn_next)
         outer.addLayout(search_row)
 
@@ -89,7 +92,9 @@ class HelpDialog(QDialog):
             lambda: self.view.verticalScrollBar().setValue(0)
         )
         btn_close = QPushButton("Zavřít")
-        btn_close.setDefault(True)
+        # NE-default + NE-autodefault, jinak by Enter v hledání zavřel okno.
+        btn_close.setDefault(False)
+        btn_close.setAutoDefault(False)
         btn_close.clicked.connect(self.accept)
         btn_row.addWidget(btn_top)
         btn_row.addStretch()
