@@ -203,3 +203,22 @@ def test_cleanup_temp_files(tmp_path) -> None:
     missing = tmp_path / "nope.bin"
     StagDownloadDialog._cleanup_temp_files([a, b, missing])
     assert not a.exists() and not b.exists()  # smazáno, na chybějící nespadne
+
+
+def test_leftover_and_offer_cleanup(qapp, tmp_path, monkeypatch) -> None:
+    """Najde a (po potvrzení) smaže zbylé STAG temp soubory; cizí nechá."""
+    monkeypatch.setattr(mod.tempfile, "gettempdir", lambda: str(tmp_path))
+    (tmp_path / "stag_Novak_111.csv").write_bytes(b"a")
+    (tmp_path / "stagsync_1_2_p.pdf").write_bytes(b"b")
+    (tmp_path / "unrelated.txt").write_bytes(b"c")
+
+    dlg = _dialog()
+    assert len(dlg._leftover_temp_files()) == 2
+
+    monkeypatch.setattr(
+        QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.Yes
+    )
+    dlg._offer_temp_cleanup()
+    assert not (tmp_path / "stag_Novak_111.csv").exists()
+    assert not (tmp_path / "stagsync_1_2_p.pdf").exists()
+    assert (tmp_path / "unrelated.txt").exists()  # cizí soubor zůstal

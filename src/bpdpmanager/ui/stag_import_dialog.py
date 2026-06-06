@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QThread, QTimer
 from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (
     QApplication,
@@ -3157,6 +3157,7 @@ class StagDownloadDialog(QDialog):
         if not results:
             return
 
+        self._offer_temp_cleanup()
         self.btn_download.setEnabled(False)
         self.btn_files_only.setEnabled(False)
         items: list[tuple[Path, stag_api.StagThesisResult]] = []
@@ -3259,48 +3260,70 @@ class StagDownloadDialog(QDialog):
             progress.show()
         QApplication.processEvents()
 
+        # Stahuje se na PRACOVNÍM vlákně, UI vlákno jen překresluje progres —
+        # takže ani pomalá odpověď STAG (server generuje PDF / přiškrtí) UI
+        # nezamrzne a tlačítko Přerušit zůstává funkční.
+        from concurrent.futures import ThreadPoolExecutor
+
         failed: list[str] = []
         canceled3 = False
         bytes_done = 0
-        for idx, (result, sf) in enumerate(to_download):
-            if progress.wasCanceled():
-                canceled3 = True
-                break
-            base = (
-                f"Stahuji přílohy ({idx + 1}/{total_files}):\n"
-                f"{result.student_full}\n↳ {sf.filename}"
-            )
-
-            def _on_progress(downloaded, total, _base=base, _bd=bytes_done,
-                             _hint=sf.size_hint):
-                tot = total or _hint or 0
-                suffix = (
-                    f"  ({_fmt_size(downloaded)} / {_fmt_size(tot)})"
-                    if tot else f"  ({_fmt_size(downloaded)})"
+        executor = ThreadPoolExecutor(max_workers=1)
+        try:
+            for idx, (result, sf) in enumerate(to_download):
+                if progress.wasCanceled():
+                    canceled3 = True
+                    break
+                base = (
+                    f"Stahuji přílohy ({idx + 1}/{total_files}):\n"
+                    f"{result.student_full}\n↳ {sf.filename}"
                 )
-                progress.setLabelText(_base + suffix)
-                if use_bytes:
-                    progress.setValue(min(total_bytes, _bd + downloaded))
+                # Sdílený stav mezi vláknem (stahuje) a UI (kreslí) — bez Qt
+                # volání ve vlákně (Qt není thread-safe).
+                state = {"downloaded": 0, "total": None, "cancel": False}
+
+                def _worker_progress(downloaded, total, _s=state):
+                    _s["downloaded"] = downloaded
+                    _s["total"] = total
+                    return not _s["cancel"]
+
+                fut = executor.submit(
+                    self._download_one_file, client, result, sf, _worker_progress
+                )
+                while not fut.done():
+                    if progress.wasCanceled():
+                        state["cancel"] = True
+                    dn = state["downloaded"]
+                    tot = state["total"] or sf.size_hint or 0
+                    suffix = (
+                        f"  ({_fmt_size(dn)} / {_fmt_size(tot)})"
+                        if tot else f"  ({_fmt_size(dn)})"
+                    )
+                    progress.setLabelText(base + suffix)
+                    if use_bytes:
+                        progress.setValue(min(total_bytes, bytes_done + dn))
+                    QApplication.processEvents()
+                    QThread.msleep(40)  # ~25 překreslení/s, nízká zátěž CPU
+
+                try:
+                    dl = fut.result()
+                except stag_api.StagCancelledError:
+                    canceled3 = True
+                    break
+                except Exception:  # noqa: BLE001
+                    dl = None
+                if dl is not None:
+                    files_by_adip.setdefault(result.adipidno, []).append(dl)
+                    temp_files.append(dl.path)
+                    bytes_done += dl.size or sf.size_hint or 0
+                else:
+                    failed.append(f"{result.student_full}: {sf.filename}")
+                    bytes_done += sf.size_hint or 0
+                if not use_bytes:
+                    progress.setValue(idx + 1)
                 QApplication.processEvents()
-                return not progress.wasCanceled()
-
-            try:
-                dl = self._download_one_file(
-                    client, result, sf, on_progress=_on_progress
-                )
-            except stag_api.StagCancelledError:
-                canceled3 = True
-                break
-            if dl is not None:
-                files_by_adip.setdefault(result.adipidno, []).append(dl)
-                temp_files.append(dl.path)
-                bytes_done += dl.size or sf.size_hint or 0
-            else:
-                failed.append(f"{result.student_full}: {sf.filename}")
-                bytes_done += sf.size_hint or 0
-            if not use_bytes:
-                progress.setValue(idx + 1)
-            QApplication.processEvents()
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
         progress.close()
 
         if canceled3:
@@ -3335,6 +3358,7 @@ class StagDownloadDialog(QDialog):
         if not results or self._service is None:
             return
 
+        self._offer_temp_cleanup()
         self.btn_download.setEnabled(False)
         self.btn_files_only.setEnabled(False)
         files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
@@ -3574,6 +3598,42 @@ class StagDownloadDialog(QDialog):
                     Path(p).unlink()
             except OSError:
                 pass
+
+    @staticmethod
+    def _leftover_temp_files() -> list[Path]:
+        """Najde dočasné STAG soubory z dřívějška (po pádu/přerušení)."""
+        tmp = Path(tempfile.gettempdir())
+        out: list[Path] = []
+        for pattern in ("stag_*", "stagsync_*"):
+            try:
+                out.extend(p for p in tmp.glob(pattern) if p.is_file())
+            except OSError:
+                pass
+        return out
+
+    def _offer_temp_cleanup(self) -> None:
+        """Před stahováním nabídne smazání zbylých dočasných souborů
+        (z dřívějšího přerušeného stahování nebo po pádu aplikace)."""
+        leftover = self._leftover_temp_files()
+        if not leftover:
+            return
+        total = 0
+        for p in leftover:
+            try:
+                total += p.stat().st_size
+            except OSError:
+                pass
+        ans = QMessageBox.question(
+            self, "Dočasné soubory ze STAG",
+            f"Ve složce dočasných souborů je {len(leftover)} "
+            f"{StagImportDialog._cs_plural(len(leftover), 'soubor', 'soubory', 'souborů')}"
+            f" ({_fmt_size(total)}) z dřívějšího stahování ze STAG "
+            "(např. po přerušení nebo pádu aplikace).\n\nVyčistit je teď?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ans == QMessageBox.StandardButton.Yes:
+            self._cleanup_temp_files(leftover)
 
     def _preview_and_pick(
         self,

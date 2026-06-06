@@ -7,7 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.58.1] - 2026-06-06
+## [0.58.2] - 2026-06-06
+
+### Fixed
+- **Aplikace už při stahování příloh ze STAG nezamrzá.** Stahování souborů
+  běželo na hlavním (UI) vlákně, takže když STAG odpovídal pomalu (server
+  generuje PDF / přiškrtí spojení), aplikace „zamrzla" i u malé přílohy
+  (např. posudku). Stahování teď běží na **pracovním vlákně**, UI jen
+  překresluje průběh — okno zůstává živé a **Přerušit** funguje i během
+  pomalé odpovědi.
+
+### Added
+- **Nabídka vyčištění dočasných souborů před stahováním.** Pokud po
+  přerušeném stahování (nebo pádu aplikace) zůstanou ve složce dočasných
+  souborů zbytky ze STAG, aplikace je **před dalším stahováním** vypíše
+  (počet + velikost) a nabídne smazání.
 
 ### Changed
 - **Plynulý průběh stahování příloh ze STAG.** Soubory se nově stahují
