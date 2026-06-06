@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-06-06
+
+### Added
+- **Tisk dokumentu** — kontextová akce **🖨 Tisk** u souborů PDF a XLSX
+  (pravý klik na dokument). PDF jde rovnou na výchozí tiskárnu (CUPS / Windows
+  print), XLSX se otevře v aplikaci k ručnímu tisku.
+
 ## [0.48.1] - 2026-06-06
 
 ### Changed

@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 from ...models import Attachment, AttachmentKind
 from ...services import ThesisService
 from ...services.file_naming import guess_kind_from_filename
-from .._os_actions import open_path, reveal_in_file_manager
+from .._os_actions import open_path, print_path, reveal_in_file_manager
 
 
 class DocumentsWidget(QWidget):
@@ -489,8 +489,11 @@ class DocumentsWidget(QWidget):
             menu.addSeparator()
             act_export_many = menu.addAction(f"💾 Exportovat vybrané ({len(sel_files)})…")
             act_email_many = menu.addAction(f"✉ Odeslat vybrané mailem ({len(sel_files)})…")
-        elif is_file:
+        act_print = None
+        if is_file:
             menu.addSeparator()
+            if att.url_or_path.lower().endswith((".pdf", ".xlsx")):
+                act_print = menu.addAction("🖨 Tisk")
             act_copy = menu.addAction("📋 Kopírovat soubor (do schránky)")
             act_export = menu.addAction("💾 Exportovat na disk…")
             act_email = menu.addAction("✉ Odeslat mailem…")
@@ -511,6 +514,8 @@ class DocumentsWidget(QWidget):
             self._export_file(att)
         elif chosen == act_email:
             self._email_file(att)
+        elif chosen == act_print:
+            self._print_file(att)
         elif chosen == act_export_many:
             self._export_files(sel_files)
         elif chosen == act_email_many:
@@ -565,6 +570,26 @@ class DocumentsWidget(QWidget):
             self.profile_manager, paths,
             default_subject=f"Soubory ({len(paths)})", parent=self,
         ).exec()
+
+    def _print_file(self, att: Attachment) -> None:
+        """Vytiskne soubor (PDF přímo na tiskárnu, XLSX otevře k ručnímu tisku)."""
+        path = self._abs_path(att)
+        if path is None or not path.exists():
+            QMessageBox.warning(self, "Tisk", f"Soubor neexistuje:\n{path}")
+            return
+        result = print_path(path)
+        if result == "printed":
+            QMessageBox.information(
+                self, "Tisk", f"Soubor byl odeslán na výchozí tiskárnu:\n{path.name}"
+            )
+        elif result == "opened":
+            QMessageBox.information(
+                self, "Tisk",
+                f"Soubor jsem otevřel v aplikaci — vytiskni ho odtud (Cmd/Ctrl+P):"
+                f"\n{path.name}",
+            )
+        else:
+            QMessageBox.warning(self, "Tisk", f"Tisk se nezdařil:\n{path.name}")
 
     def _copy_file_to_clipboard(self, att: Attachment) -> None:
         """Zkopíruje SOUBOR do schránky (jde vložit do Finderu / mailu), ne cestu."""

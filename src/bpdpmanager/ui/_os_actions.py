@@ -27,6 +27,32 @@ def open_path(target: str | Path) -> None:
             pass
 
 
+def print_path(path: str | Path) -> str:
+    """Vytiskne soubor (best-effort). Vrací ``"printed"`` (odesláno na výchozí
+    tiskárnu), ``"opened"`` (otevřeno v aplikaci k ručnímu tisku) nebo
+    ``"error"``.
+
+    - Windows: ``startfile(…, "print")`` (přes přidruženou aplikaci).
+    - macOS/Linux: PDF se pošle na výchozí tiskárnu přes ``lpr`` (CUPS);
+      ostatní formáty (XLSX…) se otevřou v aplikaci, ať uživatel vytiskne
+      sám (Cmd/Ctrl+P) — tisk přes CUPS by je nezpracoval správně.
+    """
+    p = Path(path)
+    if not p.is_file():
+        return "error"
+    try:
+        if sys.platform == "win32":
+            os.startfile(str(p), "print")  # type: ignore[attr-defined]
+            return "printed"
+        if p.suffix.lower() == ".pdf":
+            subprocess.run(["lpr", str(p)], check=True)
+            return "printed"
+        open_path(p)
+        return "opened"
+    except Exception:  # noqa: BLE001
+        return "error"
+
+
 def reveal_in_file_manager(path: str | Path) -> None:
     """Zobrazí soubor ve správci souborů (Finder / Explorer / file manager).
 

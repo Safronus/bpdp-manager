@@ -230,6 +230,8 @@ oponenta, Prezentace, STAG export, Jiné).
   (Finder / Explorer), ať se k němu snadno dostaneš na disku.
 - **Pravý klik** na dokument otevře kontextové menu (funguje i u oponentur):
   *Otevřít* · *📂 Zobrazit ve Finderu* · *Odebrat*, a u **souborů** navíc:
+  - **🖨 Tisk** (u PDF a XLSX) — PDF se pošle rovnou na výchozí tiskárnu,
+    XLSX se otevře v aplikaci k ručnímu tisku (Cmd/Ctrl+P).
   - **📋 Kopírovat soubor** — zkopíruje **samotný soubor** do schránky
     (vložíš ho do Finderu, mailu apod.) — ne jen cestu.
   - **💾 Exportovat na disk…** — uloží kopii souboru na zvolené místo.
