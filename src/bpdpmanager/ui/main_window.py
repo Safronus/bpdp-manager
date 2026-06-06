@@ -1122,8 +1122,13 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Import hotov", "Práce byla naimportována.")
 
     def _check_stag_consistency(self) -> None:
-        """Read-only kontrola: které soubory STAG nabízí a v DB chybí."""
-        StagConsistencyDialog(self.service, self).exec()
+        """Kontrola: které soubory STAG nabízí a v DB chybí (+ dostažení)."""
+        dlg = StagConsistencyDialog(
+            self.service, self, profile_manager=self.profile_manager
+        )
+        dlg.exec()
+        if dlg.changed_any:
+            self._refresh_all()
 
     def _import_from_stag(self) -> None:
         """Otevře wizard pro import dat z STAG CSV exportu.

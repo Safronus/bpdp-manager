@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 import bpdpmanager.ui.stag_sync_dialog as mod
-from bpdpmanager.models import Student, Thesis
+from bpdpmanager.models import OpposingThesis, Student, Thesis
 from bpdpmanager.models.enums import AttachmentKind, ThesisStatus, ThesisType
 from bpdpmanager.services import ThesisService
 from bpdpmanager.services.stag_api import StagFile
@@ -149,3 +149,19 @@ def test_apply_updates_status_and_attaches(qapp, service, monkeypatch) -> None:
     assert updated.status == ThesisStatus.DEFENDED
     assert any(a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in updated.attachments)
     assert dlg.changed is True
+
+
+def test_opposing_sync_backfills_status(qapp, service, monkeypatch) -> None:
+    """Aktualizace oponentur doplní STAG stav (stag_state_code) i existujícím."""
+    monkeypatch.setattr(mod.stag_api, "download_csv", lambda a: _CSV_DUO)
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", lambda a: [])
+    cur = service.current_academic_year()
+    op = OpposingThesis(type=ThesisType.BP, academic_year=cur,
+                        student_last_name="Novák", adipidno="111")
+    service.upsert_opposing_thesis(op)
+    assert not op.stag_state_code
+
+    dlg = StagSyncDialog(service, "opponent")
+    dlg._scan()
+
+    assert service.get_opposing_thesis(op.id).stag_state_code == "DUO"

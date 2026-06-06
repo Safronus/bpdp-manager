@@ -108,3 +108,54 @@ def test_consistency_error_surfaced(qapp, service, monkeypatch) -> None:
     dlg = StagConsistencyDialog(service)
     dlg._scan()
     assert dlg._rows[0].error  # chyba dotazu se zaznamená
+
+
+def test_consistency_skips_future(qapp, service, monkeypatch) -> None:
+    """Budoucí práce (zájemce / vypsané téma) se nekontrolují."""
+    monkeypatch.setattr(mod.QTimer, "singleShot", lambda *a, **k: None)
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", lambda a: _stag_files())
+    st = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(st)
+    service.upsert_thesis(Thesis(
+        type=ThesisType.BP, status=ThesisStatus.RESERVED,  # budoucí
+        academic_year="2025/2026", student_id=st.id, adipidno="111",
+    ))
+    dlg = StagConsistencyDialog(service)
+    dlg._scan()
+    assert dlg._rows == []        # budoucí práce přeskočena
+    assert dlg._no_id == []       # a ani v „bez STAG ID"
+
+
+def test_consistency_downloads_missing(qapp, service, monkeypatch) -> None:
+    """Zaškrtnutý chybějící soubor jde dostáhnout a připojí se k práci."""
+    from PySide6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(mod.QTimer, "singleShot", lambda *a, **k: None)
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
+    review = StagFile(soubidno="r1", filename="posudek.pdf", download_path="/dl",
+                      section="supervisor_review")
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", lambda a: [review])
+
+    class FakeClient:
+        def list_thesis_files(self, a):
+            return [review]
+
+        def download_file(self, p):
+            return b"%PDF-1.4 fake review"
+
+    monkeypatch.setattr(mod.stag_api, "StagClient", FakeClient)
+
+    st = Student(first_name="A", last_name="B")
+    service.upsert_student(st)
+    t = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+               academic_year="2025/2026", student_id=st.id, adipidno="111")
+    service.upsert_thesis(t)
+
+    dlg = StagConsistencyDialog(service)
+    dlg._scan()
+    assert dlg._rows[0].missing  # posudek chybí, předzaškrtnutý
+    dlg._download_selected()
+
+    updated = service.get_thesis(t.id)
+    assert any(a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in updated.attachments)
+    assert dlg.changed_any is True

@@ -527,13 +527,14 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 
 ### 🔍 Kontrola se STAG (co chybí)
 
-Toolbarové tlačítko **🔍 Kontrola se STAG** (skupina *Import*) je **read-only
-kontrola konzistence**: projde všechny práce (vedené i oponentury) s STAG ID,
-porovná je se STAG a vypíše, kde **STAG nabízí druh dokumentu** (plný text /
-příloha / posudek), který **v databázi ještě nemáš**. Zvlášť vypíše práce
-**bez STAG ID** (nelze ověřit) a případné **chyby dotazu**. Nic nestahuje ani
-neimportuje — chybějící soubory pak dohraješ přes *Import ze STAG →
-🔄 Aktualizovat …* nebo *📎 Stáhnout jen soubory*.
+Toolbarové tlačítko **🔍 Kontrola se STAG** (skupina *Import*): projde práce
+(vedené i oponentury) s STAG ID, porovná je se STAG a vypíše, kde **STAG
+nabízí druh dokumentu** (plný text / příloha / posudek), který **v databázi
+ještě nemáš**. **Budoucí práce** (zájemci / vypsaná témata) se nekontrolují
+(ve STAG ještě soubory nemají). Chybějící soubory jsou **předzaškrtnuté** a
+tlačítkem **⬇ Dostáhnout vybrané** je rovnou stáhneš a připojíš k práci (před
+zápisem se vytvoří záloha). Zvlášť se vypíšou práce **bez STAG ID** (nelze
+ověřit) a případné **chyby dotazu**.
 
 > **Průběh stahování.** Než STAG začne posílat data (server soubor občas
 > teprve generuje nebo přiškrtí spojení při mnoha souborech po sobě), ukazuje
@@ -574,7 +575,8 @@ posudek) nebo se změní stav. K tomu slouží dvě tlačítka v *Import ze STAG
     u práce ještě nemáš (typicky nový posudek / odevzdaná práce). Soubory, jejichž
     druh už máš, jsou ponechané neoznačené (můžeš si je přidat ručně).
 - **🔄 Aktualizovat práce k oponování ze STAG** — totéž pro **oponentury
-  aktuálního akademického roku** (jen soubory; oponentury stav nemají).
+  aktuálního akademického roku** (soubory; navíc **doplní STAG stav** do
+  sloupce *Stav* i u dříve stažených oponentur).
 
 Vše běží s **progres oknem** a přehledem změn k zaškrtnutí. Před zápisem se
 udělá **záloha** a v souhrnu je tlačítko **„↩ Vrátit vše"**. Práce **bez STAG

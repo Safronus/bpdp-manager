@@ -7,7 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.63.0] - 2026-06-06
+## [0.64.0] - 2026-06-06
+
+### Added
+- **Kontrola se STAG umí chybějící soubory rovnou dostáhnout.** V dialogu
+  *🔍 Kontrola se STAG* jsou chybějící soubory předzaškrtnuté a tlačítkem
+  **⬇ Dostáhnout vybrané** je stáhneš a připojíš k práci (před zápisem záloha).
+
+### Changed
+- **Kontrola se STAG přeskakuje budoucí práce.** Zájemci a vypsaná témata se
+  neověřují (ve STAG ještě soubory nemají).
+- **Aktualizace oponentur doplní STAG stav.** *🔄 Aktualizovat práce
+  k oponování ze STAG* nově doplní STAG stav práce (sloupec *Stav*) i u dříve
+  stažených oponentur, které ho ještě neměly.
 
 ### Fixed
 - **Známka oponenta se u stažených oponentur nedoplnila.** Doplnění známky

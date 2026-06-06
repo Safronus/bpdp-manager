@@ -265,6 +265,19 @@ class StagSyncDialog(QDialog):
             executor.shutdown(wait=False, cancel_futures=True)
             progress.close()
 
+        # Backfill STAG stavu u oponentur — oponentury nemají vlastní stav, ale
+        # ukládáme STAG kód (DUO/ND/…) pro sloupec „Stav". Je to autoritativní
+        # metadata ze STAG, doplníme je tiše (uživatel sync vyvolal záměrně).
+        if self.role == ROLE_OPPONENT:
+            for tgt in targets:
+                if not (tgt.is_opposing and tgt.stag_status_code):
+                    continue
+                op = self.service.get_opposing_thesis(tgt.obj_id)
+                if op is not None and op.stag_state_code != tgt.stag_status_code:
+                    op.stag_state_code = tgt.stag_status_code
+                    self.service.upsert_opposing_thesis(op)
+                    self.changed = True
+
         self._targets = targets
         self._populate()
 

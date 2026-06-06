@@ -1,3 +1,3 @@
 """BPDPManager — správa vedení bakalářských a diplomových prací."""
 
-__version__ = "0.63.0"
+__version__ = "0.64.0"
