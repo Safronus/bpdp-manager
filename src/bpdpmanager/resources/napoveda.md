@@ -139,6 +139,11 @@ posudky** stejně podle oponentského posudku. **Dolní lišta** ukazuje barevn�
 souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik práce
 tě ještě čeká.
 
+Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
+**Známky** (před *Posudky*) se známkou **vedoucího i oponenta** (`V: A / O: B`,
+„—" když chybí; plný popis v tooltipu). Stejné známky jsou i ve sloupci
+záložky *Oponentské posudky*.
+
 Seznam prací v *Aktuální* i *Oponentské posudky* má jednotný sloupec
 **Odesláno**: u prací s **hotovým posudkem** ukazuje **✉ ✓ odesláno** /
 **✉ ✗ neodesláno** (stejná informace je i v Souhrnu — *Odeslání posudku:

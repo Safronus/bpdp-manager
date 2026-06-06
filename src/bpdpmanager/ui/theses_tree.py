@@ -92,14 +92,18 @@ class ThesesTreeWidget(QTreeWidget):
     # Ruční přepnutí příznaku odeslání posudku sekretářce (thesis_id, sent)
     mark_review_sent_requested = Signal(str, bool)
 
-    HEADERS = ["Student / Skupina", "Téma", "Stav", "Posudky", "Odesláno", "Oponent", "Obor"]
+    HEADERS = [
+        "Student / Skupina", "Téma", "Stav", "Známky",
+        "Posudky", "Odesláno", "Oponent", "Obor",
+    ]
     COL_STUDENT = 0
     COL_TITLE = 1
     COL_STATUS = 2
-    COL_REVIEWS = 3
-    COL_SENT = 4
-    COL_OPPONENT = 5
-    COL_OBOR = 6
+    COL_GRADES = 3
+    COL_REVIEWS = 4
+    COL_SENT = 5
+    COL_OPPONENT = 6
+    COL_OBOR = 7
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -119,6 +123,7 @@ class ThesesTreeWidget(QTreeWidget):
         h.setSectionResizeMode(self.COL_STUDENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_TITLE, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(self.COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(self.COL_GRADES, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_REVIEWS, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_SENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OPPONENT, QHeaderView.ResizeMode.ResizeToContents)
@@ -280,17 +285,31 @@ class ThesesTreeWidget(QTreeWidget):
         sent_prepared = thesis.status == ThesisStatus.IN_PROGRESS and review_ready
         sent_text, sent_tip = review_sent_indicator(sent_prepared, sent_at)
 
+        # Známky vedoucí (V) / oponent (O) — „—" když chybí obě.
+        gs = (thesis.grade_supervisor or "").strip()
+        go = (thesis.grade_opponent or "").strip()
+        grades_text = f"V: {gs or '—'} / O: {go or '—'}" if (gs or go) else "—"
+
         leaf = QTreeWidgetItem(
             [
                 student_name,
                 title,
                 f"  {thesis.status.label}  ",
+                grades_text,
                 reviews_text,
                 sent_text,
                 opponent_name,
                 obor,
             ]
         )
+        leaf.setTextAlignment(
+            self.COL_GRADES, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+        if gs or go:
+            leaf.setToolTip(
+                self.COL_GRADES,
+                f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}",
+            )
         leaf.setTextAlignment(
             self.COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )

@@ -7,7 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.61.0] - 2026-06-06
+## [0.62.0] - 2026-06-06
+
+### Added
+- **Sloupec „Známky" v seznamu vedených prací.** Ve všech záložkách s pracemi
+  (*Aktuální / Budoucí / Historie / Vše*) je nový sloupec **Známky** (před
+  *Posudky*) se známkou **vedoucího i oponenta** (`V: A / O: B`, „—" když
+  chybí; plný popis v tooltipu). Záložka *Oponentské posudky* známky ve sloupci
+  už měla.
 
 ### Added
 - **Statistiky: přehled souborů.** Nová sekce **Soubory (přílohy)** — kolik
