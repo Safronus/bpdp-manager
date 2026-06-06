@@ -54,3 +54,32 @@ def test_stats_empty(qapp, service: ThesisService) -> None:
     # Bez prací nesmí spadnout
     w = StatsTab(service)
     assert "Souhrn" in w.view.toHtml()
+
+
+def test_stats_opponent_grades_and_opposing_summary(qapp, service: ThesisService) -> None:
+    from bpdpmanager.models import OpposingThesis
+
+    s = Student(first_name="A", last_name="B", obor="ITA-P")
+    service.upsert_student(s)
+    # Obhájená vedená práce se známkou vedoucího i oponenta.
+    service.upsert_thesis(Thesis(
+        type=ThesisType.BP, academic_year="2024/2025", student_id=s.id,
+        status=ThesisStatus.DEFENDED, grade_supervisor="A", grade_opponent="B",
+    ))
+    # Oponentury (mnou hodnocené).
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.DP, academic_year="2024/2025",
+        student_last_name="Dvořák", grade_opponent="C",
+    ))
+
+    w = StatsTab(service)
+    html = w.view.toHtml()
+    assert "Navržené vedoucím" in html
+    assert "Navržené oponentem" in html      # známky oponenta u vedených prací
+    assert "Oponentury" in html              # souhrn oponovaných prací
+    assert "Mnou navržené známky" in html     # moje známky jako oponent
+
+
+def test_stats_palette_muted_color_set(qapp, service: ThesisService) -> None:
+    w = StatsTab(service)
+    assert w._muted and w._border  # barvy dle motivu nastaveny

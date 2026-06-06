@@ -665,7 +665,10 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
   obhájeno / nedokončeno.
 - **Podle oboru** — rozložení prací mezi obory.
 - **Úspěšnost obhajob** — z dokončených prací (obhájeno vs nedokončeno) + %.
-- **Známky obhájených** — rozložení navržených známek vedoucího (A–F).
+- **Známky obhájených vedených prací** — rozložení navržených známek
+  **vedoucího** i **oponenta** (A–F).
+- **Oponentury** — souhrn oponovaných prací: počet, rozpad BP/DP, po letech
+  a **mnou navržené známky** (jako oponent).
 - **Odměny (orientačně)** — per rok: odměna za vedení (3 000 Kč/obhájenou
   práci, max 12/rok) a oponentury (600 Kč/posudek) + celkový součet.
 - **Posudky** — hotové / rozpracované / chybí (vedoucí), hotové / chybí

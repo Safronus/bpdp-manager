@@ -7,7 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.59.0] - 2026-06-06
+## [0.60.0] - 2026-06-06
+
+### Added
+- **Statistiky: známky oponentů + souhrn oponentur.** Sekce známek obhájených
+  prací nově ukazuje vedle známek **vedoucího** i známky **oponenta**. Přibyla
+  sekce **Oponentury** — počet posudků, rozpad BP/DP, po letech a **mnou
+  navržené známky** (jako oponent).
+
+### Fixed
+- **Čitelnost Statistik na tmavém motivu.** Šedý text na tmavém pozadí byl
+  špatně čitelný — barvy se teď přizpůsobí světlému/tmavému motivu.
+- **Tišší terminál.** Potlačena neškodná opakovaná hlášení `pypdf`
+  („Ignoring wrong pointing object …") při čtení některých PDF posudků.
 
 ### Added
 - **🔍 Kontrola se STAG (toolbar).** Nové tlačítko v liště *Import* — read-only

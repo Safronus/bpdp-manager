@@ -7,8 +7,13 @@ a doplnit ji do `grade_supervisor`. Funguje pro CZ i EN šablony FAI UTB.
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
+
+# pypdf u některých (mírně vadných) PDF spamuje varování „Ignoring wrong
+# pointing object …" — pro nás neškodná, ztlumíme ji.
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 
 # Navrženou známku hledáme u několika formulací (FAI UTB šablony, novější
 # i historické). Záměrně NE u boilerplate „...v případě hodnocení stupněm

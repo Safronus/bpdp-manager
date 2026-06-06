@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextBrowser, QVBoxLayout, QWidget
 
 from ..models.enums import (
@@ -33,22 +34,6 @@ _FEE_OPPOSING = 600           # Kč za oponentský posudek
 
 def _czk(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " Kč"
-
-
-def _bar(label: str, count: int, total: int, color: str) -> str:
-    """Jeden řádek s vodorovným pruhem (podíl z ``total``)."""
-    pct = (count / total * 100.0) if total else 0.0
-    width = max(2, round(pct)) if count else 0
-    return (
-        "<tr>"
-        f"<td style='padding:2px 10px 2px 0;white-space:nowrap;'>{label}</td>"
-        "<td style='width:100%;padding:2px 0;'>"
-        f"<div style='background:{color};height:14px;width:{width}%;"
-        "border-radius:3px;display:inline-block;min-width:2px;'></div></td>"
-        f"<td style='padding:2px 0 2px 10px;white-space:nowrap;color:#444;'>"
-        f"<b>{count}</b> ({pct:.0f}%)</td>"
-        "</tr>"
-    )
 
 
 class StatsTab(QWidget):
@@ -81,6 +66,14 @@ class StatsTab(QWidget):
     # --- výpočet -------------------------------------------------------------
 
     def refresh(self) -> None:
+        # Barvy přizpůsob světlému/tmavému motivu (jinak je šedý text na tmavém
+        # pozadí nečitelný).
+        base = self.view.palette().color(QPalette.ColorRole.Base)
+        luminance = (base.red() * 299 + base.green() * 587 + base.blue() * 114) / 1000
+        dark = luminance < 128
+        self._muted = "#b8b8b8" if dark else "#555555"
+        self._border = "#666666" if dark else "#cccccc"
+
         theses = self.service.list_theses()
         opposings = self.service.list_opposing_theses()
         students = self.service.list_students()
@@ -96,12 +89,28 @@ class StatsTab(QWidget):
         parts.append(self._by_obor(theses))
         parts.append(self._defense_success(theses))
         parts.append(self._grades(theses))
+        parts.append(self._opposing_summary(opposings))
         parts.append(self._finance(theses, opposings))
         parts.append(self._reviews(theses, opposings))
         parts.append("</body></html>")
         self.view.setHtml("".join(parts))
 
     # --- sekce ---------------------------------------------------------------
+
+    def _bar(self, label: str, count: int, total: int, color: str) -> str:
+        """Jeden řádek s vodorovným pruhem (podíl z ``total``)."""
+        pct = (count / total * 100.0) if total else 0.0
+        width = max(2, round(pct)) if count else 0
+        return (
+            "<tr>"
+            f"<td style='padding:2px 10px 2px 0;white-space:nowrap;'>{label}</td>"
+            "<td style='width:100%;padding:2px 0;'>"
+            f"<div style='background:{color};height:14px;width:{width}%;"
+            "border-radius:3px;display:inline-block;min-width:2px;'></div></td>"
+            f"<td style='padding:2px 0 2px 10px;white-space:nowrap;color:{self._muted};'>"
+            f"<b>{count}</b> ({pct:.0f}%)</td>"
+            "</tr>"
+        )
 
     @staticmethod
     def _h(title: str) -> str:
@@ -147,7 +156,7 @@ class StatsTab(QWidget):
             )
             out += (
                 f"<p>Odmítnutí zájemci: <b>{len(rejected)}</b> "
-                f"<span style='color:#888;'>({items})</span></p>"
+                f"<span style='color:{self._muted};'>({items})</span></p>"
             )
         return out
 
@@ -159,7 +168,7 @@ class StatsTab(QWidget):
         peak = max(by_year.values())
         rows = ""
         for y in years:
-            rows += _bar(y, by_year[y], peak, "#1565c0")
+            rows += self._bar(y, by_year[y], peak, "#1565c0")
         return self._h("Vývoj počtu vedených prací po letech") + (
             f"<table style='width:100%;'>{rows}</table>"
         )
@@ -178,7 +187,7 @@ class StatsTab(QWidget):
             return ""
 
         header = (
-            "<tr style='color:#666;text-align:left;'>"
+            "<tr style='color:" + self._muted + ";text-align:left;'>"
             "<th style='padding:2px 14px 2px 0;'>Rok</th>"
             "<th style='padding:2px 14px 2px 0;'>Obhájené</th>"
             "<th style='padding:2px 14px 2px 0;'>Odměna vedení</th>"
@@ -204,14 +213,14 @@ class StatsTab(QWidget):
                 f"<td style='padding:2px 0;'><b>{_czk(sup_fee + opp_fee)}</b></td></tr>"
             )
         rows += (
-            "<tr style='border-top:1px solid #ccc;'>"
+            "<tr style='border-top:1px solid " + self._border + ";'>"
             "<td style='padding:4px 14px 2px 0;'><b>Celkem</b></td>"
             f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_sup)}</b></td>"
             f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_opp)}</b></td>"
             f"<td style='padding:4px 0;'><b>{_czk(tot_sup + tot_opp)}</b></td></tr>"
         )
         return self._h("Odměny (orientačně)") + (
-            f"<p style='color:#888;font-size:11px;'>Vedení {_czk(_FEE_THESIS)}/práci "
+            f"<p style='color:{self._muted};font-size:11px;'>Vedení {_czk(_FEE_THESIS)}/práci "
             f"(jen <b>obhájené</b>, max {_THESIS_FEE_CAP_PER_YEAR}/rok — symbol ⚠ "
             f"značí překročení stropu), oponentský posudek {_czk(_FEE_OPPOSING)}.</p>"
             f"<table>{header}{rows}</table>"
@@ -226,7 +235,7 @@ class StatsTab(QWidget):
         for st in ThesisStatus:
             n = counts.get(st, 0)
             if n:
-                rows += _bar(st.label, n, total, st.color)
+                rows += self._bar(st.label, n, total, st.color)
         return self._h("Podle stavu") + f"<table style='width:100%;'>{rows}</table>"
 
     def _by_type(self, theses) -> str:
@@ -235,8 +244,8 @@ class StatsTab(QWidget):
             return ""
         counts = Counter(t.type.value for t in theses)
         rows = (
-            _bar("Bakalářské (BP)", counts.get("BP", 0), total, "#1565c0")
-            + _bar("Diplomové (DP)", counts.get("DP", 0), total, "#6a1b9a")
+            self._bar("Bakalářské (BP)", counts.get("BP", 0), total, "#1565c0")
+            + self._bar("Diplomové (DP)", counts.get("DP", 0), total, "#6a1b9a")
         )
         return self._h("Bakalářské vs diplomové") + f"<table style='width:100%;'>{rows}</table>"
 
@@ -256,7 +265,7 @@ class StatsTab(QWidget):
             elif t.status == ThesisStatus.CANCELLED:
                 d["canc"] += 1
         header = (
-            "<tr style='color:#666;text-align:left;'>"
+            "<tr style='color:" + self._muted + ";text-align:left;'>"
             "<th style='padding:2px 14px 2px 0;'>Rok</th>"
             "<th style='padding:2px 14px 2px 0;'>Celkem</th>"
             "<th style='padding:2px 14px 2px 0;'>BP</th>"
@@ -290,7 +299,7 @@ class StatsTab(QWidget):
         total = len(theses)
         rows = ""
         for obor, n in counts.most_common():
-            rows += _bar(obor, n, total, "#3949ab")
+            rows += self._bar(obor, n, total, "#3949ab")
         return self._h("Podle oboru") + f"<table style='width:100%;'>{rows}</table>"
 
     def _defense_success(self, theses) -> str:
@@ -301,8 +310,8 @@ class StatsTab(QWidget):
             return ""
         rate = defended / finished * 100.0
         rows = (
-            _bar("Obhájeno", defended, finished, "#2e7d32")
-            + _bar("Nedokončeno", cancelled, finished, "#c62828")
+            self._bar("Obhájeno", defended, finished, "#2e7d32")
+            + self._bar("Nedokončeno", cancelled, finished, "#c62828")
         )
         retakes = sum(1 for t in theses if t.related_thesis_id) // 2
         retake_line = (
@@ -316,14 +325,8 @@ class StatsTab(QWidget):
             f"{retake_line}"
         )
 
-    def _grades(self, theses) -> str:
-        counts: Counter[str] = Counter()
-        for t in theses:
-            if t.status != ThesisStatus.DEFENDED:
-                continue
-            g = (t.grade_supervisor or "").strip().upper()
-            if g:
-                counts[g] += 1
+    def _grade_table(self, counts: Counter) -> str:
+        """Tabulka rozpadu známek (A–FX) z čítače."""
         total = sum(counts.values())
         if not total:
             return ""
@@ -331,11 +334,72 @@ class StatsTab(QWidget):
         for g in ["A", "B", "C", "D", "E", "F", "FX"]:
             n = counts.get(g, 0)
             if n:
-                rows += _bar(g, n, total, _GRADE_COLORS.get(g, "#666"))
-        return (
-            self._h("Známky obhájených (navržené vedoucím)")
-            + f"<table style='width:100%;'>{rows}</table>"
+                rows += self._bar(g, n, total, _GRADE_COLORS.get(g, self._muted))
+        return f"<table style='width:100%;'>{rows}</table>"
+
+    def _grades(self, theses) -> str:
+        sup: Counter[str] = Counter()
+        opp: Counter[str] = Counter()
+        for t in theses:
+            if t.status != ThesisStatus.DEFENDED:
+                continue
+            gs = (t.grade_supervisor or "").strip().upper()
+            if gs:
+                sup[gs] += 1
+            go = (t.grade_opponent or "").strip().upper()
+            if go:
+                opp[go] += 1
+        if not sup and not opp:
+            return ""
+        out = self._h("Známky obhájených vedených prací")
+        if sup:
+            out += (
+                "<p style='margin:6px 0 2px 0;'><b>Navržené vedoucím</b></p>"
+                + self._grade_table(sup)
+            )
+        if opp:
+            out += (
+                "<p style='margin:8px 0 2px 0;'><b>Navržené oponentem</b></p>"
+                + self._grade_table(opp)
+            )
+        return out
+
+    def _opposing_summary(self, opposings) -> str:
+        """Souhrn oponentur — počet, typ, rok, mnou navržené známky."""
+        if not opposings:
+            return ""
+        total = len(opposings)
+        by_type: Counter[str] = Counter(o.type.value for o in opposings)
+        by_year: Counter[str] = Counter(
+            o.academic_year or "(bez roku)" for o in opposings
         )
+        grades: Counter[str] = Counter()
+        for o in opposings:
+            g = (o.grade_opponent or "").strip().upper()
+            if g:
+                grades[g] += 1
+
+        type_rows = (
+            self._bar("Bakalářské (BP)", by_type.get("BP", 0), total, "#1565c0")
+            + self._bar("Diplomové (DP)", by_type.get("DP", 0), total, "#6a1b9a")
+        )
+        year_rows = "".join(
+            f"<tr><td style='padding:2px 14px 2px 0;'><b>{y}</b></td>"
+            f"<td style='padding:2px 0;'>{by_year[y]}</td></tr>"
+            for y in sorted(by_year, reverse=True)
+        )
+        out = (
+            self._h("Oponentury")
+            + f"<p>Celkem oponentských posudků: <b>{total}</b></p>"
+            + f"<table style='width:100%;'>{type_rows}</table>"
+            + f"<table style='margin-top:6px;'>{year_rows}</table>"
+        )
+        if grades:
+            out += (
+                "<p style='margin:8px 0 2px 0;'><b>Mnou navržené známky "
+                "(oponent)</b></p>" + self._grade_table(grades)
+            )
+        return out
 
     def _reviews(self, theses, opposings) -> str:
         in_progress = [t for t in theses if t.status == ThesisStatus.IN_PROGRESS]

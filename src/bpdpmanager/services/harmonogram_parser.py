@@ -8,10 +8,14 @@ Parser je naladěný na konzistentní formát rozhodnutí děkana FAI
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date
 
 from ..models import KeyDate, KeyDateCategory
+
+# Ztlum neškodná pypdf varování „Ignoring wrong pointing object …".
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 
 # 31. 8. 2026  |  1. 9. 2026 - 4. 2. 2027  |  10.05.2027
 _DATE_RE = re.compile(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})")
