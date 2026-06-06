@@ -428,6 +428,13 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > být jednoznačné (víc vedoucích stejného příjmení) — proto je zapnutý filtr
 > **„Jen moje práce (dle celého jména)"**, který ponechá jen práce s tvým
 > celým jménem. Filtr lze vypnout. Pak jen zaškrtneš, co naimportovat.
+>
+> **Načtou se opravdu všechny.** STAG výsledky vyhledávání implicitně
+> stránkuje (vrací jen první stránku), takže by se část prací do seznamu
+> nedostala. Aplikace proto stránkování automaticky vypne a načte
+> **kompletní** seznam. U každé práce v seznamu vidíš **akademický rok**
+> a **stav práce** (obhájeno / čeká na obhajobu / nedokončeno / neúspěšná
+> obhajoba) vyčtený přímo ze STAG.
 
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 

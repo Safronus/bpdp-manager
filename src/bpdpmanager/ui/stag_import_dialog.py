@@ -153,6 +153,16 @@ STAG_STATE_TO_STATUS: dict[str, ThesisStatus] = {
     "ND": ThesisStatus.CANCELLED,
 }
 
+# Krátké označení stavu pro seznam výsledků (kompaktní, vejde se na řádek).
+STAG_STATE_SHORT: dict[str, str] = {
+    "R": "v řešení",
+    "DBPOO": "čeká na obhajobu",
+    "DUO": "obhájeno",
+    "DBUO": "neúsp. obhajoba",
+    "OPUNO": "neúsp. obhajoba",
+    "ND": "nedokončeno",
+}
+
 # Lidsky čitelná jména STAG kódů pro tooltip.
 STAG_STATE_LABELS: dict[str, str] = {
     "R": "Rozpracovaná",
@@ -2576,8 +2586,12 @@ class StagDownloadDialog(QDialog):
             # Akademický rok napřed (přehlednější u hromadného seznamu).
             year = f"[{r.year}]" if r.year else "[—]"
             type_part = f"  ·  {r.type_label}" if r.type_label else ""
+            # Stav práce ze STAG (DUO/ND/…) — krátké označení do řádku.
+            status_short = STAG_STATE_SHORT.get(r.status_code, r.status_code)
+            status_part = f"  ·  {status_short}" if status_short else ""
             item = QListWidgetItem(
-                f"{badge}   {year}   {r.student_full} — {r.title or '(bez názvu)'}{type_part}"
+                f"{badge}   {year}   {r.student_full} — "
+                f"{r.title or '(bez názvu)'}{type_part}{status_part}"
             )
             item.setData(Qt.ItemDataRole.UserRole, r.adipidno)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
@@ -2587,6 +2601,9 @@ class StagDownloadDialog(QDialog):
             if is_existing:
                 item.setForeground(QBrush(QColor("#888")))
             tooltip = [f"STAG ID práce: {r.adipidno}"]
+            if r.status_code:
+                state_full = STAG_STATE_LABELS.get(r.status_code, r.status_code)
+                tooltip.append(f"Stav práce: {state_full} ({r.status_code})")
             if r.supervisor:
                 tooltip.append(f"Vedoucí: {r.supervisor}")
             if r.reviewer:

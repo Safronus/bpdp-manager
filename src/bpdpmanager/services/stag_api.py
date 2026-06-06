@@ -81,6 +81,7 @@ class StagThesisResult:
     supervisor: str = ""
     reviewer: str = ""
     year: str = ""
+    status_code: str = ""  # STAG kód stavu z tabulky výsledků (DUO/ND/DBPOO/OPUNO…)
 
     @property
     def student_full(self) -> str:
@@ -192,7 +193,27 @@ class StagClient:
         data = urllib.parse.urlencode(fields, encoding="utf-8").encode()
         page = self._request(BASE_URL + action_url, data=data)
         assert isinstance(page, str)
+
+        # STAG implicitně stránkuje (server vrací jen první stránku ~20 ř.),
+        # takže by se část vedených/oponovaných prací do seznamu nedostala.
+        # Výsledková stránka ale nese odkaz „Vypnout stránkování" — následuj
+        # ho a parsuj kompletní seznam (header „Nalezeno N záznamů").
+        page = self._maybe_disable_pagination(page)
         return _parse_results(page)
+
+    def _maybe_disable_pagination(self, page: str) -> str:
+        """Pokud výsledková stránka nabízí „Vypnout stránkování", načte plnou
+        (nestránkovanou) variantu a vrátí ji; jinak vrátí původní stránku."""
+        link = _find_disable_pagination_link(page)
+        if not link:
+            return page
+        try:
+            full = self._request(BASE_URL + link)
+        except StagError:
+            return page
+        if isinstance(full, str) and "prace_prijmeni_search_result_big" in full:
+            return full
+        return page
 
     def download_csv(self, adipidno: str) -> bytes:
         """Stáhne CSV s prací dle ``adipIdno`` (veřejný export)."""
@@ -440,6 +461,27 @@ def _clean(fragment: str) -> str:
     return _WS_RE.sub(" ", html.unescape(_TAG_RE.sub(" ", fragment))).strip()
 
 
+# Odkaz „Vypnout stránkování" na výsledkové stránce (přepne na plný seznam).
+_DISABLE_PAGING_RE = re.compile(
+    r'<a[^>]+href="([^"]+prohlizeni\.html[^"]+)"[^>]*>\s*'
+    r"Vypnout stránkování\s*</a>",
+    re.S,
+)
+
+# Stav práce ve sloupci „Stav práce" — ikonka vlaječky s titulkem,
+# ve kterém je kód v závorce, např. „…s úspěšnou obhajobou (DUO)."
+_STATUS_CODE_RE = re.compile(
+    r"flag_\w+\.gif.{0,60}?title=['\"][^'\"]*?\(([A-Z]{2,7})\)",
+    re.S,
+)
+
+
+def _find_disable_pagination_link(page: str) -> str | None:
+    """Najde odkaz „Vypnout stránkování" (vede na nestránkovaný výpis)."""
+    m = _DISABLE_PAGING_RE.search(page)
+    return html.unescape(m.group(1)) if m else None
+
+
 def _parse_results(page: str) -> list[StagThesisResult]:
     """Z výsledkové stránky vytáhne seznam prací (1 i více výsledků)."""
     idx = page.find("prace_prijmeni_search_result_big")
@@ -470,8 +512,10 @@ def _parse_results(page: str) -> list[StagThesisResult]:
                 _clean(c)
                 for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)
             ]
+            ms = _STATUS_CODE_RE.search(tr)
+            status_code = ms.group(1) if ms else ""
             results.append(
-                _build_result(praceidno, cells, anchor_texts)
+                _build_result(praceidno, cells, anchor_texts, status_code)
             )
 
     if results:
@@ -486,7 +530,10 @@ def _parse_results(page: str) -> list[StagThesisResult]:
 
 
 def _build_result(
-    praceidno: str, cells: list[str], anchor_texts: list[str]
+    praceidno: str,
+    cells: list[str],
+    anchor_texts: list[str],
+    status_code: str = "",
 ) -> StagThesisResult:
     # Název = nejdelší text odkazu řádku (odkaz na detail práce).
     title = max(anchor_texts, key=len, default="") if anchor_texts else ""
@@ -521,6 +568,7 @@ def _build_result(
         supervisor=supervisor,
         reviewer=reviewer,
         year=year,
+        status_code=status_code,
     )
 
 

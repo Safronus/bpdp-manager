@@ -160,3 +160,81 @@ def test_search_supervisor_only(monkeypatch) -> None:
 
     with pytest.raises(stag_api.StagError):
         client.search("", "")                       # obojí prázdné → chyba
+
+
+def _row_with_status(prace_idno: str, surname: str, status_code: str,
+                     status_text: str) -> str:
+    """Řádek včetně sloupce „Stav práce" s vlaječkou a titulkem (kód v závorce)."""
+    token = _make_interaction_token(prace_idno)
+    href = f"/portal/studium/prohlizeni.html?pc_interactionstate={token}"
+    stav = (
+        f"<img src='/zdroje/images/stag/icons/flag_green.gif' "
+        f"title='{status_text} ({status_code}).'>"
+    )
+    return (
+        "<tr>"
+        "<td></td>"
+        f'<td><a href="{href}">{surname}</a></td>'
+        "<td>Jan</td>"
+        f'<td><a href="{href}">Nějaká práce</a></td>'
+        f"<td>{stav}</td><td></td>"
+        "<td>Vedoucí X</td><td>Oponent Y</td>"
+        "<td>bakalářská</td><td>14.06.2023</td>"
+        "</tr>"
+    )
+
+
+def test_parse_status_code_from_flag_title() -> None:
+    page = _page(
+        _row_with_status("70373", "Adámek", "DUO",
+                         "Dokončená práce s úspěšnou obhajobou"),
+        _row_with_status("70374", "Balun", "ND", "Práce nebyla dokončena"),
+    )
+    results = stag_api._parse_results(page)
+    assert [r.status_code for r in results] == ["DUO", "ND"]
+
+
+def test_parse_status_code_absent() -> None:
+    """Řádek bez vlaječky stavu → prázdný status_code (žádný pád)."""
+    page = _page(
+        _row("72503", "Pohanka", "Josef", "Práce", "bakalářská",
+             "V", "O", "14.06.2023"),
+    )
+    assert stag_api._parse_results(page)[0].status_code == ""
+
+
+def test_find_disable_pagination_link() -> None:
+    page = (
+        '<a class="x" '
+        'href="/portal/studium/prohlizeni.html?pc_phase=action&amp;x=1">'
+        "Vypnout stránkování</a>"
+    )
+    link = stag_api._find_disable_pagination_link(page)
+    assert link == "/portal/studium/prohlizeni.html?pc_phase=action&x=1"
+    assert stag_api._find_disable_pagination_link("<a>nic</a>") is None
+
+
+def test_search_follows_disable_pagination(monkeypatch) -> None:
+    """search() po prvním (stránkovaném) výsledku následuje odkaz na plný výpis."""
+    client = stag_api.StagClient()
+    monkeypatch.setattr(client, "_open_search_form", lambda: "/action")
+
+    paged = (
+        _page(_row("11", "A", "Jan", "P1", "bakalářská", "V", "O", "14.06.2023"))
+        + '<a href="/portal/studium/prohlizeni.html?full=1">'
+        + "Vypnout stránkování</a>"
+    )
+    full = _page(
+        _row("11", "A", "Jan", "P1", "bakalářská", "V", "O", "14.06.2023"),
+        _row("22", "B", "Eva", "P2", "diplomová", "V", "O", "14.06.2024"),
+    )
+    calls: list = []
+
+    def fake_request(url, data=None, **kw):
+        calls.append(url)
+        return paged if data is not None else full
+
+    monkeypatch.setattr(client, "_request", fake_request)
+    res = client.search("", "Žáček", stag_api.ROLE_SUPERVISOR)
+    assert [r.adipidno for r in res] == ["11", "22"]  # plný výpis, ne jen 1. stránka
+    assert any("full=1" in u for u in calls)         # odkaz byl skutečně načten

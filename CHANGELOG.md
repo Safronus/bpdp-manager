@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-06-06
+
+### Fixed
+- **STAG stránkování — načtou se všechny vedené/oponované práce.** STAG
+  ve výsledcích vyhledávání implicitně **stránkuje** (vrací jen první stránku,
+  ~20 záznamů), takže se část prací do hromadného stažení vůbec nedostala.
+  Nově aplikace automaticky následuje odkaz **„Vypnout stránkování"** a načte
+  kompletní seznam (u testovacího vedoucího 31 → 116 prací). Platí pro vedené
+  i oponované práce.
+
+### Added
+- **Stav práce ze STAG v seznamu výsledků.** U každé práce se vedle roku
+  zobrazí i stav (obhájeno / čeká na obhajobu / nedokončeno / neúsp. obhajoba)
+  vyčtený přímo z tabulky výsledků STAG (kódy DUO / DBPOO / ND / OPUNO…).
+  Plný popis stavu je v tooltipu položky.
+
 ## [0.53.1] - 2026-06-06
 
 ### Changed
