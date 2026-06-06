@@ -450,6 +450,23 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > zaškrtnutých prací. Samotné **stahování** ukazuje **průběh** (která práce a
 > která příloha se zrovna stahuje) a lze ho přerušit. Co se nakonec naimportuje
 > (a vyloučení velkých příloh) vybereš v **náhledu souborů** v dalším kroku.
+>
+> **„✓ už máš" — co se stane při opětovném stažení (merge).** Práce, které už
+> v databázi jsou, mají odznak **✓ už máš** a jsou **předem odškrtnuté** (ve
+> výchozím stavu se přeskočí). Když je ale **zaškrtneš a stáhneš**, NEvznikne
+> duplikát — práce se **spáruje a aktualizuje**:
+> - **Párování:** primárně přes **STAG ID (`adipidno`)**, jinak přes
+>   *student + akademický rok + typ (BP/DP)*. Repetent (řádný + opravný pokus
+>   se stejným studentem, ale jiným STAG ID) zůstává jako **samostatná** práce.
+> - **Slučování polí:** ze STAG se převezmou **vyplněné** údaje (název CZ/EN,
+>   anotace, body zadání, literatura, vedoucí/oponent, rok); kde STAG nic nemá,
+>   **zůstane tvá stávající hodnota** (nic se nepřepíše prázdnem).
+> - **Stav práce se NEmění** — u existující práce zůstává tvůj aktuální stav
+>   (z dialogu se bere jen u nově zakládaných).
+> - **Přílohy** se připojí; stejnojmenný soubor dostane verzi `_vN`
+>   (nepřepisuje), posudky se archivují.
+> - Před importem se vytvoří záloha `before-stag-import` a celý import jde
+>   **vrátit** tlačítkem *„↩ Vrátit celý import zpět"*.
 
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 

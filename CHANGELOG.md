@@ -7,7 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.56.0] - 2026-06-06
+## [0.56.1] - 2026-06-06
+
+### Fixed
+- **Šířka okna hromadného stažení ze STAG dle obsahu.** Sloupec „Práce" se
+  zastropoval (dlouhé názvy se zkrátí, celé jsou v tooltipu) a okno se po
+  načtení **roztáhne tak, aby se vešly všechny sloupce** (až do šířky
+  obrazovky) — už není potřeba vodorovně rolovat.
+
+### Docs
+- Nápověda nově popisuje **merge při opětovném stažení prací „✓ už máš"**
+  (párování přes STAG ID, slučování polí, zachování stavu, zálohu a vrácení).
 
 ### Added
 - **Počet a velikost příloh v tabulce (lazy).** Nový sloupec **„📎 Přílohy"** se

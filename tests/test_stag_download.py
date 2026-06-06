@@ -111,6 +111,20 @@ def test_attachments_lazy_fill(qapp, monkeypatch) -> None:
     assert _cell_text(dlg, "1", mod._ATTACH_COL).startswith("📎 2")
 
 
+def test_first_column_capped(qapp) -> None:
+    """Velmi dlouhý název nepřeroste strop sloupce „Práce"."""
+    dlg = _dialog()
+    dlg._results = [
+        stag_api.StagThesisResult(
+            adipidno="1", surname="Novák", name="Jan",
+            title="Velmi dlouhý název kvalifikační práce " * 30,
+            type_label="Bakalářská práce", status_code="DUO",
+        )
+    ]
+    dlg._render_results()
+    assert dlg.tree_results.columnWidth(0) <= mod._MAX_FIRST_COL
+
+
 def test_attachments_error_shows_question_mark(qapp, monkeypatch) -> None:
     """Chyba při zjišťování příloh → „?" a nezakešuje se (jde zkusit znovu)."""
     def boom(adip):

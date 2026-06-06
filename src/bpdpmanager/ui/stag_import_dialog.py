@@ -205,6 +205,8 @@ _RESULT_COLUMNS = [
     "Práce", "Typ", "Ak. rok", "Obhajoba", "Oponent", "Stav", "📎 Přílohy", "",
 ]
 _ATTACH_COL = _RESULT_COLUMNS.index("📎 Přílohy")
+# Strop šířky sloupce „Práce" — delší názvy se zkrátí (celý je v tooltipu).
+_MAX_FIRST_COL = 680
 
 
 def _fetch_attachment_info(adipidno: str) -> tuple[int, int] | None:
@@ -2785,8 +2787,13 @@ class StagDownloadDialog(QDialog):
                 self._sync_group_check(header)
 
         tree.blockSignals(False)
-        # Sloupec „Práce" roztáhni dle nejdelšího názvu (uživatel může doladit).
+        # Sloupec „Práce" roztáhni dle nejdelšího názvu, ale zastropuj — ať
+        # dlouhý název nepřeroste a nevytlačí ostatní sloupce (celý je v
+        # tooltipu). Pak okno roztáhni na obsah (do šířky obrazovky).
         tree.resizeColumnToContents(0)
+        if tree.columnWidth(0) > _MAX_FIRST_COL:
+            tree.setColumnWidth(0, _MAX_FIRST_COL)
+        self._fit_width_to_content()
 
         shown = len(results)
         status = (
@@ -2803,6 +2810,23 @@ class StagDownloadDialog(QDialog):
             status += "  ·  Bez filtru: zobrazeny i práce stejného příjmení jiných osob."
         self.lbl_status.setText(status)
         self._update_download_btn()
+
+    def _fit_width_to_content(self) -> None:
+        """Roztáhne okno na šířku tak, aby se vešly všechny sloupce tabulky
+        (jen zvětšuje, max do šířky obrazovky — nikdy nezmenší)."""
+        tree = self.tree_results
+        header = tree.header()
+        total = sum(header.sectionSize(i) for i in range(header.count()))
+        extra = 2 * tree.frameWidth() + 48  # rámeček + okraje layoutu
+        sb = tree.verticalScrollBar()
+        if sb is not None and sb.isVisible():
+            extra += sb.width()
+        needed = total + extra
+        screen = self.screen()
+        avail = screen.availableGeometry().width() if screen is not None else 2400
+        target = min(needed, avail - 40)
+        if target > self.width():
+            self.resize(target, self.height())
 
     # --- dotažení akad. roku + oboru (CSV detail) ----------------------------
 
@@ -3044,6 +3068,8 @@ class StagDownloadDialog(QDialog):
                 progress.close()
         finally:
             self._fetching_attach = False
+        # Sloupec „Přílohy" se naplněním rozšířil → uprav šířku okna.
+        self._fit_width_to_content()
         # Něco se mohlo zaškrtnout během dotahování → dořeš (kromě právě
         # zkoušených — neúspěchy se v kaskádě neopakují, jen na další akci).
         rest = [
