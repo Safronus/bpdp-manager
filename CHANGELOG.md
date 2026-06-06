@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-06-06
+
+### Fixed
+- **Repetent — ochrana proti přepsání v DB.** Když má student dvě práce
+  stejného typu/roku, ale s **jiným STAG ID** (řádný + opravný pokus), import
+  je už **nikdy nespojí ani nepřepíše** — zůstanou jako dva samostatné záznamy
+  (každý se svým posudkem a soubory). Doplněn STAG kód **OPUNO** (ukončeno po
+  neúspěšné obhajobě → Nedokončeno).
+
+### Added
+- **Automatická vazba repetentů.** Po importu se řádný a opravný pokus
+  (stejný student + typ, jeden *Obhájeno* + jeden *Nedokončeno*; u oponentur
+  dvojice stejného studenta) **automaticky propojí**. V seznamu i Souhrnu je
+  označí **🔁**; ve Statistikách přibyl počet opravných pokusů. (Pole
+  `related_thesis_id`, schéma v11.)
+
 ## [0.50.1] - 2026-06-06
 
 ### Changed

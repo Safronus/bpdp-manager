@@ -20,7 +20,9 @@ APP_NAME = "bpdpmanager"
 #     u OpposingThesis (kdy byl posudek odeslán sekretářce; volitelné, None).
 # v9: secretary_greeting u Obor (oslovení sekretářky v e-mailu; volitelné, None).
 # v10: Database.rejected_students (evidence odmítnutých zájemců o vedení).
-SCHEMA_VERSION = 10
+# v11: related_thesis_id u Thesis a OpposingThesis (vazba repetent:
+#      řádný ↔ opravný pokus; volitelné, default "").
+SCHEMA_VERSION = 11
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

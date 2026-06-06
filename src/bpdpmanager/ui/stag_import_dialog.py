@@ -149,6 +149,7 @@ STAG_STATE_TO_STATUS: dict[str, ThesisStatus] = {
     "DBPOO": ThesisStatus.IN_PROGRESS,
     "DUO": ThesisStatus.DEFENDED,
     "DBUO": ThesisStatus.CANCELLED,
+    "OPUNO": ThesisStatus.CANCELLED,  # odevzdaná, ukončená po neúspěšné obhajobě
     "ND": ThesisStatus.CANCELLED,
 }
 
@@ -158,6 +159,7 @@ STAG_STATE_LABELS: dict[str, str] = {
     "DBPOO": "Dokončená bez pokusu o obhajobu",
     "DUO": "Dokončená s úspěšnou obhajobou",
     "DBUO": "Dokončená, neúspěšná obhajoba",
+    "OPUNO": "Odevzdaná, ukončená po neúspěšné obhajobě",
     "ND": "Nedokončená práce",
 }
 
@@ -1549,6 +1551,10 @@ class StagImportDialog(QDialog):
         self.imported_opposing_ids = affected_opposing_ids
         self.focus_thesis_id = last_thesis_id
         self.focus_opposing_id = last_opposing_id
+        try:
+            self.service.auto_link_retakes()  # propoj řádný + opravný pokus
+        except Exception:  # noqa: BLE001
+            pass
         self._maybe_delete_source_csv(csv_source, stats)
         self._show_summary_dialog(stats, errors)
 
@@ -1732,6 +1738,10 @@ class StagImportDialog(QDialog):
         self.imported_opposing_ids = affected_opposing_ids
         self.focus_thesis_id = last_thesis_id
         self.focus_opposing_id = last_opposing_id
+        try:
+            self.service.auto_link_retakes()  # propoj řádný + opravný pokus
+        except Exception:  # noqa: BLE001
+            pass
         self._maybe_delete_source_csv(csv_source, stats)
         self._show_summary_dialog(stats, errors)
 
@@ -2079,7 +2089,12 @@ class StagImportDialog(QDialog):
                 if t.adipidno and t.adipidno == record.adipidno:
                     return t
         # 2) Fallback: student + rok + typ (BP≠DP → samostatné záznamy).
+        #    POZOR: práci, která má JINÉ adipidno, nikdy nepřepiš — jde
+        #    o jinou práci (typicky repetent: řádný + opravný pokus téhož
+        #    studenta ve stejném roce, ale jiné STAG ID).
         for t in self.service.list_theses():
+            if t.adipidno and record.adipidno and t.adipidno != record.adipidno:
+                continue
             if (
                 t.student_id == student_id
                 and t.academic_year == record.academic_year
@@ -2095,6 +2110,8 @@ class StagImportDialog(QDialog):
                     return o
         uni_id = record.student_uni_id.strip()
         for o in self.service.list_opposing_theses():
+            if o.adipidno and record.adipidno and o.adipidno != record.adipidno:
+                continue
             if (
                 o.student_university_id == uni_id
                 and o.academic_year == record.academic_year

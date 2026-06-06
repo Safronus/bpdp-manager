@@ -1106,10 +1106,25 @@ class ThesisDetail(QWidget):
                 f"</p>"
             )
 
+        # Repetent — vazba na druhý pokus.
+        retake_html = ""
+        if thesis.related_thesis_id:
+            other = self.service.get_thesis(thesis.related_thesis_id)
+            if other is not None:
+                other_title = e(other.display_title)
+                other_status = e(other.status.label)
+                retake_html = (
+                    "<p style='background:#fff3e0;color:#5d4037;padding:6px 10px;"
+                    "border-radius:4px;border:1px solid #ffb74d;'>"
+                    f"🔁 <b>Repetent:</b> souvisí s prací „{other_title}“ "
+                    f"({other_status}) — řádný + opravný pokus.</p>"
+                )
+
         return (
             "<html><body>"
             f"{status_bar}"
             f"{readiness_html}"
+            f"{retake_html}"
             f"{header_line}"
             f"{en_line}"
             f"{stag_html}"

@@ -249,6 +249,9 @@ class ThesesTreeWidget(QTreeWidget):
             )
             if dot:
                 title = f"{dot} {title}"
+        # Repetent — vazba řádný ↔ opravný pokus.
+        if thesis.related_thesis_id:
+            title = f"🔁 {title}"
         opponent_name = opponent.display_name if opponent else "—"
         obor = student.obor if student and student.obor else "—"
 
@@ -317,6 +320,12 @@ class ThesesTreeWidget(QTreeWidget):
         )
         leaf.setData(0, ROLE_KIND, "thesis")
         leaf.setData(0, ROLE_THESIS_ID, thesis.id)
+        if thesis.related_thesis_id:
+            leaf.setToolTip(
+                self.COL_TITLE,
+                "🔁 Repetent — tato práce souvisí s druhým pokusem téhož "
+                "studenta (řádný + opravný).",
+            )
 
         # Barevný stav: pozadí + bílý bold text, centrováno
         status_color = QColor(thesis.status.color)

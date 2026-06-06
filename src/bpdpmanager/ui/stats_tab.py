@@ -304,11 +304,16 @@ class StatsTab(QWidget):
             _bar("Obhájeno", defended, finished, "#2e7d32")
             + _bar("Nedokončeno", cancelled, finished, "#c62828")
         )
+        retakes = sum(1 for t in theses if t.related_thesis_id) // 2
+        retake_line = (
+            f"<p>🔁 Opravné pokusy (repetenti): <b>{retakes}</b></p>" if retakes else ""
+        )
         return (
             self._h("Úspěšnost obhajob (z dokončených)")
             + f"<p>Úspěšnost: <b style='color:#2e7d32;'>{rate:.0f}%</b> "
             f"({defended} z {finished})</p>"
             f"<table style='width:100%;'>{rows}</table>"
+            f"{retake_line}"
         )
 
     def _grades(self, theses) -> str:

@@ -483,6 +483,14 @@ Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená zná
 > **Pozn.:** Veřejný CSV export STAG **neobsahuje jméno studenta**
 > (jen osobní číslo). Aplikace ho proto doplní z výsledku vyhledávání.
 
+> **Repetent (řádný + opravný pokus):** když má student dvě práce stejného
+> typu (např. řádný pokus *Nedokončeno* + opravný *Obhájeno*, každá s vlastním
+> STAG ID), import je **nikdy nespojí ani nepřepíše** — zůstanou jako **dva
+> samostatné záznamy** (každý se svým posudkem a soubory). Aplikace je navíc
+> **automaticky propojí** (vazba řádný ↔ opravný) a v seznamu i Souhrnu je
+> označí **🔁**. Obě jsou v *Historii* podle svého stavu (Obhájeno / Nedokončeno).
+> Ve Statistikách je počet *opravných pokusů (repetentů)*.
+
 ### B) Ručně stažený CSV
 1. Otevři **stag.utb.cz** → **Prohlížení** → **Kvalifikační práce**
 2. Vyhledej práci podle jména studenta a u ní zvol **stažení CSV**

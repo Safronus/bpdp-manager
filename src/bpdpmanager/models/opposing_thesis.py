@@ -57,6 +57,9 @@ class OpposingThesis(BaseModel):
     # Kdy byl oponentský posudek odeslán sekretářce (None = neodesláno).
     opponent_review_sent_at: datetime | None = None
 
+    # Vazba na související posudek (repetent: řádný ↔ opravný pokus).
+    related_thesis_id: str = ""
+
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

@@ -1065,6 +1065,52 @@ class ThesisService:
         op.opponent_review_sent_at = datetime.now() if sent else None
         self.upsert_opposing_thesis(op)
 
+    def auto_link_retakes(self) -> int:
+        """Automaticky propojí řádný + opravný pokus (repetent).
+
+        - **Vedené práce:** páruje práce stejného studenta a typu, kde je jedna
+          *Obhájeno* a druhá *Nedokončeno* (typický repetent — řádný neobhájen,
+          opravný obhájen). Páruje jen dvojice (přesně 2 záznamy).
+        - **Oponentury:** páruje dvojice stejného studenta (osobní číslo) a typu.
+
+        Idempotentní. Vrací počet nově spárovaných dvojic.
+        """
+        linked = 0
+        groups: dict[tuple, list[Thesis]] = {}
+        for t in self._db.theses:
+            if t.student_id:
+                groups.setdefault((t.student_id, t.type), []).append(t)
+        for grp in groups.values():
+            if len(grp) != 2:
+                continue
+            statuses = {x.status for x in grp}
+            if ThesisStatus.DEFENDED in statuses and ThesisStatus.CANCELLED in statuses:
+                a, b = grp
+                if a.related_thesis_id != b.id or b.related_thesis_id != a.id:
+                    a.related_thesis_id, b.related_thesis_id = b.id, a.id
+                    a.touch()
+                    b.touch()
+                    linked += 1
+
+        ogroups: dict[tuple, list[OpposingThesis]] = {}
+        for o in self._db.opposing_theses:
+            key = (o.student_university_id or o.student_full_name, o.type)
+            if key[0]:
+                ogroups.setdefault(key, []).append(o)
+        for grp in ogroups.values():
+            if len(grp) != 2:
+                continue
+            a, b = grp
+            if a.related_thesis_id != b.id or b.related_thesis_id != a.id:
+                a.related_thesis_id, b.related_thesis_id = b.id, a.id
+                a.touch()
+                b.touch()
+                linked += 1
+
+        if linked:
+            self.save()
+        return linked
+
     # --- harmonogram napříč roky --------------------------------------------
 
     def upcoming_dates_all_years(self, from_date: date, days: int = 60) -> list[tuple[str, KeyDate]]:

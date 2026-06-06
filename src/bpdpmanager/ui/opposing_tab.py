@@ -247,6 +247,8 @@ class OpposingTab(QWidget):
                     dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
                     if dot:
                         title = f"{dot} {title}"
+                    if op.related_thesis_id:
+                        title = f"🔁 {title}"
                     # Odeslání posudku sekretářce — vlastní sloupec „Odesláno"
                     # (jednotná indikace jako u vedených prací).
                     sent_at = op.opponent_review_sent_at
