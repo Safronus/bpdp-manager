@@ -7,7 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.57.1] - 2026-06-06
+## [0.58.0] - 2026-06-06
+
+### Added
+- **Nová záložka „💡 Návrhy témat".** Seznam vymyšlených potenciálních témat
+  (BP/DP) — nekompletní nápady **bez studenta a bez stavu**. U každého návrhu:
+  **název, popis, body zadání, literatura, obor a typ (BP/DP)**; akademický rok
+  je tu irelevantní. Volitelně lze označit **🔒 Zarezervováno** a komu (volný
+  text). Záložka má **seznam** (seskupený BP/DP) a **detail** se **Souhrnem**
+  (tlačítka 📋 do schránky jako u ostatních záložek) a editorem. Tlačítko
+  **🎓 Převést na vedenou práci** z návrhu založí skutečnou práci (přenese
+  název, popis, body, literaturu a typ; stav *Zájemce s tématem*, aktuální
+  akademický rok) a návrh odebere. Záložka je vložená **za „Oponentské
+  posudky"**.
+
+### Changed
+- Schéma úložiště povýšeno na **v12** (`Database.proposals`). Starší databáze
+  se načtou beze změny (chybějící pole se doplní jako prázdný seznam).
 
 ### Fixed
 - **Nový obor v importu ze STAG se hned propíše do dalších řádků.** Při importu

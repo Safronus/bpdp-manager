@@ -22,7 +22,9 @@ APP_NAME = "bpdpmanager"
 # v10: Database.rejected_students (evidence odmítnutých zájemců o vedení).
 # v11: related_thesis_id u Thesis a OpposingThesis (vazba repetent:
 #      řádný ↔ opravný pokus; volitelné, default "").
-SCHEMA_VERSION = 11
+# v12: Database.proposals (návrhy témat prací — nekompletní nápady bez
+#      studenta/stavu; pydantic doplní z defaultu, žádná datová migrace).
+SCHEMA_VERSION = 12
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

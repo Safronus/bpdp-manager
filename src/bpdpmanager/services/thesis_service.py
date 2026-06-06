@@ -23,6 +23,7 @@ from ..models import (
     Supervisor,
     TemplateCriterion,
     Thesis,
+    ThesisProposal,
 )
 from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus, ThesisType
 from ..storage import Database, Repository
@@ -363,6 +364,53 @@ class ThesisService:
     def delete_thesis(self, thesis_id: str) -> None:
         self._db.theses = [t for t in self._db.theses if t.id != thesis_id]
         self.save()
+
+    # --- návrhy témat (proposals) -------------------------------------------
+
+    def list_proposals(self) -> list[ThesisProposal]:
+        return list(self._db.proposals)
+
+    def get_proposal(self, proposal_id: str) -> ThesisProposal | None:
+        return next((p for p in self._db.proposals if p.id == proposal_id), None)
+
+    def upsert_proposal(self, proposal: ThesisProposal) -> ThesisProposal:
+        proposal.touch()
+        existing = self.get_proposal(proposal.id)
+        if existing:
+            idx = self._db.proposals.index(existing)
+            self._db.proposals[idx] = proposal
+        else:
+            self._db.proposals.append(proposal)
+        self.save()
+        return proposal
+
+    def delete_proposal(self, proposal_id: str) -> None:
+        self._db.proposals = [p for p in self._db.proposals if p.id != proposal_id]
+        self.save()
+
+    def convert_proposal_to_thesis(self, proposal_id: str) -> Thesis:
+        """Z návrhu tématu založí novou vedenou práci a návrh odebere.
+
+        Přenese typ (BP/DP), název, popis (→ anotace), body zadání a literaturu.
+        Stav = *Zájemce s tématem* (entry), akademický rok = aktuální. Obor se
+        nepřenáší (drží ho až student, kterého přiřadíš). Vrací novou práci.
+        """
+        p = self.get_proposal(proposal_id)
+        if p is None:
+            raise ValueError(f"Návrh {proposal_id} neexistuje.")
+        thesis = Thesis(
+            type=p.type,
+            status=ThesisStatus.RESERVED,
+            academic_year=self.current_academic_year(),
+            title_cs=p.title_cs,
+            annotation=p.description,
+            objectives=p.objectives,
+            references=p.references,
+        )
+        self._db.theses.append(thesis)
+        self._db.proposals = [x for x in self._db.proposals if x.id != proposal_id]
+        self.save()
+        return thesis
 
     def rollback_thesis(self, thesis_id: str) -> dict[str, int]:
         """Kompletně smaže práci z DB **i** všechny její soubory na disku.

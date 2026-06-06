@@ -18,6 +18,7 @@ from .rejected_student import RejectedStudent
 from .student import Student
 from .supervisor import Supervisor
 from .thesis import Attachment, Deadline, Thesis
+from .thesis_proposal import ThesisProposal
 
 __all__ = [
     "AcademicYear",
@@ -44,6 +45,7 @@ __all__ = [
     "StudyForm",
     "Supervisor",
     "Thesis",
+    "ThesisProposal",
     "ThesisStatus",
     "ThesisType",
 ]

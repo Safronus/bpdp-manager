@@ -58,6 +58,7 @@ from .manage_dialogs import (
 )
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
+from .proposals_tab import ProposalsTab
 from .help_dialog import HelpDialog
 from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
@@ -254,6 +255,8 @@ class MainWindow(QMainWindow):
         )
         self.tab_opposing = OpposingTab(service, profile_manager=pm)
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
+        self.tab_proposals = ProposalsTab(service)
+        self.tab_proposals.converted.connect(self._on_proposal_converted)
         self.tab_harmonogram = HarmonogramTab(service)
         self.tab_stats = StatsTab(service)
 
@@ -263,6 +266,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_history, "Historie")
         self.tabs.addTab(self.tab_all, "Vše")
         self.tabs.addTab(self.tab_opposing, "🧐 Oponentské posudky")
+        self.tabs.addTab(self.tab_proposals, "💡 Návrhy témat")
         self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
         self.tabs.addTab(self.tab_stats, "📊 Statistiky")
 
@@ -1060,6 +1064,11 @@ class MainWindow(QMainWindow):
                 widget.detail.set_thesis(self.service.get_thesis(thesis_id))
                 return
 
+    def _on_proposal_converted(self, thesis_id: str) -> None:
+        """Návrh byl převeden na vedenou práci — obnov a přejdi na ni."""
+        self._refresh_all()
+        self._focus_thesis(thesis_id)
+
     def _manage_students(self) -> None:
         StudentsManageDialog(self.service, self).exec()
         self._refresh_all()
@@ -1158,6 +1167,8 @@ class MainWindow(QMainWindow):
             elif isinstance(widget, OpposingTab):
                 widget.refresh()
                 widget.refresh_combos()
+            elif isinstance(widget, ProposalsTab):
+                widget.refresh()
             elif isinstance(widget, HarmonogramTab):
                 widget._refresh_year_combo()
             elif isinstance(widget, StatsTab):

@@ -353,6 +353,30 @@ starších) funguje shodně.
 
 ---
 
+## Návrhy témat
+
+Samostatná záložka **💡 Návrhy témat** (za *Oponentskými posudky*) je seznam
+**vymyšlených potenciálních témat** — nekompletních nápadů, které ještě nikdo
+nevede. **Nemají studenta ani stav** a **akademický rok je tu irelevantní**.
+
+U každého návrhu vyplníš **název, popis, body zadání, literaturu, obor** a
+**typ (BP/DP)**. Volitelně zaškrtni **🔒 Zarezervováno** a doplň **komu**
+(volný text — jméno či poznámka, bez vazby na evidované studenty).
+
+- **Seznam** vlevo je seskupený na *Bakalářské* / *Diplomové*; u rezervovaných
+  je 🔒 a komu. Nahoře je počet návrhů a kolik je rezervovaných.
+- **Detail** má **📋 Souhrn** (s tlačítky do schránky — název, popis, body,
+  literatura, nebo celý návrh) a **✏ Detail** (editor; ulož tlačítkem
+  **💾 Uložit**).
+- **➕ Nový návrh** přidá prázdný návrh a otevře editor.
+- **🎓 Převést na vedenou práci** z návrhu založí **skutečnou vedenou práci**
+  (přenese název, popis → anotace, body zadání, literaturu a typ; stav
+  *Zájemce s tématem*, aktuální akademický rok) a **návrh odebere**. Aplikace
+  se rovnou přepne na nově založenou práci. *Obor se nepřenáší — drží ho až
+  student, kterého k práci přiřadíš.*
+
+---
+
 ## Odeslání posudků e-mailem sekretářce
 
 Připravené posudky (PDF) pošleš sekretářce oboru přímo z aplikace.

@@ -16,6 +16,7 @@ from ..models import (
     Student,
     Supervisor,
     Thesis,
+    ThesisProposal,
 )
 
 
@@ -34,6 +35,8 @@ class Database(BaseModel):
     review_templates: list[ReviewTemplate] = Field(default_factory=list)
     # v10: evidence odmítnutých zájemců o vedení (kapacita vedení).
     rejected_students: list[RejectedStudent] = Field(default_factory=list)
+    # v12 (0.58.0): návrhy témat prací (nekompletní nápady bez studenta/stavu).
+    proposals: list[ThesisProposal] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
