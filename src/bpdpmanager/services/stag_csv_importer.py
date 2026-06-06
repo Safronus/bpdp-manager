@@ -111,6 +111,26 @@ def load_stag_csv(path: Path, user_name: str = "") -> ImportFile:
     return ImportFile(path=path, encoding=encoding, records=records, skipped=skipped)
 
 
+def load_stag_csv_bytes(raw: bytes, user_name: str = "") -> ImportFile:
+    """Jako :func:`load_stag_csv`, ale ze syrových bytů (přímé stažení ze STAG).
+
+    Hodí se pro doplnění výsledků vyhledávání (akademický rok / obor), aniž by
+    se CSV muselo ukládat na disk.
+    """
+    raw_rows, encoding = _read_csv_rows_from_bytes(raw)
+    records: list[ParsedRecord] = []
+    skipped = 0
+    for row in raw_rows:
+        try:
+            records.append(_parse_row(row, user_name=user_name))
+        except Exception:  # noqa: BLE001
+            skipped += 1
+            continue
+    return ImportFile(
+        path=Path("<bytes>"), encoding=encoding, records=records, skipped=skipped
+    )
+
+
 # ── Vnitřní implementace ─────────────────────────────────────────────────────
 
 
@@ -131,6 +151,30 @@ def _read_csv_rows(path: Path) -> tuple[list[dict[str, str]], str]:
     if last_exc is not None:
         raise last_exc
     raise ValueError(f"Nepodařilo se přečíst CSV: {path}")
+
+
+def _read_csv_rows_from_bytes(raw: bytes) -> tuple[list[dict[str, str]], str]:
+    """Varianta :func:`_read_csv_rows` pro syrové byty (zkouší encodingy)."""
+    import io
+
+    last_exc: Exception | None = None
+    for enc in _ENCODINGS:
+        try:
+            text = raw.decode(enc)
+        except (UnicodeDecodeError, LookupError) as exc:
+            last_exc = exc
+            continue
+        try:
+            reader = csv.DictReader(io.StringIO(text), delimiter=_DELIMITER)
+            rows = [dict(r) for r in reader if r]
+        except csv.Error as exc:
+            last_exc = exc
+            continue
+        if rows:
+            return rows, enc
+    if last_exc is not None:
+        raise last_exc
+    raise ValueError("Nepodařilo se přečíst CSV z dat (neznámý encoding).")
 
 
 def _parse_row(row: dict[str, str], user_name: str = "") -> ParsedRecord:

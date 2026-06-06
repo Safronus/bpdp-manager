@@ -432,9 +432,18 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > **Načtou se opravdu všechny.** STAG výsledky vyhledávání implicitně
 > stránkuje (vrací jen první stránku), takže by se část prací do seznamu
 > nedostala. Aplikace proto stránkování automaticky vypne a načte
-> **kompletní** seznam. U každé práce v seznamu vidíš **akademický rok**
-> a **stav práce** (obhájeno / čeká na obhajobu / nedokončeno / neúspěšná
-> obhajoba) vyčtený přímo ze STAG.
+> **kompletní** seznam.
+>
+> **Přehledná tabulka.** Nalezené práce jsou v tabulce se sloupci
+> **Práce · Typ · Akademický rok · Obhajoba · Oponent · Stav**. Datum
+> obhajoby a stav (obhájeno / čeká na obhajobu / nedokončeno / neúspěšná
+> obhajoba) jsou přímo z výsledků STAG. **Akademický rok a obor** se po
+> vyhledání **automaticky dotáhnou z detailu** každé práce (progress okno,
+> lze přerušit) — akademický rok je proto vidět **i u nedokončených** prací.
+>
+> **Seskupení.** Výběrem **„Seskupit podle"** můžeš práce seskupit dle
+> **stavu, typu (BP/DP), oboru, akademického roku** (nebo bez seskupení).
+> Zaškrtnutím hlavičky skupiny vybereš/zrušíš celou skupinu naráz.
 
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 

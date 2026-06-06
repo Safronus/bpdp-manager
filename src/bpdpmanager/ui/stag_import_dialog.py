@@ -32,15 +32,16 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QRadioButton,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTextBrowser,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -60,6 +61,7 @@ from ..services.stag_csv_importer import (
     ImportRole,
     ParsedRecord,
     load_stag_csv,
+    load_stag_csv_bytes,
 )
 from .obor_dialog import OborDialog
 
@@ -128,6 +130,30 @@ def _fmt_size(n: int) -> str:
     return f"{n / (1024 * 1024):.1f} MB"
 
 
+def _invert_year(academic_year: str) -> str:
+    """Řadicí klíč pro akademický rok tak, aby novější byl první (vzestupně)."""
+    m = re.match(r"(\d{4})", academic_year or "")
+    return "9999" if not m else f"{9999 - int(m.group(1)):04d}"
+
+
+def _fetch_stag_meta(adipidno: str) -> tuple[str, str]:
+    """Stáhne CSV práce a vrátí (akademický rok, STAG kód oboru).
+
+    Best-effort, určeno pro běh ve vlákně — při jakékoli chybě vrátí prázdné.
+    Akademický rok je i u nedokončených prací (odvozuje se z data zadání),
+    proto se tahá z CSV, ne z tabulky výsledků.
+    """
+    try:
+        raw = stag_api.download_csv(adipidno)
+        imp = load_stag_csv_bytes(raw)
+    except Exception:  # noqa: BLE001
+        return "", ""
+    if not imp.records:
+        return "", ""
+    rec = imp.records[0]
+    return rec.academic_year or "", rec.student_obor_stag or ""
+
+
 # Práh pro varování u velkých příloh (desítky MB) — nad ním se uživatel
 # před stažením dotáže, jestli je chce stáhnout.
 _LARGE_FILE_BYTES = 25 * 1024 * 1024  # 25 MB
@@ -172,6 +198,18 @@ STAG_STATE_LABELS: dict[str, str] = {
     "OPUNO": "Odevzdaná, ukončená po neúspěšné obhajobě",
     "ND": "Nedokončená práce",
 }
+
+# Sloupce stromu výsledků hromadného stažení ze STAG.
+_RESULT_COLUMNS = ["Práce", "Typ", "Ak. rok", "Obhajoba", "Oponent", "Stav", ""]
+
+# Režimy seskupení (popisek, klíč) — pořadí = pořadí v comboboxu.
+_GROUP_MODES = [
+    ("Stav práce", "stav"),
+    ("Typ (BP/DP)", "typ"),
+    ("Obor", "obor"),
+    ("Akademický rok", "rok"),
+    ("Žádné", "none"),
+]
 
 
 class _ImportHadErrors(Exception):
@@ -2428,9 +2466,17 @@ class StagDownloadDialog(QDialog):
         self.lbl_status.setWordWrap(True)
         outer.addWidget(self.lbl_status)
 
-        self.list_results = QListWidget()
-        self.list_results.itemChanged.connect(lambda _i: self._update_download_btn())
-        outer.addWidget(self.list_results, stretch=1)
+        # Lišta nad seznamem: seskupení + filtr „jen moje".
+        toolbar = QHBoxLayout()
+        toolbar.setContentsMargins(0, 0, 0, 0)
+        toolbar.addWidget(QLabel("Seskupit podle:"))
+        self.cmb_group = QComboBox()
+        for label, key in _GROUP_MODES:
+            self.cmb_group.addItem(label, key)
+        self.cmb_group.setCurrentIndex(0)  # výchozí: dle stavu
+        self.cmb_group.currentIndexChanged.connect(lambda _i: self._render_results())
+        toolbar.addWidget(self.cmb_group)
+        toolbar.addStretch()
 
         # Filtr „jen moje práce" (dle celého jména) — past s více jmenovci.
         self.chk_only_mine = QCheckBox("Jen moje práce (filtrovat dle celého jména)")
@@ -2440,8 +2486,24 @@ class StagDownloadDialog(QDialog):
             "Zaškrtnuté = ponechá jen práce, kde je tvé celé jméno z profilu."
         )
         self.chk_only_mine.setVisible(bool(auto_role))
-        self.chk_only_mine.stateChanged.connect(lambda _s: self._render_results())
-        outer.addWidget(self.chk_only_mine)
+        self.chk_only_mine.stateChanged.connect(self._on_filter_changed)
+        toolbar.addWidget(self.chk_only_mine)
+        outer.addLayout(toolbar)
+
+        self.tree_results = QTreeWidget()
+        self.tree_results.setColumnCount(len(_RESULT_COLUMNS))
+        self.tree_results.setHeaderLabels(_RESULT_COLUMNS)
+        self.tree_results.setRootIsDecorated(True)
+        self.tree_results.setAlternatingRowColors(True)
+        self.tree_results.setUniformRowHeights(True)
+        hdr = self.tree_results.header()
+        hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        for col in range(1, len(_RESULT_COLUMNS)):
+            hdr.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
+        self.tree_results.itemChanged.connect(self._on_tree_item_changed)
+        outer.addWidget(self.tree_results, stretch=1)
+        # Adipidno, které už byly obohaceny o akad. rok + obor (cache).
+        self._enriched_adip: set[str] = set()
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
@@ -2516,8 +2578,9 @@ class StagDownloadDialog(QDialog):
             else stag_api.ROLE_OPPONENT
         )
 
-        self.list_results.clear()
+        self.tree_results.clear()
         self._results = []
+        self._enriched_adip = set()
         self.btn_download.setEnabled(False)
         self.lbl_status.setText("⏳ Hledám ve STAG…")
         self.btn_search.setEnabled(False)
@@ -2545,22 +2608,20 @@ class StagDownloadDialog(QDialog):
 
         self._results = results
         self._render_results()
+        # Dotáhni akademický rok + obor (tabulka výsledků je neobsahuje) —
+        # uživatel zvolil „dotáhnout při hledání". Pak se seznam přerenderuje.
+        self._enrich_visible()
 
-    def _render_results(self) -> None:
-        """Naplní seznam výsledků (s filtrem „jen moje" a řazením dle roku)."""
+    # --- filtrace / seskupení ------------------------------------------------
+
+    def _on_filter_changed(self, _state) -> None:
+        """Přepnutí filtru „jen moje" — přerenderuj a dotáhni nově zobrazené."""
+        self._render_results()
+        self._enrich_visible()
+
+    def _visible_results(self) -> tuple[list[stag_api.StagThesisResult], int]:
+        """Vrátí (zobrazené práce po filtru, počet skrytých jmenovců)."""
         raw = self._results
-        self.list_results.blockSignals(True)
-        self.list_results.clear()
-        self.list_results.blockSignals(False)
-        if not raw:
-            self.lbl_status.setText(
-                "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku)."
-            )
-            self._update_download_btn()
-            return
-
-        hidden = 0
-        results = raw
         if (
             self._auto_role
             and self.chk_only_mine.isChecked()
@@ -2569,54 +2630,128 @@ class StagDownloadDialog(QDialog):
             def _person(r):
                 return r.supervisor if self._auto_role == "supervisor" else r.reviewer
             kept = [r for r in raw if _name_matches(_person(r), self._user_full_name)]
-            hidden = len(raw) - len(kept)
-            results = kept
+            return kept, len(raw) - len(kept)
+        return list(raw), 0
 
-        # Řazení dle akademického roku (nejnovější první).
-        results = sorted(results, key=lambda r: (r.year or ""), reverse=True)
+    @staticmethod
+    def _group_key(mode: str, r: stag_api.StagThesisResult) -> tuple[str, str]:
+        """Vrátí (řadicí klíč, popisek skupiny) pro daný režim seskupení."""
+        if mode == "typ":
+            code = StagDownloadDialog._result_type_code(r)
+            label = {"BP": "Bakalářské práce", "DP": "Diplomové práce"}.get(
+                code, r.type_label or "Neurčený typ"
+            )
+            # BP před DP, neurčené nakonec.
+            order = {"BP": "1", "DP": "2"}.get(code, "9")
+            return order, label
+        if mode == "obor":
+            obor = r.obor or ""
+            return (obor or "zzz", obor or "(obor nezjištěn)")
+        if mode == "rok":
+            ay = r.academic_year or ""
+            # Nejnovější rok první → invertuj řazení přes negaci.
+            return ("0000/0000" if not ay else _invert_year(ay), ay or "(rok nezjištěn)")
+        if mode == "stav":
+            code = r.status_code or ""
+            label = STAG_STATE_LABELS.get(code, code) if code else "(stav nezjištěn)"
+            return (code or "zzz", label)
+        return ("", "")
 
+    def _render_results(self) -> None:
+        """Naplní strom výsledků (filtr „jen moje", seskupení dle volby)."""
+        tree = self.tree_results
+        tree.blockSignals(True)
+        tree.clear()
+        if not self._results:
+            tree.blockSignals(False)
+            self.lbl_status.setText(
+                "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku)."
+            )
+            self._update_download_btn()
+            return
+
+        results, hidden = self._visible_results()
         existing_adip, existing_name_type = self._existing_keys()
+        mode = self.cmb_group.currentData()
         new_count = 0
-        self.list_results.blockSignals(True)
-        for r in results:
+        gray = QBrush(QColor("#888"))
+
+        def _leaf(r: stag_api.StagThesisResult) -> QTreeWidgetItem:
+            nonlocal new_count
             is_existing = self._is_existing(r, existing_adip, existing_name_type)
             if not is_existing:
                 new_count += 1
             badge = "✓ už máš" if is_existing else "🆕 nové"
-            # Akademický rok napřed (přehlednější u hromadného seznamu).
-            year = f"[{r.year}]" if r.year else "[—]"
-            type_part = f"  ·  {r.type_label}" if r.type_label else ""
-            # Stav práce ze STAG (DUO/ND/…) — krátké označení do řádku.
             status_short = STAG_STATE_SHORT.get(r.status_code, r.status_code)
-            status_part = f"  ·  {status_short}" if status_short else ""
-            item = QListWidgetItem(
-                f"{badge}   {year}   {r.student_full} — "
-                f"{r.title or '(bez názvu)'}{type_part}{status_part}"
+            cols = [
+                f"{r.student_full} — {r.title or '(bez názvu)'}",
+                self._result_type_code(r) or (r.type_label or ""),
+                r.academic_year or "—",
+                r.defense_date or "—",
+                r.reviewer or "—",
+                status_short or "—",
+                badge,
+            ]
+            it = QTreeWidgetItem(cols)
+            it.setData(0, Qt.ItemDataRole.UserRole, r.adipidno)
+            it.setFlags(
+                (it.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                & ~Qt.ItemFlag.ItemIsAutoTristate
             )
-            item.setData(Qt.ItemDataRole.UserRole, r.adipidno)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(
-                Qt.CheckState.Unchecked if is_existing else Qt.CheckState.Checked
+            it.setCheckState(
+                0, Qt.CheckState.Unchecked if is_existing else Qt.CheckState.Checked
             )
             if is_existing:
-                item.setForeground(QBrush(QColor("#888")))
+                for c in range(len(cols)):
+                    it.setForeground(c, gray)
             tooltip = [f"STAG ID práce: {r.adipidno}"]
             if r.status_code:
                 state_full = STAG_STATE_LABELS.get(r.status_code, r.status_code)
                 tooltip.append(f"Stav práce: {state_full} ({r.status_code})")
+            if r.academic_year:
+                tooltip.append(f"Akademický rok: {r.academic_year}")
+            if r.obor:
+                tooltip.append(f"Obor: {r.obor}")
             if r.supervisor:
                 tooltip.append(f"Vedoucí: {r.supervisor}")
             if r.reviewer:
                 tooltip.append(f"Oponent: {r.reviewer}")
             if is_existing:
                 tooltip.append("Tuto práci už máš v databázi.")
-            item.setToolTip("\n".join(tooltip))
-            self.list_results.addItem(item)
-        self.list_results.blockSignals(False)
+            it.setToolTip(0, "\n".join(tooltip))
+            return it
 
+        if mode == "none":
+            ordered = sorted(results, key=lambda r: (r.year or ""), reverse=True)
+            for r in ordered:
+                tree.addTopLevelItem(_leaf(r))
+        else:
+            groups: dict[tuple[str, str], list] = {}
+            for r in results:
+                groups.setdefault(self._group_key(mode, r), []).append(r)
+            for key in sorted(groups):
+                members = sorted(groups[key], key=lambda r: (r.year or ""), reverse=True)
+                header = QTreeWidgetItem([f"{key[1]}  ({len(members)})"])
+                header.setFlags(
+                    (header.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    & ~Qt.ItemFlag.ItemIsAutoTristate
+                )
+                header.setData(0, Qt.ItemDataRole.UserRole + 1, "group")
+                bold = header.font(0)
+                bold.setBold(True)
+                header.setFont(0, bold)
+                tree.addTopLevelItem(header)
+                for r in members:
+                    header.addChild(_leaf(r))
+                header.setExpanded(True)
+                self._sync_group_check(header)
+
+        tree.blockSignals(False)
+
+        shown = len(results)
         status = (
-            f"✓ Zobrazeno: {len(results)} "
-            f"{StagImportDialog._cs_plural(len(results), 'práce', 'práce', 'prací')}"
+            f"✓ Zobrazeno: {shown} "
+            f"{StagImportDialog._cs_plural(shown, 'práce', 'práce', 'prací')}"
             f" ({new_count} nových)."
         )
         if hidden:
@@ -2628,6 +2763,69 @@ class StagDownloadDialog(QDialog):
             status += "  ·  Bez filtru: zobrazeny i práce stejného příjmení jiných osob."
         self.lbl_status.setText(status)
         self._update_download_btn()
+
+    # --- dotažení akad. roku + oboru (CSV detail) ----------------------------
+
+    def _enrich_visible(self) -> None:
+        """Stáhne CSV detail u zobrazených prací bez akad. roku/oboru a doplní
+        je. Běží paralelně s progress dialogem (lze přerušit)."""
+        results, _ = self._visible_results()
+        todo = [
+            r for r in results
+            if r.adipidno and r.adipidno not in self._enriched_adip
+        ]
+        if not todo:
+            return
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        progress = QProgressDialog(
+            "Načítám akademický rok a obor prací…", "Přerušit", 0, len(todo), self
+        )
+        progress.setWindowTitle("STAG — detaily prací")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+
+        by_adip = {r.adipidno: r for r in todo}
+        executor = ThreadPoolExecutor(max_workers=8)
+        futures = {
+            executor.submit(_fetch_stag_meta, adip): adip for adip in by_adip
+        }
+        done = 0
+        canceled = False
+        try:
+            from concurrent.futures import as_completed
+
+            for fut in as_completed(futures):
+                adip = futures[fut]
+                try:
+                    academic_year, obor = fut.result()
+                    r = by_adip.get(adip)
+                    if r is not None:
+                        if academic_year:
+                            r.academic_year = academic_year
+                        if obor:
+                            r.obor = obor
+                except Exception:  # noqa: BLE001
+                    pass
+                self._enriched_adip.add(adip)
+                done += 1
+                progress.setValue(done)
+                QApplication.processEvents()
+                if progress.wasCanceled():
+                    canceled = True
+                    break
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
+            progress.close()
+
+        # Přerenderuj s doplněnými daty (umožní seskupení dle oboru/roku).
+        self._render_results()
+        if canceled:
+            self.lbl_status.setText(
+                self.lbl_status.text() + "  ·  ⚠ Načítání detailů přerušeno."
+            )
 
     # --- vícevýběr / odznaky -------------------------------------------------
 
@@ -2680,14 +2878,58 @@ class StagDownloadDialog(QDialog):
 
     def _checked_results(self) -> list[stag_api.StagThesisResult]:
         out: list[stag_api.StagThesisResult] = []
-        for i in range(self.list_results.count()):
-            item = self.list_results.item(i)
-            if item.checkState() == Qt.CheckState.Checked:
-                adip = item.data(Qt.ItemDataRole.UserRole)
-                r = next((x for x in self._results if x.adipidno == adip), None)
+        by_adip = {r.adipidno: r for r in self._results if r.adipidno}
+
+        def walk(item: QTreeWidgetItem) -> None:
+            for i in range(item.childCount()):
+                walk(item.child(i))
+            adip = item.data(0, Qt.ItemDataRole.UserRole)
+            if adip and item.checkState(0) == Qt.CheckState.Checked:
+                r = by_adip.get(adip)
                 if r is not None:
                     out.append(r)
+
+        root = self.tree_results.invisibleRootItem()
+        for i in range(root.childCount()):
+            walk(root.child(i))
         return out
+
+    def _sync_group_check(self, header: QTreeWidgetItem) -> None:
+        """Nastaví zaškrtnutí hlavičky skupiny dle dětí (tri-state)."""
+        n = header.childCount()
+        if n == 0:
+            return
+        checked = sum(
+            1 for i in range(n)
+            if header.child(i).checkState(0) == Qt.CheckState.Checked
+        )
+        if checked == 0:
+            state = Qt.CheckState.Unchecked
+        elif checked == n:
+            state = Qt.CheckState.Checked
+        else:
+            state = Qt.CheckState.PartiallyChecked
+        header.setCheckState(0, state)
+
+    def _on_tree_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
+        if column != 0:
+            return
+        tree = self.tree_results
+        is_group = item.data(0, Qt.ItemDataRole.UserRole + 1) == "group"
+        tree.blockSignals(True)
+        try:
+            if is_group:
+                state = item.checkState(0)
+                if state != Qt.CheckState.PartiallyChecked:
+                    for i in range(item.childCount()):
+                        item.child(i).setCheckState(0, state)
+            else:
+                parent = item.parent()
+                if parent is not None:
+                    self._sync_group_check(parent)
+        finally:
+            tree.blockSignals(False)
+        self._update_download_btn()
 
     def _update_download_btn(self) -> None:
         n = len(self._checked_results())

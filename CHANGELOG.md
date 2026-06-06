@@ -7,6 +7,25 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-06-06
+
+### Added
+- **Hromadné stažení ze STAG: tabulka s rokem, obhajobou, oponentem a stavem.**
+  Seznam nalezených prací je teď přehledná tabulka se sloupci **Práce · Typ ·
+  Akademický rok · Obhajoba · Oponent · Stav**. Datum obhajoby se bere z tabulky
+  výsledků STAG; **akademický rok a obor** (které tabulka výsledků neobsahuje)
+  se po vyhledání **automaticky dotáhnou z detailu každé práce** — s progress
+  oknem a možností přerušit. Akademický rok je tak vidět **i u nedokončených
+  prací** (odvozuje se z data zadání).
+- **Seskupení nalezených prací.** Nový výběr **„Seskupit podle"** — Stav práce
+  / Typ (BP/DP) / Obor / Akademický rok / Žádné. Hlavička skupiny lze
+  zaškrtnout/odškrtnout naráz (hromadný výběr celé skupiny).
+
+### Changed
+- Dialog hromadného stažení používá místo prostého seznamu **stromovou tabulku**
+  s odznakem 🆕 nové / ✓ už máš a tooltipem (STAG ID, stav, rok, obor, vedoucí,
+  oponent).
+
 ## [0.54.0] - 2026-06-06
 
 ### Fixed

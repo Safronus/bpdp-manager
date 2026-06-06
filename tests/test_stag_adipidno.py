@@ -104,16 +104,26 @@ def test_search_populates_checkable_list(qapp, service: ThesisService, monkeypat
     monkeypatch.setattr(mod.stag_api, "search_theses", fake_search)
 
     dlg = StagDownloadDialog(service=service)
+    dlg._enrich_visible = lambda: None  # bez síťového dotažení detailů v testu
     dlg.ed_student.setText("Hřešilová")
     dlg._do_search()
 
     from PySide6.QtCore import Qt
-    assert dlg.list_results.count() == 2
-    states = {
-        dlg.list_results.item(i).data(Qt.ItemDataRole.UserRole):
-        dlg.list_results.item(i).checkState()
-        for i in range(2)
-    }
+
+    states: dict[str, Qt.CheckState] = {}
+
+    def collect(item) -> None:
+        for i in range(item.childCount()):
+            collect(item.child(i))
+        adip = item.data(0, Qt.ItemDataRole.UserRole)
+        if adip:
+            states[adip] = item.checkState(0)
+
+    root = dlg.tree_results.invisibleRootItem()
+    for i in range(root.childCount()):
+        collect(root.child(i))
+
+    assert set(states) == {"111", "222"}
     assert states["111"] == Qt.CheckState.Unchecked  # už máš
     assert states["222"] == Qt.CheckState.Checked     # nové, předzaškrtnuté
     # jen nové je ve vybraných ke stažení

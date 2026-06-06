@@ -80,8 +80,12 @@ class StagThesisResult:
     type_label: str = ""
     supervisor: str = ""
     reviewer: str = ""
-    year: str = ""
+    year: str = ""  # rok obhajoby (z data obhajoby v tabulce výsledků)
     status_code: str = ""  # STAG kód stavu z tabulky výsledků (DUO/ND/DBPOO/OPUNO…)
+    defense_date: str = ""  # datum obhajoby „DD.MM.RRRR" (prázdné u nedokončených)
+    # Doplněno až dotažením CSV detailu (tabulka výsledků je neobsahuje):
+    academic_year: str = ""  # akademický rok „RRRR/RRRR" (z data zadání)
+    obor: str = ""           # STAG kód oboru (oborKombinaceStudenta)
 
     @property
     def student_full(self) -> str:
@@ -546,6 +550,7 @@ def _build_result(
 
     type_label = ""
     year = ""
+    defense_date = ""
     for c in cells:
         low = c.lower()
         if not type_label and any(k in low for k in _TYPE_KEYWORDS):
@@ -554,6 +559,7 @@ def _build_result(
             md = _DATE_RE.search(c)
             if md:
                 year = md.group(2)
+                defense_date = md.group(1).replace(" ", "")
 
     # Vedoucí / oponent — sloupce 6 a 7 v desktop layoutu (best effort).
     supervisor = cells[6] if len(cells) > 6 else ""
@@ -569,6 +575,7 @@ def _build_result(
         reviewer=reviewer,
         year=year,
         status_code=status_code,
+        defense_date=defense_date,
     )
 
 

@@ -36,11 +36,29 @@ def _res(adip, supervisor, year):
     )
 
 
+def _leaf_adips(dlg) -> list[str]:
+    """Posbírá adipidno listových položek stromu v zobrazeném pořadí."""
+    out: list[str] = []
+
+    def walk(item) -> None:
+        for i in range(item.childCount()):
+            walk(item.child(i))
+        adip = item.data(0, 0x0100)  # Qt.UserRole
+        if adip:
+            out.append(adip)
+
+    root = dlg.tree_results.invisibleRootItem()
+    for i in range(root.childCount()):
+        walk(root.child(i))
+    return out
+
+
 def test_render_filters_by_full_name_and_sorts(qapp) -> None:
     dlg = StagDownloadDialog(
         default_person_surname="Žáček", service=None,
         auto_role="supervisor", user_full_name="Petr Žáček",
     )
+    dlg._enrich_visible = lambda: None  # bez síťového dotažení v testu
     dlg._results = [
         _res("1", "Petr Žáček", "2022"),
         _res("2", "Pavel Žáček", "2024"),   # jiný jmenovec → odfiltrovat
@@ -48,10 +66,11 @@ def test_render_filters_by_full_name_and_sorts(qapp) -> None:
     ]
     dlg._render_results()
     # Jen moje (filtr zapnutý) → 2 práce.
-    assert dlg.list_results.count() == 2
+    adips = _leaf_adips(dlg)
+    assert len(adips) == 2
     # Řazení dle roku sestupně → první je 2025 (adip 3).
-    assert dlg.list_results.item(0).data(0x0100) == "3"  # Qt.UserRole = 0x0100
+    assert adips[0] == "3"
 
     # Vypnu filtr → všechny 3.
     dlg.chk_only_mine.setChecked(False)
-    assert dlg.list_results.count() == 3
+    assert len(_leaf_adips(dlg)) == 3
