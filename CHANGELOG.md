@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-06-06
+
+### Added
+- **Hromadný import všech mých prací ze STAG.** V dialogu *Import ze STAG* jsou
+  nová tlačítka **🎓 Moje vedené práce…** a **🧐 Moje oponentury…** — najdou
+  podle jména z profilu všechny práce dané role (historické, aktuální i vypsané)
+  seřazené dle akademického roku, vybereš co naimportovat.
+- **Filtr dle celého jména** („past" se jmenovci): protože ze samotného
+  příjmení může být víc vedoucích (Petr vs Pavel Žáček), výsledky se filtrují
+  na práce s **celým jménem** uživatele (diakritika-necitlivě). Filtr lze vypnout.
+
 ## [0.49.0] - 2026-06-06
 
 ### Added

@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import re
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (
     QApplication,
@@ -96,6 +97,26 @@ class _DownloadedStagFile:
     section: str = "other"     # původní STAG sekce
     size: int = 0              # velikost v bajtech
     selected: bool = True      # zda importovat (náhled umožní odznačit)
+
+
+def _fold(s: str) -> str:
+    """Lowercase + bez diakritiky (pro porovnání jmen napříč diakritikou)."""
+    s = unicodedata.normalize("NFKD", s or "")
+    return "".join(c for c in s if not unicodedata.combining(c)).lower()
+
+
+def _name_matches(person_field: str, full_name: str) -> bool:
+    """True, pokud ``person_field`` (jméno z STAG) odpovídá celému jménu uživatele.
+
+    Filtruje „past" se jmenovci — ze samotného příjmení může být víc vedoucích
+    (Petr vs Pavel Žáček). Vyžaduje výskyt **křestního i příjmení**. Pokud nemáme
+    celé jméno (jen jeden token), nefiltruje (vrací True).
+    """
+    tokens = [t.strip(".,") for t in (full_name or "").replace(",", " ").split() if t.strip(".,")]
+    if len(tokens) < 2:
+        return True
+    field = _fold(person_field)
+    return _fold(tokens[0]) in field and _fold(tokens[-1]) in field
 
 
 def _fmt_size(n: int) -> str:
@@ -215,6 +236,25 @@ class StagImportDialog(QDialog):
         row_path.addWidget(btn_stag_dl)
         row_path.addWidget(btn_csv_help)
         form.addRow("CSV soubor", row_path)
+
+        # Hromadné stažení všech mých prací ze STAG (napříč roky).
+        btn_my_led = QPushButton("🎓 Moje vedené práce…")
+        btn_my_led.setToolTip(
+            "Najde ve STAG všechny práce, kde jsi vedoucí (historické, aktuální "
+            "i vypsané) — podle tvého jména z profilu. Vybereš, co naimportovat."
+        )
+        btn_my_led.clicked.connect(lambda: self._open_stag_download(auto_role="supervisor"))
+        btn_my_opp = QPushButton("🧐 Moje oponentury…")
+        btn_my_opp.setToolTip(
+            "Najde ve STAG všechny práce, kde jsi oponent — podle tvého jména "
+            "z profilu. Vybereš, co naimportovat."
+        )
+        btn_my_opp.clicked.connect(lambda: self._open_stag_download(auto_role="opponent"))
+        row_bulk = QHBoxLayout()
+        row_bulk.addWidget(btn_my_led)
+        row_bulk.addWidget(btn_my_opp)
+        row_bulk.addStretch()
+        form.addRow("Hromadně ze STAG", row_bulk)
 
         # Tvoje jméno (pro detekci role)
         default_user_name = ""
@@ -436,24 +476,34 @@ class StagImportDialog(QDialog):
                 except Exception:
                     pass
 
-    def _open_stag_download(self) -> None:
+    def _open_stag_download(self, auto_role: str | None = None) -> None:
         """Otevře dialog pro přímé vyhledání + stažení CSV ze STAG.
 
+        ``auto_role`` ("supervisor"/"opponent") = hromadné stažení všech mých
+        prací dané role (předvyplní a rovnou hledá podle jména z profilu).
         Po úspěšném stažení nastaví cestu k dočasnému CSV a rovnou načte náhled.
         """
-        default_surname = ""
+        user_name = ""
         if self.profile_manager and self.profile_manager.active:
             user_name = self.profile_manager.active.user_name or ""
-            tokens = [
-                t.strip(".,")
-                for t in user_name.replace(",", " ").split()
-                if t.strip(".,")
-            ]
-            if tokens:
-                default_surname = tokens[-1]  # příjmení bývá poslední token
+        tokens = [
+            t.strip(".,")
+            for t in user_name.replace(",", " ").split()
+            if t.strip(".,")
+        ]
+        default_surname = tokens[-1] if tokens else ""  # příjmení = poslední token
+
+        if auto_role and not default_surname:
+            QMessageBox.information(
+                self, "Chybí jméno",
+                "Pro hromadné stažení doplň své jméno v profilu "
+                "(👤 → Tvoje jméno).",
+            )
+            return
 
         dlg = StagDownloadDialog(
-            default_person_surname=default_surname, parent=self, service=self.service
+            default_person_surname=default_surname, parent=self, service=self.service,
+            auto_role=auto_role, user_full_name=user_name,
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
@@ -2195,7 +2245,8 @@ class StagDownloadDialog(QDialog):
     """
 
     def __init__(
-        self, default_person_surname: str = "", parent=None, *, service=None
+        self, default_person_surname: str = "", parent=None, *, service=None,
+        auto_role: str | None = None, user_full_name: str = "",
     ) -> None:
         super().__init__(parent)
         # Vícevýběr: ``result_items`` = stažené práce (cesta k CSV + STAG meta).
@@ -2205,6 +2256,9 @@ class StagDownloadDialog(QDialog):
         self.result_meta: stag_api.StagThesisResult | None = None
         self._results: list[stag_api.StagThesisResult] = []
         self._service = service
+        # Hromadný režim (moje vedené / oponentury) — filtrace dle celého jména.
+        self._auto_role = auto_role
+        self._user_full_name = user_full_name
         # Soubory stažené spolu s prací (klíč = adipIdno) — importér je připojí
         # k odpovídající práci po jejím založení.
         self.downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
@@ -2286,6 +2340,17 @@ class StagDownloadDialog(QDialog):
         self.list_results.itemChanged.connect(lambda _i: self._update_download_btn())
         outer.addWidget(self.list_results, stretch=1)
 
+        # Filtr „jen moje práce" (dle celého jména) — past s více jmenovci.
+        self.chk_only_mine = QCheckBox("Jen moje práce (filtrovat dle celého jména)")
+        self.chk_only_mine.setChecked(bool(auto_role))
+        self.chk_only_mine.setToolTip(
+            "Příjmení nemusí být jednoznačné (víc vedoucích stejného příjmení). "
+            "Zaškrtnuté = ponechá jen práce, kde je tvé celé jméno z profilu."
+        )
+        self.chk_only_mine.setVisible(bool(auto_role))
+        self.chk_only_mine.stateChanged.connect(lambda _s: self._render_results())
+        outer.addWidget(self.chk_only_mine)
+
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
         btn_cancel = QPushButton("Zrušit")
@@ -2314,6 +2379,19 @@ class StagDownloadDialog(QDialog):
         row.addWidget(self.btn_files_only)
         row.addWidget(self.btn_download)
         outer.addLayout(row)
+
+        # Hromadný režim — předvyplň roli, vypni studenta a rovnou hledej.
+        if auto_role:
+            what = "vedené práce" if auto_role == "supervisor" else "oponentury"
+            self.setWindowTitle(f"Stáhnout moje {what} ze STAG")
+            title.setText(f"🌐 Moje {what} ze STAG")
+            self.ed_student.clear()
+            self.ed_student.setEnabled(False)
+            if auto_role == "supervisor":
+                self.rb_supervisor.setChecked(True)
+            else:
+                self.rb_opponent.setChecked(True)
+            QTimer.singleShot(0, self._do_search)
 
     # --- akce ----------------------------------------------------------------
 
@@ -2362,13 +2440,36 @@ class StagDownloadDialog(QDialog):
             self.btn_search.setEnabled(True)
 
         self._results = results
-        if not results:
+        self._render_results()
+
+    def _render_results(self) -> None:
+        """Naplní seznam výsledků (s filtrem „jen moje" a řazením dle roku)."""
+        raw = self._results
+        self.list_results.blockSignals(True)
+        self.list_results.clear()
+        self.list_results.blockSignals(False)
+        if not raw:
             self.lbl_status.setText(
-                "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku) "
-                "nebo zkus jen příjmení studenta."
+                "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku)."
             )
             self._update_download_btn()
             return
+
+        hidden = 0
+        results = raw
+        if (
+            self._auto_role
+            and self.chk_only_mine.isChecked()
+            and self._user_full_name.strip()
+        ):
+            def _person(r):
+                return r.supervisor if self._auto_role == "supervisor" else r.reviewer
+            kept = [r for r in raw if _name_matches(_person(r), self._user_full_name)]
+            hidden = len(raw) - len(kept)
+            results = kept
+
+        # Řazení dle akademického roku (nejnovější první).
+        results = sorted(results, key=lambda r: (r.year or ""), reverse=True)
 
         existing_adip, existing_name_type = self._existing_keys()
         new_count = 0
@@ -2381,7 +2482,6 @@ class StagDownloadDialog(QDialog):
             item = QListWidgetItem(f"{badge}   {r.display_label}")
             item.setData(Qt.ItemDataRole.UserRole, r.adipidno)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            # Nové předzaškrtnuto, „už máš" ne (ale lze přidat ručně).
             item.setCheckState(
                 Qt.CheckState.Unchecked if is_existing else Qt.CheckState.Checked
             )
@@ -2398,12 +2498,19 @@ class StagDownloadDialog(QDialog):
             self.list_results.addItem(item)
         self.list_results.blockSignals(False)
 
-        self.lbl_status.setText(
-            f"✓ Nalezeno: {len(results)} "
+        status = (
+            f"✓ Zobrazeno: {len(results)} "
             f"{StagImportDialog._cs_plural(len(results), 'práce', 'práce', 'prací')}"
-            f" ({new_count} nových). Zaškrtni, co stáhnout — nové jsou "
-            "předzaškrtnuté."
+            f" ({new_count} nových)."
         )
+        if hidden:
+            status += (
+                f"  ·  Skryto {hidden} prací jmenovců — zruš filtr „Jen moje "
+                "práce“ pro zobrazení všech."
+            )
+        elif self._auto_role and not self.chk_only_mine.isChecked():
+            status += "  ·  Bez filtru: zobrazeny i práce stejného příjmení jiných osob."
+        self.lbl_status.setText(status)
         self._update_download_btn()
 
     # --- vícevýběr / odznaky -------------------------------------------------

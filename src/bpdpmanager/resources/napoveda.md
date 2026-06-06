@@ -419,7 +419,16 @@ Toolbar **📥 Import ze STAG…** umí práci buď **stáhnout přímo ze STAG*
 nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 
 ### A) Stáhnout přímo ze STAG (doporučeno)
-V import dialogu klikni na **🌐 Stáhnout ze STAG**:
+
+> **Hromadně všechny moje práce:** v import dialogu jsou tlačítka
+> **🎓 Moje vedené práce…** a **🧐 Moje oponentury…**. Najdou ve STAG podle
+> tvého jména z profilu **všechny** práce dané role (historické, aktuální
+> i vypsané na další rok), seřazené **dle akademického roku**. Příjmení nemusí
+> být jednoznačné (víc vedoucích stejného příjmení) — proto je zapnutý filtr
+> **„Jen moje práce (dle celého jména)"**, který ponechá jen práce s tvým
+> celým jménem. Filtr lze vypnout. Pak jen zaškrtneš, co naimportovat.
+
+Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 
 1. Zadej **příjmení studenta** (nepovinné).
 2. Zadej **příjmení vedoucího nebo oponenta** a přepni *role* (Vedoucí /
