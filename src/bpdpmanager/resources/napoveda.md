@@ -477,9 +477,11 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > Pokud se nějaká příloha nestáhne, aplikace to vypíše. Stahování běží
 > **na pozadí**, takže okno **nezamrzne** ani když STAG odpovídá pomalu
 > (Přerušit funguje pořád). Před stahováním aplikace **nabídne smazání
-> zbylých dočasných souborů** z dřívějška (po přerušení / pádu). Co se
-> nakonec naimportuje (a vyloučení velkých příloh) vybereš v **náhledu
-> souborů** v dalším kroku.
+> zbylých dočasných souborů** z dřívějška (po přerušení / pádu). Když by
+> přílohy zabraly **hodně místa** (stovky MB a víc, typicky u hromadného
+> stažení mnoha prací), zeptá se, jestli stáhnout přílohy, nebo
+> **naimportovat jen data prací bez příloh**. Co se nakonec naimportuje
+> (a vyloučení velkých příloh) vybereš v **náhledu souborů** v dalším kroku.
 >
 > **„✓ už máš" — co se stane při opětovném stažení (merge).** Práce, které už
 > v databázi jsou, mají odznak **✓ už máš** a jsou **předem odškrtnuté** (ve

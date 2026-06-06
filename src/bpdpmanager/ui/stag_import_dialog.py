@@ -158,6 +158,10 @@ def _fetch_stag_meta(adipidno: str) -> tuple[str, str]:
 # před stažením dotáže, jestli je chce stáhnout.
 _LARGE_FILE_BYTES = 25 * 1024 * 1024  # 25 MB
 
+# Nad tímto celkovým objemem příloh (napříč vybranými pracemi) se před
+# stahováním nabídne i možnost „jen data prací" (bez příloh).
+_BIG_TOTAL_BYTES = 300 * 1024 * 1024  # 300 MB
+
 # STAG kódy stavu práce (sloupec ``stavPrace``) → náš ``ThesisStatus``.
 # Zdroj: konzultace s uživatelem (FAI UTB STAG export).
 #
@@ -3250,10 +3254,44 @@ class StagDownloadDialog(QDialog):
             for sf in listings.get(result.adipidno, [])
             if sf.soubidno not in skip_ids
         ]
+        total_bytes = sum(max(0, sf.size_hint) for (_, sf) in to_download)
+        # Velký objem příloh → nabídni i import jen dat (bez příloh), ať se
+        # omylem netáhnou gigabajty (typicky u hromadného stažení mnoha prací).
+        if to_download and total_bytes > _BIG_TOTAL_BYTES:
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Icon.Question)
+            box.setWindowTitle("Velké stahování příloh")
+            box.setText(
+                f"Přílohy zaberou celkem ~{_fmt_size(total_bytes)} "
+                f"({len(to_download)} souborů napříč {len(items)} pracemi)."
+            )
+            box.setInformativeText(
+                "Stáhnout přílohy, nebo naimportovat jen data prací (bez příloh)?"
+            )
+            box.addButton("⬇ Stáhnout přílohy", QMessageBox.ButtonRole.AcceptRole)
+            btn_data = box.addButton(
+                "Jen data (bez příloh)", QMessageBox.ButtonRole.DestructiveRole
+            )
+            btn_cancel = box.addButton("Zrušit", QMessageBox.ButtonRole.RejectRole)
+            box.setDefaultButton(btn_data)
+            box.exec()
+            clicked = box.clickedButton()
+            if clicked == btn_cancel:
+                progress.close()
+                self._cleanup_temp_files(temp_files)
+                self._update_download_btn()
+                self.lbl_status.setText("Stahování zrušeno.")
+                return
+            if clicked == btn_data:
+                to_download = []  # přeskoč přílohy, importuj jen CSV data
+
         total_files = len(to_download)
         total_bytes = sum(max(0, sf.size_hint) for (_, sf) in to_download)
         use_bytes = total_bytes > 0
-        progress.setRange(0, total_bytes if use_bytes else max(1, total_files))
+        # QProgressDialog používá 32-bit int — u velkých součtů (GB napříč
+        # mnoha pracemi) by syrové bajty přetekly. Škálujeme na promile.
+        steps = 1000
+        progress.setRange(0, steps if use_bytes else max(1, total_files))
         progress.setValue(0)
         progress.setLabelText("Stahuji přílohy…")
         if total_files:
@@ -3301,7 +3339,8 @@ class StagDownloadDialog(QDialog):
                     )
                     progress.setLabelText(base + suffix)
                     if use_bytes:
-                        progress.setValue(min(total_bytes, bytes_done + dn))
+                        frac = (bytes_done + dn) / total_bytes
+                        progress.setValue(min(steps, int(frac * steps)))
                     QApplication.processEvents()
                     QThread.msleep(40)  # ~25 překreslení/s, nízká zátěž CPU
 

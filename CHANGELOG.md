@@ -7,7 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.58.2] - 2026-06-06
+## [0.58.3] - 2026-06-06
+
+### Fixed
+- **Pád při stahování velkého objemu příloh ze STAG (`OverflowError`).** Když
+  celková velikost příloh napříč vybranými pracemi přesáhla ~2 GB, progres
+  okno přeteklo 32-bitový rozsah a aplikace spadla hned po „Stáhnout i tak".
+  Průběh stahování se nově **škáluje** (promile), takže funguje pro libovolný
+  objem.
+
+### Added
+- **U velkého objemu příloh (nad ~300 MB) nabídka „jen data".** Před stažením
+  se zobrazí celková velikost a počet souborů a můžeš zvolit **stáhnout
+  přílohy**, **naimportovat jen data prací (bez příloh)**, nebo **zrušit** —
+  ať se omylem netáhnou gigabajty (typicky u hromadného stažení mnoha prací).
 
 ### Fixed
 - **Aplikace už při stahování příloh ze STAG nezamrzá.** Stahování souborů

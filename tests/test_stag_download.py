@@ -222,3 +222,45 @@ def test_leftover_and_offer_cleanup(qapp, tmp_path, monkeypatch) -> None:
     assert not (tmp_path / "stag_Novak_111.csv").exists()
     assert not (tmp_path / "stagsync_1_2_p.pdf").exists()
     assert (tmp_path / "unrelated.txt").exists()  # cizí soubor zůstal
+
+
+def test_download_huge_total_no_overflow(qapp, tmp_path, monkeypatch) -> None:
+    """Obří součet velikostí příloh (>2 GB) nesmí přetéct 32-bit progress."""
+    monkeypatch.setattr(mod.tempfile, "gettempdir", lambda: str(tmp_path))
+
+    huge = stag_api.StagFile(
+        soubidno="9", filename="big.pdf", download_path="/big",
+        section="text", size_hint=8_000_000_000,  # 8 GB > 2^31
+    )
+
+    class FakeClient:
+        def download_csv(self, adip):
+            return b"stavPrace;typPrace\r\nDUO;Bakalarska prace\r\n"
+
+        def list_thesis_files(self, adip):
+            return [huge]
+
+        def download_file_streamed(self, path, on_progress=None):
+            if on_progress:
+                on_progress(10, 10)
+            return b"x" * 10
+
+    monkeypatch.setattr(mod.stag_api, "StagClient", FakeClient)
+    # Oba potvrzovací dialogy (velké přílohy + velký objem) → „pokračovat".
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
+    monkeypatch.setattr(QMessageBox, "clickedButton", lambda self: None)
+
+    result = stag_api.StagThesisResult(
+        adipidno="1", surname="Novak", name="Jan",
+        type_label="Bakalarska prace", status_code="DUO",
+    )
+    dlg = _dialog()
+    dlg._checked_results = lambda: [result]
+    dlg._preview_and_pick = lambda *a, **k: {}
+    accepted = []
+    dlg.accept = lambda: accepted.append(True)
+
+    dlg._download_selected()  # nesmí spadnout na OverflowError
+
+    assert accepted                      # došlo až k accept()
+    assert dlg.result_items and dlg.result_items[0][1] is result
