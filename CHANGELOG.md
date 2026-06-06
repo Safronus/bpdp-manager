@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-06-06
+
+### Added
+- **Záchranná brzda pro import ze STAG.** Po dokončení importu nabízí souhrnné
+  okno tlačítko **↩ Vrátit celý import zpět** — obnoví databázi ze zálohy
+  pořízené těsně před importem (`before-stag-import`). Importovaný stav se
+  předtím ještě zazálohuje (`before-restore`), takže i vrácení jde vrátit.
+  Vhodné zejména u velkých hromadných importů.
+
 ## [0.51.0] - 2026-06-06
 
 ### Fixed

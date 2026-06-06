@@ -201,6 +201,10 @@ class StagImportDialog(QDialog):
         self.imported_opposing_ids: list[str] = []
         self.focus_thesis_id: str | None = None      # poslední vytvořená/aktualizovaná vedená
         self.focus_opposing_id: str | None = None    # poslední vytvořený/aktualizovaný posudek
+        # Záchranná brzda — záloha před importem (umožní celý import vrátit).
+        self._preimport_backup_file: str | None = None
+        self._preimport_data_dir: Path | None = None
+        self.reverted = False  # MainWindow přečte: pokud True, import byl vrácen
         # Soubory stažené ze STAG spolu s prací (klíč = adipIdno). Importér je
         # po založení práce připojí k té správné (přes adipIdno).
         self._stag_downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
@@ -1400,15 +1404,20 @@ class StagImportDialog(QDialog):
                 return  # uživatel revizi zrušil → celý import zruš
             self._reviewed_students = reviewed
 
-        # 2) Backup před importem (na případ selhání rollbacku)
+        # 2) Backup před importem (záchranná brzda — umožní celý import vrátit)
+        self._preimport_backup_file = None
+        self._preimport_data_dir = None
         if self.profile_manager and self.profile_manager.active:
             data_dir = self.profile_manager.active_data_dir()
             try:
-                BackupManager(data_dir).create_backup(
+                info = BackupManager(data_dir).create_backup(
                     data_dir / "db.json",
                     suffix="before-stag-import",
                     dedupe=False,
                 )
+                if info is not None:
+                    self._preimport_backup_file = info.path.name
+                    self._preimport_data_dir = data_dir
             except Exception:
                 pass
 
@@ -1825,6 +1834,16 @@ class StagImportDialog(QDialog):
         # Pokud více, ukaž tlačítko jen pokud je k tomu jediný thesis_id / opposing_id.
         has_focus = bool(self.focus_thesis_id or self.focus_opposing_id)
 
+        # Záchranná brzda — vrátit celý import ze zálohy před importem.
+        if self._preimport_backup_file and self._preimport_data_dir:
+            btn_revert = QPushButton("↩ Vrátit celý import zpět")
+            btn_revert.setToolTip(
+                "Obnoví stav databáze ze zálohy pořízené TĚSNĚ PŘED tímto "
+                "importem — odstraní vše, co tento import přidal/změnil."
+            )
+            btn_revert.clicked.connect(lambda: self._revert_import(dlg))
+            btn_row.addWidget(btn_revert)
+
         btn_row.addStretch()
         btn_row.addWidget(btn_close)
         if has_focus:
@@ -1845,6 +1864,47 @@ class StagImportDialog(QDialog):
         dlg.exec()
         # Dialog (StagImportDialog) potvrď — MainWindow přečte focus_*_id
         self.accept()
+
+    def _revert_import(self, summary_dlg: QDialog) -> None:
+        """Vrátí celý import — obnoví db.json ze zálohy před importem."""
+        if not (self._preimport_backup_file and self._preimport_data_dir):
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Vrátit celý import?",
+            "Obnoví se stav databáze ze zálohy pořízené těsně před tímto "
+            "importem. <b>Vše, co tento import přidal nebo změnil, zmizí.</b>"
+            "<br><br>Aktuální (importovaný) stav se předtím ještě zazálohuje "
+            "(<code>before-restore</code>), takže krok jde i vrátit.<br><br>"
+            "<small>Pozn.: soubory zkopírované do složky dokumentů zůstanou na "
+            "disku jako osiřelé (bez vazby v DB) — neškodí.</small>",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            BackupManager(self._preimport_data_dir).restore_backup(
+                self._preimport_backup_file, self._preimport_data_dir / "db.json"
+            )
+            self.service.reload()
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(
+                self, "Vrácení selhalo",
+                f"Obnovu ze zálohy se nepodařilo provést:\n{exc}",
+            )
+            return
+        # Zruš navigaci na (už neexistující) importované práce.
+        self.focus_thesis_id = None
+        self.focus_opposing_id = None
+        self.imported_thesis_ids = []
+        self.imported_opposing_ids = []
+        self.reverted = True
+        QMessageBox.information(
+            self, "Import vrácen",
+            "Stav databáze byl obnoven do podoby před importem.",
+        )
+        summary_dlg.accept()
 
     # --- per-role logic ------------------------------------------------------
 

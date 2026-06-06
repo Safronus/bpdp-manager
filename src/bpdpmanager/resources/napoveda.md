@@ -516,6 +516,11 @@ Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená zná
 - **Souhrn před importem** ukáže, které entity (studenti, oponenti,
   vedoucí, obory) se založí.
 - **Transakční** — vše se zapíše jednou na konci; při chybě rollback.
+- **Záchranná brzda:** těsně před importem se vytvoří záloha
+  `before-stag-import` a po dokončení nabídne souhrnné okno tlačítko
+  **↩ Vrátit celý import zpět** — obnoví stav databáze do podoby před importem
+  (importovaný stav se předtím ještě zazálohuje jako `before-restore`, takže
+  i vrácení jde vrátit). Zálohy spravuješ i v **👤 → 💾 Zálohy**.
 - Originální CSV se připojí ke každé importované práci.
 - Po importu se aplikace přepne na importovanou práci.
 
