@@ -338,6 +338,26 @@ class StagImportDialog(QDialog):
         row_bulk.addStretch()
         form.addRow("Hromadně ze STAG", row_bulk)
 
+        # Aktualizace už evidovaných prací ze STAG (stav + nové soubory).
+        btn_upd_led = QPushButton("🔄 Aktualizovat práce v řešení ze STAG")
+        btn_upd_led.setToolTip(
+            "U vedených prací ve stavu „V řešení“ porovná stav a soubory se "
+            "STAG a nabídne změnu stavu + dohrání chybějících souborů "
+            "(např. nový posudek nebo odevzdaná práce)."
+        )
+        btn_upd_led.clicked.connect(lambda: self._open_stag_sync("supervisor"))
+        btn_upd_opp = QPushButton("🔄 Aktualizovat práce k oponování ze STAG")
+        btn_upd_opp.setToolTip(
+            "U oponovaných prací aktuálního akademického roku porovná soubory "
+            "se STAG a nabídne dohrání chybějících (např. nový posudek)."
+        )
+        btn_upd_opp.clicked.connect(lambda: self._open_stag_sync("opponent"))
+        row_upd = QHBoxLayout()
+        row_upd.addWidget(btn_upd_led)
+        row_upd.addWidget(btn_upd_opp)
+        row_upd.addStretch()
+        form.addRow("Aktualizovat ze STAG", row_upd)
+
         # Tvoje jméno (pro detekci role)
         default_user_name = ""
         if profile_manager and profile_manager.active:
@@ -557,6 +577,21 @@ class StagImportDialog(QDialog):
                     )
                 except Exception:
                     pass
+
+    def _open_stag_sync(self, role: str) -> None:
+        """Otevře dialog pro aktualizaci už evidovaných prací ze STAG
+        (stav + dohrání chybějících souborů). Po změně zavře import dialog,
+        aby se hlavní okno obnovilo."""
+        # Lazy import — stag_sync_dialog importuje z tohoto modulu.
+        from .stag_sync_dialog import StagSyncDialog
+
+        sync = StagSyncDialog(
+            self.service, role, parent=self, profile_manager=self.profile_manager
+        )
+        sync.exec()
+        if sync.changed:
+            # Zavři import dialog (accept) → MainWindow spustí _refresh_all().
+            self.accept()
 
     def _open_stag_download(self, auto_role: str | None = None) -> None:
         """Otevře dialog pro přímé vyhledání + stažení CSV ze STAG.

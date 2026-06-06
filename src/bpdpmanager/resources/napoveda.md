@@ -488,6 +488,27 @@ Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 Hledá se ve veřejném *Prohlížení → Kvalifikační práce* na **stag.utb.cz**,
 takže přihlášení obvykle není potřeba.
 
+### Aktualizace už evidovaných prací ze STAG
+
+V průběhu semestru často přibyde u práce nový soubor (odevzdaná práce,
+posudek) nebo se změní stav. K tomu slouží dvě tlačítka v *Import ze STAG…*:
+
+- **🔄 Aktualizovat práce v řešení ze STAG** — projde **vedené práce ve stavu
+  *V řešení***, dohledá je ve STAG (podle uloženého STAG ID, a když chybí, zkusí
+  **dle příjmení studenta**) a nabídne:
+  - **změnu stavu** — když STAG hlásí jiný stav (např. *V řešení → Obhájeno*),
+    návrh se zobrazí a **aplikuje jen po zaškrtnutí**;
+  - **dohrání chybějících souborů** — předzaškrtnou se soubory, jejichž **druh**
+    u práce ještě nemáš (typicky nový posudek / odevzdaná práce). Soubory, jejichž
+    druh už máš, jsou ponechané neoznačené (můžeš si je přidat ručně).
+- **🔄 Aktualizovat práce k oponování ze STAG** — totéž pro **oponentury
+  aktuálního akademického roku** (jen soubory; oponentury stav nemají).
+
+Vše běží s **progres oknem** a přehledem změn k zaškrtnutí. Před zápisem se
+udělá **záloha** a v souhrnu je tlačítko **„↩ Vrátit vše"**. Práce **bez STAG
+ID**, které se nepodaří dohledat podle příjmení, se **přeskočí a vypíšou**
+(doimportuj je klasicky přes hledání).
+
 ### Soubory práce (plný text, přílohy, posudky)
 
 Pokud STAG u práce nabízí soubory, stáhnou se spolu s ní a otevře se

@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-06-06
+
+### Added
+- **Aktualizace už evidovaných prací ze STAG.** Dvě nová tlačítka v dialogu
+  *Import ze STAG…*:
+  - **🔄 Aktualizovat práce v řešení ze STAG** — projde vedené práce ve stavu
+    *V řešení*, dohledá je ve STAG (podle STAG ID, jinak dle příjmení studenta)
+    a nabídne **změnu stavu** (např. *V řešení → Obhájeno*, k potvrzení) a
+    **dohrání chybějících souborů** (předzaškrtne soubory, jejichž *druh* u
+    práce ještě není — typicky nový posudek nebo odevzdaná práce).
+  - **🔄 Aktualizovat práce k oponování ze STAG** — totéž pro oponentury
+    **aktuálního akademického roku** (jen soubory; oponentury stav nemají).
+
+  Vše proběhne s **progres oknem**, přehledem změn k zaškrtnutí, **zálohou**
+  před zápisem a tlačítkem **„↩ Vrátit vše"**. Práce bez STAG ID, které se
+  nepodaří dohledat dle příjmení, se přeskočí a vypíšou.
+
 ## [0.56.1] - 2026-06-06
 
 ### Fixed
