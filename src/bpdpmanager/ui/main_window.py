@@ -64,6 +64,7 @@ from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
 from .review_templates_dialog import GenerateReviewDialog, ReviewTemplatesDialog
 from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
+from .stag_consistency_dialog import StagConsistencyDialog
 from .stag_import_dialog import StagImportDialog
 from .theses_tree import ThesesTreeWidget
 from .thesis_detail import (
@@ -463,6 +464,12 @@ class MainWindow(QMainWindow):
             "📦 Import práce ze ZIP…", self._import_thesis_zip, self._GROUP_IMPORT,
             "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
             "posudky, soubory) — vytvoří novou práci.",
+        )
+        add(
+            "🔍 Kontrola se STAG", self._check_stag_consistency, self._GROUP_IMPORT,
+            "Porovná soubory u prací (vedených i oponovaných) se STAG a vypíše, "
+            "kde STAG nabízí dokument (plný text / příloha / posudek), který "
+            "v databázi chybí. Read-only — jen kontrola, nic nestahuje.",
         )
 
         toolbar.addSeparator()
@@ -1113,6 +1120,10 @@ class MainWindow(QMainWindow):
         self._refresh_all()
         self._focus_thesis(new_id)
         QMessageBox.information(self, "Import hotov", "Práce byla naimportována.")
+
+    def _check_stag_consistency(self) -> None:
+        """Read-only kontrola: které soubory STAG nabízí a v DB chybí."""
+        StagConsistencyDialog(self.service, self).exec()
 
     def _import_from_stag(self) -> None:
         """Otevře wizard pro import dat z STAG CSV exportu.

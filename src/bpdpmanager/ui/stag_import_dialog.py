@@ -3312,45 +3312,62 @@ class StagDownloadDialog(QDialog):
                 if progress.wasCanceled():
                     canceled3 = True
                     break
-                base = (
-                    f"Stahuji přílohy ({idx + 1}/{total_files}):\n"
-                    f"{result.student_full}\n↳ {sf.filename}"
-                )
-                # Sdílený stav mezi vláknem (stahuje) a UI (kreslí) — bez Qt
-                # volání ve vlákně (Qt není thread-safe).
-                state = {"downloaded": 0, "total": None, "cancel": False}
-
-                def _worker_progress(downloaded, total, _s=state):
-                    _s["downloaded"] = downloaded
-                    _s["total"] = total
-                    return not _s["cancel"]
-
-                fut = executor.submit(
-                    self._download_one_file, client, result, sf, _worker_progress
-                )
-                while not fut.done():
+                dl = None
+                # 1 opakování na přechodné selhání (STAG občas přiškrtí spojení
+                # při mnoha souborech po sobě).
+                for attempt in (1, 2):
                     if progress.wasCanceled():
-                        state["cancel"] = True
-                    dn = state["downloaded"]
-                    tot = state["total"] or sf.size_hint or 0
-                    suffix = (
-                        f"  ({_fmt_size(dn)} / {_fmt_size(tot)})"
-                        if tot else f"  ({_fmt_size(dn)})"
+                        canceled3 = True
+                        break
+                    retry = "  (2. pokus)" if attempt == 2 else ""
+                    base = (
+                        f"Stahuji přílohy ({idx + 1}/{total_files}){retry}:\n"
+                        f"{result.student_full}\n↳ {sf.filename}"
                     )
-                    progress.setLabelText(base + suffix)
-                    if use_bytes:
-                        frac = (bytes_done + dn) / total_bytes
-                        progress.setValue(min(steps, int(frac * steps)))
-                    QApplication.processEvents()
-                    QThread.msleep(40)  # ~25 překreslení/s, nízká zátěž CPU
+                    # Sdílený stav mezi vláknem (stahuje) a UI (kreslí) — bez Qt
+                    # volání ve vlákně (Qt není thread-safe).
+                    state = {"downloaded": 0, "total": None, "cancel": False}
 
-                try:
-                    dl = fut.result()
-                except stag_api.StagCancelledError:
-                    canceled3 = True
+                    def _worker_progress(downloaded, total, _s=state):
+                        _s["downloaded"] = downloaded
+                        _s["total"] = total
+                        return not _s["cancel"]
+
+                    fut = executor.submit(
+                        self._download_one_file, client, result, sf, _worker_progress
+                    )
+                    while not fut.done():
+                        if progress.wasCanceled():
+                            state["cancel"] = True
+                        dn = state["downloaded"]
+                        if dn <= 0:
+                            # Čekáme na první bajt (STAG generuje/posílá soubor).
+                            suffix = "  ⏳ připojuji k STAG…"
+                        else:
+                            tot = state["total"] or sf.size_hint or 0
+                            suffix = (
+                                f"  ({_fmt_size(dn)} / {_fmt_size(tot)})"
+                                if tot else f"  ({_fmt_size(dn)})"
+                            )
+                        progress.setLabelText(base + suffix)
+                        if use_bytes:
+                            frac = (bytes_done + dn) / total_bytes
+                            progress.setValue(min(steps, int(frac * steps)))
+                        QApplication.processEvents()
+                        QThread.msleep(40)  # ~25 překreslení/s, nízká zátěž CPU
+
+                    try:
+                        dl = fut.result()
+                    except stag_api.StagCancelledError:
+                        canceled3 = True
+                        break
+                    except Exception:  # noqa: BLE001
+                        dl = None
+                    if dl is not None:
+                        break  # úspěch → neopakuj
+
+                if canceled3:
                     break
-                except Exception:  # noqa: BLE001
-                    dl = None
                 if dl is not None:
                     files_by_adip.setdefault(result.adipidno, []).append(dl)
                     temp_files.append(dl.path)

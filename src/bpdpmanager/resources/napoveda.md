@@ -500,6 +500,21 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > - Před importem se vytvoří záloha `before-stag-import` a celý import jde
 >   **vrátit** tlačítkem *„↩ Vrátit celý import zpět"*.
 
+### 🔍 Kontrola se STAG (co chybí)
+
+Toolbarové tlačítko **🔍 Kontrola se STAG** (skupina *Import*) je **read-only
+kontrola konzistence**: projde všechny práce (vedené i oponentury) s STAG ID,
+porovná je se STAG a vypíše, kde **STAG nabízí druh dokumentu** (plný text /
+příloha / posudek), který **v databázi ještě nemáš**. Zvlášť vypíše práce
+**bez STAG ID** (nelze ověřit) a případné **chyby dotazu**. Nic nestahuje ani
+neimportuje — chybějící soubory pak dohraješ přes *Import ze STAG →
+🔄 Aktualizovat …* nebo *📎 Stáhnout jen soubory*.
+
+> **Průběh stahování.** Než STAG začne posílat data (server soubor občas
+> teprve generuje nebo přiškrtí spojení při mnoha souborech po sobě), ukazuje
+> progres **„⏳ připojuji k STAG…"** — není to zamrznutí, jen čekání na server.
+> Při krátkém výpadku se stažení **jednou zopakuje**.
+
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 
 1. Zadej **příjmení studenta** (nepovinné).

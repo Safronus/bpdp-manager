@@ -7,7 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.58.3] - 2026-06-06
+## [0.59.0] - 2026-06-06
+
+### Added
+- **🔍 Kontrola se STAG (toolbar).** Nové tlačítko v liště *Import* — read-only
+  audit: projde práce (vedené i oponentury) s STAG ID, porovná se STAG a vypíše,
+  u kterých **STAG nabízí dokument** (plný text / příloha / posudek), který
+  **v databázi chybí**. Práce bez STAG ID i chyby dotazu vypíše zvlášť. Nic
+  nestahuje — soubory dohraješ přes *Import ze STAG → 🔄 Aktualizovat …*.
+
+### Changed
+- **Stahování příloh ze STAG: poctivější průběh.** Než STAG začne posílat
+  data (server soubor generuje / přiškrtí), ukazuje progres **„⏳ připojuji
+  k STAG…"** místo zavádějícího `0 B`. Při **přechodném selhání** se stažení
+  souboru **jednou zopakuje** (2. pokus), ať se kvůli krátkému výpadku
+  zbytečně nepřeskočí.
 
 ### Fixed
 - **Pád při stahování velkého objemu příloh ze STAG (`OverflowError`).** Když
