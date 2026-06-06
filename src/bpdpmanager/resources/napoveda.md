@@ -444,6 +444,12 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > **Seskupení.** Výběrem **„Seskupit podle"** můžeš práce seskupit dle
 > **stavu, typu (BP/DP), oboru, akademického roku** (nebo bez seskupení).
 > Zaškrtnutím hlavičky skupiny vybereš/zrušíš celou skupinu naráz.
+>
+> **Přílohy (📎).** Počet a velikost příloh se u práce zobrazí, **jakmile ji
+> zaškrtneš** (např. „📎 4 · 14.0 MB") — dotahuje se z detailu jen u
+> zaškrtnutých prací. Samotné **stahování** ukazuje **průběh** (která práce a
+> která příloha se zrovna stahuje) a lze ho přerušit. Co se nakonec naimportuje
+> (a vyloučení velkých příloh) vybereš v **náhledu souborů** v dalším kroku.
 
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 

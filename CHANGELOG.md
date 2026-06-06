@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-06-06
+
+### Added
+- **Počet a velikost příloh v tabulce (lazy).** Nový sloupec **„📎 Přílohy"** se
+  u práce vyplní, jakmile ji **zaškrtneš** — dotáhne počet souborů a jejich
+  celkovou velikost z detailu práce (např. „📎 4 · 14.0 MB"). Načítá se jen pro
+  zaškrtnuté práce (ne pro všechny nalezené), takže tabulka zůstává rychlá.
+  Velké přílohy se i nadále vylučují ve **výběru souborů v náhledu** před
+  importem (a varování u velkých příloh).
+
 ## [0.55.2] - 2026-06-06
 
 ### Fixed

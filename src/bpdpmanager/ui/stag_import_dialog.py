@@ -200,7 +200,33 @@ STAG_STATE_LABELS: dict[str, str] = {
 }
 
 # Sloupce stromu výsledků hromadného stažení ze STAG.
-_RESULT_COLUMNS = ["Práce", "Typ", "Ak. rok", "Obhajoba", "Oponent", "Stav", ""]
+# „Přílohy" se plní lazy — až u prací, které uživatel zaškrtne.
+_RESULT_COLUMNS = [
+    "Práce", "Typ", "Ak. rok", "Obhajoba", "Oponent", "Stav", "📎 Přílohy", "",
+]
+_ATTACH_COL = _RESULT_COLUMNS.index("📎 Přílohy")
+
+
+def _fetch_attachment_info(adipidno: str) -> tuple[int, int] | None:
+    """Vrátí (počet příloh, součet velikostí) z detailu práce.
+
+    Best-effort pro běh ve vlákně — None při chybě (ať se dá zkusit znovu).
+    """
+    try:
+        files = stag_api.list_thesis_files(adipidno)
+    except Exception:  # noqa: BLE001
+        return None
+    return (len(files), sum(f.size_hint for f in files))
+
+
+def _format_attachments(count: int, size: int) -> str:
+    """Text do sloupce „Přílohy"."""
+    if count <= 0:
+        return "—"
+    out = f"📎 {count}"
+    if size:
+        out += f"  ·  {_fmt_size(size)}"
+    return out
 
 # Režimy seskupení (popisek, klíč) — pořadí = pořadí v comboboxu.
 _GROUP_MODES = [
@@ -2508,6 +2534,10 @@ class StagDownloadDialog(QDialog):
         outer.addWidget(self.tree_results, stretch=1)
         # Adipidno, které už byly obohaceny o akad. rok + obor (cache).
         self._enriched_adip: set[str] = set()
+        # Lazy info o přílohách (adipidno → (počet, velikost)) — dotahuje se
+        # až u zaškrtnutých prací.
+        self._attach_info: dict[str, tuple[int, int]] = {}
+        self._fetching_attach = False
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
@@ -2585,6 +2615,7 @@ class StagDownloadDialog(QDialog):
         self.tree_results.clear()
         self._results = []
         self._enriched_adip = set()
+        self._attach_info = {}
         self.btn_download.setEnabled(False)
         self.lbl_status.setText("⏳ Hledám ve STAG…")
         self.btn_search.setEnabled(False)
@@ -2687,6 +2718,8 @@ class StagDownloadDialog(QDialog):
                 new_count += 1
             badge = "✓ už máš" if is_existing else "🆕 nové"
             status_short = STAG_STATE_SHORT.get(r.status_code, r.status_code)
+            info = self._attach_info.get(r.adipidno)
+            attach = _format_attachments(*info) if info is not None else ""
             cols = [
                 f"{r.student_full} — {r.title or '(bez názvu)'}",
                 self._result_type_code(r) or (r.type_label or ""),
@@ -2694,6 +2727,7 @@ class StagDownloadDialog(QDialog):
                 r.defense_date or "—",
                 r.reviewer or "—",
                 status_short or "—",
+                attach,
                 badge,
             ]
             it = QTreeWidgetItem(cols)
@@ -2922,20 +2956,104 @@ class StagDownloadDialog(QDialog):
             return
         tree = self.tree_results
         is_group = item.data(0, Qt.ItemDataRole.UserRole + 1) == "group"
+        # Adipidno prací, které uživatel právě zaškrtl (→ dotáhni přílohy).
+        newly_checked: list[str] = []
         tree.blockSignals(True)
         try:
             if is_group:
                 state = item.checkState(0)
                 if state != Qt.CheckState.PartiallyChecked:
                     for i in range(item.childCount()):
-                        item.child(i).setCheckState(0, state)
+                        child = item.child(i)
+                        child.setCheckState(0, state)
+                        if state == Qt.CheckState.Checked:
+                            adip = child.data(0, Qt.ItemDataRole.UserRole)
+                            if adip:
+                                newly_checked.append(adip)
             else:
                 parent = item.parent()
                 if parent is not None:
                     self._sync_group_check(parent)
+                if item.checkState(0) == Qt.CheckState.Checked:
+                    adip = item.data(0, Qt.ItemDataRole.UserRole)
+                    if adip:
+                        newly_checked.append(adip)
         finally:
             tree.blockSignals(False)
         self._update_download_btn()
+        self._fetch_attachments(newly_checked)
+
+    # --- lazy info o přílohách (jen u zaškrtnutých) --------------------------
+
+    def _set_attachment_cell(self, adip: str, text: str) -> None:
+        """Zapíše text do sloupce „Přílohy" u položky s daným adipidno."""
+        def walk(item: QTreeWidgetItem) -> None:
+            for i in range(item.childCount()):
+                walk(item.child(i))
+            if item.data(0, Qt.ItemDataRole.UserRole) == adip:
+                item.setText(_ATTACH_COL, text)
+        root = self.tree_results.invisibleRootItem()
+        for i in range(root.childCount()):
+            walk(root.child(i))
+
+    def _fetch_attachments(self, adips: list[str]) -> None:
+        """Dotáhne počet + velikost příloh pro nově zaškrtnuté práce (lazy).
+
+        Běží paralelně; progress se ukáže jen když to chvíli trvá. Re-entrantní
+        volání se ignorují (hromadné zaškrtnutí skupiny se dořeší v jednom běhu).
+        """
+        if self._fetching_attach:
+            return
+        todo = [a for a in dict.fromkeys(adips) if a and a not in self._attach_info]
+        if not todo:
+            return
+        self._fetching_attach = True
+        try:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            progress = QProgressDialog(
+                "Zjišťuji přílohy zaškrtnutých prací…", "Přerušit", 0, len(todo), self
+            )
+            progress.setWindowTitle("STAG — přílohy")
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.setMinimumDuration(400)  # ukaž jen když to chvíli trvá
+            progress.setValue(0)
+            executor = ThreadPoolExecutor(max_workers=8)
+            futures = {executor.submit(_fetch_attachment_info, a): a for a in todo}
+            done = 0
+            try:
+                for fut in as_completed(futures):
+                    adip = futures[fut]
+                    info = None
+                    try:
+                        info = fut.result()
+                    except Exception:  # noqa: BLE001
+                        info = None
+                    if info is not None:
+                        self._attach_info[adip] = info
+                        self._set_attachment_cell(adip, _format_attachments(*info))
+                    else:
+                        self._set_attachment_cell(adip, "?")
+                    done += 1
+                    progress.setValue(done)
+                    QApplication.processEvents()
+                    if progress.wasCanceled():
+                        break
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
+                progress.close()
+        finally:
+            self._fetching_attach = False
+        # Něco se mohlo zaškrtnout během dotahování → dořeš (kromě právě
+        # zkoušených — neúspěchy se v kaskádě neopakují, jen na další akci).
+        rest = [
+            r.adipidno for r in self._checked_results()
+            if r.adipidno
+            and r.adipidno not in self._attach_info
+            and r.adipidno not in todo
+        ]
+        if rest:
+            self._fetch_attachments(rest)
 
     def _update_download_btn(self) -> None:
         n = len(self._checked_results())

@@ -75,3 +75,51 @@ def test_confirm_oversized_no_big_no_dialog(qapp, monkeypatch) -> None:
 
     monkeypatch.setattr(QMessageBox, "exec", boom)
     assert dlg._confirm_oversized({"42": [_small()]}) == set()
+
+
+def _result(adip="1"):
+    return stag_api.StagThesisResult(
+        adipidno=adip, surname="A", name="B", title="T",
+        type_label="Bakalářská práce", status_code="DUO",
+    )
+
+
+def _cell_text(dlg, adip, col):
+    root = dlg.tree_results.invisibleRootItem()
+    found = []
+
+    def walk(item):
+        for i in range(item.childCount()):
+            walk(item.child(i))
+        if item.data(0, 0x0100) == adip:
+            found.append(item.text(col))
+
+    for i in range(root.childCount()):
+        walk(root.child(i))
+    return found[0] if found else None
+
+
+def test_attachments_lazy_fill(qapp, monkeypatch) -> None:
+    """Po zaškrtnutí práce se dotáhne počet + velikost příloh do sloupce."""
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", lambda a: [_big(), _small()])
+    dlg = _dialog()
+    dlg._results = [_result("1")]
+    dlg._render_results()
+    assert _cell_text(dlg, "1", mod._ATTACH_COL) == ""   # zatím nezjištěno
+    dlg._fetch_attachments(["1"])
+    assert dlg._attach_info["1"] == (2, mod._LARGE_FILE_BYTES + 1 + 2048)
+    assert _cell_text(dlg, "1", mod._ATTACH_COL).startswith("📎 2")
+
+
+def test_attachments_error_shows_question_mark(qapp, monkeypatch) -> None:
+    """Chyba při zjišťování příloh → „?" a nezakešuje se (jde zkusit znovu)."""
+    def boom(adip):
+        raise stag_api.StagError("síť")
+
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", boom)
+    dlg = _dialog()
+    dlg._results = [_result("1")]
+    dlg._render_results()
+    dlg._fetch_attachments(["1"])
+    assert "1" not in dlg._attach_info
+    assert _cell_text(dlg, "1", mod._ATTACH_COL) == "?"
