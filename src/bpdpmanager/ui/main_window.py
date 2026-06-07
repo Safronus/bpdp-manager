@@ -499,9 +499,12 @@ class MainWindow(QMainWindow):
 
     def _set_stag_banner(self, html: str, bg: str, *, show_open: bool) -> None:
         self._stag_banner_label.setText(html)
+        # Pozadí je vždy světlý odstín → vynuť tmavý text (jinak by ho dark
+        # theme vykreslil světlý = nečitelný). Barvu nastav i na potomky.
         self._stag_banner.setStyleSheet(
             f"QFrame {{ background: {bg}; border: 1px solid rgba(0,0,0,0.10); "
-            "border-radius: 6px; }}"
+            f"border-radius: 6px; }} "
+            f"QLabel {{ color: #212121; background: transparent; }}"
         )
         self._stag_banner_btn.setVisible(show_open)
         self._stag_banner.setVisible(True)

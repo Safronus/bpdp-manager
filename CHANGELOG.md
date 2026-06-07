@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.71.1] - 2026-06-07
+
+### Fixed
+- **Čitelnost proužku tiché kontroly STAG v dark theme.** Proužek má vždy
+  světlé pozadí, ale text dědil světlou barvu z tmavého motivu → nečitelný
+  („Kontroluji změny…" apod.). Text je nově natvrdo tmavý.
+
 ## [0.71.0] - 2026-06-07
 
 ### Added
