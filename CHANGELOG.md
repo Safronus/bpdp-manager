@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-06-07
+
+### Added
+- **Kostra posudku ve volném hodnocení.** U **nového** posudku se do sekce
+  *Celkové hodnocení, připomínky a dotazy* předvyplní tematické nadpisy
+  (kostra), pod které autor píše — podle **role** (vedoucí má navíc *„Přístup,
+  samostatnost a spolupráce studenta"*) a **jazyka šablony** (CZ/EN). V editoru
+  je i tlačítko **🦴 Vložit kostru posudku** pro ruční vložení (do prázdného
+  pole rovnou, jinak za kurzor). Rozpracovaný text se nikdy nepřepíše.
+
 ## [1.0.7] - 2026-06-07
 
 ### Fixed

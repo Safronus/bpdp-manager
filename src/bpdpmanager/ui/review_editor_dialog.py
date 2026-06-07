@@ -49,6 +49,55 @@ from ..models.enums import AttachmentKind
 from ..services import ThesisService
 from ._os_actions import open_path, reveal_in_file_manager
 
+# Kostra („skeleton") volného hodnocení — tematické nadpisy, pod které autor
+# píše. Liší se podle role (vedoucí má navíc přístup/samostatnost studenta)
+# a jazyka šablony (CZ/EN). Vkládá se u NOVÉHO posudku, případně tlačítkem.
+_SKELETON_HEADINGS: dict[tuple[str, str], list[str]] = {
+    ("supervisor", "cs"): [
+        "Aktuálnost, náročnost a relevance tématu:",
+        "Přístup, samostatnost a spolupráce studenta:",
+        "Formální stránka práce:",
+        "Obsahová část a praktický výstup:",
+        "Splnění bodů zadání:",
+        "Doporučení k hodnocení:",
+        "Dotazy a připomínky:",
+    ],
+    ("opponent", "cs"): [
+        "Aktuálnost, náročnost a relevance tématu:",
+        "Formální stránka práce:",
+        "Obsahová část a praktický výstup:",
+        "Splnění bodů zadání:",
+        "Doporučení k hodnocení:",
+        "Dotazy a připomínky:",
+    ],
+    ("supervisor", "en"): [
+        "Relevance, difficulty and topicality of the theme:",
+        "Student's approach, independence and cooperation:",
+        "Formal quality of the thesis:",
+        "Content and practical output:",
+        "Fulfilment of the assignment:",
+        "Grade recommendation:",
+        "Questions and comments:",
+    ],
+    ("opponent", "en"): [
+        "Relevance, difficulty and topicality of the theme:",
+        "Formal quality of the thesis:",
+        "Content and practical output:",
+        "Fulfilment of the assignment:",
+        "Grade recommendation:",
+        "Questions and comments:",
+    ],
+}
+
+
+def build_review_skeleton(role: str, language: str) -> str:
+    """Vrátí kostru volného hodnocení (nadpisy + prázdné řádky) dle role/jazyka."""
+    r = role if role in ("supervisor", "opponent") else "opponent"
+    lang = "en" if language == "en" else "cs"
+    headings = _SKELETON_HEADINGS[(r, lang)]
+    # Mezi nadpisy jeden prázdný řádek pro psaní.
+    return "\n\n".join(headings) + "\n"
+
 
 class _GenerateWorker(QThread):
     """Generuje XLSX + PDF mimo hlavní vlákno, ať se UI (progress) nezasekne.
@@ -291,6 +340,16 @@ class ReviewEditorDialog(QDialog):
         # ── Celkové hodnocení ─────────────────────────────────────────
         box_overall = QGroupBox("Celkové hodnocení, připomínky a dotazy")
         v_overall = QVBoxLayout(box_overall)
+        skel_row = QHBoxLayout()
+        skel_row.addStretch()
+        btn_skeleton = QPushButton("🦴 Vložit kostru posudku")
+        btn_skeleton.setToolTip(
+            "Vloží tematické nadpisy (kostru) pro slovní hodnocení podle role "
+            "a jazyka šablony. Když už něco píšeš, vloží se za kurzor."
+        )
+        btn_skeleton.clicked.connect(self._insert_skeleton)
+        skel_row.addWidget(btn_skeleton)
+        v_overall.addLayout(skel_row)
         self.ed_overall = QPlainTextEdit(review.overall_comment)
         self.ed_overall.setMinimumHeight(140)
         self.ed_overall.setPlaceholderText(
@@ -365,6 +424,15 @@ class ReviewEditorDialog(QDialog):
             f"<span style='font-size:16px;background-color:{grade_color};color:white;"
             f"padding:2px 10px;border-radius:8px;font-weight:bold;'>{grade}</span>"
         )
+
+    def _insert_skeleton(self) -> None:
+        """Vloží kostru posudku — do prázdného pole rovnou, jinak za kurzor."""
+        skeleton = build_review_skeleton(self.review.role, self.review.language)
+        if not self.ed_overall.toPlainText().strip():
+            self.ed_overall.setPlainText(skeleton)
+        else:
+            self.ed_overall.textCursor().insertText(skeleton)
+        self.ed_overall.setFocus()
 
     def _attachment_path(self, kind: AttachmentKind):
         """Absolutní cesta k aktuálnímu souboru dané přílohy (preferuje PDF)."""

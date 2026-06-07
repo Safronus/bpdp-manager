@@ -413,7 +413,10 @@ Workflow:
      D≥24, **E≥21**, jinak F. Hranice E je u obou na **60 %** — cokoli pod
      60 % je FX (BP) / F (DP).
    - *Plagiátorství* (u vedoucího) — předvyplní se z práce
-   - *Celkové hodnocení, připomínky a dotazy*
+   - *Celkové hodnocení, připomínky a dotazy* — u **nového** posudku se sem
+     předvyplní **kostra** (tematické nadpisy podle role a jazyka šablony),
+     pod kterou píšeš; tlačítkem **🦴 Vložit kostru posudku** ji vyvoláš
+     i ručně (rozepsaný text nepřepíše)
    - *Místo, datum* — místo z profilu (default Zlín), datum dnešní
 3. **Uložit & vyrobit XLSX + PDF** — data se uloží do práce (JSON),
    vyplní se XLSX šablona a (pokud je nainstalován LibreOffice)

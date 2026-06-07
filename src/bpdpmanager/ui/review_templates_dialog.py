@@ -1142,6 +1142,10 @@ class GenerateReviewDialog(QDialog):
             place = self.service._guess_review_place()
             place_date = self.service.build_place_date(place)
 
+            # Nový posudek → předvyplň kostru volného hodnocení (nadpisy dle
+            # role + jazyka šablony). Uživatel pod ně píše; lze i smazat.
+            from .review_editor_dialog import build_review_skeleton
+
             review = Review(
                 template_id=tmpl.id,
                 template_name=tmpl.name,
@@ -1155,6 +1159,7 @@ class GenerateReviewDialog(QDialog):
                 plagiarism_verdict=self._plag_verdict_text,
                 plagiarism_justification=self._plag_justification,
                 place_date=place_date,
+                overall_comment=build_review_skeleton(tmpl.role, tmpl.language),
                 criteria=[
                     CriterionScore(
                         row=c.row, label=c.label, weight=c.default_weight,

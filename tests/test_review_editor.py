@@ -82,6 +82,28 @@ def test_fulfilled_options_follow_template_language(qapp, service) -> None:
     assert en_opts == ["fulfilled", "not fulfilled"]
 
 
+def test_build_review_skeleton_role_and_language() -> None:
+    """Kostra se liší rolí (vedoucí má řádek o studentovi) a jazykem."""
+    from bpdpmanager.ui.review_editor_dialog import build_review_skeleton
+
+    sup_cs = build_review_skeleton("supervisor", "cs")
+    opp_cs = build_review_skeleton("opponent", "cs")
+    assert "Splnění bodů zadání:" in sup_cs and "Dotazy a připomínky:" in sup_cs
+    assert "spolupráce studenta" in sup_cs            # jen u vedoucího
+    assert "spolupráce studenta" not in opp_cs        # oponent ne
+    en = build_review_skeleton("opponent", "en")
+    assert "Questions and comments:" in en
+
+
+def test_insert_skeleton_into_empty_overall(qapp, service) -> None:
+    """Tlačítko vloží kostru do prázdného pole Celkové hodnocení."""
+    t = _thesis(service)
+    dlg = ReviewEditorDialog(service, t.id, _review(role="supervisor"), opposing=False)
+    dlg.ed_overall.setPlainText("")
+    dlg._insert_skeleton()
+    assert "Splnění bodů zadání:" in dlg.ed_overall.toPlainText()
+
+
 def test_editor_has_open_text_and_opposite_review_buttons(qapp, service) -> None:
     """Editor má tlačítka pro otevření textu práce a opačného posudku."""
     t = _thesis(service)
