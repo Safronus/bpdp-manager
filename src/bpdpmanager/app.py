@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import QLoggingCategory
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -94,6 +95,11 @@ def _bootstrap_profile(pm: ProfileManager) -> bool:
 
 
 def run() -> int:
+    # Ztiš neškodné Qt hlášky z accessibility bridge (macOS VoiceOver se ptá
+    # stromů/tabulek během jejich přestavby, kdy mají 0 řádků) — jen tato
+    # konkrétní kategorie, ostatní Qt varování zůstávají.
+    QLoggingCategory.setFilterRules("qt.accessibility.table.warning=false")
+
     app = QApplication(sys.argv)
     app.setApplicationName("BPDPManager")
     app.setApplicationDisplayName("BPDPManager")

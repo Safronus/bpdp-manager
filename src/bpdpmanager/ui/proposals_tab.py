@@ -92,9 +92,7 @@ class ProposalsTab(QWidget):
         self.summary_view.setOpenExternalLinks(False)
         self.summary_view.setOpenLinks(False)
         self.summary_view.anchorClicked.connect(self._on_summary_anchor_clicked)
-        self.summary_view.setStyleSheet(
-            "QTextBrowser { padding: 12px; font-family: -apple-system, sans-serif; }"
-        )
+        self.summary_view.setStyleSheet("QTextBrowser { padding: 12px; }")
         self.detail_tabs.addTab(self.summary_view, "📋 Souhrn")
 
         # Editor.

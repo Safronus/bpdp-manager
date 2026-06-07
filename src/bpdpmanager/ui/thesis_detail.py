@@ -632,10 +632,9 @@ class ThesisDetail(QWidget):
         self.summary_view.setOpenExternalLinks(False)
         self.summary_view.setOpenLinks(False)  # anchory zpracujeme sami
         self.summary_view.anchorClicked.connect(self._on_summary_anchor_clicked)
-        self.summary_view.setStyleSheet(
-            "QTextBrowser { padding: 12px; font-family: -apple-system, "
-            "'Segoe UI', sans-serif; }"
-        )
+        # Bez explicitní font-family — zdědí systémové písmo aplikace
+        # (specifikování „-apple-system" Qt nezná → varování + zdržení).
+        self.summary_view.setStyleSheet("QTextBrowser { padding: 12px; }")
         layout.addWidget(self.summary_view, stretch=1)
         return w
 

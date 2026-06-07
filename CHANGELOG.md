@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.69.2] - 2026-06-07
+
+### Fixed
+- **Tiché Qt hlášky v terminálu.** Odstraněn nevalidní `font-family:
+  -apple-system` ze stylů Souhrnu (Qt ho nezná → varování + zdržení při
+  startu); QTextBrowser teď dědí systémové písmo aplikace. Neškodné hlášky
+  `qt.accessibility.table … out of bounds` (macOS VoiceOver se ptá stromů
+  během přestavby) ztišeny cíleným pravidlem logování — ostatní Qt varování
+  zůstávají.
+
 ## [0.69.1] - 2026-06-07
 
 ### Added
