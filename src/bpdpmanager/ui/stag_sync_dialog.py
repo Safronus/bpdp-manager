@@ -355,6 +355,7 @@ class StagSyncDialog(QDialog):
         gray = QBrush(QColor("#888"))
         amber = QBrush(QColor("#e65100"))
 
+        green = QBrush(QColor("#43a047"))
         actionable = 0
         skipped = 0
         for ti, tgt in enumerate(self._targets):
@@ -377,7 +378,8 @@ class StagSyncDialog(QDialog):
                 note.setForeground(0, gray)
                 top.addChild(note)
 
-            has_action = False
+            has_action = False   # má řádek (i jen volitelný „už máš")
+            has_new = False      # má opravdu NOVOU věc (změna stavu / chybějící druh)
 
             # Návrh změny stavu.
             new_status = tgt.new_status
@@ -395,6 +397,7 @@ class StagSyncDialog(QDialog):
                 leaf.setData(0, Qt.ItemDataRole.UserRole, ("status", ti))
                 top.addChild(leaf)
                 has_action = True
+                has_new = True
 
             # Soubory ze STAG — předzaškrtni ty, jejichž druh u práce chybí.
             for fi, sf in enumerate(tgt.stag_files):
@@ -417,25 +420,54 @@ class StagSyncDialog(QDialog):
                 leaf.setData(0, Qt.ItemDataRole.UserRole, ("file", ti, fi, sf.soubidno))
                 top.addChild(leaf)
                 has_action = True
+                if is_new:
+                    has_new = True
 
-            if has_action:
+            if has_new:
                 actionable += 1
                 top.setExpanded(True)
+            elif has_action:
+                # Jen volitelné soubory (druh už máš) — žádná novinka.
+                note = QTreeWidgetItem(["✓ vše aktuální — níže jen volitelné přestažení"])
+                note.setForeground(0, green)
+                top.insertChild(0, note)
+                top.setExpanded(True)
             else:
-                top.addChild(QTreeWidgetItem(["✓ beze změn"]))
-                top.child(top.childCount() - 1).setForeground(0, gray)
+                note = QTreeWidgetItem(["✓ vše aktuální — beze změn"])
+                note.setForeground(0, green)
+                top.addChild(note)
 
         self.tree.blockSignals(False)
 
         total = len(self._targets)
-        msg = (
-            f"Prošlo {total} "
-            f"{'prací' if total != 1 else 'práce'}: "
-            f"{actionable} se změnami k aktualizaci."
-        )
-        if skipped:
-            msg += f"  ·  {skipped} bez nalezení ve STAG."
-        self.lbl_status.setText(msg)
+        if actionable == 0 and skipped == 0:
+            # Žádné novinky → pozitivní oznámení (zeleně).
+            if self._single is not None:
+                msg = "✓ Vše je aktuální — ze STAG není nic nového (stav i soubory sedí)."
+            else:
+                msg = (
+                    f"✓ Vše aktuální — u {total} "
+                    f"{'prací' if total != 1 else 'práce'} žádné nové změny."
+                )
+            self.lbl_status.setText(msg)
+            self.lbl_status.setStyleSheet("color:#43a047;font-weight:bold;")
+        elif actionable == 0 and skipped:
+            # Nenalezeno ve STAG (chybí ID i shoda dle příjmení).
+            self.lbl_status.setText(
+                f"⚠ {skipped} {'prací' if skipped != 1 else 'práce'} "
+                "se nepodařilo dohledat ve STAG (viz detail níže)."
+            )
+            self.lbl_status.setStyleSheet("color:#e65100;font-weight:bold;")
+        else:
+            msg = (
+                f"Prošlo {total} "
+                f"{'prací' if total != 1 else 'práce'}: "
+                f"{actionable} se změnami k aktualizaci."
+            )
+            if skipped:
+                msg += f"  ·  {skipped} bez nalezení ve STAG."
+            self.lbl_status.setText(msg)
+            self.lbl_status.setStyleSheet("")
         self._update_apply_btn()
 
     # --- výběr / aplikace ----------------------------------------------------

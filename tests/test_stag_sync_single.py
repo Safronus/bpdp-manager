@@ -63,3 +63,48 @@ def test_single_target_opposing(qapp, service) -> None:
 def test_single_target_missing_work_empty(qapp, service) -> None:
     dlg = StagSyncDialog(service, ROLE_SUPERVISOR, single=(False, "neexistuje"))
     assert dlg._collect_targets() == []
+
+
+def _populate_with(dlg, target):
+    """Naplní strom konkrétním cílem (obejde síťový _scan)."""
+    dlg._targets = [target]
+    dlg._populate()
+
+
+def test_positive_message_when_nothing_new(qapp, service) -> None:
+    """Když je jediný STAG soubor druhu, který už máš → pozitivní hláška."""
+    from bpdpmanager.models.enums import AttachmentKind, ThesisStatus
+    from bpdpmanager.services.stag_api import StagFile
+    from bpdpmanager.ui.stag_sync_dialog import _SyncTarget
+
+    dlg = StagSyncDialog(service, ROLE_SUPERVISOR, single=(False, "x"))
+    tgt = _SyncTarget(
+        is_opposing=False, obj_id="1", type_code="BP", surname="N",
+        label="A — T (BP)", local_status=ThesisStatus.IN_PROGRESS,
+        local_kinds={AttachmentKind.THESIS_TEXT}, adipidno="X",
+        stag_status_code="",  # žádná změna stavu
+        stag_files=[StagFile(soubidno="s1", filename="fulltext.pdf",
+                             download_path="/d", section="text", size_hint=1700000)],
+    )
+    _populate_with(dlg, tgt)
+    assert "Vše je aktuální" in dlg.lbl_status.text()
+    assert not dlg.btn_apply.isEnabled()  # nic předzaškrtnuto
+
+
+def test_message_when_new_file(qapp, service) -> None:
+    """Chybějící druh souboru → počítá se jako změna, hláška „se změnami"."""
+    from bpdpmanager.models.enums import ThesisStatus
+    from bpdpmanager.services.stag_api import StagFile
+    from bpdpmanager.ui.stag_sync_dialog import _SyncTarget
+
+    dlg = StagSyncDialog(service, ROLE_SUPERVISOR, single=(False, "x"))
+    tgt = _SyncTarget(
+        is_opposing=False, obj_id="1", type_code="BP", surname="N",
+        label="A — T (BP)", local_status=ThesisStatus.IN_PROGRESS,
+        local_kinds=set(), adipidno="X", stag_status_code="",
+        stag_files=[StagFile(soubidno="s1", filename="posudek.pdf",
+                             download_path="/d", section="supervisor_review")],
+    )
+    _populate_with(dlg, tgt)
+    assert "se změnami" in dlg.lbl_status.text()
+    assert dlg.btn_apply.isEnabled()  # nový druh je předzaškrtnutý

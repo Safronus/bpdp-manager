@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-07
+
+### Changed
+- **„Aktualizace práce ze STAG": pozitivní oznámení, když není co aktualizovat.**
+  Dialog nyní zeleně hlásí *„✓ Vše je aktuální"* místo matoucího „1 se změnami",
+  když jediným nálezem je soubor druhu, který už máš. **Za změnu se počítá jen
+  něco nového** (změna stavu nebo chybějící druh souboru); soubory, jejichž
+  druh už máš, jsou označené jen jako *volitelné přestažení* (nezaškrtnuté).
+  Když se práce ve STAG nenajde, dialog to oznámí oranžově.
+
 ## [1.1.1] - 2026-06-07
 
 ### Added
