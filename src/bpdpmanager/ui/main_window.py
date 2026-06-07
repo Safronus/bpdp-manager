@@ -490,7 +490,11 @@ class MainWindow(QMainWindow):
         self._stag_banner_label.setTextFormat(Qt.TextFormat.RichText)
         self._stag_banner_label.setWordWrap(True)
         lay.addWidget(self._stag_banner_label, stretch=1)
-        self._stag_banner_btn = QPushButton("🔎 Zobrazit změny…")
+        self._stag_banner_btn = QPushButton("🔎 Detaily…")
+        self._stag_banner_btn.setToolTip(
+            "Náhled kontroly: co je nové/změněné + seznam zkontrolovaných "
+            "a aktuálních prací (pro ověření, že kontrola proběhla)."
+        )
         self._stag_banner_btn.setStyleSheet(btn_qss)
         self._stag_banner_btn.clicked.connect(self._show_stag_changes)
         self._stag_banner_btn.setVisible(False)
@@ -567,8 +571,8 @@ class MainWindow(QMainWindow):
         if result.total_changes == 0:
             self._set_stag_banner(
                 f"✓ STAG zkontrolováno v {ts} — <b>vše aktuální</b> "
-                "(žádné změny ani nové práce).",
-                "#e8f5e9", show_open=False,
+                f"(prošlo {result.checked} prací). Detaily ↓",
+                "#e8f5e9", show_open=True,
             )
             return
 
@@ -581,7 +585,7 @@ class MainWindow(QMainWindow):
             parts.append(f"🆕 {result.new_works}× nová práce ve STAG")
         self._set_stag_banner(
             f"🔄 STAG zkontrolováno v {ts} — <b>změny: {', '.join(parts)}</b>. "
-            "Klikni na „Zobrazit změny…“.",
+            "Klikni na „Detaily…“.",
             "#fff8e1", show_open=True,
         )
 

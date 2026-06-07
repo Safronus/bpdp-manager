@@ -81,6 +81,9 @@ def test_no_changes_all_aktualni(service, monkeypatch) -> None:
     assert r.ok
     assert r.total_changes == 0
     assert r.checked == 1
+    # Pro debug: zkontrolovaná-a-aktuální práce je vypsaná jmenovitě.
+    assert len(r.up_to_date) == 1
+    assert "A B" in r.up_to_date[0] and "(vedená)" in r.up_to_date[0]
 
 
 def test_missing_file_detail_names_kind(service, monkeypatch) -> None:

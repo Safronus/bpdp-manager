@@ -47,6 +47,7 @@ class StagCheckResult:
     supervised: list[str] = field(default_factory=list)  # vedené „V řešení" se změnou
     opposing: list[str] = field(default_factory=list)    # oponentury akt. roku se změnou
     new: list[str] = field(default_factory=list)         # nové práce ve STAG (nemáš)
+    up_to_date: list[str] = field(default_factory=list)  # zkontrolováno, beze změn (debug)
 
     @property
     def supervised_changes(self) -> int:
@@ -121,11 +122,13 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         mapped = STAG_STATE_TO_STATUS.get(code)
         status_changed = mapped is not None and mapped != t.status
         missing = _missing_kind_labels(files, local_kinds)
+        student = service.get_student(t.student_id) if t.student_id else None
+        name = student.full_name if student else "(bez studenta)"
+        base = f"{name} — {t.type.value} {t.academic_year}"
         if status_changed or missing:
-            student = service.get_student(t.student_id) if t.student_id else None
-            name = student.full_name if student else "(bez studenta)"
-            note = _change_note(status_changed, missing)
-            r.supervised.append(f"{name} — {t.type.value} {t.academic_year} · {note}")
+            r.supervised.append(f"{base} · {_change_note(status_changed, missing)}")
+        else:
+            r.up_to_date.append(f"{base} (vedená)")
 
     # 2) Oponentury aktuálního roku se STAG ID.
     for o in service.list_opposing_theses():
@@ -140,10 +143,12 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         local_kinds = {a.kind for a in o.attachments if a.is_current}
         code_changed = bool(code) and code != o.stag_state_code
         missing = _missing_kind_labels(files, local_kinds)
+        name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+        base = f"{name} — {o.type.value} {o.academic_year}"
         if code_changed or missing:
-            name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
-            note = _change_note(code_changed, missing)
-            r.opposing.append(f"{name} — {o.type.value} {o.academic_year} · {note}")
+            r.opposing.append(f"{base} · {_change_note(code_changed, missing)}")
+        else:
+            r.up_to_date.append(f"{base} (oponentura)")
 
     # 3) Nové práce ve STAG (dle CELÉHO jména — ne jen příjmení, ať nepočítáme
     #    jmenovce), které v DB nemáš.
@@ -249,12 +254,17 @@ class StagChangesPreviewDialog(QDialog):
                 "<p>⚠ Kontrolu se nepodařilo dokončit "
                 f"({r.error or 'STAG nedostupný'}).</p>"
             )
+        # Sekce „zkontrolováno a aktuální" je hlavně pro kontrolu/debug — vidíš,
+        # které práce kontrola opravdu prošla a jsou v souladu se STAG.
+        checked_section = self._section(
+            "✓ Zkontrolováno a aktuální", r.up_to_date, "#2e7d32"
+        )
         if r.total_changes == 0:
-            return (
+            head = (
                 "<p style='color:#2e7d32;'>✓ <b>Vše aktuální</b> — žádné změny "
-                "ani nové práce ve STAG (prošlo "
-                f"{r.checked} prací).</p>"
+                f"ani nové práce ve STAG (prošlo {r.checked} prací).</p>"
             )
+            return head + checked_section
         body = (
             self._section("🆕 Nové práce ve STAG (nemáš v aplikaci)", r.new, "#1565c0")
             + self._section("🔄 Vedené práce se změnou", r.supervised, "#ef6c00")
@@ -262,5 +272,5 @@ class StagChangesPreviewDialog(QDialog):
         )
         return (
             "<p>Tohle STAG nabízí navíc oproti tvé databázi. Detaily a stažení "
-            "provedeš v <b>Import ze STAG</b>.</p>" + body
+            "provedeš v <b>Import ze STAG</b>.</p>" + body + checked_section
         )

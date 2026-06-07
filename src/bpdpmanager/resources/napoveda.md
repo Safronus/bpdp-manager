@@ -581,9 +581,11 @@ vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola hlídá:
 
 Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
 práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuálně vedené práce*
-a *🧐 Oponované práce*. Tlačítkem **🔎 Zobrazit změny…** otevřeš **rychlý
-náhled** — jmenovitě, které práce mají změnu a které nové práce STAG nabízí;
-teprve odtud přejdeš na **Import ze STAG**. Kontrolu lze kdykoli **ručně
+a *🧐 Oponované práce*. Tlačítkem **🔎 Detaily…** otevřeš **rychlý
+náhled** — jmenovitě, které práce mají změnu, které nové práce STAG nabízí,
+a (pro kontrolu/debug) i seznam **zkontrolovaných a aktuálních** prací; teprve
+odtud přejdeš na **Import ze STAG**. Tlačítko **Detaily…** je dostupné i když
+je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze kdykoli **ručně
 zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
 Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.
 

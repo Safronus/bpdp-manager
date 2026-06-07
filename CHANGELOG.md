@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.74.2] - 2026-06-07
+
+### Added
+- **Náhled tiché kontroly ukazuje i seznam „zkontrolováno a aktuální".** Pro
+  ověření/debug, že kontrola opravdu proběhla a které práce prošla. Tlačítko
+  **🔎 Detaily…** v proužku je dostupné **i když je vše aktuální** (otevře
+  náhled se jmenným seznamem zkontrolovaných prací).
+
 ## [0.74.1] - 2026-06-07
 
 ### Fixed
