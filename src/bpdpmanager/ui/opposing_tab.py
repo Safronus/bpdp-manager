@@ -214,6 +214,9 @@ class OpposingTab(QWidget):
         # Posudek/přílohy se mohly změnit → refresh seznamu i detailu.
         self.refresh()
         self._select_id(opposing_id)
+        # Re-selekce stejné práce nemusí vyvolat set_opposing (výběr se nezměnil),
+        # takže detail (vč. seznamu dokumentů) obnovíme explicitně.
+        self.detail.set_opposing(self.service.get_opposing_thesis(opposing_id))
         self.changed.emit()
 
     # --- načtení / refresh --------------------------------------------------

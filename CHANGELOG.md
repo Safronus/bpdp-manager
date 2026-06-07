@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-06-07
+
+### Fixed
+- **Oponentury: po vygenerování posudku se obnoví seznam dokumentů** v detailu
+  (dřív se po vyrobení posudku přílohy nepřekreslily, dokud uživatel nepřeklikl
+  na jinou práci).
+- **Oponentury: Souhrn ukazuje jen aktuální přílohy, ne archiv** starších verzí
+  posudků — stejně jako u vedených prací (filtr `is_current`).
+
 ## [1.0.5] - 2026-06-07
 
 ### Fixed

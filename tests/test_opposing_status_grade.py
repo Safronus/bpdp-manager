@@ -122,6 +122,29 @@ def test_opposing_context_menu_has_write_review(qapp, service) -> None:
     assert write[0].isEnabled()
 
 
+def test_opposing_summary_excludes_archived_attachments(qapp, service, tmp_path) -> None:
+    """Souhrn oponentury ukazuje jen AKTUÁLNÍ přílohy, ne archiv starších verzí."""
+    from bpdpmanager.ui.opposing_detail import OpposingDetail
+
+    op = OpposingThesis(type=ThesisType.BP, academic_year=service.current_academic_year(),
+                        student_last_name="Novák")
+    service.upsert_opposing_thesis(op)
+    # Dvojí nahrání posudku → první se zarchivuje (is_current=False).
+    for i in (1, 2):
+        f = tmp_path / f"p{i}.pdf"
+        f.write_bytes(b"%PDF")
+        service.opposing_attach_document(op.id, f, kind=AttachmentKind.OPPONENT_REVIEW)
+    op = service.get_opposing_thesis(op.id)
+    archived = [a for a in op.attachments if not a.is_current]
+    current = [a for a in op.attachments if a.is_current]
+    assert len(archived) == 1 and len(current) == 1
+
+    det = OpposingDetail(service)
+    html = det._build_summary_html(op)
+    assert current[0].label in html          # aktuální posudek je v souhrnu
+    assert archived[0].label not in html      # archivovaná verze NE
+
+
 def test_opposing_previous_years_collapsed(qapp, service) -> None:
     """Aktuální rok rozbalený, starší roky defaultně sbalené."""
     current = service.current_academic_year()

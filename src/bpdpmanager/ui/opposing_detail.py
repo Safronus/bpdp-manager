@@ -771,10 +771,12 @@ class OpposingDetail(QWidget):
             + "</tr></table>"
         )
 
-        # Dokumenty
-        if op.attachments:
+        # Dokumenty — jen AKTUÁLNÍ přílohy (archiv starších verzí se neukazuje),
+        # stejně jako v Souhrnu vedených prací.
+        cur_atts = [a for a in op.attachments if a.is_current]
+        if cur_atts:
             rows = ""
-            for att in op.attachments:
+            for att in sorted(cur_atts, key=lambda a: a.kind.label):
                 rows += (
                     f"<tr>"
                     f"<td style='padding:3px 14px 3px 0;'><b>{e(att.kind.label)}</b></td>"
