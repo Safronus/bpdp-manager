@@ -291,4 +291,21 @@ def test_download_timeout_friendly_message(monkeypatch) -> None:
     monkeypatch.setattr(client._opener, "open", fake_open)
     with pytest.raises(stag_api.StagError) as ei:
         client.download_file_streamed("/x")
-    assert "neodpověděl včas" in str(ei.value)
+    msg = str(ei.value)
+    assert "neodpověděl včas" in msg
+    # Uživateli vždy nabídneme ruční cestu (stažení ze STAGu → sekce Dokumenty).
+    assert "ručně" in msg and "Dokument" in msg
+
+
+def test_download_timeout_is_size_graduated() -> None:
+    """Timeout roste s velikostí, má strop a velkorysý fallback pro neznámou."""
+    mb = 1024 * 1024
+    small = stag_api.download_timeout_for(1 * mb)
+    big = stag_api.download_timeout_for(500 * mb)
+    huge = stag_api.download_timeout_for(10_000 * mb)
+    assert small < big                       # větší soubor = víc času
+    assert big >= stag_api._DOWNLOAD_TIMEOUT_BASE
+    assert huge == stag_api._DOWNLOAD_TIMEOUT_MAX  # strop
+    # Neznámá velikost → fallback (ne nula), pokrývá i nejhorší pozorovaný čas.
+    assert stag_api.download_timeout_for(0) == stag_api._DOWNLOAD_TIMEOUT
+    assert stag_api._DOWNLOAD_TIMEOUT >= 600

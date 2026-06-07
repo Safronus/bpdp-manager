@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.67.1] - 2026-06-07
+
+### Changed
+- **Timeout stahování doladěn podle reálného benchmarku** (≈585 souborů celé
+  knihovny). Model `base + 1,2 s/MB` (strop 30 min) dává i u největší
+  948MB přílohy ~3× rezervu; fallback pro neznámou velikost zvýšen na 900 s.
+- **Při timeoutu aplikace poradí ruční cestu.** Hláška nově vždy uvádí, že
+  *„Soubor jde vždy stáhnout ze STAGu ručně a přidat k práci v sekci
+  Dokumenty."* — platí všude, kde se soubory stahují (Kontrola se STAG,
+  hromadné stažení, Aktualizovat…, Stáhnout jen soubory).
+
 ## [0.67.0] - 2026-06-07
 
 ### Added

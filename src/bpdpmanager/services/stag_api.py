@@ -48,6 +48,18 @@ ROLE_SUPERVISOR = "vedouci"
 ROLE_OPPONENT = "oponent"
 
 
+# Když ani delší timeout nestačí (STAG přílohu nestihl připravit/odeslat),
+# uživateli vždy zbývá ruční cesta — nabídneme ji přímo v chybové hlášce.
+MANUAL_DOWNLOAD_HINT = (
+    "Soubor jde vždy stáhnout ze STAGu ručně (přes webový prohlížeč) "
+    "a přidat k práci v sekci „Dokumenty“."
+)
+_TIMEOUT_MSG = (
+    "STAG neodpověděl včas — velký soubor nebo příprava na serveru trvá "
+    "příliš dlouho. " + MANUAL_DOWNLOAD_HINT
+)
+
+
 class StagError(Exception):
     """Chyba při komunikaci se STAG (síť, neočekávaná odpověď, prázdný výsledek)."""
 
@@ -63,8 +75,13 @@ _DOWNLOAD_CHUNK = 64 * 1024
 # velké přílohy / ZIP balíčky generuje až na vyžádání, takže než začne posílat
 # data (TTFB), může to trvat i desítky sekund až minuty (prohlížeč žádný pevný
 # limit nemá). Krátký 30s timeout takové soubory zbytečně shazoval.
-_DOWNLOAD_TIMEOUT = 600.0      # fallback, když velikost neznáme
-_DOWNLOAD_TIMEOUT_BASE = 120.0  # rezerva na TTFB (příprava na serveru)
+# Kalibrace dle reálného benchmarku (≈585 souborů, viz tools/bench_stag_downloads):
+# i největší 948MB ZIP dojel za ~370 s (TTFB 162 s + přenos), nejhorší poměr
+# čas/velikost ≈ 0,4 s/MB. Volíme ~1,2 s/MB (≈3× rezerva) + malou bázi pro
+# drobné soubory; strop 30 min pokryje i hypoteticky obří přílohy.
+_DOWNLOAD_TIMEOUT = 900.0       # fallback, když velikost neznáme (> nejhorší pozorovaný čas)
+_DOWNLOAD_TIMEOUT_BASE = 120.0  # rezerva na spojení + krátký TTFB u malých souborů
+_DOWNLOAD_TIMEOUT_PER_MB = 1.2  # s/MB navíc (TTFB roste s velikostí + přenos)
 _DOWNLOAD_TIMEOUT_MAX = 1800.0  # strop (30 min)
 
 
@@ -73,11 +90,15 @@ def download_timeout_for(size_hint: int) -> float:
 
     Velký soubor (STAG ho déle připravuje a déle posílá) dostane více času,
     malý naopak selže rychleji, když opravdu visí. Při neznámé velikosti
-    vrací velkorysý fallback. Přibližně ``base + 1 s/MB``, max 30 min.
+    vrací velkorysý fallback. Přibližně ``base + 1,2 s/MB``, max 30 min.
     """
     if not size_hint or size_hint <= 0:
         return _DOWNLOAD_TIMEOUT
-    return min(_DOWNLOAD_TIMEOUT_MAX, _DOWNLOAD_TIMEOUT_BASE + size_hint / (1024 * 1024))
+    size_mb = size_hint / (1024 * 1024)
+    return min(
+        _DOWNLOAD_TIMEOUT_MAX,
+        _DOWNLOAD_TIMEOUT_BASE + size_mb * _DOWNLOAD_TIMEOUT_PER_MB,
+    )
 
 
 # Detail práce (veřejný, bez přihlášení) — odtud se tahá seznam souborů.
@@ -356,19 +377,14 @@ class StagClient:
                 f"STAG odpověděl chybou HTTP {exc.code} při stahování souboru."
             ) from exc
         except TimeoutError as exc:  # socket.timeout je podtřída TimeoutError
-            raise StagError(
-                "STAG neodpověděl včas — velký soubor nebo příprava na serveru "
-                "trvá příliš dlouho. Zkus to prosím znovu."
-            ) from exc
+            raise StagError(_TIMEOUT_MSG) from exc
         except (urllib.error.URLError, OSError) as exc:
             # URLError často obaluje socket.timeout → rozliš podle příčiny.
             if isinstance(getattr(exc, "reason", None), TimeoutError):
-                raise StagError(
-                    "STAG neodpověděl včas — velký soubor nebo příprava na "
-                    "serveru trvá příliš dlouho. Zkus to prosím znovu."
-                ) from exc
+                raise StagError(_TIMEOUT_MSG) from exc
             raise StagError(
-                "Nepodařilo se stáhnout soubor ze STAG (spojení / timeout)."
+                "Nepodařilo se stáhnout soubor ze STAG (spojení / timeout). "
+                + MANUAL_DOWNLOAD_HINT
             ) from exc
         raw = b"".join(chunks)
         if not raw:

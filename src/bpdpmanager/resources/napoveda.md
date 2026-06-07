@@ -515,7 +515,12 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > a lze ho **přerušit** — po přerušení se **dočasně stažené soubory uklidí**.
 > Pokud se nějaká příloha nestáhne, aplikace to vypíše. Stahování běží
 > **na pozadí**, takže okno **nezamrzne** ani když STAG odpovídá pomalu
-> (Přerušit funguje pořád). Před stahováním aplikace **nabídne smazání
+> (Přerušit funguje pořád). Timeout je **odstupňovaný podle velikosti**
+> (velká příloha dostane víc času — i stovky MB / GB se v klidu stáhnou,
+> malý soubor naopak selže rychle, když opravdu visí). Kdyby se i tak něco
+> nestáhlo včas, aplikace to řekne a připomene, že **soubor jde vždy stáhnout
+> ze STAGu ručně** (přes webový prohlížeč) a přidat k práci v sekci
+> **📎 Dokumenty**. Před stahováním aplikace **nabídne smazání
 > zbylých dočasných souborů** z dřívějška (po přerušení / pádu). Když by
 > přílohy zabraly **hodně místa** (stovky MB a víc, typicky u hromadného
 > stažení mnoha prací), zeptá se, jestli stáhnout přílohy, nebo
