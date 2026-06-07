@@ -177,6 +177,7 @@ class _ThesesTab(QWidget):
         self.tree.generate_review_requested.connect(self._on_generate_review_requested)
         self.tree.export_thesis_requested.connect(self._on_export_thesis)
         self.tree.mark_review_sent_requested.connect(self._on_mark_review_sent)
+        self.tree.update_from_stag_requested.connect(self._on_update_from_stag)
         # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
         # stejný signal a my ho zpracujeme jednou handlerem.
         self.detail.generate_review_requested.connect(self._on_generate_review_requested)
@@ -351,6 +352,27 @@ class _ThesesTab(QWidget):
         if self.detail.thesis and self.detail.thesis.id == thesis_id:
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
         self.data_changed.emit()
+
+    def _on_update_from_stag(self, thesis_id: str) -> None:
+        """Aktualizuje JEDNU vybranou vedenou práci ze STAG (stav + soubory)."""
+        from .stag_sync_dialog import ROLE_SUPERVISOR, StagSyncDialog
+
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        if self.service.get_thesis(thesis_id) is None:
+            return
+        dlg = StagSyncDialog(
+            self.service, ROLE_SUPERVISOR, self,
+            profile_manager=self._profile_manager,
+            single=(False, thesis_id),
+        )
+        dlg.exec()
+        if dlg.changed:
+            self.tree.refresh()
+            self.detail.set_thesis(self.service.get_thesis(thesis_id))
+            self.data_changed.emit()
 
     def _on_export_thesis(self, thesis_id: str) -> None:
         """Exportuje práci do ZIP balíku (s výběrem, co zahrnout)."""

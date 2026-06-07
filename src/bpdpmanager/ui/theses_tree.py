@@ -406,6 +406,8 @@ class ThesesTreeWidget(QTreeWidget):
     export_thesis_requested = Signal(str)
     # Ruční přepnutí příznaku odeslání posudku sekretářce (thesis_id, sent)
     mark_review_sent_requested = Signal(str, bool)
+    # Vyžádaná aktualizace jedné práce ze STAG (stav + soubory)
+    update_from_stag_requested = Signal(str)
 
     HEADERS = [
         "Student / Skupina", "Téma", "Stav", "Známky V/O",
@@ -728,6 +730,17 @@ class ThesesTreeWidget(QTreeWidget):
             return
 
         menu = QMenu(self)
+
+        act_update = QAction("🔄 Aktualizace práce ze STAG…", self)
+        act_update.setToolTip(
+            "Porovná tuto práci se STAG a nabídne změnu stavu a dohrání "
+            "chybějících souborů (ukáže, co se aktualizuje; lze vybrat)."
+        )
+        act_update.triggered.connect(
+            lambda _checked=False, tid=thesis_id: self.update_from_stag_requested.emit(tid)
+        )
+        menu.addAction(act_update)
+        menu.addSeparator()
 
         act_generate = QAction("📝 Generovat posudek z šablony…", self)
         act_generate.setToolTip(

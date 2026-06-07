@@ -736,6 +736,14 @@ udělá **záloha** a v souhrnu je tlačítko **„↩ Vrátit vše"**. Práce *
 ID**, které se nepodaří dohledat podle příjmení, se **přeskočí a vypíšou**
 (doimportuj je klasicky přes hledání).
 
+> **🔄 Aktualizace JEDNÉ práce ze STAG (pravý klik).** Nad libovolnou prací —
+> vedenou (*Aktuální / Budoucí / Historie / Vše*) i oponenturou — je
+> v kontextovém menu **„🔄 Aktualizace práce ze STAG…"**. Porovná **jen tu
+> jednu** práci se STAG, ukáže navrhované změny (stav + chybějící soubory)
+> k zaškrtnutí a aplikuje jen vybrané (se zálohou). Funguje **i z Historie**
+> (na rozdíl od hromadné aktualizace, která bere jen práce *V řešení*). Když
+> je vše aktuální, dialog to oznámí (nic k aktualizaci).
+
 > **Pozor — „Aktualizovat" jen osvěžuje práce, které už máš.** Nové práce
 > (např. pro **nový akademický rok**), které v databázi ještě nemáš, se zde
 > **neobjeví**. Na ně je v dialogu *Aktualizovat…* tlačítko **🆕 Najít nové

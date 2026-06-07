@@ -121,19 +121,23 @@ def _resolve_adipidno(surname: str, type_code: str, role: str) -> str:
 class StagSyncDialog(QDialog):
     """Aktualizuje existující práce (stav + nové soubory) ze STAG."""
 
-    def __init__(self, service, role: str, parent=None, *, profile_manager=None) -> None:
+    def __init__(
+        self, service, role: str, parent=None, *, profile_manager=None,
+        single: tuple[bool, str] | None = None,
+    ) -> None:
         super().__init__(parent)
         self.service = service
         self.role = role
         self.profile_manager = profile_manager
+        # single = (is_opposing, obj_id) → aktualizuje JEN tuhle jednu práci
+        # (kontextová akce nad vybranou prací); None = hromadný režim.
+        self._single = single
         self._targets: list[_SyncTarget] = []
         self.changed = False  # nastav True, když se něco aktualizovalo
         # Uživatel klikl na „Najít nové práce…" → caller otevře hromadné stažení.
         self.open_new_works = False
 
         led = role == ROLE_SUPERVISOR
-        what = "vedené práce v řešení" if led else "oponentury (aktuální rok)"
-        self.setWindowTitle(f"Aktualizovat {what} ze STAG")
         self.setMinimumSize(820, 620)
         self.resize(1040, 820)
 
@@ -141,19 +145,30 @@ class StagSyncDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        title = QLabel(f"🔄 Aktualizovat {what} ze STAG")
+        if single is not None:
+            self.setWindowTitle("Aktualizace práce ze STAG")
+            title = QLabel("🔄 Aktualizace práce ze STAG")
+            intro = QLabel(
+                "Porovná tuto práci se STAG a nabídne <b>změnu stavu</b> a "
+                "<b>dohrání chybějících souborů</b> (např. nový posudek nebo "
+                "odevzdaná práce). Zaškrtni, co aplikovat. <b>Když je vše "
+                "aktuální, nic se nenabídne.</b>"
+            )
+        else:
+            what = "vedené práce v řešení" if led else "oponentury (aktuální rok)"
+            self.setWindowTitle(f"Aktualizovat {what} ze STAG")
+            title = QLabel(f"🔄 Aktualizovat {what} ze STAG")
+            new_what = "vedené práce" if led else "oponentury"
+            intro = QLabel(
+                "Porovná tvé práce se STAG a nabídne <b>změnu stavu</b> a "
+                "<b>dohrání chybějících souborů</b> (např. nový posudek nebo "
+                "odevzdaná práce). Zaškrtni, co aplikovat.<br>"
+                f"<span style='color:#1565c0;'>Hledáš <b>nové</b> {new_what} "
+                "(např. nový akademický rok)? Tady se neobjeví — použij "
+                "tlačítko <b>🆕 Najít nové práce…</b> dole.</span>"
+            )
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
-
-        new_what = "vedené práce" if led else "oponentury"
-        intro = QLabel(
-            "Porovná tvé práce se STAG a nabídne <b>změnu stavu</b> a "
-            "<b>dohrání chybějících souborů</b> (např. nový posudek nebo "
-            "odevzdaná práce). Zaškrtni, co aplikovat.<br>"
-            f"<span style='color:#1565c0;'>Hledáš <b>nové</b> {new_what} "
-            "(např. nový akademický rok)? Tady se neobjeví — použij "
-            "tlačítko <b>🆕 Najít nové práce…</b> dole.</span>"
-        )
         intro.setTextFormat(Qt.TextFormat.RichText)
         intro.setWordWrap(True)
         intro.setStyleSheet("color:#888;")
@@ -176,6 +191,8 @@ class StagSyncDialog(QDialog):
             "ještě nemáš v databázi (např. pro nový akademický rok)."
         )
         btn_new.clicked.connect(self._find_new_works)
+        if self._single is not None:
+            btn_new.setVisible(False)  # u jedné práce nedává smysl
         btn_close = QPushButton("Zavřít")
         btn_close.clicked.connect(self.reject)
         self.btn_apply = QPushButton("✓ Aktualizovat vybrané")
@@ -201,6 +218,34 @@ class StagSyncDialog(QDialog):
 
     def _collect_targets(self) -> list[_SyncTarget]:
         targets: list[_SyncTarget] = []
+        # Single režim — jen jedna vybraná práce (bez ohledu na stav/rok).
+        if self._single is not None:
+            is_opp, obj_id = self._single
+            if is_opp:
+                o = self.service.get_opposing_thesis(obj_id)
+                if o is None:
+                    return []
+                name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+                label = f"{name} — {o.title_cs or '(bez názvu)'} ({o.type.value})"
+                kinds = {a.kind for a in o.attachments if a.is_current}
+                return [_SyncTarget(
+                    is_opposing=True, obj_id=o.id, type_code=o.type.value,
+                    surname=o.student_last_name, label=label, local_status=None,
+                    local_kinds=kinds, adipidno=o.adipidno or "",
+                )]
+            t = self.service.get_thesis(obj_id)
+            if t is None:
+                return []
+            student = self.service.get_student(t.student_id) if t.student_id else None
+            surname = student.last_name if student else ""
+            name = student.full_name if student else "(neznámý student)"
+            label = f"{name} — {t.title_cs or '(bez názvu)'} ({t.type.value})"
+            kinds = {a.kind for a in t.attachments if a.is_current}
+            return [_SyncTarget(
+                is_opposing=False, obj_id=t.id, type_code=t.type.value,
+                surname=surname, label=label, local_status=t.status,
+                local_kinds=kinds, adipidno=t.adipidno or "",
+            )]
         if self.role == ROLE_SUPERVISOR:
             for t in self.service.list_theses():
                 if t.status != ThesisStatus.IN_PROGRESS:

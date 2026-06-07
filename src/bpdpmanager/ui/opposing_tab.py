@@ -9,13 +9,8 @@ from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QFormLayout,
     QHBoxLayout,
     QHeaderView,
-    QLineEdit,
     QMenu,
     QPushButton,
     QSplitter,
@@ -29,7 +24,6 @@ from ..models import OpposingThesis
 from ..models.enums import (
     REVIEW_STATE_LABELS,
     AttachmentKind,
-    ThesisType,
     review_sent_badge,
 )
 from ..services import ThesisService
@@ -74,42 +68,6 @@ def _czech_key(s: str) -> str:
     return "".join(c for c in nfd if not unicodedata.combining(c)).casefold()
 
 
-class _NewOpposingDialog(QDialog):
-    """Dialog na rychlé založení nového posudku — typ + rok."""
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Nový oponentský posudek")
-        self.setMinimumWidth(380)
-        v = QVBoxLayout(self)
-        form = QFormLayout()
-        self.cb_type = QComboBox()
-        for t in ThesisType:
-            self.cb_type.addItem(t.label, t.value)
-        form.addRow("Typ", self.cb_type)
-        self.ed_year = QLineEdit()
-        from datetime import date
-        today = date.today()
-        start = today.year if today.month >= 9 else today.year - 1
-        self.ed_year.setText(f"{start}/{start + 1}")
-        form.addRow("Akademický rok", self.ed_year)
-        v.addLayout(form)
-        bb = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        bb.accepted.connect(self.accept)
-        bb.rejected.connect(self.reject)
-        v.addWidget(bb)
-
-    @property
-    def type_value(self) -> str:
-        return self.cb_type.currentData()
-
-    @property
-    def year(self) -> str:
-        return self.ed_year.text().strip()
-
-
 class OpposingTab(QWidget):
     """Vertikální splitter: strom posudků nahoře + detail dole."""
 
@@ -130,12 +88,11 @@ class OpposingTab(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        # Toolbar uvnitř tabu
+        # Toolbar uvnitř tabu. Ruční „Nový oponentský posudek" byl odebrán —
+        # oponentury vznikají importem ze STAG (ruční záznam nešlo vyplnit, viz
+        # zrušená záložka Detail). Aktualizace jedné práce je v kontextovém menu.
         top = QHBoxLayout()
         top.setContentsMargins(6, 6, 6, 0)
-        btn_new = QPushButton("➕ Nový oponentský posudek…")
-        btn_new.clicked.connect(self._new_opposing)
-        top.addWidget(btn_new)
         btn_send = QPushButton("✉ Odeslat sekretářce…")
         btn_send.setToolTip(
             "Odeslání připravených oponentských posudků sekretářce e-mailem "
@@ -413,6 +370,18 @@ class OpposingTab(QWidget):
         menu = QMenu(self.tree)
         op = self.service.get_opposing_thesis(op_id)
 
+        # Aktualizace jedné oponentury ze STAG (stav + dohrání souborů).
+        act_update = QAction("🔄 Aktualizace práce ze STAG…", self.tree)
+        act_update.setToolTip(
+            "Porovná tuto oponenturu se STAG a nabídne dohrání chybějících "
+            "souborů (a aktualizaci stavu); ukáže, co se aktualizuje."
+        )
+        act_update.triggered.connect(
+            lambda _c=False, oid=op_id: self._on_update_from_stag(oid)
+        )
+        menu.addAction(act_update)
+        menu.addSeparator()
+
         # Napsat (oponentský) posudek — výběr šablony + vyplnění, v roli oponenta.
         act_write = QAction("📝 Napsat posudek…", self.tree)
         act_write.setToolTip(
@@ -504,16 +473,24 @@ class OpposingTab(QWidget):
 
     # --- akce ---------------------------------------------------------------
 
-    def _new_opposing(self) -> None:
-        dlg = _NewOpposingDialog(self)
-        if not dlg.exec():
+    def _on_update_from_stag(self, op_id: str) -> None:
+        """Aktualizuje JEDNU vybranou oponenturu ze STAG (stav + soubory)."""
+        from .stag_sync_dialog import ROLE_OPPONENT, StagSyncDialog
+
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        if self.service.get_opposing_thesis(op_id) is None:
             return
-        if not dlg.year:
-            return
-        op = OpposingThesis(
-            type=ThesisType(dlg.type_value),
-            academic_year=dlg.year,
+        dlg = StagSyncDialog(
+            self.service, ROLE_OPPONENT, self,
+            profile_manager=self.profile_manager,
+            single=(True, op_id),
         )
-        self.service.upsert_opposing_thesis(op)
-        self.refresh()
-        self._select_id(op.id)
+        dlg.exec()
+        if dlg.changed:
+            self.refresh()
+            self._select_id(op_id)
+            self.detail.set_opposing(self.service.get_opposing_thesis(op_id))
+            self.changed.emit()

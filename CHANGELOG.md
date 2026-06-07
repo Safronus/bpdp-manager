@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-07
+
+### Added
+- **Kontextová akce „🔄 Aktualizace práce ze STAG" nad vybranou prací.**
+  Funguje u **vedených prací** (Aktuální / Budoucí / Historie / Vše) i
+  **oponentur** — pravý klik na práci. Porovná **tu jednu práci** se STAG,
+  ukáže **co se aktualizuje** (změna stavu + dohrání chybějících souborů)
+  s možností volby (zaškrtávátka), a aplikuje jen vybrané (se zálohou). Když
+  je vše aktuální, jasně to oznámí (nic k aktualizaci). Funguje i z Historie
+  (na rozdíl od hromadné aktualizace, která bere jen práce „V řešení").
+
+### Removed
+- **Tlačítko „➕ Nový oponentský posudek…"** v záložce *Oponované práce* —
+  pozbylo smysl (ruční záznam nešlo po zrušení záložky *Detail* vyplnit;
+  oponentury vznikají importem ze STAG).
+
 ## [1.0.11] - 2026-06-07
 
 ### Changed
