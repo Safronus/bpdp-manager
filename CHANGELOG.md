@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-06-07
+
+### Fixed
+- **Odznak změn STAG 🔄 na záložce nezmizel** po vyřešení / zavření proužku
+  (držel se až do restartu). Zavření proužku „tiché kontroly" (✕) ho teď
+  **smaže** ze záložek (vedené i oponentury) a obnoví titulky.
+
 ## [1.2.4] - 2026-06-07
 
 ### Changed

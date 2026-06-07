@@ -618,7 +618,7 @@ class MainWindow(QMainWindow):
             "QToolButton { color:#212121; border:none; padding:2px 6px; } "
             "QToolButton:hover { background:#e0e0e0; border-radius:4px; }"
         )
-        btn_close.clicked.connect(lambda: self._stag_banner.setVisible(False))
+        btn_close.clicked.connect(self._dismiss_stag_banner)
         lay.addWidget(btn_close)
         self._stag_banner = bar
         bar.setVisible(False)
@@ -668,6 +668,14 @@ class MainWindow(QMainWindow):
             self.profile_manager.get_ui_pref("stag_autocheck_date")
             == date.today().isoformat()
         )
+
+    def _dismiss_stag_banner(self) -> None:
+        """Zavření proužku = potvrzení změn → schovat a smazat odznaky 🔄
+        na záložkách (jinak by visely až do dalšího STAG checku / restartu)."""
+        self._stag_banner.setVisible(False)
+        if any(self._stag_badges.values()):
+            self._stag_badges.clear()
+            self._refresh_tab_labels()
 
     def _auto_hide_stag_banner(self) -> None:
         """Skryje proužek po prodlevě — jen pokud pořád ukazuje „vše aktuální"."""
