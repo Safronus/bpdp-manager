@@ -87,9 +87,13 @@ vytvoří za tebe (oponenti se založí jako *interní*, kind a kontakt lze upra
 dodatečně). Tím máš databázi naplněnou během chvíle.
 
 ### 4. Studijní obory (+ STAG zkratky) — doporučené
-Obory import v nouzi založí i sám, ale pro **správné mapování** (a hlavně
-přiřazení **sekretářky** kvůli odesílání posudků e-mailem) je vhodné mít je
-nachystané. V toolbaru **Obory + sekretářky** u každého vyplň:
+Nejjednodušší je **nahrát defaultní obory** tlačítkem **⭐ Defaultní…**
+(toolbar **Obory + sekretářky**) — doplní celou sadu FAI UTB i s STAG kódy.
+Cokoli navíc pak **případně přidáš rovnou při importu** (obor lze založit i
+z dialogu importu). Pro **správné mapování** a hlavně přiřazení **sekretářky**
+(kvůli odesílání posudků e-mailem) je dobré mít obory nachystané předem.
+
+U každého oboru lze vyplnit:
 
 - **STAG kód** (např. `knIT-KYB`) — **důležité pro STAG import**:
   podle něj se obor automaticky namapuje. Bez něj tě import upozorní,
@@ -97,10 +101,6 @@ nachystané. V toolbaru **Obory + sekretářky** u každého vyplň:
 - volitelně sekretářku oboru (jméno, email, telefon) a její **oslovení
   v mailu** (např. „Vážená paní Nováková") — použije se při odesílání posudků;
   prázdné = formální výchozí „Dobrý den, paní {jméno},".
-
-> Nejrychleji obory nachystáš tlačítkem **⭐ Defaultní…** (viz níže) — doplní
-> celou sadu FAI UTB i s STAG kódy. Můžeš to udělat i **dodatečně** kdykoli po
-> importu.
 
 > Manažer **seskupuje obory podle sekretářky**; ve sloupci **Oslovení** vidíš
 > její oslovení. **Dvojklik na hlavičku sekretářky** upraví její kontakt
@@ -114,17 +114,34 @@ nachystané. V toolbaru **Obory + sekretářky** u každého vyplň:
 > výchozími**. Nový (prázdný) profil obory dostane rovnou.
 
 ### 5. Šablony posudků
-V toolbaru **📝 Šablony posudků → + Přidat šablonu…** nahraj XLSX
-šablony posudků (vedoucího / oponenta, BP / DP, CZ / EN). Aplikace
-z šablony **sama rozpozná** typ, roli, jazyk, obor, rok i strukturu
-kritérií. Bez šablon nelze generovat posudky.
+**Doporučeně si stáhni defaultní šablony** tlačítkem **⭐ Defaultní…** v knihovně
+šablon (toolbar **📝 Šablony posudků**) — doplní hotovou sadu FAI UTB, takže
+můžeš rovnou psát posudky bez ručního nahrávání. Bez šablon nelze posudky
+generovat.
 
-> **⭐ Defaultní šablony:** tlačítko **Defaultní…** v knihovně šablon nabídne
-> buď **doplnit chybějící** z kompletní sady FAI UTB (BP/DP, vedoucí/oponent,
-> CZ/EN, podle oboru; volitelně přepsat stejnojmenné), nebo **smazat všechny
-> šablony a nahradit je výchozí sadou**. Nový profil je dostane rovnou — můžeš
-> hned psát posudky bez ručního nahrávání. (Akademický rok se propíše z hlavičky
-> šablony.)
+> **Co defaultní sada obsahuje (a co ne).** Vestavěné šablony **nepokrývají
+> všechny obory** — některé musíš doplnit ručně:
+>
+> | Obor | BP | DP |
+> |------|----|----|
+> | **SWI** | ✅ (vč. EN) | — |
+> | **ITA** | ✅ (jen CZ) | — |
+> | **NSWI** | — | ✅ (vč. EN) |
+> | **NKYB** | — | ✅ (vč. EN) |
+> | **NUI** | — | ✅ (jen CZ) |
+> | **BTSM** | ❌ chybí | ❌ chybí |
+> | **IŘT** | ❌ chybí | ❌ chybí |
+>
+> Tzn. **chybí** zejména **BTSM (BP + DP)**, **IŘT (BP)** a **anglické varianty
+> u ITA a NUI**. Tyto šablony nahraj přes **📝 Šablony posudků → + Přidat
+> šablonu…** (aplikace z XLSX sama rozpozná typ, roli, jazyk, obor, rok
+> i strukturu kritérií).
+
+> **⭐ Defaultní šablony:** tlačítko **Defaultní…** nabídne buď **doplnit
+> chybějící** z vestavěné sady FAI UTB (BP/DP, vedoucí/oponent, CZ/EN, podle
+> oboru; volitelně přepsat stejnojmenné), nebo **smazat všechny šablony
+> a nahradit je výchozí sadou**. Nový profil je dostane rovnou. (Akademický rok
+> se propíše z hlavičky šablony.)
 
 ### 6. (Volitelně) LibreOffice pro PDF
 Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:

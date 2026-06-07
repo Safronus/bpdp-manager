@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.2a] - 2026-06-07
+
+### Changed
+- **Ladění tutoriálu / nápovědy.** Krok *Obory* nově doporučuje **nahrát
+  defaultní obory** (⭐ Defaultní) a zbytek případně doplnit při importu.
+  Krok *Šablony posudků* doporučuje **stáhnout defaultní šablony** a nově
+  **uvádí, které obory/typy defaultní sada pokrývá a které chybí** — chybí
+  zejména **BTSM (BP + DP)**, **IŘT (BP)** a anglické varianty ITA/NUI
+  (doplnit ručně). Stejná poznámka doplněna do README. Jen dokumentace.
+
 ## [1.0.2] - 2026-06-07
 
 ### Changed
