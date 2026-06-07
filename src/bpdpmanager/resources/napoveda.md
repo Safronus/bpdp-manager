@@ -849,6 +849,9 @@ synchronizací.
   (1,5 s po poslední úpravě) + při přepnutí práce a zavření okna.
 - **Roll-back** — pravý klik na práci ve stromu → kompletní smazání
   záznamu i souborů (s náhledem a potvrzením).
+- **Otevřít posudek** — pravý klik: u **vedené práce** *📕 Otevřít posudek
+  oponenta*, u **oponované práce aktuálního roku** *📘 Otevřít posudek
+  vedoucího* (otevře PDF; když posudek není, je akce neaktivní).
 - **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
   do ZIP* uloží **kompletní balík** (data, stav, posudky, známky a všechny
   soubory). Na jiném zařízení / v jiném profilu ho přes toolbar **📦 Import

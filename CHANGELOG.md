@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-06-07
+
+### Added
+- **Kontextová akce „Otevřít posudek".** U **vedených prací** pravý klik →
+  **📕 Otevřít posudek oponenta** (otevře PDF posudku oponenta, je-li
+  k dispozici; jinak je akce neaktivní). U **oponovaných prací aktuálního
+  roku** pravý klik → **📘 Otevřít posudek vedoucího** (obdobně).
+
 ## [0.79.0] - 2026-06-07
 
 ### Changed

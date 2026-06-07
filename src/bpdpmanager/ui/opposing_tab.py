@@ -37,6 +37,7 @@ from ..models.enums import (
     review_sent_badge,
 )
 from ..services import ThesisService
+from ._os_actions import open_path
 from .opposing_detail import OpposingDetail
 from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
 from .theses_tree import (
@@ -426,9 +427,30 @@ class OpposingTab(QWidget):
         from .rollback_dialog import RollbackOpposingDialog
 
         menu = QMenu(self.tree)
+        op = self.service.get_opposing_thesis(op_id)
+
+        # Otevřít posudek VEDOUCÍHO — jen u oponentur aktuálního roku, je-li k dispozici.
+        current_year = self.service.current_academic_year()
+        sup_att = next(
+            (a for a in op.attachments
+             if a.kind == AttachmentKind.SUPERVISOR_REVIEW and a.is_file and a.is_current),
+            None,
+        ) if op is not None else None
+        sup_path = (
+            self.service.opposing_document_absolute_path(op_id, sup_att)
+            if sup_att is not None else None
+        )
+        act_open_sup = QAction("📘 Otevřít posudek vedoucího", self.tree)
+        act_open_sup.setEnabled(
+            op is not None and op.academic_year == current_year
+            and sup_path is not None and sup_path.exists()
+        )
+        if act_open_sup.isEnabled():
+            act_open_sup.triggered.connect(lambda _c=False, p=sup_path: open_path(p))
+        menu.addAction(act_open_sup)
+        menu.addSeparator()
 
         # Označení posudku za odeslaný — jen když je posudek hotový.
-        op = self.service.get_opposing_thesis(op_id)
         if op is not None and op.opponent_review_state == "done":
             sent = bool(op.opponent_review_sent_at)
             label = (

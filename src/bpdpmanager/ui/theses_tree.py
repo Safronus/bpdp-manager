@@ -28,6 +28,7 @@ from ..models.enums import (
     review_sent_badge,
 )
 from ..services import ThesisService
+from ._os_actions import open_path
 
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
@@ -536,6 +537,9 @@ class ThesesTreeWidget(QTreeWidget):
         thesis_id = item.data(0, ROLE_THESIS_ID)
         if not thesis_id:
             return
+        thesis = self.service.get_thesis(thesis_id)
+        if thesis is None:
+            return
 
         menu = QMenu(self)
 
@@ -549,8 +553,25 @@ class ThesesTreeWidget(QTreeWidget):
         )
         menu.addAction(act_generate)
 
+        # Otevřít posudek OPONENTA, pokud je u vedené práce k dispozici.
+        opp_att = next(
+            (a for a in thesis.attachments
+             if a.kind == AttachmentKind.OPPONENT_REVIEW and a.is_file and a.is_current),
+            None,
+        )
+        opp_path = (
+            self.service.document_absolute_path(thesis_id, opp_att)
+            if opp_att is not None else None
+        )
+        act_open_opp = QAction("📕 Otevřít posudek oponenta", self)
+        act_open_opp.setEnabled(opp_path is not None and opp_path.exists())
+        if act_open_opp.isEnabled():
+            act_open_opp.triggered.connect(
+                lambda _c=False, p=opp_path: open_path(p)
+            )
+        menu.addAction(act_open_opp)
+
         # Označení posudku za odeslaný — jen u prací „V řešení" s hotovým posudkem.
-        thesis = self.service.get_thesis(thesis_id)
         if (
             thesis is not None
             and thesis.status == ThesisStatus.IN_PROGRESS
