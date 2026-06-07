@@ -411,11 +411,11 @@ class MainWindow(QMainWindow):
         self.tab_stats = StatsTab(service)
 
         # Tab labely (bez roku — status-driven, jeden tab = jeden bucket napříč roky)
-        self.tabs.addTab(self.tab_current, "Aktuální")
-        self.tabs.addTab(self.tab_future, "Budoucí")
+        self.tabs.addTab(self.tab_current, "Aktuálně vedené práce")
+        self.tabs.addTab(self.tab_future, f"Práce v dalším akademickém roce {next_year}")
         self.tabs.addTab(self.tab_history, "Historie")
         self.tabs.addTab(self.tab_all, "Vše")
-        self.tabs.addTab(self.tab_opposing, "🧐 Oponentské posudky")
+        self.tabs.addTab(self.tab_opposing, "🧐 Oponované práce")
         self.tabs.addTab(self.tab_proposals, "💡 Návrhy témat")
         self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
         self.tabs.addTab(self.tab_stats, "📊 Statistiky")
@@ -536,8 +536,8 @@ class MainWindow(QMainWindow):
         # Odznaky na záložkách (jen aktuální + oponentury).
         sup = result.supervised_changes if result.ok else 0
         opp = result.opposing_changes if result.ok else 0
-        self._set_tab_badge(self.tab_current, "Aktuální", sup)
-        self._set_tab_badge(self.tab_opposing, "🧐 Oponentské posudky", opp)
+        self._set_tab_badge(self.tab_current, "Aktuálně vedené práce", sup)
+        self._set_tab_badge(self.tab_opposing, "🧐 Oponované práce", opp)
 
         if not result.ok:
             self._set_stag_banner(

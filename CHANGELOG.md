@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.71.2] - 2026-06-07
+
+### Changed
+- **Přejmenované záložky** pro srozumitelnost: *Aktuální* → **Aktuálně vedené
+  práce**, *Budoucí* → **Práce v dalším akademickém roce R/R** (s konkrétním
+  rokem), *🧐 Oponentské posudky* → **🧐 Oponované práce**.
+
 ## [0.71.1] - 2026-06-07
 
 ### Fixed

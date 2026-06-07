@@ -128,8 +128,9 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 *Import ze STAG*, šedá *Profil / Obnovit / Nápověda*), pod ním
 **🔍 vyhledávací pole** a pak **záložky** (taby):
 
-- **Aktuální** — práce ve stavu *V řešení*
-- **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
+- **Aktuálně vedené práce** — práce ve stavu *V řešení*
+- **Práce v dalším akademickém roce R/R** — *Zájemce bez tématu*,
+  *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok)
 - **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
   filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
   defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
@@ -138,7 +139,7 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
 - **Vše** — všechny vedené práce
-- **🧐 Oponentské posudky** — práce, kde jsi oponent (ne vedoucí).
+- **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí).
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
 - **📅 Harmonogram** — fakultní termíny z PDF
 
@@ -156,8 +157,8 @@ v *Aktuální* jsou nahoře).
 V **Aktuální** se buňka *názvu práce* podbarví podle posudku vedoucího:
 🟢 vyrobený soubor · 🟡 jen rozpracovaná data (uložená bez XLSX) · 🔴 nic.
 Stav je navíc jako **barevný puntík přímo v názvu**, takže ho vidíš i
-u **vybraného** řádku (výběr by jinak pozadí překryl). V **🧐 Oponentské
-posudky** stejně podle oponentského posudku. **Dolní lišta** ukazuje barevný
+u **vybraného** řádku (výběr by jinak pozadí překryl). V **🧐 Oponovaných
+pracích** stejně podle oponentského posudku. **Dolní lišta** ukazuje barevný
 souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik práce
 tě ještě čeká.
 
@@ -165,7 +166,7 @@ Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
 **V/O** se známkou **vedoucího i oponenta** — vlevo známka vedoucího (V),
 vpravo oponenta (O), jako **barevně podbarvená dvojice písmen** (zelená A →
 červená F/FX; „—" když chybí obě, plný popis v tooltipu). **Stejně vypadající
-sloupec V/O** je i v záložce *Oponentské posudky*.
+sloupec V/O** je i v záložce *Oponované práce*.
 
 > **Oponentury — řazení dle roku.** Práce jsou seskupené dle akademického roku;
 > defaultně je rozbalený **jen aktuální rok**, starší roky jsou sbalené.
@@ -177,7 +178,7 @@ sloupec V/O** je i v záložce *Oponentské posudky*.
 > u stažených oponentur doplní z nahraného **posudku** (PDF i Word `.doc`/
 > `.docx`) automaticky.
 
-Seznam prací v *Aktuální* i *Oponentské posudky* má jednotný sloupec
+Seznam prací v *Aktuální* i *Oponované práce* má jednotný sloupec
 **Odesláno**: u prací s **hotovým posudkem** ukazuje **✉ ✓ odesláno** /
 **✉ ✗ neodesláno** (stejná informace je i v Souhrnu — *Odeslání posudku:
 ✓/✗*). Posudek se označí jako odeslaný **automaticky** při odeslání e-mailem,
@@ -312,7 +313,7 @@ Tlačítko **📝 Napsat posudek…** je na **dvou místech**:
 
 - u **vedené práce** *V řešení* (záložka detailu práce — aktivní jen ve
   stavu *V řešení*),
-- u **oponovaného posudku** (záložka *🧐 Oponentské posudky* → v hlavičce
+- u **oponovaného posudku** (záložka *🧐 Oponované práce* → v hlavičce
   detailu) — vyplníš tu svůj **oponentský** posudek cizí práce.
 
 Workflow:
@@ -388,9 +389,9 @@ profilu (kopie v `profile_dir/templates/`).
 
 ---
 
-## Oponentské posudky
+## Oponované práce
 
-Samostatná záložka **🧐 Oponentské posudky** pro práce, kde vystupuješ
+Samostatná záložka **🧐 Oponované práce** pro práce, kde vystupuješ
 jako **oponent** (recenzuješ cizí BP/DP). Vlastní model — inline údaje
 o studentovi a vedoucím (přes registr vedoucích s našeptáváním),
 **obor** (rozbalovací seznam evidovaných oborů — drž ho na evidovaném oboru,
@@ -440,9 +441,9 @@ V toolbaru je tlačítko **✉ Odeslat posudky** s volbou:
 
 - **🎓 Posudky vedoucího (vedené práce)** — posudky, které jsi napsal(a) jako
   vedoucí.
-- **🧐 Oponentské posudky** — posudky, které jsi napsal(a) jako oponent.
+- **🧐 Oponované práce** — posudky, které jsi napsal(a) jako oponent.
 
-(Oponentské posudky lze poslat i přímo z jejich záložky tlačítkem
+(Oponované práce lze poslat i přímo z jejich záložky tlačítkem
 **✉ Odeslat sekretářce…**.)
 
 V dialogu:
@@ -573,7 +574,7 @@ vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola hlídá:
 
 Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
 práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuální* a *🧐
-Oponentské posudky* a v proužku je tlačítko **Otevřít Import ze STAG…** (odtud
+Oponované práce* a v proužku je tlačítko **Otevřít Import ze STAG…** (odtud
 *Aktualizovat…* / *Najít nové práce…*). Kontrolu lze kdykoli **ručně zopakovat**
 tlačítkem **🔄 Zkontrolovat** v proužku; **proužek skryješ** křížkem. Kontrola
 je **jen pro čtení** (nic nemění); když je STAG nedostupný (offline), tiše to
