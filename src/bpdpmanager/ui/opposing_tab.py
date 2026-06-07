@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
-    QLabel,
     QLineEdit,
     QMenu,
     QPushButton,
@@ -30,7 +29,6 @@ from PySide6.QtWidgets import (
 from ..models import OpposingThesis
 from ..models.enums import (
     REVIEW_STATE_LABELS,
-    REVIEW_STATE_STRONG,
     AttachmentKind,
     ThesisType,
     review_sent_badge,
@@ -147,9 +145,8 @@ class OpposingTab(QWidget):
         btn_send.clicked.connect(self.send_reviews_requested.emit)
         top.addWidget(btn_send)
         top.addStretch()
-        self.lbl_count = QLabel("")
-        self.lbl_count.setStyleSheet("color:#888;font-size:11px;")
-        top.addWidget(self.lbl_count)
+        # Souhrn hotovo/chybí se NEukazuje tady — duplikoval by barevný souhrn
+        # posudků v dolní liště hlavního okna (ten pokrývá vedené i oponentury).
         outer.addLayout(top)
 
         # Splitter
@@ -371,18 +368,6 @@ class OpposingTab(QWidget):
                 # Aktuální rok rozbalený, starší roky defaultně sbalené.
                 year_item.setExpanded(year == current_year)
 
-            # Souhrn hotovo/chybí — jen za AKTUÁLNÍ rok (u starších je irelevantní).
-            cur = [o for o in opposings if o.academic_year == current_year]
-            done = sum(1 for o in cur if o.opponent_review_state == "done")
-            missing = sum(1 for o in cur if o.opponent_review_state == "none")
-            self.lbl_count.setText(
-                f"Posudků celkem: {len(opposings)}  ·  "
-                f"aktuální rok ({current_year}): "
-                f"<span style='color:{REVIEW_STATE_STRONG['done']};'>hotovo {done}</span>  ·  "
-                f"<span style='color:{REVIEW_STATE_STRONG['none']};'>chybí {missing}</span>"
-            )
-            self.lbl_count.setTextFormat(Qt.TextFormat.RichText)
-
             if selected_id:
                 self._select_id(selected_id)
         finally:
@@ -413,19 +398,37 @@ class OpposingTab(QWidget):
         self.detail.set_opposing(op)
 
     def _on_context_menu(self, pos: QPoint) -> None:
-        """Kontextové menu — pravý klik na posudek → Roll-back."""
+        """Kontextové menu — pravý klik na posudek."""
         item = self.tree.itemAt(pos)
         if item is None:
             return
         op_id = item.data(0, ROLE_ID)
         if not op_id:
             return  # year header — nemá menu
+        menu = self._build_context_menu(op_id)
+        if menu is not None:
+            menu.exec(self.tree.viewport().mapToGlobal(pos))
 
+    def _build_context_menu(self, op_id: str) -> QMenu | None:
+        """Sestaví kontextové menu pro daný posudek (bez ``exec`` — testovatelné)."""
         # Import zde, ne na vrcholu (kruhový import s main_window)
         from .rollback_dialog import RollbackOpposingDialog
 
         menu = QMenu(self.tree)
         op = self.service.get_opposing_thesis(op_id)
+
+        # Napsat (oponentský) posudek — výběr šablony + vyplnění, v roli oponenta.
+        act_write = QAction("📝 Napsat posudek…", self.tree)
+        act_write.setToolTip(
+            "Vyber šablonu a napiš oponentský posudek k této práci (role oponent)."
+        )
+        act_write.setEnabled(op is not None)
+        if op is not None:
+            act_write.triggered.connect(
+                lambda _c=False, oid=op_id: self._on_generate_review(oid)
+            )
+        menu.addAction(act_write)
+        menu.addSeparator()
 
         # Otevřít posudek VEDOUCÍHO — jen u oponentur aktuálního roku, je-li k dispozici.
         current_year = self.service.current_academic_year()
@@ -501,7 +504,7 @@ class OpposingTab(QWidget):
 
         act_rollback.triggered.connect(_do_rollback)
         menu.addAction(act_rollback)
-        menu.exec(self.tree.viewport().mapToGlobal(pos))
+        return menu
 
     # --- akce ---------------------------------------------------------------
 

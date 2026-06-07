@@ -516,9 +516,24 @@ class ThesisDetail(QWidget):
         self.documents_widget = DocumentsWidget(
             self.service, profile_manager=self.profile_manager
         )
+        self.documents_widget.changed.connect(self._on_documents_changed)
         self.documents_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.documents_widget, stretch=1)
         return w
+
+    def _on_documents_changed(self) -> None:
+        """Po nahrání/odebrání dokumentu (typicky posudku) obnov seznam prací.
+
+        Nahrání PDF posudku vedoucího/oponenta může doplnit známku → re-sync
+        a přes ``saved`` přenačte strom (sloupce Známky V/O + Posudky).
+        """
+        if self._loading or self.thesis is None:
+            return
+        synced = self.service.sync_thesis_grades(self.thesis.id)
+        if synced is not None:
+            self.thesis = synced
+        self._refresh_summary()
+        self.saved.emit(self.thesis.id)
 
     def _build_plagiarism_tab(self) -> QWidget:
         w = QWidget()

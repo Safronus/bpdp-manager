@@ -104,6 +104,24 @@ def test_opposing_status_column_and_year_gating(qapp, service) -> None:
     assert COL_OBOR == 7  # Obor je poslední sloupec (za Posudky + Odesláno)
 
 
+def test_opposing_context_menu_has_write_review(qapp, service) -> None:
+    """Kontextové menu oponentur obsahuje akci „Napsat posudek" (role oponent)."""
+    op = OpposingThesis(type=ThesisType.BP, academic_year=service.current_academic_year(),
+                        student_last_name="Aktuální")
+    service.upsert_opposing_thesis(op)
+    tab = OpposingTab(service)
+    tab.refresh()
+
+    # Sestavíme menu přímo (bez exec, ať test neblokuje na modálu).
+    menu = tab._build_context_menu(op.id)
+    assert menu is not None
+    actions = menu.actions()
+    texts = [a.text() for a in actions]
+    write = [a for a in actions if "Napsat posudek" in a.text()]
+    assert write, f"Akce 'Napsat posudek' chybí v menu: {texts}"
+    assert write[0].isEnabled()
+
+
 def test_opposing_previous_years_collapsed(qapp, service) -> None:
     """Aktuální rok rozbalený, starší roky defaultně sbalené."""
     current = service.current_academic_year()

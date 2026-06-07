@@ -82,10 +82,14 @@ def _read_doc_text(path: Path) -> str:
     if soffice is None:
         return ""
     with tempfile.TemporaryDirectory() as tmp:
+        # Izolovaný profil LO — jinak ``--headless`` zamrzne, když uživatel
+        # má LibreOffice otevřené v GUI (sdílený zámek profilu).
+        lo_profile = (Path(tmp) / "loprofile").as_uri()
         try:
             subprocess.run(
                 [
                     str(soffice),
+                    f"-env:UserInstallation={lo_profile}",
                     "--headless",
                     "--convert-to", "txt:Text",
                     "--outdir", tmp,

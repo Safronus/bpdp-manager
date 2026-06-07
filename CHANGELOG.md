@@ -7,6 +7,39 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-06-07
+
+### Fixed
+- **KRITICKÉ: generování posudku (XLSX + PDF) zamrzávalo na progресu.** Worker
+  posudek vyrobil, ale progress dialog se nezavřel (volal se `reset()`, který
+  při `autoClose=False` modální `exec()` neukončí) — aplikace „běžela a
+  nedoběhla" a musela se násilně ukončit. Progress se nyní zavírá po doběhnutí
+  vlákna (`finished → close()`).
+- **LibreOffice převod nezamrzne ani s otevřeným LO GUI.** Konverze XLSX→PDF
+  (i `.doc`→text) běží s **izolovaným uživatelským profilem**
+  (`-env:UserInstallation`), takže ji neblokuje běžící instance LibreOffice.
+- **Špatně doporučená šablona posudku.** U práce s oborem např. `SWI-P` se
+  předvybírala cizí šablona (abecedně první, `ITA`). Předvýběr i filtr nyní
+  obor **normalizují stejně jako šablony** (`SWI-P`/`NSWI-P` → `SWI`,
+  `NKYB-K` → `KYB`) a přednostně volí šablonu **oboru práce**.
+- **Seznam prací se po nahrání posudku obnoví** (sloupce *Známky V/O* a
+  *Posudky*) — u vedených prací i oponentur, vč. dotažení známky z PDF.
+
+### Added
+- **Editor posudku: tlačítka 📄 Otevřít text práce a 📕/📘 Otevřít opačný
+  posudek** (u psaného posudku vedoucího → posudek oponenta a naopak) — pro
+  rychlé nahlédnutí do podkladů během psaní.
+- **Kontextová akce „📝 Napsat posudek…" v záložce *Oponované práce*** (role
+  oponent).
+
+### Changed
+- **Editor posudku: volba „Stav" (splnění zadání) respektuje jazyk šablony** —
+  CZ šablona nabízí `splnil(a)/nesplnil(a)`, EN `fulfilled/not fulfilled`
+  (ne všechny 4 najednou).
+- **Světlejší zelená/červená v indikátorech posudků** (čitelné i v dark theme).
+- **Odebrán duplicitní souhrn posudků vpravo nahoře v *Oponovaných pracích*** —
+  totéž (pro vedené i oponentury) ukazuje barevný souhrn v dolní liště.
+
 ## [1.0.4] - 2026-06-07
 
 ### Fixed

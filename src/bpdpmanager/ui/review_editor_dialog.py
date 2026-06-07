@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import Review
+from ..models.enums import AttachmentKind
 from ..services import ThesisService
 from ._os_actions import open_path, reveal_in_file_manager
 
@@ -140,6 +141,36 @@ class ReviewEditorDialog(QDialog):
         )
         outer.addWidget(meta)
 
+        # ── Rychlé otevření podkladů: text práce + opačný posudek ─────────
+        # U psaného posudku VEDOUCÍHO nabídneme posudek OPONENTA a naopak,
+        # plus PDF/soubor s textem práce (pro nahlédnutí během psaní).
+        quick = QHBoxLayout()
+        text_path = self._attachment_path(AttachmentKind.THESIS_TEXT)
+        btn_text = QPushButton("📄 Otevřít text práce")
+        btn_text.setToolTip("Otevře nahraný text práce (PDF), je-li k dispozici.")
+        btn_text.setEnabled(text_path is not None and text_path.exists())
+        if btn_text.isEnabled():
+            btn_text.clicked.connect(lambda _c=False, p=text_path: open_path(p))
+        quick.addWidget(btn_text)
+
+        other_is_opponent = review.role == "supervisor"
+        other_kind = (
+            AttachmentKind.OPPONENT_REVIEW if other_is_opponent
+            else AttachmentKind.SUPERVISOR_REVIEW
+        )
+        other_path = self._attachment_path(other_kind)
+        btn_other = QPushButton(
+            "📕 Otevřít posudek oponenta" if other_is_opponent
+            else "📘 Otevřít posudek vedoucího"
+        )
+        btn_other.setToolTip("Otevře protější posudek (PDF/soubor), je-li k dispozici.")
+        btn_other.setEnabled(other_path is not None and other_path.exists())
+        if btn_other.isEnabled():
+            btn_other.clicked.connect(lambda _c=False, p=other_path: open_path(p))
+        quick.addWidget(btn_other)
+        quick.addStretch()
+        outer.addLayout(quick)
+
         # ── Scroll area s obsahem ──────────────────────────────────────
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -154,16 +185,18 @@ class ReviewEditorDialog(QDialog):
         box_fulfill = QGroupBox("Splnění všech bodů zadání")
         form_f = QFormLayout(box_fulfill)
         self.cb_fulfilled = QComboBox()
-        for v in (
-            "splnil(a)",
-            "nesplnil(a)",
-            "fulfilled",
-            "not fulfilled",
-        ):
+        # Volby dle JAZYKA ŠABLONY — EN posudek nabízí jen anglické varianty,
+        # CZ jen české (ne všechny 4 najednou).
+        if review.language == "en":
+            opts = ("fulfilled", "not fulfilled")
+        else:
+            opts = ("splnil(a)", "nesplnil(a)")
+        for v in opts:
             self.cb_fulfilled.addItem(v, v)
-        idx = self.cb_fulfilled.findData(review.assignment_fulfilled or "splnil(a)")
-        if idx >= 0:
-            self.cb_fulfilled.setCurrentIndex(idx)
+        idx = self.cb_fulfilled.findData(review.assignment_fulfilled or opts[0])
+        if idx < 0:
+            idx = 0  # uložená hodnota v jiném jazyce → výchozí (kladná)
+        self.cb_fulfilled.setCurrentIndex(idx)
         self.cb_fulfilled.currentTextChanged.connect(self._refresh_summary)
         form_f.addRow("Stav", self.cb_fulfilled)
         content_layout.addWidget(box_fulfill)
@@ -333,6 +366,29 @@ class ReviewEditorDialog(QDialog):
             f"padding:2px 10px;border-radius:8px;font-weight:bold;'>{grade}</span>"
         )
 
+    def _attachment_path(self, kind: AttachmentKind):
+        """Absolutní cesta k aktuálnímu souboru dané přílohy (preferuje PDF)."""
+        work = (
+            self.service.get_opposing_thesis(self.thesis_id) if self.opposing
+            else self.service.get_thesis(self.thesis_id)
+        )
+        if work is None:
+            return None
+        atts = [a for a in work.attachments if a.is_file and a.kind == kind]
+        if not atts:
+            return None
+        # Preferuj current a PDF; jinak vezmi cokoliv dostupného.
+        atts.sort(key=lambda a: (
+            0 if a.is_current else 1,
+            0 if a.url_or_path.lower().endswith(".pdf") else 1,
+        ))
+        att = atts[0]
+        return (
+            self.service.opposing_document_absolute_path(self.thesis_id, att)
+            if self.opposing
+            else self.service.document_absolute_path(self.thesis_id, att)
+        )
+
     def _collect_into_review(self) -> None:
         """Sebere data z formuláře do ``self.review``."""
         self.review.assignment_fulfilled = self.cb_fulfilled.currentData()
@@ -392,12 +448,13 @@ class ReviewEditorDialog(QDialog):
         worker = _GenerateWorker(
             self.service, self.thesis_id, self.review, self.opposing, self
         )
-        worker.finished_ok.connect(
-            lambda x, p: (result.update(xlsx=x, pdf=p), progress.reset())
-        )
-        worker.failed.connect(
-            lambda msg: (result.update(error=msg), progress.reset())
-        )
+        worker.finished_ok.connect(lambda x, p: result.update(xlsx=x, pdf=p))
+        worker.failed.connect(lambda msg: result.update(error=msg))
+        # KRITICKÉ: progress se zavírá až po DOBĚHNUTÍ vlákna přes ``close()``.
+        # ``reset()`` při ``autoClose=False`` modální ``exec()`` neukončí —
+        # dialog by visel, i když jsou soubory hotové. ``finished`` (QThread)
+        # se emituje vždy po ``run()``, tedy i kdyby signály nahoře selhaly.
+        worker.finished.connect(progress.close)
         worker.start()
         progress.exec()
         worker.wait()

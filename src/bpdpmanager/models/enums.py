@@ -171,9 +171,10 @@ REVIEW_STATE_TINTS: dict[str, str] = {
     "none": "#ffcdd2",   # světle červená
 }
 REVIEW_STATE_STRONG: dict[str, str] = {
-    "done": "#2e7d32",   # sytá zelená (pro text počtů v liště)
-    "draft": "#ef6c00",  # sytá oranžová
-    "none": "#c62828",   # sytá červená
+    # Světlejší odstíny — čitelné v light i dark theme (text počtů v liště).
+    "done": "#66bb6a",   # zelená (čitelná i na tmavém pozadí)
+    "draft": "#ffa726",  # oranžová
+    "none": "#ef5350",   # červená
 }
 
 

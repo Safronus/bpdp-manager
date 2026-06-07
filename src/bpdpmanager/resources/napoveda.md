@@ -399,9 +399,13 @@ Workflow:
    *vedoucího*, u oponentury jen *oponenta*. Přepínač *Zobrazit i šablony
    jiných oborů* uvolní už jen filtr oboru. Správná šablona se předvybere.
    Pokud už pro práci existuje uložený posudek, nahoře je tlačítko
-   **✏ Pokračovat v posledním posudku**.
-2. **Editor posudku** — formulář:
-   - *Splnění bodů zadání* (splnil / nesplnil)
+   **✏ Pokračovat v posledním posudku**. (Předvybere se šablona **oboru
+   práce** — `SWI-P`/`NSWI-P` se mapuje na `SWI`, `NKYB-K` na `KYB`.)
+2. **Editor posudku** — formulář (nahoře tlačítka **📄 Otevřít text práce**
+   a **📕/📘 Otevřít opačný posudek** — u posudku vedoucího nabídne posudek
+   oponenta a naopak; aktivní, jen když soubor existuje):
+   - *Splnění bodů zadání* — volby **dle jazyka šablony** (CZ
+     *splnil(a)/nesplnil(a)*, EN *fulfilled/not fulfilled*)
    - **Kritéria hodnocení** — body 0–5 po celých bodech, váhy ze šablony
    - **Živý souhrn** — vážené body, procenta, navržená známka (ECTS).
      Stupnice je 1:1 se vzorcem v šabloně: **BP** (max 30 b) A≥29, B≥26,

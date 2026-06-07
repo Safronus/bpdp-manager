@@ -943,21 +943,19 @@ class GenerateReviewDialog(QDialog):
             self.accept()
 
     def _student_obor_code(self) -> str:
-        """Pokus odvodit kód oboru pro filtr (např. „SWI") z oboru studenta.
+        """Odvodí kód oboru pro filtr/preferenci šablon z oboru studenta.
 
-        Studentův obor je typicky „knIT-KYB" nebo „NSWI-P" — vrátíme suffix
-        nebo prefix podle obvyklých konvencí.
+        Používá **stejnou normalizaci jako šablony** (``discipline_from_app_code``):
+        odřízne formu (``-P``/``-K``), jazyk (``-EN``) i prefix navazujícího
+        studia (``N``). Tím se obor studenta spáruje s oborem šablony:
+        ``SWI-P`` → ``SWI``, ``NSWI-P`` → ``SWI``, ``NKYB-K`` → ``KYB``.
         """
-        obor = self._student_obor or ""
+        from ..services.default_data import discipline_from_app_code
+
+        obor = (self._student_obor or "").strip()
         if not obor:
             return ""
-        # Heuristic: rozdělit na pomlčce, vzít poslední segment > 1 znak,
-        # vyhodit '-P'/'-K' suffix (forma studia)
-        parts = [p for p in obor.replace("/", "-").split("-") if p]
-        for p in reversed(parts):
-            if len(p) >= 2 and p.upper() not in {"P", "K"}:
-                return p.upper()
-        return ""
+        return discipline_from_app_code(obor)
 
     def _refresh_list(self) -> None:
         self.tree.clear()
@@ -1031,6 +1029,18 @@ class GenerateReviewDialog(QDialog):
         # U oponovaných prací je relevantní role „opponent"; u vedených
         # preferujeme „supervisor" (uživatel je vedoucí).
         role_order = ("opponent",) if self.opposing else ("supervisor", "opponent")
+        obor_code = self._student_obor_code()
+
+        def _prefer_obor(cands: list):
+            """Z kandidátů vybere ten s oborem práce (jinak prvního)."""
+            if not cands:
+                return None
+            if obor_code:
+                same = [t for t in cands if (t.obor or "").upper() == obor_code]
+                if same:
+                    return same[0]
+            return cands[0]
+
         # 1) Existující posudek pro danou roli → jeho šablona
         for role in role_order:
             existing = self.service.get_current_review(
@@ -1043,12 +1053,12 @@ class GenerateReviewDialog(QDialog):
         if len(templates) == 1:
             self._select_template_id(templates[0].id)
             return
-        # 3) První šablona preferované role
-        preferred_role = role_order[0]
-        preferred = [t for t in templates if t.role == preferred_role]
-        if preferred:
-            self._select_template_id(preferred[0].id)
-            return
+        # 3) Preferovaná role — a v rámci ní přednostně OBOR práce
+        #    (jinak by se u „Zobrazit i jiné obory" předvybral cizí obor).
+        for role in role_order:
+            pick = _prefer_obor([t for t in templates if t.role == role])
+            if pick is not None and self._select_template_id(pick.id):
+                return
         # 4) jinak první v seznamu
         self._select_template_id(templates[0].id)
 

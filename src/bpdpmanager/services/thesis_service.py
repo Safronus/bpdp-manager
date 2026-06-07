@@ -2386,10 +2386,16 @@ class ThesisService:
                 polish_pdf_layout(convert_src)
             except Exception:  # noqa: BLE001 — fail-safe, převeď aspoň originál
                 convert_src = xlsx_path
+            # Izolovaný uživatelský profil LibreOffice — KRITICKÉ: bez něj
+            # ``soffice --headless`` zamrzne (čeká na zámek profilu), když má
+            # uživatel LibreOffice otevřené v GUI. Vlastní profil v tempu
+            # konflikt obejde a konverzi nikdy neblokuje běžící instance.
+            lo_profile = (tmp_dir / "loprofile").as_uri()
             try:
                 proc = subprocess.run(
                     [
                         str(soffice),
+                        f"-env:UserInstallation={lo_profile}",
                         "--headless",
                         "--convert-to", "pdf",
                         "--outdir", str(tmp_dir),

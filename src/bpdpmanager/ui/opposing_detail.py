@@ -372,6 +372,8 @@ class OpposingDetail(QWidget):
         # posudku vedoucího mohlo doplnit známku → promítni i do polí v Detailu.
         if self.op is None:
             return
+        # Re-sync známek z nahraného PDF posudku (vedoucího/oponenta).
+        self.service.sync_opposing_grades(self.op.id)
         self.op = self.service.get_opposing_thesis(self.op.id)
         was_loading = self._loading
         self._loading = True
@@ -381,6 +383,8 @@ class OpposingDetail(QWidget):
         finally:
             self._loading = was_loading
         self._refresh_summary()
+        # Obnov seznam oponentur (sloupce Známky V/O + Posudky) přes „saved".
+        self.saved.emit(self.op.id)
 
     # --- pomocné: zobrazení -------------------------------------------------
 
