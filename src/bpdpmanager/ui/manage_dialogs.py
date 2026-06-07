@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QDialog,
     QDialogButtonBox,
@@ -88,6 +89,40 @@ def _run_title_cleanup(dialog, cleanup_fn, what: str, refresh_fn) -> None:
     QMessageBox.information(
         dialog, "Úklid titulů", f"Uklizeno: {len(applied)} jmen.",
     )
+
+
+_ROLE_GROUP_KIND = Qt.ItemDataRole.UserRole + 1  # hodnota OpponentKind na skupině
+
+
+class _OpponentDnDTree(QTreeWidget):
+    """Strom oponentů s drag&drop přesunem mezi skupinami Interní / Externí."""
+
+    moved = Signal(object, str)  # (Opponent, new_kind_value)
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+
+    def dropEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        target = self.itemAt(event.position().toPoint())
+        group = None
+        if target is not None:
+            group = target if target.parent() is None else target.parent()
+        new_kind = group.data(0, _ROLE_GROUP_KIND) if group is not None else None
+        if not new_kind:
+            event.ignore()
+            return
+        moved_any = False
+        for it in self.selectedItems():
+            opp = it.data(0, Qt.ItemDataRole.UserRole)
+            if opp is not None and opp.kind.value != new_kind:
+                self.moved.emit(opp, new_kind)
+                moved_any = True
+        # Strom se přebuduje v handleru → Qt fyzický přesun nepouštíme.
+        event.acceptProposedAction() if moved_any else event.ignore()
 
 
 class StudentsManageDialog(QDialog):
@@ -449,12 +484,13 @@ class OpponentsManageDialog(QDialog):
             )
         )
 
-        self.tree = QTreeWidget()
+        self.tree = _OpponentDnDTree()
         self.tree.setColumnCount(4)
         self.tree.setHeaderLabels(["Jméno", "Pracoviště", "Email", "Telefon"])
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.itemDoubleClicked.connect(self._edit)
+        self.tree.moved.connect(self._move_opponent)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -498,6 +534,12 @@ class OpponentsManageDialog(QDialog):
             self, self.service.cleanup_opponent_titles, "oponentů", self._refresh
         )
 
+    def _move_opponent(self, opp, new_kind_value: str) -> None:
+        """Drag&drop přesun oponenta mezi Interní / Externí (změní kind)."""
+        opp.kind = OpponentKind(new_kind_value)
+        self.service.upsert_opponent(opp)
+        self._refresh()
+
     # --- načítání + grupování ----------------------------------------------
 
     def _refresh(self) -> None:
@@ -520,6 +562,9 @@ class OpponentsManageDialog(QDialog):
             f.setBold(True)
             f.setPointSize(f.pointSize() + 1)
             group.setFont(0, f)
+            # Cíl drag&drop: na skupině je její kind; skupina sama není tažitelná.
+            group.setData(0, _ROLE_GROUP_KIND, kind.value)
+            group.setFlags(group.flags() & ~Qt.ItemFlag.ItemIsDragEnabled)
             self.tree.addTopLevelItem(group)
 
             for o in opps:

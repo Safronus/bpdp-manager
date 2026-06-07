@@ -7,6 +7,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-06-07
+
+### Added
+- **Drag&drop v manažeru *Oponenti*.** Oponenta lze přetáhnout mezi skupinami
+  **Interní** a **Externí** — tím se mu změní typ.
+
 ## [0.80.1] - 2026-06-07
 
 ### Changed
