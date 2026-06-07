@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-06-07
+
+### Changed
+- **Záložka „Historie" skrývá panel „Přechod do stavu".** U hotových prací není
+  potřeba; přeřazení (např. Nedokončeno → Neobhájeno) řeš přes STAG nebo
+  kontextové menu. V ostatních záložkách zůstává.
+- **Náhled změn ze STAG jmenuje konkrétní soubor.** Místo generického
+  „nový soubor" ukáže, který **druh** STAG nabízí navíc (např. „nový soubor:
+  Posudek oponenta").
+
 ## [0.73.0] - 2026-06-07
 
 ### Added

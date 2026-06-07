@@ -83,6 +83,25 @@ def test_no_changes_all_aktualni(service, monkeypatch) -> None:
     assert r.checked == 1
 
 
+def test_missing_file_detail_names_kind(service, monkeypatch) -> None:
+    """Náhled u nového souboru uvádí KTERÝ druh (ne generické „nový soubor")."""
+    from bpdpmanager.services.stag_api import StagFile
+
+    s = Student(first_name="A", last_name="B")
+    service.upsert_student(s)
+    led = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                 academic_year="2024/2025", student_id=s.id, adipidno="111")
+    service.upsert_thesis(led)
+    # STAG nabízí posudek oponenta (stejný stav „R") → chybějící druh.
+    review = StagFile(soubidno="9", filename="posudek.pdf", download_path="/r",
+                      section="opponent_review")
+    _patch(monkeypatch, fetch_map={"111": ("R", [review], "")}, search_results=[])
+    r = chk.compute_stag_check(service, "")
+    assert r.supervised_changes == 1
+    assert "Posudek oponenta" in r.supervised[0]
+    assert "nový soubor" in r.supervised[0]
+
+
 def test_offline_marks_not_ok(service, monkeypatch) -> None:
     s = Student(first_name="A", last_name="B")
     service.upsert_student(s)

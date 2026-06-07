@@ -65,13 +65,24 @@ class StagCheckResult:
         return self.supervised_changes + self.opposing_changes + self.new_works
 
 
-def _has_missing_kind(stag_files, local_kinds: set) -> bool:
-    """True, když STAG nabízí druh souboru, který u práce (aktuálně) nemáš."""
+def _missing_kind_labels(stag_files, local_kinds: set) -> list[str]:
+    """Vrátí popisky druhů souborů, které STAG nabízí, ale u práce je nemáš."""
+    seen: list[str] = []
     for sf in stag_files:
         kind = _SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER)
-        if kind not in local_kinds:
-            return True
-    return False
+        if kind not in local_kinds and kind.label not in seen:
+            seen.append(kind.label)
+    return seen
+
+
+def _change_note(status_changed: bool, missing: list[str]) -> str:
+    """Sestaví popis změny: změna stavu a/nebo konkrétní nové soubory."""
+    parts: list[str] = []
+    if status_changed:
+        parts.append("změna stavu")
+    if missing:
+        parts.append("nový soubor: " + ", ".join(missing))
+    return " · ".join(parts)
 
 
 def _person_role(role: str) -> str:
@@ -109,10 +120,11 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         local_kinds = {a.kind for a in t.attachments if a.is_current}
         mapped = STAG_STATE_TO_STATUS.get(code)
         status_changed = mapped is not None and mapped != t.status
-        if status_changed or _has_missing_kind(files, local_kinds):
+        missing = _missing_kind_labels(files, local_kinds)
+        if status_changed or missing:
             student = service.get_student(t.student_id) if t.student_id else None
             name = student.full_name if student else "(bez studenta)"
-            note = "změna stavu" if status_changed else "nový soubor"
+            note = _change_note(status_changed, missing)
             r.supervised.append(f"{name} — {t.type.value} {t.academic_year} · {note}")
 
     # 2) Oponentury aktuálního roku se STAG ID.
@@ -127,9 +139,10 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         r.checked += 1
         local_kinds = {a.kind for a in o.attachments if a.is_current}
         code_changed = bool(code) and code != o.stag_state_code
-        if code_changed or _has_missing_kind(files, local_kinds):
+        missing = _missing_kind_labels(files, local_kinds)
+        if code_changed or missing:
             name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
-            note = "změna stavu" if code_changed else "nový soubor"
+            note = _change_note(code_changed, missing)
             r.opposing.append(f"{name} — {o.type.value} {o.academic_year} · {note}")
 
     # 3) Nové práce ve STAG (dle CELÉHO jména — ne jen příjmení, ať nepočítáme

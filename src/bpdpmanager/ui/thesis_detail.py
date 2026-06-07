@@ -155,10 +155,12 @@ class ThesisDetail(QWidget):
         parent=None,
         *,
         profile_manager=None,
+        show_transitions: bool = True,
     ) -> None:
         super().__init__(parent)
         self.service = service
         self.profile_manager = profile_manager
+        self._show_transitions = show_transitions
         self.thesis: Thesis | None = None
         self._year_mode = year_mode
 
@@ -228,7 +230,7 @@ class ThesisDetail(QWidget):
         header.addWidget(self.btn_delete)
         layout.addLayout(header)
 
-        # Přechody stavů
+        # Přechody stavů (v záložce Historie se skrývají — viz show_transitions)
         transition_box = QGroupBox("Přechod do stavu")
         tl = QHBoxLayout(transition_box)
         self.transition_buttons: dict[ThesisStatus, QPushButton] = {}
@@ -237,6 +239,7 @@ class ThesisDetail(QWidget):
             btn.clicked.connect(lambda _=False, s=status: self._transition(s))
             tl.addWidget(btn)
             self.transition_buttons[status] = btn
+        transition_box.setVisible(self._show_transitions)
         layout.addWidget(transition_box)
 
         # Záložky

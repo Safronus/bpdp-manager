@@ -49,6 +49,20 @@ def test_thesis_summary_sent_indicator(qapp, service: ThesisService, tmp_path: P
     assert "odesláno" in html2 and "neodesláno" not in html2
 
 
+def test_detail_can_hide_transitions(qapp, service: ThesisService) -> None:
+    """ThesisDetail se show_transitions=False skryje panel „Přechod do stavu"."""
+    from bpdpmanager.ui.thesis_detail import ThesisDetail
+
+    det_default = ThesisDetail(service)
+    det_hidden = ThesisDetail(service, show_transitions=False)
+    # Tlačítka existují v obou, ale skupinový box je u hidden neviditelný.
+    assert det_default._show_transitions is True
+    assert det_hidden._show_transitions is False
+    # Box přechodů (rodič tlačítka) je u hidden skrytý.
+    btn = next(iter(det_hidden.transition_buttons.values()))
+    assert btn.parent().isVisibleTo(det_hidden) is False
+
+
 def test_history_summary_hides_sent_section(qapp, service: ThesisService, tmp_path: Path) -> None:
     """U historických prací (obhájeno/nedokončeno) se sekce Odeslání neukazuje."""
     from bpdpmanager.ui.thesis_detail import ThesisDetail

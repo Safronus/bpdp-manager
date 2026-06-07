@@ -98,6 +98,7 @@ class _ThesesTab(QWidget):
         status_filter_pref_key: str = "",
         enable_extra_filters: bool = False,
         hidden_columns: list[int] | None = None,
+        show_transitions: bool = True,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -118,7 +119,8 @@ class _ThesesTab(QWidget):
         for col in (hidden_columns or []):
             self.tree.setColumnHidden(col, True)
         self.detail = ThesisDetail(
-            service, year_mode=year_mode, profile_manager=profile_manager
+            service, year_mode=year_mode, profile_manager=profile_manager,
+            show_transitions=show_transitions,
         )
         self.detail.setMinimumHeight(520)
 
@@ -399,6 +401,8 @@ class MainWindow(QMainWindow):
             enable_extra_filters=True,
             # Hotové práce → indikace „Posudky" i „Odesláno" jsou irelevantní.
             hidden_columns=[ThesesTreeWidget.COL_REVIEWS, ThesesTreeWidget.COL_SENT],
+            # V Historii nepotřebuješ panel „Přechod do stavu".
+            show_transitions=False,
         )
         self.tab_all = _ThesesTab(
             service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm

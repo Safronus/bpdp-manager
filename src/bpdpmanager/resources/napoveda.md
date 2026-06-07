@@ -137,7 +137,8 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   rozbalovací **Oponent**
   (jen oponenti z historie) a **Známka** (A–F/FX) — práce projde, když známce
   odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
-  sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
+  sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**;
+  stejně tak je v detailu **skrytý panel „Přechod do stavu"**.
 - **Vše** — všechny vedené práce
 - **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí).
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
