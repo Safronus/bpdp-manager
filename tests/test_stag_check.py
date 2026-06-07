@@ -53,15 +53,17 @@ def test_detects_status_change_and_new_works(service, monkeypatch) -> None:
         monkeypatch,
         fetch_map={"111": ("DUO", [], ""), "222": ("DUO", [], "")},
         search_results=[
-            StagThesisResult(adipidno="111"),   # už máš
-            StagThesisResult(adipidno="999"),   # nová
+            StagThesisResult(adipidno="111", supervisor="Jan Novák"),   # už máš
+            StagThesisResult(adipidno="999", supervisor="Jan Novák"),   # nová, moje
+            StagThesisResult(adipidno="888", supervisor="Pavel Novák"),  # jmenovec
         ],
     )
     r = chk.compute_stag_check(service, "Jan Novák")
     assert r.ok
     assert r.supervised_changes == 1
     assert r.opposing_changes == 1
-    assert r.new_works == 1          # jen 999 (111 už máš, dedup napříč rolemi)
+    # Jen 999 (111 už máš; 888 je jmenovec Pavel → odfiltrován dle celého jména).
+    assert r.new_works == 1
     assert r.total_changes == 3
 
 

@@ -12,26 +12,53 @@ porovnání se sdílí se synchronizačním dialogem (``stag_sync_dialog``).
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QPushButton,
+    QTextBrowser,
+    QVBoxLayout,
+)
 
 from ..models.enums import AttachmentKind, ThesisStatus
 from ..services import stag_api
-from .stag_import_dialog import _SECTION_TO_KIND, STAG_STATE_TO_STATUS
+from .stag_import_dialog import (
+    _SECTION_TO_KIND,
+    STAG_STATE_TO_STATUS,
+    _name_matches,
+)
 from .stag_sync_dialog import ROLE_OPPONENT, ROLE_SUPERVISOR, _fetch_target_state
 
 
 @dataclass
 class StagCheckResult:
-    """Výsledek tiché kontroly. ``ok=False`` = kontrolu nešlo dokončit (offline)."""
+    """Výsledek tiché kontroly. ``ok=False`` = kontrolu nešlo dokončit (offline).
+
+    Seznamy nesou lidský popis dotčených prací (pro náhledový dialog); počty
+    jsou jejich délky (zpětně kompatibilní vlastnosti).
+    """
 
     ok: bool = False
     error: str = ""
-    supervised_changes: int = 0   # vedené práce „V řešení" se změnou
-    opposing_changes: int = 0     # oponentury akt. roku se změnou
-    new_works: int = 0            # práce ve STAG, které nemáš v DB
-    checked: int = 0              # kolik existujících prací prošlo
+    checked: int = 0                       # kolik existujících prací prošlo
+    supervised: list[str] = field(default_factory=list)  # vedené „V řešení" se změnou
+    opposing: list[str] = field(default_factory=list)    # oponentury akt. roku se změnou
+    new: list[str] = field(default_factory=list)         # nové práce ve STAG (nemáš)
+
+    @property
+    def supervised_changes(self) -> int:
+        return len(self.supervised)
+
+    @property
+    def opposing_changes(self) -> int:
+        return len(self.opposing)
+
+    @property
+    def new_works(self) -> int:
+        return len(self.new)
 
     @property
     def total_changes(self) -> int:
@@ -83,7 +110,10 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         mapped = STAG_STATE_TO_STATUS.get(code)
         status_changed = mapped is not None and mapped != t.status
         if status_changed or _has_missing_kind(files, local_kinds):
-            r.supervised_changes += 1
+            student = service.get_student(t.student_id) if t.student_id else None
+            name = student.full_name if student else "(bez studenta)"
+            note = "změna stavu" if status_changed else "nový soubor"
+            r.supervised.append(f"{name} — {t.type.value} {t.academic_year} · {note}")
 
     # 2) Oponentury aktuálního roku se STAG ID.
     for o in service.list_opposing_theses():
@@ -98,12 +128,15 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         local_kinds = {a.kind for a in o.attachments if a.is_current}
         code_changed = bool(code) and code != o.stag_state_code
         if code_changed or _has_missing_kind(files, local_kinds):
-            r.opposing_changes += 1
+            name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+            note = "změna stavu" if code_changed else "nový soubor"
+            r.opposing.append(f"{name} — {o.type.value} {o.academic_year} · {note}")
 
-    # 3) Nové práce ve STAG (dle jména), které v DB nemáš.
+    # 3) Nové práce ve STAG (dle CELÉHO jména — ne jen příjmení, ať nepočítáme
+    #    jmenovce), které v DB nemáš.
     surname = _surname_of(user_full_name)
     if surname:
-        new_adip: set[str] = set()
+        seen_new: set[str] = set()
         for role in (ROLE_SUPERVISOR, ROLE_OPPONENT):
             attempts += 1
             try:
@@ -112,9 +145,16 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
                 failures += 1
                 continue
             for res in results:
-                if res.adipidno and res.adipidno not in db_adip:
-                    new_adip.add(res.adipidno)
-        r.new_works = len(new_adip)
+                if not res.adipidno or res.adipidno in db_adip or res.adipidno in seen_new:
+                    continue
+                person = res.supervisor if role == ROLE_SUPERVISOR else res.reviewer
+                if not _name_matches(person, user_full_name):
+                    continue  # jmenovec (jiný vedoucí/oponent se stejným příjmením)
+                seen_new.add(res.adipidno)
+                year = res.academic_year or res.year or ""
+                r.new.append(
+                    f"{res.student_full} — {res.type_label or '?'} {year}".strip()
+                )
 
     # Když selhaly úplně všechny síťové pokusy → kontrola se nezdařila (offline).
     if attempts and failures == attempts:
@@ -147,3 +187,67 @@ class StagChecker(QObject):
             result = StagCheckResult(ok=False, error=str(exc))
         # Signál se z vlákna doručí do hlavního vlákna (QueuedConnection).
         self.finished.emit(result)
+
+
+class StagChangesPreviewDialog(QDialog):
+    """Rychlý náhled, co se ve STAG změnilo / co je nového — před importem."""
+
+    def __init__(self, result: StagCheckResult, parent=None) -> None:
+        super().__init__(parent)
+        self.result = result
+        self.open_import = False
+        self.setWindowTitle("Změny ve STAG — náhled")
+        self.setMinimumSize(620, 460)
+
+        layout = QVBoxLayout(self)
+        view = QTextBrowser()
+        view.setOpenExternalLinks(False)
+        view.setHtml(self._build_html(result))
+        layout.addWidget(view, stretch=1)
+
+        row = QHBoxLayout()
+        btn_close = QPushButton("Zavřít")
+        btn_close.clicked.connect(self.reject)
+        self.btn_import = QPushButton("📥 Otevřít Import ze STAG…")
+        self.btn_import.clicked.connect(self._go_import)
+        self.btn_import.setEnabled(result.total_changes > 0)
+        row.addStretch()
+        row.addWidget(btn_close)
+        row.addWidget(self.btn_import)
+        layout.addLayout(row)
+
+    def _go_import(self) -> None:
+        self.open_import = True
+        self.accept()
+
+    @staticmethod
+    def _section(title: str, items: list[str], color: str) -> str:
+        if not items:
+            return ""
+        lis = "".join(f"<li>{i}</li>" for i in items)
+        return (
+            f"<h3 style='color:{color};margin:10px 0 4px;'>{title} ({len(items)})</h3>"
+            f"<ul style='margin:0 0 8px 0;'>{lis}</ul>"
+        )
+
+    def _build_html(self, r: StagCheckResult) -> str:
+        if not r.ok:
+            return (
+                "<p>⚠ Kontrolu se nepodařilo dokončit "
+                f"({r.error or 'STAG nedostupný'}).</p>"
+            )
+        if r.total_changes == 0:
+            return (
+                "<p style='color:#2e7d32;'>✓ <b>Vše aktuální</b> — žádné změny "
+                "ani nové práce ve STAG (prošlo "
+                f"{r.checked} prací).</p>"
+            )
+        body = (
+            self._section("🆕 Nové práce ve STAG (nemáš v aplikaci)", r.new, "#1565c0")
+            + self._section("🔄 Vedené práce se změnou", r.supervised, "#ef6c00")
+            + self._section("🔄 Oponované práce se změnou", r.opposing, "#ef6c00")
+        )
+        return (
+            "<p>Tohle STAG nabízí navíc oproti tvé databázi. Detaily a stažení "
+            "provedeš v <b>Import ze STAG</b>.</p>" + body
+        )

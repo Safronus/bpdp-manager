@@ -475,22 +475,34 @@ class MainWindow(QMainWindow):
         lay = QHBoxLayout(bar)
         lay.setContentsMargins(10, 4, 6, 4)
         lay.setSpacing(8)
+        # Banner má vždy světlé pozadí → tlačítka stylujeme natvrdo (tmavý text
+        # na světlém), jinak by je dark theme vykreslil světle = nečitelně.
+        btn_qss = (
+            "QPushButton { color:#212121; background:#ffffff; "
+            "border:1px solid #9e9e9e; border-radius:4px; padding:3px 10px; } "
+            "QPushButton:hover { background:#eeeeee; }"
+        )
         self._stag_banner_label = QLabel("")
         self._stag_banner_label.setTextFormat(Qt.TextFormat.RichText)
         self._stag_banner_label.setWordWrap(True)
         lay.addWidget(self._stag_banner_label, stretch=1)
-        self._stag_banner_btn = QPushButton("Otevřít Import ze STAG…")
-        self._stag_banner_btn.clicked.connect(self._import_from_stag)
+        self._stag_banner_btn = QPushButton("🔎 Zobrazit změny…")
+        self._stag_banner_btn.setStyleSheet(btn_qss)
+        self._stag_banner_btn.clicked.connect(self._show_stag_changes)
         self._stag_banner_btn.setVisible(False)
         lay.addWidget(self._stag_banner_btn)
         btn_recheck = QPushButton("🔄 Zkontrolovat")
+        btn_recheck.setStyleSheet(btn_qss)
         btn_recheck.setToolTip("Znovu zkontrolovat změny ve STAG (aktuální rok).")
         btn_recheck.clicked.connect(self._start_stag_check)
         lay.addWidget(btn_recheck)
         btn_close = QToolButton()
         btn_close.setText("✕")
-        btn_close.setAutoRaise(True)
         btn_close.setToolTip("Skrýt proužek")
+        btn_close.setStyleSheet(
+            "QToolButton { color:#212121; border:none; padding:2px 6px; } "
+            "QToolButton:hover { background:#e0e0e0; border-radius:4px; }"
+        )
         btn_close.clicked.connect(lambda: self._stag_banner.setVisible(False))
         lay.addWidget(btn_close)
         self._stag_banner = bar
@@ -531,6 +543,7 @@ class MainWindow(QMainWindow):
         from datetime import datetime
 
         self._stag_checker = None
+        self._last_stag_result = result
         ts = datetime.now().strftime("%H:%M")
 
         # Odznaky na záložkách (jen aktuální + oponentury).
@@ -564,9 +577,22 @@ class MainWindow(QMainWindow):
             parts.append(f"🆕 {result.new_works}× nová práce ve STAG")
         self._set_stag_banner(
             f"🔄 STAG zkontrolováno v {ts} — <b>změny: {', '.join(parts)}</b>. "
-            "Otevři Import ze STAG a aktualizuj.",
+            "Klikni na „Zobrazit změny…“.",
             "#fff8e1", show_open=True,
         )
+
+    def _show_stag_changes(self) -> None:
+        """Otevře rychlý náhled změn ze STAG; odtud lze přejít na Import."""
+        from .stag_check import StagChangesPreviewDialog
+
+        result = getattr(self, "_last_stag_result", None)
+        if result is None:
+            self._start_stag_check()
+            return
+        dlg = StagChangesPreviewDialog(result, self)
+        dlg.exec()
+        if dlg.open_import:
+            self._import_from_stag()
 
     def _set_tab_badge(self, tab, base_title: str, count: int) -> None:
         idx = self.tabs.indexOf(tab)

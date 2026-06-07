@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-06-07
+
+### Added
+- **Náhled změn ze STAG před importem.** Proužek tiché kontroly má tlačítko
+  **🔎 Zobrazit změny…**, které otevře rychlý přehled — *které* vedené práce
+  a oponentury mají změnu a *které* nové práce STAG nabízí (jmenovitě), teprve
+  odtud se přejde na Import. Konec hádání „26 nových".
+
+### Fixed
+- **Počet „nových prací" počítal i jmenovce.** Tichá kontrola nově páruje nové
+  práce podle **celého jména** (křestní + příjmení), ne jen příjmení — práce
+  jiných vedoucích/oponentů se stejným příjmením se už nezapočítají.
+- **Čitelnost tlačítek v proužku STAG (dark theme).** Tlačítka *Zobrazit
+  změny… / Zkontrolovat / ✕* měla světlý text na světlém pozadí; mají teď
+  natvrdo tmavý text a viditelný rámeček.
+
 ## [0.72.0] - 2026-06-07
 
 ### Changed

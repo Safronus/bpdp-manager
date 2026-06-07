@@ -573,15 +573,17 @@ vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola hlídá:
 
 - **změnu stavu** nebo **chybějící druh souboru** u vedených prací *V řešení*,
 - totéž u **oponentur aktuálního roku**,
-- **nové práce ve STAG** (dle tvého jména), které ještě nemáš v databázi.
+- **nové práce ve STAG**, které ještě nemáš v databázi — páruje se podle
+  **celého jména** (křestní + příjmení), takže se **nezapočítají jmenovci**
+  (jiní vedoucí/oponenti se stejným příjmením).
 
 Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
-práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuální* a *🧐
-Oponované práce* a v proužku je tlačítko **Otevřít Import ze STAG…** (odtud
-*Aktualizovat…* / *Najít nové práce…*). Kontrolu lze kdykoli **ručně zopakovat**
-tlačítkem **🔄 Zkontrolovat** v proužku; **proužek skryješ** křížkem. Kontrola
-je **jen pro čtení** (nic nemění); když je STAG nedostupný (offline), tiše to
-oznámí.
+práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuálně vedené práce*
+a *🧐 Oponované práce*. Tlačítkem **🔎 Zobrazit změny…** otevřeš **rychlý
+náhled** — jmenovitě, které práce mají změnu a které nové práce STAG nabízí;
+teprve odtud přejdeš na **Import ze STAG**. Kontrolu lze kdykoli **ručně
+zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
+Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.
 
 ### 🔍 Kontrola se STAG (co chybí)
 
