@@ -47,8 +47,13 @@ V **👤 → 🗂 Správa profilů**:
 > když píšeš za ně).
 >
 > **Manažer *Oponenti*** seskupuje oponenty na **Interní** / **Externí**
-> (mezi skupinami je lze **přetáhnout**) a u každého ukazuje sloupec
-> **Oponuje prací** — počet prací, které oponuje / oponoval.
+> (mezi skupinami je lze **přetáhnout**) a uvnitř ještě do **podskupin podle
+> Pracoviště**. Sloupec **Oponuje prací** ukazuje u každého počet prací, které
+> oponuje / oponoval; u podskupin je mezisoučet a u skupiny **kontrolní součet
+> Σ** všech oponovaných prací.
+>
+> **Manažer *Studenti*** má nahoře **🔎 filtr podle příjmení** (real-time,
+> necitlivý na diakritiku) a checkbox *Skrýt dokončené studenty*.
 >
 > **Tituly ze STAG.** STAG dává jména ve formátu *„Příjmení Jméno, tituly"*
 > (vše za jménem). Při stahování práce je aplikace **rozparsuje** na tituly

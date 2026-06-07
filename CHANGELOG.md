@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-07
+
+První **stabilní verze (1.0.0)**. Aplikace pokrývá kompletní workflow vedení
+a oponování BP/DP prací (evidence, STAG import/sync, posudky, přenos prací,
+správa číselníků). Od této verze pokračuje verzování: drobné změny/fixy `0.0.1`,
+větší featury `0.1.0`.
+
+### Added
+- **Real-time filtr podle příjmení** ve správci *Studenti* (necitlivý na
+  diakritiku) — okamžitě zužuje strom při psaní.
+- **Podskupiny podle Pracoviště** ve správci *Oponenti* — uvnitř skupin
+  *Interní / Externí* se oponenti dále seskupí podle pracoviště (s mezisoučtem
+  oponovaných prací u každého pracoviště).
+- **Kontrolní součet oponovaných prací (Σ)** u skupin *Interní / Externí* ve
+  správci *Oponenti*; souhrn dole nově uvádí i počet oponovaných prací.
+
 ## [0.88.0] - 2026-06-07
 
 ### Added

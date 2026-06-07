@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor
@@ -34,6 +35,12 @@ _TITLE_PREFIX_RE = re.compile(
     r"Bc\.|Mgr\.|Ing\.|DiS\.|Ph\.D\.|CSc\.|DSc\.|Th\.D\.)\s+)+",
     re.IGNORECASE,
 )
+
+
+def _strip_diacritics(s: str) -> str:
+    """Odstraní diakritiku (pro filtr necitlivý na háčky/čárky)."""
+    nfd = unicodedata.normalize("NFD", s or "")
+    return "".join(c for c in nfd if not unicodedata.combining(c))
 
 
 def _opponent_sort_key(name: str | None) -> str:
@@ -108,9 +115,11 @@ class _OpponentDnDTree(QTreeWidget):
 
     def dropEvent(self, event) -> None:  # noqa: N802 (Qt API)
         target = self.itemAt(event.position().toPoint())
-        group = None
-        if target is not None:
-            group = target if target.parent() is None else target.parent()
+        # Vyšplhej na nejvyššího předka (skupina Interní/Externí nese kind);
+        # cíl může být list, podskupina „Pracoviště" i samotná skupina.
+        group = target
+        while group is not None and group.parent() is not None:
+            group = group.parent()
         new_kind = group.data(0, _ROLE_GROUP_KIND) if group is not None else None
         if not new_kind:
             event.ignore()
@@ -146,6 +155,14 @@ class StudentsManageDialog(QDialog):
 
         # ── horní lišta s filtrem ───────────────────────────────────────────
         top_row = QHBoxLayout()
+        top_row.addWidget(QLabel("🔎 Příjmení:"))
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("filtr podle příjmení…")
+        self.search_edit.setClearButtonEnabled(True)
+        self.search_edit.setMaximumWidth(240)
+        self.search_edit.textChanged.connect(self._refresh)
+        top_row.addWidget(self.search_edit)
+        top_row.addSpacing(16)
         self.chk_hide_defended = QCheckBox("Skrýt dokončené studenty")
         self.chk_hide_defended.toggled.connect(self._refresh)
         top_row.addWidget(self.chk_hide_defended)
@@ -206,15 +223,20 @@ class StudentsManageDialog(QDialog):
 
         current_year = ThesisService.current_academic_year()
         hide_defended = self.chk_hide_defended.isChecked()
+        needle = _strip_diacritics(self.search_edit.text().strip().lower())
 
         # group: type_code -> obor -> [(student, primary_thesis)]
         groups: dict[str, dict[str, list[tuple[Student, Thesis]]]] = {}
         no_thesis: list[Student] = []
         hidden_count = 0
         total = 0
+        filtered_count = 0
 
         for student in self.service.list_students():
             total += 1
+            if needle and needle not in _strip_diacritics(student.last_name.lower()):
+                filtered_count += 1
+                continue
             primary = self._primary_thesis(student.id)
             if primary is None:
                 no_thesis.append(student)
@@ -279,10 +301,17 @@ class StudentsManageDialog(QDialog):
             nt_item.setExpanded(True)
 
         # info
-        shown = total - hidden_count if hide_defended else total
+        shown = total - filtered_count
+        if hide_defended:
+            shown -= hidden_count
         info = f"Zobrazeno: {shown} / {total}"
+        extras = []
+        if needle and filtered_count:
+            extras.append(f"odfiltrováno: {filtered_count}")
         if hide_defended and hidden_count:
-            info += f"   (skryto dokončených: {hidden_count})"
+            extras.append(f"skryto dokončených: {hidden_count}")
+        if extras:
+            info += f"   ({', '.join(extras)})"
         self.lbl_info.setText(info)
 
         if selected_id:
@@ -559,6 +588,9 @@ class OpponentsManageDialog(QDialog):
             t.opponent_id for t in self.service.list_theses() if t.opponent_id
         )
 
+        no_affil = "(bez pracoviště)"
+        kind_totals: dict[OpponentKind, tuple[int, int]] = {}
+
         for kind, icon in (
             (OpponentKind.INTERNAL, "📍"),
             (OpponentKind.EXTERNAL, "🏢"),
@@ -567,47 +599,84 @@ class OpponentsManageDialog(QDialog):
                 self.service.list_opponents(kind=kind),
                 key=lambda o: _opponent_sort_key(o.name),
             )
+            group_works = sum(opp_counts.get(o.id, 0) for o in opps)
+            kind_totals[kind] = (len(opps), group_works)
+
             group = QTreeWidgetItem(
-                [f"{icon}  {kind.label}  ({len(opps)})", "", "", "", ""]
+                [
+                    f"{icon}  {kind.label}  ({len(opps)} oponentů)",
+                    "", "", "",
+                    f"Σ {group_works}",
+                ]
             )
-            group.setFirstColumnSpanned(True)
-            f = group.font(0)
-            f.setBold(True)
-            f.setPointSize(f.pointSize() + 1)
-            group.setFont(0, f)
+            gf = group.font(0)
+            gf.setBold(True)
+            gf.setPointSize(gf.pointSize() + 1)
+            group.setFont(0, gf)
+            group.setFont(4, gf)
+            group.setTextAlignment(
+                4, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+            )
+            group.setToolTip(4, f"Kontrolní součet oponovaných prací: {group_works}")
             # Cíl drag&drop: na skupině je její kind; skupina sama není tažitelná.
             group.setData(0, _ROLE_GROUP_KIND, kind.value)
             group.setFlags(group.flags() & ~Qt.ItemFlag.ItemIsDragEnabled)
             self.tree.addTopLevelItem(group)
 
+            # Podskupiny podle Pracoviště (Pracoviště prázdné → na konec).
+            by_affil: dict[str, list[Opponent]] = {}
             for o in opps:
-                phone = o.phone if (o.phone and kind == OpponentKind.EXTERNAL) else ""
-                count = opp_counts.get(o.id, 0)
-                leaf = QTreeWidgetItem(
-                    [
-                        o.display_name,
-                        o.affiliation or "",
-                        o.email or "",
-                        phone,
-                        str(count) if count else "—",
-                    ]
+                by_affil.setdefault((o.affiliation or "").strip() or no_affil, []).append(o)
+
+            def _affil_sort(key: str) -> tuple[int, str]:
+                return (1 if key == no_affil else 0, key.lower())
+
+            for affil in sorted(by_affil, key=_affil_sort):
+                members = by_affil[affil]
+                sub_works = sum(opp_counts.get(o.id, 0) for o in members)
+                sub = QTreeWidgetItem(
+                    [f"    {affil}  ({len(members)})", "", "", "", str(sub_works)]
                 )
-                leaf.setTextAlignment(
+                sf = sub.font(0)
+                sf.setItalic(True)
+                sub.setFont(0, sf)
+                sub.setTextAlignment(
                     4, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                 )
-                leaf.setData(0, Qt.ItemDataRole.UserRole, o)
-                # tooltip s adresou (jen externí)
-                if kind == OpponentKind.EXTERNAL and o.address:
-                    leaf.setToolTip(0, f"{o.name}\n{o.address}")
-                group.addChild(leaf)
+                sub.setForeground(0, QBrush(QColor("#888")))
+                sub.setFlags(sub.flags() & ~Qt.ItemFlag.ItemIsDragEnabled)
+                group.addChild(sub)
+
+                for o in members:
+                    phone = o.phone if (o.phone and kind == OpponentKind.EXTERNAL) else ""
+                    count = opp_counts.get(o.id, 0)
+                    leaf = QTreeWidgetItem(
+                        [
+                            o.display_name,
+                            o.affiliation or "",
+                            o.email or "",
+                            phone,
+                            str(count) if count else "—",
+                        ]
+                    )
+                    leaf.setTextAlignment(
+                        4, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    leaf.setData(0, Qt.ItemDataRole.UserRole, o)
+                    # tooltip s adresou (jen externí)
+                    if kind == OpponentKind.EXTERNAL and o.address:
+                        leaf.setToolTip(0, f"{o.name}\n{o.address}")
+                    sub.addChild(leaf)
+                sub.setExpanded(True)
 
             group.setExpanded(True)
 
-        total_int = len(self.service.list_opponents(kind=OpponentKind.INTERNAL))
-        total_ext = len(self.service.list_opponents(kind=OpponentKind.EXTERNAL))
+        int_n, int_w = kind_totals.get(OpponentKind.INTERNAL, (0, 0))
+        ext_n, ext_w = kind_totals.get(OpponentKind.EXTERNAL, (0, 0))
         self.lbl_info.setText(
-            f"Interní: {total_int}    ·    Externí: {total_ext}    ·    "
-            f"Celkem: {total_int + total_ext}"
+            f"Interní: {int_n} (oponují {int_w} prací)    ·    "
+            f"Externí: {ext_n} (oponují {ext_w} prací)    ·    "
+            f"Celkem: {int_n + ext_n} ({int_w + ext_w} prací)"
         )
 
         if selected_id:
