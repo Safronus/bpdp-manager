@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.87.0] - 2026-06-07
+
+### Added
+- **Počet oponovaných prací ve správci *Oponenti*.** Nový sloupec *Oponuje prací*
+  ukazuje, kolik prací daný oponent oponuje / oponoval (přes vazbu na práce).
+
+### Changed
+- **Sloupec *Téma* se už barevně nepodbarvuje.** Stav posudku vedoucího
+  (u *Aktuálně vedených*) i oponentského posudku (u *Aktuálně oponovaných*)
+  indikuje nadále jen barevná tečka (🟢/🟡/🔴) před názvem tématu; popis stavu
+  zůstává v tooltipu buňky.
+
 ## [0.86.0] - 2026-06-07
 
 ### Added

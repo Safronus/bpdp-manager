@@ -46,6 +46,10 @@ V **👤 → 🗂 Správa profilů**:
 > registrech — uloží se jako text a zobrazí se u jejich jména (i v posudku,
 > když píšeš za ně).
 >
+> **Manažer *Oponenti*** seskupuje oponenty na **Interní** / **Externí**
+> (mezi skupinami je lze **přetáhnout**) a u každého ukazuje sloupec
+> **Oponuje prací** — počet prací, které oponuje / oponoval.
+>
 > **Tituly ze STAG.** STAG dává jména ve formátu *„Příjmení Jméno, tituly"*
 > (vše za jménem). Při stahování práce je aplikace **rozparsuje** na tituly
 > před / jméno / tituly za (podle známých seznamů titulů). Starší (dříve
@@ -167,11 +171,11 @@ i oponenturami. Při jediné shodě aplikace rovnou **skočí na práci**
 v *Aktuální* jsou nahoře).
 
 ### 🟢🟡🔴 Stav posudku barevně
-V **Aktuální** se buňka *názvu práce* podbarví podle posudku vedoucího:
-🟢 vyrobený soubor · 🟡 jen rozpracovaná data (uložená bez XLSX) · 🔴 nic.
-Stav je navíc jako **barevný puntík přímo v názvu**, takže ho vidíš i
-u **vybraného** řádku (výběr by jinak pozadí překryl). V **🧐 Oponovaných
-pracích** stejně podle oponentského posudku. **Dolní lišta** ukazuje barevný
+V **Aktuální** indikuje stav posudku vedoucího **barevný puntík přímo
+v názvu práce**: 🟢 vyrobený soubor · 🟡 jen rozpracovaná data (uložená bez
+XLSX) · 🔴 nic. Buňka názvu se **nepodbarvuje** — barvu nese jen tečka
+(plný popis stavu je v tooltipu). V **🧐 Oponovaných pracích** stejně
+podle oponentského posudku. **Dolní lišta** ukazuje barevný
 souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik práce
 tě ještě čeká.
 
@@ -186,7 +190,7 @@ sloupec V/O** je i v záložce *Oponované práce*.
 >
 > **Oponentury — sloupec Stav a indikace dle roku.** Tabulka oponentur má
 > sloupec **Stav** (ze STAG, např. *nedokončeno / obhájeno*). Barevný puntík
-> stavu posudku, podbarvení a sloupec *Odesláno* se ukazují **jen u aktuálního
+> stavu posudku a sloupec *Odesláno* se ukazují **jen u aktuálního
 > akademického roku** (u starších je to irelevantní). Známka oponenta se
 > u stažených oponentur doplní z nahraného **posudku** (PDF i Word `.doc`/
 > `.docx`) automaticky.

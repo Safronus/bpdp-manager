@@ -487,17 +487,18 @@ class OpponentsManageDialog(QDialog):
         )
 
         self.tree = _OpponentDnDTree()
-        self.tree.setColumnCount(4)
-        self.tree.setHeaderLabels(["Jméno", "Pracoviště", "Email", "Telefon"])
+        self.tree.setColumnCount(5)
+        self.tree.setHeaderLabels(
+            ["Jméno", "Pracoviště", "Email", "Telefon", "Oponuje prací"]
+        )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.itemDoubleClicked.connect(self._edit)
         self.tree.moved.connect(self._move_opponent)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        for col in (1, 2, 3, 4):
+            h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         layout.addWidget(self.tree, stretch=1)
 
@@ -552,6 +553,12 @@ class OpponentsManageDialog(QDialog):
         selected_id = self._selected_opponent_id()
         self.tree.clear()
 
+        # Počet prací, které daný oponent oponuje/oponoval (přes thesis.opponent_id).
+        from collections import Counter
+        opp_counts = Counter(
+            t.opponent_id for t in self.service.list_theses() if t.opponent_id
+        )
+
         for kind, icon in (
             (OpponentKind.INTERNAL, "📍"),
             (OpponentKind.EXTERNAL, "🏢"),
@@ -561,7 +568,7 @@ class OpponentsManageDialog(QDialog):
                 key=lambda o: _opponent_sort_key(o.name),
             )
             group = QTreeWidgetItem(
-                [f"{icon}  {kind.label}  ({len(opps)})", "", "", ""]
+                [f"{icon}  {kind.label}  ({len(opps)})", "", "", "", ""]
             )
             group.setFirstColumnSpanned(True)
             f = group.font(0)
@@ -575,13 +582,18 @@ class OpponentsManageDialog(QDialog):
 
             for o in opps:
                 phone = o.phone if (o.phone and kind == OpponentKind.EXTERNAL) else ""
+                count = opp_counts.get(o.id, 0)
                 leaf = QTreeWidgetItem(
                     [
                         o.display_name,
                         o.affiliation or "",
                         o.email or "",
                         phone,
+                        str(count) if count else "—",
                     ]
+                )
+                leaf.setTextAlignment(
+                    4, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                 )
                 leaf.setData(0, Qt.ItemDataRole.UserRole, o)
                 # tooltip s adresou (jen externí)

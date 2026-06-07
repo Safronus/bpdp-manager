@@ -9,6 +9,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from bpdpmanager.models import Opponent
@@ -27,6 +28,36 @@ def qapp():
 def service(tmp_path: Path) -> ThesisService:
     repo = JsonRepository(path=tmp_path / "db.json", backup_path=tmp_path / "db.json.bak")
     return ThesisService(repo)
+
+
+def test_opponent_work_count_column(qapp, service) -> None:
+    """Správce oponentů ukazuje počet prací, které oponent oponuje."""
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisType
+
+    o = Opponent(name="Jan Novák", kind=OpponentKind.INTERNAL)
+    service.upsert_opponent(o)
+    s = Student(first_name="A", last_name="B")
+    service.upsert_student(s)
+    for _ in range(2):
+        service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2024/2025",
+                                     student_id=s.id, opponent_id=o.id))
+
+    dlg = OpponentsManageDialog(service)
+
+    def _leaf_for(opp_id):
+        root = dlg.tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            grp = root.child(i)
+            for j in range(grp.childCount()):
+                leaf = grp.child(j)
+                if leaf.data(0, Qt.ItemDataRole.UserRole).id == opp_id:
+                    return leaf
+        return None
+
+    leaf = _leaf_for(o.id)
+    assert leaf is not None
+    assert leaf.text(4) == "2"  # oponuje 2 práce
 
 
 def test_move_opponent_changes_kind(qapp, service) -> None:

@@ -6,7 +6,7 @@ import locale
 import unicodedata
 
 from PySide6.QtCore import QPoint, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QAction, QBrush, QColor
+from PySide6.QtGui import QAction, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -21,7 +21,6 @@ from ..models import Thesis
 from ..models.enums import (
     GRADE_TINTS,
     REVIEW_STATE_LABELS,
-    REVIEW_STATE_TINTS,
     AttachmentKind,
     ThesisStatus,
     ThesisType,
@@ -673,15 +672,11 @@ class ThesesTreeWidget(QTreeWidget):
 
         # Stav kreslí StatusBadgeDelegate z dat ROLE_STATUS (zaoblený badge).
 
-        # Posudek vedoucího — podbarvi buňku NÁZVU práce (jen u prací „V řešení",
-        # kde má smysl sledovat, co ještě jako vedoucí musím posoudit):
-        #   🟢 hotový soubor · 🟡 jen rozpracovaná data · 🔴 nic
+        # Posudek vedoucího — indikuje jen barevná tečka v názvu (🟢/🟡/🔴);
+        # pozadí buňky se nepodbarvuje (jen tooltip s popisem stavu).
         if thesis.status == ThesisStatus.IN_PROGRESS:
             state = thesis.supervisor_review_state
-            tint = REVIEW_STATE_TINTS.get(state)
-            if tint:
-                leaf.setBackground(self.COL_TITLE, QBrush(QColor(tint)))
-                leaf.setForeground(self.COL_TITLE, QBrush(QColor("#212121")))
+            if state in REVIEW_STATE_LABELS:
                 leaf.setToolTip(
                     self.COL_TITLE,
                     f"Posudek vedoucího: {REVIEW_STATE_LABELS.get(state, '')}",

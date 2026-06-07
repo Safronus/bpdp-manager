@@ -6,7 +6,7 @@ import locale
 import unicodedata
 
 from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QAction, QBrush, QColor
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -31,7 +31,6 @@ from ..models import OpposingThesis
 from ..models.enums import (
     REVIEW_STATE_LABELS,
     REVIEW_STATE_STRONG,
-    REVIEW_STATE_TINTS,
     AttachmentKind,
     ThesisType,
     review_sent_badge,
@@ -362,12 +361,9 @@ class OpposingTab(QWidget):
                         )
                     if sent_tip:
                         leaf.setToolTip(COL_SENT, sent_tip)
-                    # Oponentský posudek — podbarvi sloupec názvu práce
-                    # (🟢 hotový · 🟡 jen data · 🔴 chybí) — jen aktuální rok.
-                    tint = REVIEW_STATE_TINTS.get(state) if is_current else None
-                    if tint:
-                        leaf.setBackground(1, QBrush(QColor(tint)))
-                        leaf.setForeground(1, QBrush(QColor("#212121")))
+                    # Oponentský posudek — indikuje jen barevná tečka v názvu
+                    # (🟢/🟡/🔴 u aktuálního roku); pozadí se nepodbarvuje.
+                    if is_current and state in REVIEW_STATE_LABELS:
                         leaf.setToolTip(
                             1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
                         )
