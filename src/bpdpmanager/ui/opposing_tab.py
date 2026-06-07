@@ -403,12 +403,16 @@ class OpposingTab(QWidget):
             "Zkopíruje nejnovější PDF oponentského posudku pro vybrané práce do "
             "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí."
         )
-        act_export_pdf.setEnabled(bool(selected_ops))
         act_export_pdf.triggered.connect(
             lambda _checked=False: self._export_my_review_pdfs()
         )
         menu.addAction(act_export_pdf)
         menu.addSeparator()
+
+        # Při výběru více prací dává smysl jen hromadná akce (export) —
+        # ostatní akce jsou per-práce, takže se ukážou jen u jedné vybrané.
+        if len(selected_ops) > 1:
+            return menu
 
         # Aktualizace jedné oponentury ze STAG (stav + dohrání souborů).
         act_update = QAction("🔄 Aktualizace práce ze STAG…", self.tree)

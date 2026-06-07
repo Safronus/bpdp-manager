@@ -88,6 +88,150 @@ def test_supervised_tree_multiselect_export(qapp, tmp_path) -> None:
     assert "Petr Svoboda" in summary  # přeskočen (bez PDF)
 
 
+def _labels(menu):
+    return [a.text() for a in menu.actions() if not a.isSeparator()]
+
+
+def test_supervised_menu_single_vs_multi(qapp, tmp_path) -> None:
+    """Vedené práce: u jedné vybrané plné menu, u více jen hromadný export."""
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.services import ThesisService
+    from bpdpmanager.storage import JsonRepository
+    from bpdpmanager.ui.theses_tree import ROLE_THESIS_ID, ThesesTreeWidget
+
+    repo = JsonRepository(
+        path=tmp_path / "db.json", backup_path=tmp_path / "db.json.bak"
+    )
+    service = ThesisService(repo)
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    t1 = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                academic_year="2024/2025", student_id=s.id)
+    t2 = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                academic_year="2024/2025", student_id=s.id)
+    service.upsert_thesis(t1)
+    service.upsert_thesis(t2)
+
+    tree = ThesesTreeWidget(service)
+    tree.enable_review_export = True
+    tree.refresh()
+
+    def leaf(value):
+        found = []
+
+        def walk(item):
+            for i in range(item.childCount()):
+                walk(item.child(i))
+            if item.data(0, ROLE_THESIS_ID) == value:
+                found.append(item)
+
+        root = tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            walk(root.child(i))
+        return found[0]
+
+    l1 = leaf(t1.id)
+    l1.setSelected(True)
+    single = _labels(tree._build_context_menu(l1))
+    assert len(single) > 1
+    assert any("Export PDF" in x for x in single)
+    assert any("Roll-back" in x for x in single)
+
+    leaf(t2.id).setSelected(True)
+    multi = _labels(tree._build_context_menu(l1))
+    assert multi == ["📄 Export PDF mých posudků (2)…"]
+
+
+def test_supervised_menu_multi_empty_without_export(qapp, tmp_path) -> None:
+    """Mimo „Aktuálně vedené" (export vypnutý) je u více vybraných menu prázdné."""
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.services import ThesisService
+    from bpdpmanager.storage import JsonRepository
+    from bpdpmanager.ui.theses_tree import ROLE_THESIS_ID, ThesesTreeWidget
+
+    repo = JsonRepository(
+        path=tmp_path / "db.json", backup_path=tmp_path / "db.json.bak"
+    )
+    service = ThesisService(repo)
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    t1 = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                academic_year="2024/2025", student_id=s.id)
+    t2 = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                academic_year="2024/2025", student_id=s.id)
+    service.upsert_thesis(t1)
+    service.upsert_thesis(t2)
+
+    tree = ThesesTreeWidget(service)  # enable_review_export zůstává False
+    tree.refresh()
+
+    leaves = []
+
+    def walk(item):
+        for i in range(item.childCount()):
+            walk(item.child(i))
+        if item.data(0, ROLE_THESIS_ID):
+            leaves.append(item)
+
+    root = tree.invisibleRootItem()
+    for i in range(root.childCount()):
+        walk(root.child(i))
+    for it in leaves:
+        it.setSelected(True)
+    menu = tree._build_context_menu(leaves[0])
+    assert menu.isEmpty()  # _on_context_menu pak menu vůbec nezobrazí
+
+
+def test_opposing_menu_single_vs_multi(qapp, tmp_path) -> None:
+    """Oponentury: u jedné vybrané plné menu, u více jen hromadný export."""
+    from bpdpmanager.models import OpposingThesis
+    from bpdpmanager.models.enums import ThesisType
+    from bpdpmanager.services import ThesisService
+    from bpdpmanager.storage import JsonRepository
+    from bpdpmanager.ui.opposing_tab import ROLE_ID, OpposingTab
+
+    repo = JsonRepository(
+        path=tmp_path / "db.json", backup_path=tmp_path / "db.json.bak"
+    )
+    service = ThesisService(repo)
+    year = service.current_academic_year()
+    op1 = OpposingThesis(type=ThesisType.BP, academic_year=year,
+                         student_first_name="Jan", student_last_name="Novák",
+                         title_cs="A")
+    op2 = OpposingThesis(type=ThesisType.BP, academic_year=year,
+                         student_first_name="Petr", student_last_name="Svoboda",
+                         title_cs="B")
+    service.upsert_opposing_thesis(op1)
+    service.upsert_opposing_thesis(op2)
+
+    tab = OpposingTab(service)
+    tab.refresh()
+
+    found = []
+
+    def walk(item):
+        for i in range(item.childCount()):
+            walk(item.child(i))
+        if item.data(0, ROLE_ID):
+            found.append(item)
+
+    root = tab.tree.invisibleRootItem()
+    for i in range(root.childCount()):
+        walk(root.child(i))
+
+    found[0].setSelected(True)
+    single = _labels(tab._build_context_menu(found[0].data(0, ROLE_ID)))
+    assert len(single) > 1
+    assert any("Export PDF" in x for x in single)
+
+    for it in found:
+        it.setSelected(True)
+    multi = _labels(tab._build_context_menu(found[0].data(0, ROLE_ID)))
+    assert multi == ["📄 Export PDF mých posudků (2)…"]
+
+
 def test_opposing_tab_multiselect_export(qapp, tmp_path) -> None:
     """Záložka oponentur: extended selection + export PDF oponentského posudku."""
     from bpdpmanager.models import OpposingThesis

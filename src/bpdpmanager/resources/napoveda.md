@@ -950,7 +950,10 @@ synchronizací.
   posudek **oponenta**. Hodí se pro **tisk**: vyber jen práce, které ještě
   tisknout chceš. Práce **bez vytvořeného PDF posudku** se přeskočí; na konci se
   zobrazí **souhrn** (kolik exportováno, co přeskočeno). Soubor stejného názvu ve
-  cílové složce se **přepíše**.
+  cílové složce se **přepíše**. Když je vybráno **více prací**, kontextové menu
+  nabízí **jen tuto hromadnou akci** — ostatní položky (aktualizace ze STAG,
+  napsat/generovat posudek, otevřít posudek, Roll-back…) se vztahují k jedné
+  práci, takže se zobrazí jen při výběru **jediné** práce.
 - **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
   do ZIP* nejdřív ukáže **výběr „co zahrnout"**: náhled dat práce (ta se
   exportují vždy), navázané entity (**student / oponent / obor**) a **soubory

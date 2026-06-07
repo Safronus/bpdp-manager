@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-06-08
+
+### Changed
+- **Kontextové menu při výběru více prací ukazuje jen „📄 Export PDF mých
+  posudků…".** Ostatní akce (aktualizace ze STAG, napsat/generovat posudek,
+  otevřít posudek, Roll-back, export do ZIP…) jsou per-práce, takže se zobrazí
+  jen když je vybraná **jedna** práce. Platí pro „Aktuálně vedené práce" i
+  „Oponované práce".
+
 ## [1.3.0] - 2026-06-07
 
 ### Added

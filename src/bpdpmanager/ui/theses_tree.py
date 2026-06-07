@@ -805,31 +805,39 @@ class ThesesTreeWidget(QTreeWidget):
         Sekční řádky (rok, typ) menu nemají — jen list reprezentující práci.
         """
         item = self.itemAt(pos)
-        if item is None:
+        if item is None or item.data(0, ROLE_KIND) != "thesis":
             return
-        kind = item.data(0, ROLE_KIND)
-        if kind != "thesis":
-            return
-        thesis_id = item.data(0, ROLE_THESIS_ID)
-        if not thesis_id:
-            return
-        thesis = self.service.get_thesis(thesis_id)
-        if thesis is None:
-            return
-
         # Pravý klik mimo výběr → vyber jen tuto práci (běžné chování).
         if item not in self.selectedItems():
             self.setCurrentItem(item)
+        menu = self._build_context_menu(item)
+        if menu is not None and not menu.isEmpty():
+            menu.exec(self.viewport().mapToGlobal(pos))
+
+    def _build_context_menu(self, item: QTreeWidgetItem) -> QMenu | None:
+        """Sestaví kontextové menu pro práci (bez ``exec`` — testovatelné).
+
+        Při výběru více prací vrací jen hromadnou akci (export PDF posudků);
+        ostatní akce jsou per-práce, takže se ukážou jen u jedné vybrané.
+        """
+        thesis_id = item.data(0, ROLE_THESIS_ID)
+        if not thesis_id:
+            return None
+        thesis = self.service.get_thesis(thesis_id)
+        if thesis is None:
+            return None
+
+        selected_theses = [
+            it for it in self.selectedItems()
+            if it.data(0, ROLE_KIND) == "thesis"
+        ]
+        multi = len(selected_theses) > 1
 
         menu = QMenu(self)
 
         # Hromadný export PDF mých posudků (posudek vedoucího) pro vybrané práce
         # — jen v záložce „Aktuálně vedené práce".
         if self.enable_review_export:
-            selected_theses = [
-                it for it in self.selectedItems()
-                if it.data(0, ROLE_KIND) == "thesis"
-            ]
             act_export_pdf = QAction(
                 f"📄 Export PDF mých posudků ({len(selected_theses)})…", self
             )
@@ -837,12 +845,15 @@ class ThesesTreeWidget(QTreeWidget):
                 "Zkopíruje nejnovější PDF posudku vedoucího pro vybrané práce do "
                 "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí."
             )
-            act_export_pdf.setEnabled(bool(selected_theses))
             act_export_pdf.triggered.connect(
                 lambda _checked=False: self._export_my_review_pdfs()
             )
             menu.addAction(act_export_pdf)
             menu.addSeparator()
+
+        # Při výběru více prací jen hromadný export (viz docstring).
+        if multi:
+            return menu
 
         act_update = QAction("🔄 Aktualizace práce ze STAG…", self)
         act_update.setToolTip(
@@ -943,4 +954,4 @@ class ThesesTreeWidget(QTreeWidget):
         )
         menu.addAction(act_rollback)
 
-        menu.exec(self.viewport().mapToGlobal(pos))
+        return menu
