@@ -57,6 +57,30 @@ def test_section_to_kind_has_defense_record() -> None:
     assert _SECTION_TO_KIND["defense_record"] == AttachmentKind.DEFENSE_RECORD
 
 
+def test_pair_other_with_stag() -> None:
+    """Spárování lokálních „Jiné" se STAG soubory + odhad průběhu obhajoby."""
+    from types import SimpleNamespace
+
+    from bpdpmanager.ui.defense_reclassify_dialog import pair_other_with_stag
+
+    local = [SimpleNamespace(label="Novak_jine_2026.pdf"),
+             SimpleNamespace(label="Svoboda_jine_2026.pdf")]
+    stag = [
+        StagFile(soubidno="1", filename="fulltext.pdf", download_path="/a",
+                 section="text"),
+        StagFile(soubidno="2", filename="obhajoba_19.pdf", download_path="/b",
+                 section="defense_record"),
+        StagFile(soubidno="3", filename="dokument.pdf", download_path="/c",
+                 section="other"),
+    ]
+    pairs = pair_other_with_stag(local, stag)
+    assert len(pairs) == 2
+    # 1. lokální ↔ obhajoba_19.pdf (defense, předzaškrtnuto).
+    assert pairs[0][1] == "obhajoba_19.pdf" and pairs[0][2] is True
+    # 2. lokální ↔ dokument.pdf (generický název → odhad False, ale dohledán název).
+    assert pairs[1][1] == "dokument.pdf" and pairs[1][2] is False
+
+
 def test_reclassify_defense_records(service: ThesisService) -> None:
     s = Student(first_name="Jan", last_name="Novák")
     service.upsert_student(s)

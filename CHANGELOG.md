@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-06-07
+
+### Changed
+- **„🗂 Přeřadit průběh obhajoby" nově dotahuje původní názvy ze STAG.** Při
+  stažení se název souboru přejmenuje (`Příjmení_jine_datum.pdf`), takže
+  přeřazení podle názvu nefungovalo. Nový dialog **znovu dotáhne seznam souborů
+  ze STAG**, obnoví původní názvy, spáruje je s lokálními přílohami *Jiné*
+  a v **náhledu s checkboxy** nabídne přeřazení (protokoly/zápisy obhajoby
+  předzaškrtnuté; generické názvy zaškrtneš ručně). Se zálohou.
+- **Nově stahované soubory ze STAG si pamatují původní název** (ukládá se do
+  popisku přílohy) — Dokumenty tak ukazují skutečný název ze STAG a budoucí
+  rozpoznání typu funguje spolehlivě.
+
 ## [0.71.2] - 2026-06-07
 
 ### Changed

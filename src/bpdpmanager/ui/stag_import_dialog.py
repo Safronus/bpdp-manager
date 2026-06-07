@@ -1763,9 +1763,13 @@ class StagImportDialog(QDialog):
                     continue
                 try:
                     if tid:
-                        self.service.attach_document(tid, f.path, kind=f.kind)
+                        self.service.attach_document(
+                            tid, f.path, kind=f.kind, label=f.filename
+                        )
                     else:
-                        self.service.opposing_attach_document(oid, f.path, kind=f.kind)
+                        self.service.opposing_attach_document(
+                            oid, f.path, kind=f.kind, label=f.filename
+                        )
                     stats["attached_files"] += 1
                 except Exception as exc:  # noqa: BLE001
                     errors.append(f"Přiložení souboru {f.filename}: {exc}")
@@ -3531,9 +3535,13 @@ class StagDownloadDialog(QDialog):
             for f in picked.get(result.adipidno, []):
                 try:
                     if thesis_id:
-                        self._service.attach_document(thesis_id, f.path, kind=f.kind)
+                        self._service.attach_document(
+                            thesis_id, f.path, kind=f.kind, label=f.filename
+                        )
                     else:
-                        self._service.opposing_attach_document(op_id, f.path, kind=f.kind)
+                        self._service.opposing_attach_document(
+                            op_id, f.path, kind=f.kind, label=f.filename
+                        )
                     attached += 1
                 except Exception as exc:  # noqa: BLE001
                     attach_errors.append(f"{result.student_full} / {f.filename}: {exc}")

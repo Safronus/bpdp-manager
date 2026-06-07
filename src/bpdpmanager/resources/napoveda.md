@@ -269,9 +269,12 @@ Soubory a odkazy k práci, **agregované podle typu** (Text práce,
 Přílohy, Pracovní deník, Oficiální zadání, Posudek vedoucího, Posudek
 oponenta, Prezentace, **Soubor s průběhem obhajoby**, STAG export, Jiné).
 *Soubor s průběhem obhajoby* = protokol / zápis o průběhu obhajoby (SZZ);
-ze STAG se rozpozná podle názvu automaticky. Už dříve stažené takové soubory
-(vedené jako *Jiné*) přeřadíš hromadně toolbarem **🗂 Přeřadit průběh obhajoby**
-(s náhledem a zálohou).
+u nově stahovaných ze STAG se rozpozná podle názvu automaticky (a původní
+název se zachová). Už **dříve stažené** takové soubory (vedené jako *Jiné*)
+přeřadíš toolbarem **🗂 Přeřadit průběh obhajoby**: ten **dotáhne ze STAG
+původní názvy** (které se při dřívějším stažení ztrácely), spáruje je
+s lokálními přílohami a v **náhledu s checkboxy** nabídne přeřazení
+(protokoly/zápisy obhajoby předzaškrtnuté; se zálohou).
 
 - **Verzování:** nahrání dalšího souboru téhož typu vytvoří novou verzi;
   předchozí se označí jako *superseded*. Toggle **Zobrazit starší verze**
