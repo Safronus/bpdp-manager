@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.66.1] - 2026-06-07
+
+### Fixed
+- **Dev benchmark `tools/bench_stag_downloads.py` četl špatnou databázi.**
+  Defaultoval na `~/.bpdpmanager/db.json` (kde u profilové instalace nejsou
+  data → „Prací s STAG ID: 0"). Nově bere **db.json naposledy otevřeného
+  profilu** (stejná data jako v aplikaci). Přidán přepínač `--list-profiles`
+  pro výpis profilů a cest k jejich `db.json`.
+
 ## [0.66.0] - 2026-06-07
 
 ### Added

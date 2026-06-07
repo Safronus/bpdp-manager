@@ -9,9 +9,11 @@ Nezapisuje do DB ani do složky dokumentů aplikace — databázi jen čte.
 
 Použití:
     python tools/bench_stag_downloads.py [cesta/k/db.json] [--limit N] [--role all|supervisor|opponent]
+    python tools/bench_stag_downloads.py --list-profiles
 
-Když cesta není zadaná, použije se aktivní datová složka aplikace
-(``~/.bpdpmanager/db.json`` nebo dle ``BPDPMANAGER_DATA_DIR``).
+Když cesta není zadaná, použije se **db.json naposledy otevřeného profilu**
+(stejná data jako vidíš v aplikaci). Konkrétní profil/DB lze zadat cestou
+k jeho ``db.json`` (viz ``--list-profiles`` pro výpis složek profilů).
 """
 
 from __future__ import annotations
@@ -27,7 +29,45 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from bpdpmanager.config import app_data_dir
 from bpdpmanager.services import stag_api
+from bpdpmanager.services.profile_manager import ProfileManager
 from bpdpmanager.storage import JsonRepository
+
+
+def _resolve_default_db() -> Path:
+    """db.json naposledy otevřeného profilu; fallback na app data dir.
+
+    Čte jen rejstřík profilů (neotvírá profil, nebere zámek) — pro diagnostiku.
+    """
+    try:
+        pm = ProfileManager()
+        prof = None
+        last = pm.last_opened_id()
+        if last:
+            prof = pm.get(last)
+        if prof is None:
+            profiles = pm.all_profiles()
+            prof = profiles[0] if profiles else None
+        if prof is not None:
+            return Path(prof.data_dir) / "db.json"
+    except Exception:  # noqa: BLE001 — diagnostika, fallback níž
+        pass
+    return app_data_dir() / "db.json"
+
+
+def _list_profiles() -> int:
+    pm = ProfileManager()
+    profs = pm.all_profiles()
+    if not profs:
+        print("Žádné profily. Použije se app data dir:", app_data_dir() / "db.json")
+        return 0
+    last = pm.last_opened_id()
+    print("Profily (★ = naposledy otevřený):")
+    for p in profs:
+        mark = "★" if p.id == last else " "
+        db = Path(p.data_dir) / "db.json"
+        exists = "ok" if db.exists() else "CHYBÍ"
+        print(f"  {mark} {p.name:24.24}  {db}  [{exists}]")
+    return 0
 
 
 def _human(n: float) -> str:
@@ -78,12 +118,17 @@ def _measure_one(client: stag_api.StagClient, sf: stag_api.StagFile) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("db", nargs="?", help="cesta k db.json (default: app data dir)")
+    ap.add_argument("db", nargs="?", help="cesta k db.json (default: poslední profil)")
     ap.add_argument("--limit", type=int, default=0, help="max počet souborů (0 = vše)")
     ap.add_argument("--role", choices=["all", "supervisor", "opponent"], default="all")
+    ap.add_argument("--list-profiles", action="store_true",
+                    help="jen vypíše profily a cesty k jejich db.json")
     args = ap.parse_args()
 
-    db_path = Path(args.db) if args.db else app_data_dir() / "db.json"
+    if args.list_profiles:
+        return _list_profiles()
+
+    db_path = Path(args.db) if args.db else _resolve_default_db()
     if not db_path.exists():
         print(f"DB nenalezena: {db_path}")
         return 1
