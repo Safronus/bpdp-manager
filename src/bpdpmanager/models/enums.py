@@ -135,6 +135,20 @@ STATUS_ORDER: dict[ThesisStatus, int] = {
     s: i for i, s in enumerate(ThesisStatus)
 }
 
+# Navržené známky (ECTS) — pořadí pro filtr a barvy pro vizualizaci sloupce
+# „Známky". Světlé odstíny pro podbarvení písmene (tmavý text čitelný),
+# přechod zelená (A) → červená (F/FX).
+GRADES_ORDER: list[str] = ["A", "B", "C", "D", "E", "F", "FX"]
+GRADE_TINTS: dict[str, str] = {
+    "A": "#c8e6c9",   # zelená
+    "B": "#dcedc8",   # zelenožlutá
+    "C": "#fff9c4",   # žlutá
+    "D": "#ffe0b2",   # oranžová
+    "E": "#ffccbc",   # červenooranžová
+    "F": "#ffcdd2",   # červená
+    "FX": "#ef9a9a",  # sytější červená
+}
+
 # Stav posudku (vedoucího / oponenta) → barva pro odlišení v seznamech.
 # "done" = vyrobený soubor (zelená), "draft" = jen uložená data (oranžová),
 # "none" = nic (červená). Světlé odstíny pro podbarvení buňky (text čitelný).

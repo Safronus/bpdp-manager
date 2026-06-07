@@ -5,18 +5,21 @@ from __future__ import annotations
 import locale
 import unicodedata
 
-from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtCore import QPoint, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QAction, QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
     QMenu,
+    QStyle,
+    QStyledItemDelegate,
     QTreeWidget,
     QTreeWidgetItem,
 )
 
 from ..models import Thesis
 from ..models.enums import (
+    GRADE_TINTS,
     REVIEW_STATE_LABELS,
     REVIEW_STATE_TINTS,
     AttachmentKind,
@@ -28,6 +31,71 @@ from ..services import ThesisService
 
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
+ROLE_GRADES = Qt.ItemDataRole.UserRole + 4  # (grade_supervisor, grade_opponent)
+
+
+def _grade_badges(gs: str, go: str) -> list[str]:
+    """Dvojice popisků pro sloupec V/O — prázdná známka jako „–"."""
+    return [(gs or "").upper().strip() or "–", (go or "").upper().strip() or "–"]
+
+
+class GradesDelegate(QStyledItemDelegate):
+    """Vykreslí sloupec „V/O" jako dvě barevně podbarvená písmena (V / O).
+
+    Levé písmeno = známka vedoucího, pravé = oponenta; barva dle ECTS stupně
+    (zelená A → červená F/FX). Prázdná známka je decentní „–" bez podbarvení.
+    """
+
+    _GAP = 8        # mezera mezi dvojicí
+    _PAD = 7        # vnitřní okraj v rámečku písmene
+    _MIN_W = 22     # minimální šířka rámečku
+    _BADGE_H = 18
+
+    def _layout(self, fm, gs: str, go: str) -> tuple[list[str], list[int], int]:
+        labels = _grade_badges(gs, go)
+        widths = [max(self._MIN_W, fm.horizontalAdvance(lbl) + 2 * self._PAD)
+                  for lbl in labels]
+        total = sum(widths) + self._GAP
+        return labels, widths, total
+
+    def paint(self, painter, option, index) -> None:
+        pair = index.data(ROLE_GRADES)
+        if not pair:
+            super().paint(painter, option, index)
+            return
+        gs, go = pair
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        fm = option.fontMetrics
+        labels, widths, total = self._layout(fm, gs, go)
+        rect = option.rect
+        x = rect.x() + max(0, (rect.width() - total) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        for lbl, w in zip(labels, widths, strict=True):
+            br = QRectF(x, y, w, self._BADGE_H)
+            if lbl != "–":
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(GRADE_TINTS.get(lbl, "#e0e0e0")))
+                painter.drawRoundedRect(br, 4, 4)
+                painter.setPen(QColor("#212121"))
+            else:
+                painter.setPen(QColor("#9e9e9e"))
+            painter.drawText(br, Qt.AlignmentFlag.AlignCenter, lbl)
+            x += w + self._GAP
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        pair = index.data(ROLE_GRADES)
+        if not pair:
+            return super().sizeHint(option, index)
+        gs, go = pair
+        _, _, total = self._layout(option.fontMetrics, gs, go)
+        base = super().sizeHint(option, index)
+        return QSize(total + 8, max(base.height(), self._BADGE_H + 6))
 
 # ── České abecední řazení ────────────────────────────────────────────────────
 _HAS_CZECH_LOCALE = False
@@ -93,7 +161,7 @@ class ThesesTreeWidget(QTreeWidget):
     mark_review_sent_requested = Signal(str, bool)
 
     HEADERS = [
-        "Student / Skupina", "Téma", "Stav", "Známky",
+        "Student / Skupina", "Téma", "Stav", "V/O",
         "Posudky", "Odesláno", "Oponent", "Obor",
     ]
     COL_STUDENT = 0
@@ -129,6 +197,10 @@ class ThesesTreeWidget(QTreeWidget):
         h.setSectionResizeMode(self.COL_OPPONENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OBOR, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
+
+        # Sloupec V/O vykresluje barevné dvojice písmen (delegát).
+        self._grades_delegate = GradesDelegate(self)
+        self.setItemDelegateForColumn(self.COL_GRADES, self._grades_delegate)
 
         self.itemSelectionChanged.connect(self._on_selection)
 
@@ -285,10 +357,11 @@ class ThesesTreeWidget(QTreeWidget):
         sent_prepared = thesis.status == ThesisStatus.IN_PROGRESS and review_ready
         sent_text, sent_tip = review_sent_indicator(sent_prepared, sent_at)
 
-        # Známky vedoucí (V) / oponent (O) — „—" když chybí obě.
+        # Známky vedoucí (V) / oponent (O) — kreslí je delegát (barevné dvojice
+        # písmen). Když chybí obě, necháme decentní „—" jako prostý text.
         gs = (thesis.grade_supervisor or "").strip()
         go = (thesis.grade_opponent or "").strip()
-        grades_text = f"V: {gs or '—'} / O: {go or '—'}" if (gs or go) else "—"
+        grades_text = "" if (gs or go) else "—"
 
         leaf = QTreeWidgetItem(
             [
@@ -306,6 +379,7 @@ class ThesesTreeWidget(QTreeWidget):
             self.COL_GRADES, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )
         if gs or go:
+            leaf.setData(self.COL_GRADES, ROLE_GRADES, (gs, go))
             leaf.setToolTip(
                 self.COL_GRADES,
                 f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}",

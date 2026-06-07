@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-06-07
+
+### Added
+- **Filtry nad záložkou „Historie" — podle oponenta a podle známky.** Vedle
+  checkboxů stavů přibyla dvě rozbalovací menu: **Oponent** (seznam oponentů
+  vyskytujících se v historii + *Všichni*) a **Známka** (A–F/FX + *Všechny*).
+  Filtr známky propustí práci, když vybrané známce odpovídá **vedoucí NEBO
+  oponent**. Filtry se kombinují se zaškrtnutými stavy.
+
+### Changed
+- **Hezčí sloupec známek „V/O".** Hlavička je nově **„V/O"** (vlevo známka
+  vedoucího, vpravo oponenta) a obsah tvoří **barevně podbarvená dvojice
+  písmen** (zelená A → červená F/FX) místo dřívějšího textu „V: A / O: B".
+  Platí ve všech záložkách.
+- **Záložka „Historie" skrývá nepotřebné sloupce.** U hotových prací jsou
+  indikace **„Posudky"** a **„Odesláno"** irelevantní, takže se v Historii
+  vůbec nezobrazují (v ostatních záložkách zůstávají).
+
 ## [0.66.1] - 2026-06-07
 
 ### Fixed

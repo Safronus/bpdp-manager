@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from ..models import Thesis
 from ..models.enums import (
+    GRADES_ORDER,
     REVIEW_STATE_STRONG,
     STATUS_LABELS,
     STATUSES_CURRENT,
@@ -94,6 +95,8 @@ class _ThesesTab(QWidget):
         profile_manager=None,
         status_filter_choices: list[ThesisStatus] | None = None,
         status_filter_pref_key: str = "",
+        enable_extra_filters: bool = False,
+        hidden_columns: list[int] | None = None,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -101,12 +104,18 @@ class _ThesesTab(QWidget):
         self._base_predicate = filter_predicate
         self._status_filter_choices = list(status_filter_choices or [])
         self._status_filter_pref_key = status_filter_pref_key
+        self._enable_extra_filters = enable_extra_filters
         self._status_checks: dict[ThesisStatus, QCheckBox] = {}
+        self._cb_opponent: QComboBox | None = None
+        self._cb_grade: QComboBox | None = None
+        self._populating_filters = False
 
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.setChildrenCollapsible(False)
         self.tree = ThesesTreeWidget(service)
         self.tree.setMinimumHeight(160)
+        for col in (hidden_columns or []):
+            self.tree.setColumnHidden(col, True)
         self.detail = ThesisDetail(
             service, year_mode=year_mode, profile_manager=profile_manager
         )
@@ -122,11 +131,12 @@ class _ThesesTab(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        if self._status_filter_choices:
-            layout.addLayout(self._build_status_filter_row())
+        if self._status_filter_choices or self._enable_extra_filters:
+            layout.addLayout(self._build_filter_row())
         layout.addWidget(splitter)
 
-        # Filtr stromu = základní predikát + (volitelně) zaškrtnuté stavy.
+        # Filtr stromu = základní predikát + (volitelně) zaškrtnuté stavy /
+        # vybraný oponent / vybraná známka.
         self._apply_tree_filter()
 
         self.tree.thesis_selected.connect(self._on_thesis_selected)
@@ -140,36 +150,103 @@ class _ThesesTab(QWidget):
         self.detail.saved.connect(lambda _: (self.tree.refresh(), self.data_changed.emit()))
         self.detail.deleted.connect(lambda _: (self.tree.refresh(), self.data_changed.emit()))
 
-    def _build_status_filter_row(self) -> QHBoxLayout:
-        """Řádek s checkboxy stavů (default vše zaškrtnuto, perzistuje se)."""
-        saved = None
-        if self._profile_manager and self._status_filter_pref_key:
-            saved = self._profile_manager.get_ui_pref(self._status_filter_pref_key)
-        saved_set = set(saved) if isinstance(saved, list) else None
-
+    def _build_filter_row(self) -> QHBoxLayout:
+        """Řádek filtrů: checkboxy stavů (perzistentní) + comba oponent/známka."""
         row = QHBoxLayout()
         row.setContentsMargins(4, 2, 4, 0)
-        row.addWidget(QLabel("Zobrazit:"))
-        for status in self._status_filter_choices:
-            cb = QCheckBox(STATUS_LABELS.get(status, status.value))
-            # Bez uloženého nastavení je vše zaškrtnuté; jinak dle uložené volby.
-            cb.setChecked(saved_set is None or status.value in saved_set)
-            cb.toggled.connect(self._on_status_filter_changed)
-            self._status_checks[status] = cb
-            row.addWidget(cb)
+        row.setSpacing(8)
+
+        if self._status_filter_choices:
+            saved = None
+            if self._profile_manager and self._status_filter_pref_key:
+                saved = self._profile_manager.get_ui_pref(self._status_filter_pref_key)
+            saved_set = set(saved) if isinstance(saved, list) else None
+            row.addWidget(QLabel("Zobrazit:"))
+            for status in self._status_filter_choices:
+                cb = QCheckBox(STATUS_LABELS.get(status, status.value))
+                # Bez uloženého nastavení je vše zaškrtnuté; jinak dle uložené volby.
+                cb.setChecked(saved_set is None or status.value in saved_set)
+                cb.toggled.connect(self._on_status_filter_changed)
+                self._status_checks[status] = cb
+                row.addWidget(cb)
+
+        if self._enable_extra_filters:
+            row.addSpacing(16)
+            row.addWidget(QLabel("Oponent:"))
+            self._cb_opponent = QComboBox()
+            self._cb_opponent.setMinimumWidth(180)
+            self._cb_opponent.currentIndexChanged.connect(self._on_extra_filter_changed)
+            row.addWidget(self._cb_opponent)
+            row.addSpacing(8)
+            row.addWidget(QLabel("Známka:"))
+            self._cb_grade = QComboBox()
+            self._cb_grade.addItem("Všechny známky", userData=None)
+            for g in GRADES_ORDER:
+                self._cb_grade.addItem(g, userData=g)
+            self._cb_grade.currentIndexChanged.connect(self._on_extra_filter_changed)
+            row.addWidget(self._cb_grade)
+            self._populate_opponent_combo()
+
         row.addStretch(1)
         return row
+
+    def _populate_opponent_combo(self) -> None:
+        """Naplní combo oponentů těmi, kdo se vyskytují v této záložce.
+
+        Zachová aktuální výběr (podle ID). Volá se i při ``refresh`` — data se
+        mohla změnit (import, smazání). Signály po dobu plnění blokujeme.
+        """
+        if self._cb_opponent is None:
+            return
+        prev_id = self._cb_opponent.currentData()
+        # Posbírej oponenty z prací patřících do této záložky (základní predikát).
+        seen: dict[str, str] = {}
+        for t in self.service.list_theses():
+            if not self._base_predicate(t) or not t.opponent_id:
+                continue
+            if t.opponent_id not in seen:
+                opp = self.service.get_opponent(t.opponent_id)
+                if opp is not None:
+                    seen[t.opponent_id] = opp.display_name
+        ordered = sorted(seen.items(), key=lambda kv: kv[1].casefold())
+
+        self._populating_filters = True
+        try:
+            self._cb_opponent.clear()
+            self._cb_opponent.addItem("Všichni oponenti", userData=None)
+            for oid, name in ordered:
+                self._cb_opponent.addItem(name, userData=oid)
+            # Obnov předchozí výběr, pokud tam pořád je.
+            if prev_id:
+                idx = self._cb_opponent.findData(prev_id)
+                self._cb_opponent.setCurrentIndex(idx if idx >= 0 else 0)
+        finally:
+            self._populating_filters = False
 
     def _checked_statuses(self) -> set[ThesisStatus]:
         return {s for s, cb in self._status_checks.items() if cb.isChecked()}
 
     def _apply_tree_filter(self) -> None:
-        if not self._status_checks:
-            self.tree.set_filter(self._base_predicate)
-            return
-        allowed = self._checked_statuses()
         base = self._base_predicate
-        self.tree.set_filter(lambda t: base(t) and t.status in allowed)
+        allowed = self._checked_statuses() if self._status_checks else None
+        opp_id = self._cb_opponent.currentData() if self._cb_opponent else None
+        grade = self._cb_grade.currentData() if self._cb_grade else None
+
+        def predicate(t) -> bool:
+            if not base(t):
+                return False
+            if allowed is not None and t.status not in allowed:
+                return False
+            if opp_id and t.opponent_id != opp_id:
+                return False
+            if grade:
+                gs = (t.grade_supervisor or "").upper().strip()
+                go = (t.grade_opponent or "").upper().strip()
+                if grade not in (gs, go):
+                    return False
+            return True
+
+        self.tree.set_filter(predicate)
 
     def _on_status_filter_changed(self, _checked: bool) -> None:
         self._apply_tree_filter()
@@ -179,6 +256,12 @@ class _ThesesTab(QWidget):
                 self._status_filter_pref_key,
                 [s.value for s in self._checked_statuses()],
             )
+
+    def _on_extra_filter_changed(self, _index: int) -> None:
+        if self._populating_filters:
+            return
+        self._apply_tree_filter()
+        self.tree.refresh()
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
@@ -260,7 +343,10 @@ class _ThesesTab(QWidget):
             self.tree.refresh()
 
     def refresh(self) -> None:
-        self.tree.refresh()
+        # Combo oponentů musí odrážet aktuální data (import / smazání práce).
+        # ``_apply_tree_filter`` přes ``set_filter`` rovnou strom překreslí.
+        self._populate_opponent_combo()
+        self._apply_tree_filter()
 
 
 class MainWindow(QMainWindow):
@@ -305,6 +391,9 @@ class MainWindow(QMainWindow):
             profile_manager=pm,
             status_filter_choices=[ThesisStatus.DEFENDED, ThesisStatus.CANCELLED],
             status_filter_pref_key="history_status_filter",
+            enable_extra_filters=True,
+            # Hotové práce → indikace „Posudky" i „Odesláno" jsou irelevantní.
+            hidden_columns=[ThesesTreeWidget.COL_REVIEWS, ThesesTreeWidget.COL_SENT],
         )
         self.tab_all = _ThesesTab(
             service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm

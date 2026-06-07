@@ -15,7 +15,11 @@ from bpdpmanager.models import Student, Thesis
 from bpdpmanager.models.enums import ThesisStatus, ThesisType
 from bpdpmanager.services import ThesisService
 from bpdpmanager.storage import JsonRepository
-from bpdpmanager.ui.theses_tree import ROLE_THESIS_ID, ThesesTreeWidget
+from bpdpmanager.ui.theses_tree import (
+    ROLE_GRADES,
+    ROLE_THESIS_ID,
+    ThesesTreeWidget,
+)
 
 
 @pytest.fixture(scope="module")
@@ -29,14 +33,14 @@ def service(tmp_path: Path) -> ThesisService:
     return ThesisService(repo)
 
 
-def _leaf_text(tree: ThesesTreeWidget, thesis_id: str, col: int) -> str | None:
-    found: list[str] = []
+def _leaf(tree: ThesesTreeWidget, thesis_id: str) -> QTreeWidgetItem | None:
+    found: list[QTreeWidgetItem] = []
 
     def walk(item: QTreeWidgetItem) -> None:
         for i in range(item.childCount()):
             walk(item.child(i))
         if item.data(0, ROLE_THESIS_ID) == thesis_id:
-            found.append(item.text(col))
+            found.append(item)
 
     root = tree.invisibleRootItem()
     for i in range(root.childCount()):
@@ -44,13 +48,13 @@ def _leaf_text(tree: ThesesTreeWidget, thesis_id: str, col: int) -> str | None:
     return found[0] if found else None
 
 
-def test_grades_column_present_before_reviews(qapp, service) -> None:
+def test_grades_column_header_is_vo(qapp, service) -> None:
     headers = ThesesTreeWidget.HEADERS
-    assert "Známky" in headers
-    assert headers.index("Známky") < headers.index("Posudky")
+    assert "V/O" in headers
+    assert headers.index("V/O") < headers.index("Posudky")
 
 
-def test_grades_column_shows_both(qapp, service) -> None:
+def test_grades_column_stores_pair(qapp, service) -> None:
     s = Student(first_name="Jan", last_name="Novák")
     service.upsert_student(s)
     t = Thesis(type=ThesisType.BP, status=ThesisStatus.DEFENDED,
@@ -60,10 +64,11 @@ def test_grades_column_shows_both(qapp, service) -> None:
 
     tree = ThesesTreeWidget(service)
     tree.refresh()
-    txt = _leaf_text(tree, t.id, ThesesTreeWidget.COL_GRADES)
-    assert txt is not None
-    assert "A" in txt and "B" in txt
-    assert "V:" in txt and "O:" in txt
+    leaf = _leaf(tree, t.id)
+    assert leaf is not None
+    # Delegát kreslí dvojici z dat ROLE_GRADES (text buňky je prázdný).
+    assert leaf.data(ThesesTreeWidget.COL_GRADES, ROLE_GRADES) == ("A", "B")
+    assert leaf.text(ThesesTreeWidget.COL_GRADES) == ""
 
 
 def test_grades_column_dash_when_empty(qapp, service) -> None:
@@ -75,5 +80,7 @@ def test_grades_column_dash_when_empty(qapp, service) -> None:
 
     tree = ThesesTreeWidget(service)
     tree.refresh()
-    txt = _leaf_text(tree, t.id, ThesesTreeWidget.COL_GRADES)
-    assert txt == "—"
+    leaf = _leaf(tree, t.id)
+    assert leaf is not None
+    assert leaf.data(ThesesTreeWidget.COL_GRADES, ROLE_GRADES) is None
+    assert leaf.text(ThesesTreeWidget.COL_GRADES) == "—"

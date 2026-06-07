@@ -130,9 +130,12 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 
 - **Aktuální** — práce ve stavu *V řešení*
 - **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
-- **Historie** — *Obhájeno*, *Nedokončeno*. Nad seznamem jsou **checkboxy
-  stavů** (*Obhájeno* / *Nedokončeno*) — defaultně obě zaškrtnuté; odškrtnutím
-  zobrazíš jen jeden stav. Volba se **pamatuje i po zavření aplikace**.
+- **Historie** — *Obhájeno*, *Nedokončeno*. Nad seznamem jsou filtry:
+  **checkboxy stavů** (*Obhájeno* / *Nedokončeno*, defaultně obě zaškrtnuté;
+  volba se **pamatuje i po zavření aplikace**), rozbalovací **Oponent**
+  (jen oponenti z historie) a **Známka** (A–F/FX) — práce projde, když známce
+  odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
+  sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
 - **Vše** — všechny vedené práce
 - **🧐 Oponentské posudky** — práce, kde jsi oponent (ne vedoucí).
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
@@ -158,9 +161,10 @@ souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik prá
 tě ještě čeká.
 
 Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
-**Známky** (před *Posudky*) se známkou **vedoucího i oponenta** (`V: A / O: B`,
-„—" když chybí; plný popis v tooltipu). Stejné známky jsou i ve sloupci
-záložky *Oponentské posudky*.
+**V/O** se známkou **vedoucího i oponenta** — vlevo známka vedoucího (V),
+vpravo oponenta (O), jako **barevně podbarvená dvojice písmen** (zelená A →
+červená F/FX; „—" když chybí obě, plný popis v tooltipu). Stejné známky jsou
+i ve sloupci záložky *Oponentské posudky*.
 
 > **Oponentury — řazení dle roku.** Práce jsou seskupené dle akademického roku;
 > defaultně je rozbalený **jen aktuální rok**, starší roky jsou sbalené.
