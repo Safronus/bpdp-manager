@@ -224,8 +224,8 @@ class SentBadgeDelegate(QStyledItemDelegate):
     """Sloupec „Odesláno": obálka ✉ v zaobleném barevném čtverečku
     (zelená = odesláno / červená = neodesláno), stejný styl jako známky."""
 
-    _BADGE_H = 18
-    _W = 22
+    _BADGE_H = 20
+    _W = 24
 
     def paint(self, painter, option, index) -> None:
         bg = index.data(ROLE_SENT)
@@ -243,6 +243,10 @@ class SentBadgeDelegate(QStyledItemDelegate):
         painter.setBrush(QColor(bg))
         painter.drawRoundedRect(br, 4, 4)
         painter.setPen(QColor("white"))
+        # Větší font, ať je ✉ čitelná obálka, ne malý obdélníček.
+        glyph_font = painter.font()
+        glyph_font.setPointSizeF(glyph_font.pointSizeF() + 3)
+        painter.setFont(glyph_font)
         painter.drawText(br, Qt.AlignmentFlag.AlignCenter, "✉")
         painter.restore()
 

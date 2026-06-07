@@ -7,6 +7,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-06-07
+
+### Changed
+- **Ikona obálky ✉ ve sloupci *Odesláno* je větší** (čitelná obálka místo
+  drobného obdélníčku); badge mírně zvětšen.
+
 ## [1.1.2] - 2026-06-07
 
 ### Changed
