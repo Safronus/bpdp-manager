@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-06-07
+
+### Added
+- **Parsování titulů u vedoucích/oponentů ze STAG.** STAG dává jména ve formátu
+  *„Příjmení Jméno, tituly"* (vše za jménem). Při stahování práce se nově
+  **rozparsuje** na *tituly před / jméno / tituly za* (např.
+  `Novák Jan, prof. Ing. Ph.D.` → před `prof. Ing.`, jméno `Jan Novák`, za
+  `Ph.D.`). Tituly se třídí podle známých seznamů (nehádá se).
+- **Tlačítko „🧹 Uklidit tituly"** v manažeru *Oponentů* i *Vedoucích* — projde
+  existující záznamy (i denormalizované jméno vedoucího u oponentur) a po
+  **náhledu** je rozparsuje do polí. Vyřeší nepořádek u dříve stažených.
+
+### Changed
+- **Tituly za jménem se zobrazují s čárkou.** `compose_titled_name` teď vždy
+  oddělí post-nominální tituly čárkou (`Jan Novák, Ph.D.`) — sjednoceno
+  bez ohledu na to, jak byly uloženy.
+
 ## [0.75.1] - 2026-06-07
 
 ### Fixed

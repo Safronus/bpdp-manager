@@ -55,6 +55,7 @@ from ..models import (
     Thesis,
 )
 from ..models.enums import AttachmentKind, OpponentKind, ThesisStatus, ThesisType
+from ..models.naming import parse_titled_name
 from ..services import BackupManager, ProfileManager, ThesisService, stag_api
 from ..services.stag_csv_importer import (
     ImportFile,
@@ -2275,27 +2276,33 @@ class StagImportDialog(QDialog):
 
     def _ensure_opponent(self, name: str, stats: dict) -> Opponent | None:
         """Najdi (podle jména) nebo vytvoř oponenta v registru."""
-        name = (name or "").strip()
-        if not name:
+        raw = (name or "").strip()
+        if not raw:
             return None
+        # Rozparsuj jméno s tituly (STAG dává „Příjmení Jméno, tituly").
+        before, clean, after = parse_titled_name(raw)
         for o in self.service.list_opponents():
-            if o.name == name:
+            # Shoda na čisté jméno — i u starších „messy" záznamů (parsujeme oba).
+            if o.name == clean or parse_titled_name(o.name)[1] == clean:
                 return o
-        # Vytvoř — default jako interní (lze přepsat)
-        opp = Opponent(kind=OpponentKind.INTERNAL, name=name)
+        opp = Opponent(
+            kind=OpponentKind.INTERNAL, name=clean,
+            title_before=before, title_after=after,
+        )
         self.service.upsert_opponent(opp)
         stats["created_opponent"] += 1
         return opp
 
     def _ensure_supervisor(self, name: str, stats: dict) -> Supervisor | None:
-        """Najdi (podle jména) nebo vytvoř vedoucího v registru."""
-        name = (name or "").strip()
-        if not name:
+        """Najdi (podle jména) nebo vytvoř vedoucího v registru (s tituly)."""
+        raw = (name or "").strip()
+        if not raw:
             return None
+        before, clean, after = parse_titled_name(raw)
         for sup in self.service.list_supervisors():
-            if sup.name == name:
+            if sup.name == clean or parse_titled_name(sup.name)[1] == clean:
                 return sup
-        sup = Supervisor(name=name)
+        sup = Supervisor(name=clean, title_before=before, title_after=after)
         self.service.upsert_supervisor(sup)
         stats["created_supervisor"] += 1
         return sup

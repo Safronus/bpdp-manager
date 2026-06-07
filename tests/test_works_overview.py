@@ -31,7 +31,8 @@ def service(tmp_path: Path) -> ThesisService:
 
 
 def test_compose_titled_name() -> None:
-    assert compose_titled_name("doc. Ing.", "Petr Novák", "Ph.D.") == "doc. Ing. Petr Novák Ph.D."
+    # Tituly za jménem se vždy oddělí čárkou (i bez ní na vstupu).
+    assert compose_titled_name("doc. Ing.", "Petr Novák", "Ph.D.") == "doc. Ing. Petr Novák, Ph.D."
     assert compose_titled_name("doc. Ing.", "Petr Novák", ", Ph.D.") == "doc. Ing. Petr Novák, Ph.D."
     assert compose_titled_name("", "Petr Novák", "") == "Petr Novák"
     assert compose_titled_name("  ", " Eva Malá ", "") == "Eva Malá"
@@ -39,9 +40,9 @@ def test_compose_titled_name() -> None:
 
 def test_opponent_supervisor_display_name() -> None:
     o = Opponent(name="Petr Novák", title_before="doc. Ing.", title_after="Ph.D.")
-    assert o.display_name == "doc. Ing. Petr Novák Ph.D."
+    assert o.display_name == "doc. Ing. Petr Novák, Ph.D."
     s = Supervisor(name="Eva Malá", title_before="prof.", title_after="CSc.")
-    assert s.display_name == "prof. Eva Malá CSc."
+    assert s.display_name == "prof. Eva Malá, CSc."
     assert "(" not in s.display_name  # affiliation jen v display_label
 
 

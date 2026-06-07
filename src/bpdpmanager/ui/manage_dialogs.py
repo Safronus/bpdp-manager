@@ -59,6 +59,37 @@ _ACTIVE_STATES = {
 }
 
 
+def _run_title_cleanup(dialog, cleanup_fn, what: str, refresh_fn) -> None:
+    """Společný flow „Uklidit tituly": náhled (dry-run) → potvrzení → aplikace.
+
+    ``cleanup_fn(dry_run=...)`` vrací seznam ``(staré, nové)`` zobrazení.
+    """
+    changes = cleanup_fn(dry_run=True)
+    if not changes:
+        QMessageBox.information(
+            dialog, "Úklid titulů",
+            f"Žádná jména {what} k úklidu — vše už je rozparsované.",
+        )
+        return
+    shown = "\n".join(f"• {old}  →  {new}" for old, new in changes[:40])
+    if len(changes) > 40:
+        shown += f"\n… a další ({len(changes) - 40})"
+    confirm = QMessageBox.question(
+        dialog, "Úklid titulů",
+        f"Rozparsovat {len(changes)} jmen {what} na tituly před/za + jméno?\n\n"
+        f"{shown}",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        QMessageBox.StandardButton.No,
+    )
+    if confirm != QMessageBox.StandardButton.Yes:
+        return
+    applied = cleanup_fn(dry_run=False)
+    refresh_fn()
+    QMessageBox.information(
+        dialog, "Úklid titulů", f"Uklizeno: {len(applied)} jmen.",
+    )
+
+
 class StudentsManageDialog(QDialog):
     """Správa studentů — grupování podle typu práce (BP/DP) → obor, řazení dle příjmení.
 
@@ -440,6 +471,12 @@ class OpponentsManageDialog(QDialog):
         btn_new = QPushButton("Nový…")
         btn_edit = QPushButton("Upravit…")
         btn_delete = QPushButton("Smazat")
+        btn_cleanup = QPushButton("🧹 Uklidit tituly")
+        btn_cleanup.setToolTip(
+            "Rozparsuje jména stažená ze STAG (formát „Příjmení Jméno, tituly“) "
+            "na tituly před/za + jméno. Ukáže náhled."
+        )
+        btn_cleanup.clicked.connect(self._cleanup_titles)
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
@@ -448,12 +485,18 @@ class OpponentsManageDialog(QDialog):
         row.addWidget(btn_new)
         row.addWidget(btn_edit)
         row.addWidget(btn_delete)
+        row.addWidget(btn_cleanup)
         row.addStretch()
         row.addWidget(btn_close)
         layout.addLayout(row)
 
         self.tree.currentItemChanged.connect(lambda *_: self._update_info())
         self._refresh()
+
+    def _cleanup_titles(self) -> None:
+        _run_title_cleanup(
+            self, self.service.cleanup_opponent_titles, "oponentů", self._refresh
+        )
 
     # --- načítání + grupování ----------------------------------------------
 
@@ -1002,6 +1045,12 @@ class SupervisorsManageDialog(QDialog):
         btn_new = QPushButton("Nový…")
         btn_edit = QPushButton("Upravit…")
         btn_delete = QPushButton("Smazat")
+        btn_cleanup = QPushButton("🧹 Uklidit tituly")
+        btn_cleanup.setToolTip(
+            "Rozparsuje jména stažená ze STAG na tituly před/za + jméno "
+            "(i u jména vedoucího uloženého u oponentur). Ukáže náhled."
+        )
+        btn_cleanup.clicked.connect(self._cleanup_titles)
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
@@ -1010,11 +1059,17 @@ class SupervisorsManageDialog(QDialog):
         row.addWidget(btn_new)
         row.addWidget(btn_edit)
         row.addWidget(btn_delete)
+        row.addWidget(btn_cleanup)
         row.addStretch()
         row.addWidget(btn_close)
         layout.addLayout(row)
 
         self._refresh()
+
+    def _cleanup_titles(self) -> None:
+        _run_title_cleanup(
+            self, self.service.cleanup_supervisor_titles, "vedoucích", self._refresh
+        )
 
     def _refresh(self) -> None:
         selected_id = self._selected_id()

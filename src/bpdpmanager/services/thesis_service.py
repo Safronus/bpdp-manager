@@ -242,6 +242,66 @@ class ThesisService:
         ]
         self.save()
 
+    # --- úklid jmen s tituly (parsing „Příjmení Jméno, tituly" ze STAG) -------
+
+    def cleanup_opponent_titles(self, *, dry_run: bool = False) -> list[tuple[str, str]]:
+        """Rozparsuje jména oponentů s tituly do polí (title_before/name/after).
+
+        Týká se záznamů, jejichž ``name`` obsahuje čárku (formát ze STAG). Vrací
+        seznam ``(staré zobrazení, nové zobrazení)``; při ``dry_run`` neukládá.
+        """
+        from ..models.naming import compose_titled_name, parse_titled_name
+
+        changes: list[tuple[str, str]] = []
+        for o in self._db.opponents:
+            if "," not in (o.name or ""):
+                continue
+            before, name, after = parse_titled_name(o.name)
+            if not name or (before, name, after) == (
+                o.title_before, o.name, o.title_after
+            ):
+                continue
+            old = compose_titled_name(o.title_before, o.name, o.title_after)
+            changes.append((old, compose_titled_name(before, name, after)))
+            if not dry_run:
+                o.title_before, o.name, o.title_after = before, name, after
+        if changes and not dry_run:
+            self.save()
+        return changes
+
+    def cleanup_supervisor_titles(self, *, dry_run: bool = False) -> list[tuple[str, str]]:
+        """Rozparsuje jména vedoucích s tituly + srovná denormalizované
+        ``OpposingThesis.supervisor_name`` (kopie stringu, ne FK)."""
+        from ..models.naming import compose_titled_name, parse_titled_name
+
+        changes: list[tuple[str, str]] = []
+        for s in self._db.supervisors:
+            if "," not in (s.name or ""):
+                continue
+            before, name, after = parse_titled_name(s.name)
+            if not name or (before, name, after) == (
+                s.title_before, s.name, s.title_after
+            ):
+                continue
+            old = compose_titled_name(s.title_before, s.name, s.title_after)
+            changes.append((old, compose_titled_name(before, name, after)))
+            if not dry_run:
+                s.title_before, s.name, s.title_after = before, name, after
+        # Denormalizované jméno vedoucího u oponentur (jen string, přeskládáme).
+        for op in self._db.opposing_theses:
+            raw = op.supervisor_name or ""
+            if "," not in raw:
+                continue
+            before, name, after = parse_titled_name(raw)
+            new = compose_titled_name(before, name, after)
+            if new and new != raw:
+                changes.append((raw, new))
+                if not dry_run:
+                    op.supervisor_name = new
+        if changes and not dry_run:
+            self.save()
+        return changes
+
     # --- obory ---------------------------------------------------------------
 
     def list_obory(self) -> list[str]:

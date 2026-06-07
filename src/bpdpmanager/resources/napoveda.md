@@ -45,6 +45,13 @@ V **👤 → 🗂 Správa profilů**:
 > Tituly před/za jdou nastavit i u **oponentů** a **vedoucích** v jejich
 > registrech — uloží se jako text a zobrazí se u jejich jména (i v posudku,
 > když píšeš za ně).
+>
+> **Tituly ze STAG.** STAG dává jména ve formátu *„Příjmení Jméno, tituly"*
+> (vše za jménem). Při stahování práce je aplikace **rozparsuje** na tituly
+> před / jméno / tituly za (podle známých seznamů titulů). Starší (dříve
+> stažené) záznamy srovnáš tlačítkem **🧹 Uklidit tituly** v manažeru
+> *Oponentů* / *Vedoucích* — ukáže náhled a rozparsuje i jméno vedoucího
+> uložené u oponentur.
 
 ### 3. Studijní obory (+ STAG zkratky)
 V toolbaru **Obory + sekretářky** přidej obory, které vedeš. U každého můžeš vyplnit:
