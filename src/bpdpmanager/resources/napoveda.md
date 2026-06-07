@@ -646,6 +646,14 @@ Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená zná
 > doplnit soubory, použij ve vyhledávacím okně tlačítko **📎 Stáhnout jen
 > soubory**. Stáhne soubory a připojí je k odpovídající práci (párováno přes
 > STAG ID, jinak jméno + typ). Pokud práci v databázi nenajde, upozorní tě.
+>
+> **🏷 Aktualizovat jen stavy:** vedle něj je tlačítko **🏷 Aktualizovat jen
+> stavy** — u zaškrtnutých prací, které už v databázi máš, **aktualizuje jen
+> stav** ze STAG (bez stahování souborů). U vedených prací nastaví stav
+> (*Obhájeno / Neobhájeno / Nedokončeno / …*), u oponentur stav práce ve STAG.
+> Je to rychlé a **vyřeší i zpětné přeřazení** dříve naimportovaných prací
+> *Nedokončeno → Neobhájeno* (kde se dřív neúspěšná obhajoba neodlišovala).
+> Ukáže přehled, u koho se stav změnil.
 
 > **BP × DP:** BP a DP jsou samostatné záznamy (párují se podle typu),
 > takže import DP **nepřepíše** dříve naimportovanou BP. Práce se navíc

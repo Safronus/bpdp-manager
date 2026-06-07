@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-06-07
+
+### Added
+- **Tlačítko „🏷 Aktualizovat jen stavy"** v dialogu *Moje vedené práce /
+  Moje oponentury* (vedle *📎 Stáhnout jen soubory*). U zaškrtnutých prací,
+  které už máš v databázi, aktualizuje **jen stav** ze STAG — bez stahování
+  souborů. Vedené práce: *Obhájeno / Neobhájeno / Nedokončeno / …*; oponentury:
+  STAG stav práce. Stav se bere přímo z výsledku vyhledávání (žádné dotazy
+  navíc). **Vyřeší i zpětné přeřazení** dříve naimportovaných prací
+  *Nedokončeno → Neobhájeno*. Na konci ukáže přehled změn.
+
 ## [0.68.0] - 2026-06-07
 
 ### Added
