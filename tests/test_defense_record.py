@@ -57,6 +57,31 @@ def test_section_to_kind_has_defense_record() -> None:
     assert _SECTION_TO_KIND["defense_record"] == AttachmentKind.DEFENSE_RECORD
 
 
+def test_section_from_body_detects_defense() -> None:
+    """STAG značí sekci průběhu obhajoby v těle požadavku (ne názvem souboru)."""
+    from bpdpmanager.services.stag_api import _section_from_body
+
+    assert _section_from_body("...&sou_aplikace=PRUBEH_OBHAJOBY&...") == "defense_record"
+    assert _section_from_body("...sou_aplikace=OBHAJOBA...") == "defense_record"
+    # Ostatní sekce zůstávají beze změny.
+    assert _section_from_body("POSUDEK_VEDOUCIHO") == "supervisor_review"
+    assert _section_from_body("ELPODOBA") == "elpodoba"
+
+
+def test_pair_prechecks_by_stag_section_even_with_generic_name() -> None:
+    """I generický název (botek.pdf) se předzaškrtne, když ho STAG značí jako obhajobu."""
+    from types import SimpleNamespace
+
+    from bpdpmanager.ui.defense_reclassify_dialog import pair_other_with_stag
+
+    local = [SimpleNamespace(label="Svoboda_jine_2026.pdf")]
+    stag = [StagFile(soubidno="1", filename="dokument.pdf", download_path="/a",
+                     section="defense_record")]
+    pairs = pair_other_with_stag(local, stag)
+    assert pairs[0][1] == "dokument.pdf"
+    assert pairs[0][2] is True  # sekce defense_record → předzaškrtnuto
+
+
 def test_pair_other_with_stag() -> None:
     """Spárování lokálních „Jiné" se STAG soubory + odhad průběhu obhajoby."""
     from types import SimpleNamespace

@@ -40,8 +40,13 @@ def pair_other_with_stag(local_others: list, stag_files: list) -> list[tuple]:
     ]
     pairs: list[tuple] = []
     for i, att in enumerate(local_others):
-        orig = stag_other[i].filename if i < len(stag_other) else None
-        guess = bool(orig) and is_defense_record_filename(orig)
+        sf = stag_other[i] if i < len(stag_other) else None
+        orig = sf.filename if sf else None
+        # Předzaškrtni, když to STAG značí jako průběh obhajoby (sekce) NEBO
+        # tomu odpovídá název (záložní heuristika u starších/jiných případů).
+        guess = bool(sf) and (
+            sf.section == "defense_record" or is_defense_record_filename(orig)
+        )
         pairs.append((att, orig, guess))
     return pairs
 

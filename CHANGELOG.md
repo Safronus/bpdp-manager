@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.74.1] - 2026-06-07
+
+### Fixed
+- **Soubory s průběhem obhajoby se rozpoznají spolehlivě podle STAG sekce.**
+  STAG má tyto soubory označené přímo (sekce „Soubor s průběhem obhajoby"),
+  takže se nově kategorizují podle **STAG sekce**, ne podle názvu — funguje
+  i u generických názvů (např. `botek.pdf`). Týká se nově stahovaných souborů
+  i přeřazení už stažených (🗂 Přeřadit průběh obhajoby je předzaškrtne).
+
 ## [0.74.0] - 2026-06-07
 
 ### Changed

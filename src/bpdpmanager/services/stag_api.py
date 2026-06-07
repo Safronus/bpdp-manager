@@ -495,12 +495,19 @@ def _find_ajax_loads(detail_html: str) -> list[tuple[str, str]]:
 
 
 def _section_from_body(body: str) -> str:
-    """Z POST těla (``pp_page`` / ``sou_aplikace``) odvodí typ sekce souborů."""
+    """Z POST těla (``pp_page`` / ``sou_aplikace``) odvodí typ sekce souborů.
+
+    STAG má sekci souborů identifikovanou přímo v těle požadavku (spolehlivé,
+    nezávislé na názvu souboru). „Soubor s průběhem obhajoby" nese v těle
+    identifikátor s „OBHAJOB"/„PRUBEH".
+    """
     up = body.upper()
     if "VEDOUCIHO" in up:
         return "supervisor_review"
     if "OPONENTA" in up or "OPONENTSKE" in up:
         return "opponent_review"
+    if "OBHAJOB" in up or "PRUBEH" in up:
+        return "defense_record"  # protokol / průběh obhajoby (SZZ)
     if "PRILOHY" in up:
         return "appendix"
     if "ELPODOBA" in up or "EL_PODOBA" in up:
