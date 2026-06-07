@@ -75,7 +75,7 @@ _DOWNLOAD_CHUNK = 64 * 1024
 # velké přílohy / ZIP balíčky generuje až na vyžádání, takže než začne posílat
 # data (TTFB), může to trvat i desítky sekund až minuty (prohlížeč žádný pevný
 # limit nemá). Krátký 30s timeout takové soubory zbytečně shazoval.
-# Kalibrace dle reálného benchmarku (≈585 souborů, viz tools/bench_stag_downloads):
+# Kalibrace dle reálného měření celé knihovny (≈585 souborů):
 # i největší 948MB ZIP dojel za ~370 s (TTFB 162 s + přenos), nejhorší poměr
 # čas/velikost ≈ 0,4 s/MB. Volíme ~1,2 s/MB (≈3× rezerva) + malou bázi pro
 # drobné soubory; strop 30 min pokryje i hypoteticky obří přílohy.

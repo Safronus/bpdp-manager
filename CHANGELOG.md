@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.67.4] - 2026-06-07
+
+### Removed
+- **Vývojový skript `tools/bench_stag_downloads.py`.** Posloužil ke kalibraci
+  timeoutů stahování (viz 0.67.1) a dál není potřeba. Nastavení timeoutů
+  v `services/stag_api.py` zůstává.
+
 ## [0.67.3] - 2026-06-07
 
 ### Changed
