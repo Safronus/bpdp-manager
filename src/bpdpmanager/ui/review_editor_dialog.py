@@ -34,7 +34,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
-    QPlainTextEdit,
     QProgressDialog,
     QPushButton,
     QScrollArea,
@@ -46,8 +45,9 @@ from PySide6.QtWidgets import (
 
 from ..models import Review
 from ..models.enums import AttachmentKind
-from ..services import ThesisService
+from ..services import ThesisService, spellcheck
 from ._os_actions import open_path, reveal_in_file_manager
+from .widgets.spell_text_edit import SpellCheckEdit
 
 # Kostra („skeleton") volného hodnocení — tematické nadpisy, pod které autor
 # píše. Liší se podle role (vedoucí má navíc přístup/samostatnost studenta)
@@ -326,7 +326,7 @@ class ReviewEditorDialog(QDialog):
                 self.cb_plag_verdict.setCurrentIndex(idx)
             form_p.addRow("Verdikt", self.cb_plag_verdict)
 
-            self.ed_plag_just = QPlainTextEdit(review.plagiarism_justification)
+            self.ed_plag_just = SpellCheckEdit(review.plagiarism_justification)
             self.ed_plag_just.setMaximumHeight(80)
             self.ed_plag_just.setPlaceholderText(
                 "Zdůvodnění (% shody, kontext, …)"
@@ -350,12 +350,18 @@ class ReviewEditorDialog(QDialog):
         btn_skeleton.clicked.connect(self._insert_skeleton)
         skel_row.addWidget(btn_skeleton)
         v_overall.addLayout(skel_row)
-        self.ed_overall = QPlainTextEdit(review.overall_comment)
+        self.ed_overall = SpellCheckEdit(review.overall_comment)
         self.ed_overall.setMinimumHeight(140)
         self.ed_overall.setPlaceholderText(
             "Slovní zhodnocení práce, dotazy k obhajobě…"
         )
         v_overall.addWidget(self.ed_overall)
+        # Hláška, když kontrola pravopisu není k dispozici (chybí spylls/slovník).
+        if not spellcheck.is_available():
+            hint = QLabel("ⓘ Kontrola pravopisu je vypnutá — " + spellcheck.unavailable_reason())
+            hint.setStyleSheet("color:#888;font-size:11px;")
+            hint.setWordWrap(True)
+            v_overall.addWidget(hint)
         content_layout.addWidget(box_overall)
 
         # ── Místo, datum ──────────────────────────────────────────────

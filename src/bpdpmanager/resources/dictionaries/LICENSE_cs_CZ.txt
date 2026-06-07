@@ -1,0 +1,13 @@
+Český slovník pro kontrolu pravopisu (hunspell: cs_CZ.aff + cs_CZ.dic)
+=====================================================================
+
+Zdroj:   LibreOffice dictionaries — https://github.com/LibreOffice/dictionaries
+Složka:  cs_CZ/
+Autoři:  český komunitní hunspell slovník (Petr Kolář a přispěvatelé)
+
+Licence: tri-licence GNU GPL 2 / GNU LGPL 2.1 / Mozilla MPL 1.1
+         (stejně jako slovníky dodávané s LibreOffice / Apache OpenOffice).
+
+Slovník je přibalen pouze jako data pro volitelnou kontrolu pravopisu
+v editoru posudku (engine: spylls). Aplikace BPDPManager slovník nijak
+nemodifikuje. Při aktualizaci stáhni nové soubory ze zdrojového repozitáře.

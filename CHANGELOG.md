@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-06-07
+
+### Added
+- **Kontrola pravopisu (čeština) v editoru posudku.** V poli *Celkové
+  hodnocení* (a *Zdůvodnění plagiátorství*) se **podtrhnou neznámá slova**
+  červenou vlnovkou; **pravý klik** na podtržené slovo nabídne **návrhy oprav**
+  (uživatel vybere — žádná autokorekce). Engine je **spylls** (čistě pythonní
+  hunspell, bez systémové instalace) s **přibaleným českým slovníkem**
+  (LibreOffice cs_CZ). Když by spylls/slovník chyběl, funkce se ladně vypne
+  a v editoru se zobrazí informační hláška.
+
 ## [1.0.8] - 2026-06-07
 
 ### Added

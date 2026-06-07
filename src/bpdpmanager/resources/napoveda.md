@@ -416,7 +416,9 @@ Workflow:
    - *Celkové hodnocení, připomínky a dotazy* — u **nového** posudku se sem
      předvyplní **kostra** (tematické nadpisy podle role a jazyka šablony),
      pod kterou píšeš; tlačítkem **🦴 Vložit kostru posudku** ji vyvoláš
-     i ručně (rozepsaný text nepřepíše)
+     i ručně (rozepsaný text nepřepíše). Je tu i **kontrola pravopisu** (CZ):
+     neznámá slova se **podtrhnou** červeně, **pravý klik** nabídne návrhy
+     oprav (žádná autokorekce). Když by slovník chyběl, ukáže se hláška.
    - *Místo, datum* — místo z profilu (default Zlín), datum dnešní
 3. **Uložit & vyrobit XLSX + PDF** — data se uloží do práce (JSON),
    vyplní se XLSX šablona a (pokud je nainstalován LibreOffice)
