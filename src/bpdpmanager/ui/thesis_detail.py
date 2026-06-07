@@ -168,6 +168,9 @@ class ThesisDetail(QWidget):
         self._dirty = False
         self._loading = False  # potlačí dirty signály při programovém naplnění formuláře
         self._last_save_at: datetime | None = None
+        # Poslední automaticky předvyplněný komentář plagiátorství — auto-fill
+        # přepíše jen prázdné pole nebo tento dřívější auto-text (ne ruční úpravy).
+        self._auto_plag_comment = ""
 
         self._debounce_timer = QTimer(self)
         self._debounce_timer.setSingleShot(True)
@@ -552,6 +555,8 @@ class ThesisDetail(QWidget):
         validator.setLocale(QLocale(QLocale.Language.English))
         self.ed_plag_pct.setValidator(validator)
         self.ed_plag_pct.setFixedWidth(120)
+        # Změna % obnoví auto-předvyplněný komentář (je-li verdikt zvolen).
+        self.ed_plag_pct.textChanged.connect(self._maybe_autofill_plag_comment)
         perc_row.addWidget(self.ed_plag_pct)
         perc_row.addWidget(QLabel("%"))
         perc_row.addStretch()
@@ -800,6 +805,9 @@ class ThesisDetail(QWidget):
                     f"{pct:g}".replace(",", ".")
                 )
             self.ed_plag_comment.setPlainText(thesis.plagiarism_comment or "")
+            # Uložený komentář ber jako uživatelův text → auto-fill ho nepřepíše,
+            # dokud uživatel nezvolí verdikt nad prázdným polem.
+            self._auto_plag_comment = ""
             self._set_verdict_radio(thesis.plagiarism_verdict)
             self._update_plagiarism_pdf_display()
 
@@ -1517,6 +1525,31 @@ class ThesisDetail(QWidget):
 
     def _on_verdict_changed(self, *_args) -> None:
         self._update_verdict_badge_style(self._current_verdict())
+        # Po ručním kliknutí na verdikt rovnou předvyplň komentář.
+        self._maybe_autofill_plag_comment()
+
+    def _maybe_autofill_plag_comment(self) -> None:
+        """Automaticky předvyplní komentář dle verdiktu + %.
+
+        Spustí se po zvolení verdiktu i po změně procenta shody. Přepíše jen
+        **prázdné** pole nebo **dříve auto-vygenerovaný** text — ruční úpravy
+        uživatele zůstanou zachované.
+        """
+        if self._loading:
+            return
+        verdict = self._current_verdict()
+        if verdict == PlagiarismVerdict.NOT_ASSESSED:
+            return
+        from ..services.plagiarism_comments import suggest_comment
+
+        text = suggest_comment(verdict, self._plag_pct_value())
+        if not text:
+            return
+        current = self.ed_plag_comment.toPlainText().strip()
+        if current and current != self._auto_plag_comment.strip():
+            return  # uživatel si komentář upravil → nepřepisuj
+        self._auto_plag_comment = text
+        self.ed_plag_comment.setPlainText(text)
 
     def _plag_pct_value(self) -> float | None:
         """Aktuální procento shody z pole (None pokud prázdné/neplatné)."""
@@ -1568,6 +1601,7 @@ class ThesisDetail(QWidget):
             )
             if confirm != QMessageBox.StandardButton.Yes:
                 return
+        self._auto_plag_comment = text  # ber jako auto-text (verdikt/% ho smí obnovit)
         self.ed_plag_comment.setPlainText(text)
 
     def _update_plagiarism_pdf_display(self) -> None:

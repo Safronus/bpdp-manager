@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-07
+
+### Added
+- **Automatické předvyplnění komentáře plagiátorství.** Ve vedené práci v
+  záložce *Plagiátorství* se po vyplnění **Procenta shody** a kliknutí na
+  **verdikt** (je/není plagiát) komentář **sám předvyplní** doporučeným zněním
+  (vč. procenta). Změna procenta auto-text obnoví. **Ruční úpravu** komentáře
+  to nikdy nepřepíše (přepisuje jen prázdné pole nebo dřívější auto-text);
+  *Neposouzen* nic negeneruje.
+
 ## [1.1.0] - 2026-06-07
 
 ### Added

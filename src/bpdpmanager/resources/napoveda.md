@@ -330,6 +330,10 @@ Volný text + termíny/konzultace.
 
 ### 🔍 Plagiátorství
 - **Procento shody** + **verdikt** (Neposouzen / Je plagiát / Není plagiát)
+- **Automatické předvyplnění komentáře** — jakmile vyplníš **procento shody**
+  a klikneš na **verdikt**, komentář se **sám předvyplní** doporučeným zněním
+  (vč. procenta). Změna procenta auto-text obnoví; jakmile komentář **ručně
+  upravíš**, už ho to nepřepíše. (*Neposouzen* nic negeneruje.)
 - **💡 Doporučený komentář** — tlačítko vloží doporučené znění podle
   verdiktu a procenta shody (rozbalovací menu nabízí konkrétní varianty).
   Plně editovatelné.
