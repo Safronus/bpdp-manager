@@ -39,13 +39,19 @@ from ..models.enums import (
 from ..services import ThesisService
 from .opposing_detail import OpposingDetail
 from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
-from .theses_tree import ROLE_GRADES, GradesDelegate
+from .theses_tree import (
+    ROLE_GRADES,
+    ROLE_REVIEWS,
+    GradesDelegate,
+    ReviewsBadgeDelegate,
+)
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
 # Sloupce stromu oponentur (Obor je poslední — stejně jako v ostatních záložkách).
 COL_GRADES = 4   # „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
-COL_SENT = 5     # Odesláno
-COL_OBOR = 6     # Obor (poslední)
+COL_REVIEWS = 5  # Posudky (V/O badge — k dispozici / chybí)
+COL_SENT = 6     # Odesláno
+COL_OBOR = 7     # Obor (poslední)
 
 # Reuse Czech locale setup from theses_tree
 _HAS_CZECH_LOCALE = False
@@ -147,10 +153,10 @@ class OpposingTab(QWidget):
         splitter.setChildrenCollapsible(False)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(7)
+        self.tree.setColumnCount(8)
         self.tree.setHeaderLabels(
             ["Student / Skupina", "Téma", "Stav", "Vedoucí", "V/O",
-             "Odesláno", "Obor"]
+             "Posudky", "Odesláno", "Obor"]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
@@ -161,11 +167,13 @@ class OpposingTab(QWidget):
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        for col in range(2, 7):
+        for col in range(2, 8):
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         # Sloupec V/O — barevné dvojice písmen, stejně jako ve vedených pracích.
         self._grades_delegate = GradesDelegate(self.tree)
+        self._reviews_delegate = ReviewsBadgeDelegate(self.tree)
+        self.tree.setItemDelegateForColumn(COL_REVIEWS, self._reviews_delegate)
         self.tree.setItemDelegateForColumn(COL_GRADES, self._grades_delegate)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
@@ -298,6 +306,11 @@ class OpposingTab(QWidget):
                     # Známky kreslí GradesDelegate z dat ROLE_GRADES; text buňky
                     # je prázdný (a „—", když chybí obě).
                     grades_text = "" if (gs or go) else "—"
+                    # Posudky V/O — k dispozici (zelená) / chybí (červená).
+                    has_v = any(a.kind == AttachmentKind.SUPERVISOR_REVIEW
+                                for a in op.attachments)
+                    has_o = any(a.kind == AttachmentKind.OPPONENT_REVIEW
+                                for a in op.attachments)
                     obor = op.student_obor or "—"
                     type_prefix = op.type.value
                     leaf = QTreeWidgetItem(
@@ -307,11 +320,20 @@ class OpposingTab(QWidget):
                             stav,
                             op.supervisor_name or "—",
                             grades_text,
+                            "",          # Posudky — kreslí delegát
                             sent_text,
                             obor,
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    leaf.setData(COL_REVIEWS, ROLE_REVIEWS, (has_v, has_o))
+                    tip_v = "✓ k dispozici" if has_v else "chybí"
+                    tip_o = "✓ k dispozici" if has_o else "chybí"
+                    leaf.setToolTip(
+                        COL_REVIEWS,
+                        f"V = posudek vedoucího: {tip_v}\n"
+                        f"O = posudek oponenta: {tip_o}",
+                    )
                     if gs or go:
                         leaf.setData(COL_GRADES, ROLE_GRADES, (gs, go))
                         leaf.setToolTip(

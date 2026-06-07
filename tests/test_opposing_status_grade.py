@@ -97,11 +97,11 @@ def test_opposing_status_column_and_year_gating(qapp, service) -> None:
     # Aktuální rok má puntík stavu posudku v názvu, starší ne.
     assert cur_leaf.text(1).startswith("🔴")
     assert not old_leaf.text(1).startswith(("🔴", "🟡", "🟢"))
-    # Odesláno (nově index 5) je u staršího roku prázdné; Obor je poslední (6).
+    # Odesláno je u staršího roku prázdné; Obor je poslední sloupec (index 7).
     from bpdpmanager.ui.opposing_tab import COL_OBOR, COL_SENT
 
     assert old_leaf.text(COL_SENT) == ""
-    assert COL_OBOR == 6  # Obor je poslední sloupec
+    assert COL_OBOR == 7  # Obor je poslední sloupec (za Posudky + Odesláno)
 
 
 def test_opposing_previous_years_collapsed(qapp, service) -> None:

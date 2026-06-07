@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-06-07
+
+### Changed
+- **Sloupec „Posudky" má nový styl — barevné V/O.** Místo ikonek je dvojice
+  písmen **V** (vedoucí) / **O** (oponent) na **zeleném pozadí (k dispozici)**
+  nebo **červeném (chybí)** — v záložkách *Aktuálně vedené*, *Vše* i *Oponované
+  práce*.
+
+### Added
+- **Sloupec „Posudky" i v záložce *Oponované práce*** (V = posudek vedoucího,
+  O = posudek oponenta).
+
 ## [0.78.0] - 2026-06-07
 
 ### Changed

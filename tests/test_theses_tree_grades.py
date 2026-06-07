@@ -17,6 +17,7 @@ from bpdpmanager.services import ThesisService
 from bpdpmanager.storage import JsonRepository
 from bpdpmanager.ui.theses_tree import (
     ROLE_GRADES,
+    ROLE_REVIEWS,
     ROLE_THESIS_ID,
     ThesesTreeWidget,
 )
@@ -84,3 +85,24 @@ def test_grades_column_dash_when_empty(qapp, service) -> None:
     assert leaf is not None
     assert leaf.data(ThesesTreeWidget.COL_GRADES, ROLE_GRADES) is None
     assert leaf.text(ThesesTreeWidget.COL_GRADES) == "—"
+
+
+def test_reviews_badge_data(qapp, service, tmp_path) -> None:
+    """Sloupec Posudky nese (má_vedoucího, má_oponenta) pro V/O badge."""
+    from bpdpmanager.models.enums import AttachmentKind
+
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    t = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+               academic_year="2024/2025", student_id=s.id)
+    service.upsert_thesis(t)
+    src = tmp_path / "pv.pdf"
+    src.write_bytes(b"%PDF dummy")
+    service.attach_document(t.id, src, kind=AttachmentKind.SUPERVISOR_REVIEW)
+
+    tree = ThesesTreeWidget(service)
+    tree.refresh()
+    leaf = _leaf(tree, t.id)
+    # Má posudek vedoucího, nemá oponenta.
+    assert leaf.data(ThesesTreeWidget.COL_REVIEWS, ROLE_REVIEWS) == (True, False)
+    assert leaf.text(ThesesTreeWidget.COL_REVIEWS) == ""  # kreslí delegát

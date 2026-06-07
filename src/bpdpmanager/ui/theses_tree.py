@@ -32,6 +32,11 @@ from ..services import ThesisService
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
 ROLE_GRADES = Qt.ItemDataRole.UserRole + 4  # (grade_supervisor, grade_opponent)
+ROLE_REVIEWS = Qt.ItemDataRole.UserRole + 5  # (has_supervisor_review, has_opponent_review)
+
+# Sloupec „Posudky": V (vedoucí) / O (oponent) — zelená = k dispozici, červená ne.
+_REVIEW_HAS_BG = "#43a047"   # zelená — posudek je
+_REVIEW_NONE_BG = "#e53935"  # červená — chybí
 
 
 def _grade_badges(gs: str, go: str) -> list[str]:
@@ -96,6 +101,55 @@ class GradesDelegate(QStyledItemDelegate):
         _, _, total = self._layout(option.fontMetrics, gs, go)
         base = super().sizeHint(option, index)
         return QSize(total + 8, max(base.height(), self._BADGE_H + 6))
+
+
+class ReviewsBadgeDelegate(QStyledItemDelegate):
+    """Sloupec „Posudky": V (vedoucí) / O (oponent) jako barevná písmena —
+    zelené pozadí = posudek k dispozici, červené = chybí."""
+
+    _GAP = 8
+    _PAD = 7
+    _MIN_W = 22
+    _BADGE_H = 18
+
+    def _total(self, fm) -> int:
+        w = max(self._MIN_W, fm.horizontalAdvance("V") + 2 * self._PAD)
+        return 2 * w + self._GAP
+
+    def paint(self, painter, option, index) -> None:
+        pair = index.data(ROLE_REVIEWS)
+        if pair is None:
+            super().paint(painter, option, index)
+            return
+        has_v, has_o = pair
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        fm = option.fontMetrics
+        w = max(self._MIN_W, fm.horizontalAdvance("V") + 2 * self._PAD)
+        total = 2 * w + self._GAP
+        rect = option.rect
+        x = rect.x() + max(0, (rect.width() - total) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        for letter, has in (("V", has_v), ("O", has_o)):
+            br = QRectF(x, y, w, self._BADGE_H)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(_REVIEW_HAS_BG if has else _REVIEW_NONE_BG))
+            painter.drawRoundedRect(br, 4, 4)
+            painter.setPen(QColor("white"))
+            painter.drawText(br, Qt.AlignmentFlag.AlignCenter, letter)
+            x += w + self._GAP
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        if index.data(ROLE_REVIEWS) is None:
+            return super().sizeHint(option, index)
+        base = super().sizeHint(option, index)
+        return QSize(self._total(option.fontMetrics) + 8,
+                     max(base.height(), self._BADGE_H + 6))
 
 # ── České abecední řazení ────────────────────────────────────────────────────
 _HAS_CZECH_LOCALE = False
@@ -201,6 +255,9 @@ class ThesesTreeWidget(QTreeWidget):
         # Sloupec V/O vykresluje barevné dvojice písmen (delegát).
         self._grades_delegate = GradesDelegate(self)
         self.setItemDelegateForColumn(self.COL_GRADES, self._grades_delegate)
+        # Sloupec Posudky — V/O badge (zelená k dispozici / červená chybí).
+        self._reviews_delegate = ReviewsBadgeDelegate(self)
+        self.setItemDelegateForColumn(self.COL_REVIEWS, self._reviews_delegate)
 
         self.itemSelectionChanged.connect(self._on_selection)
 
@@ -341,14 +398,8 @@ class ThesesTreeWidget(QTreeWidget):
         has_opponent_review = any(
             a.kind == AttachmentKind.OPPONENT_REVIEW for a in thesis.attachments
         )
-        if has_supervisor_review and has_opponent_review:
-            reviews_text = "📘 V · 📕 O"
-        elif has_supervisor_review:
-            reviews_text = "📘 V"
-        elif has_opponent_review:
-            reviews_text = "📕 O"
-        else:
-            reviews_text = "—"
+        # Posudky kreslí ReviewsBadgeDelegate z dat ROLE_REVIEWS; text prázdný.
+        reviews_text = ""
         # Odeslání posudku vedoucího sekretářce — vlastní sloupec „Odesláno"
         # (jednotná indikace jako u oponentur). Jen u prací „V řešení"
         # s hotovým posudkem.
@@ -396,24 +447,17 @@ class ThesesTreeWidget(QTreeWidget):
         if sent_tip:
             leaf.setToolTip(self.COL_SENT, sent_tip)
 
-        # Tooltip vysvětlující ikony
-        if has_supervisor_review or has_opponent_review:
-            parts = []
-            if has_supervisor_review:
-                n = sum(
-                    1 for a in thesis.attachments
-                    if a.kind == AttachmentKind.SUPERVISOR_REVIEW
-                )
-                parts.append(f"📘 Posudek vedoucího ({n}×)")
-            if has_opponent_review:
-                n = sum(
-                    1 for a in thesis.attachments
-                    if a.kind == AttachmentKind.OPPONENT_REVIEW
-                )
-                parts.append(f"📕 Posudek oponenta ({n}×)")
-            leaf.setToolTip(self.COL_REVIEWS, "\n".join(parts))
-        else:
-            leaf.setToolTip(self.COL_REVIEWS, "Žádný posudek zatím nahrán")
+        # Posudky V/O badge (zelená k dispozici / červená chybí) + tooltip.
+        leaf.setData(
+            self.COL_REVIEWS, ROLE_REVIEWS,
+            (has_supervisor_review, has_opponent_review),
+        )
+        tip_v = "✓ k dispozici" if has_supervisor_review else "chybí"
+        tip_o = "✓ k dispozici" if has_opponent_review else "chybí"
+        leaf.setToolTip(
+            self.COL_REVIEWS,
+            f"V = posudek vedoucího: {tip_v}\nO = posudek oponenta: {tip_o}",
+        )
         leaf.setTextAlignment(
             self.COL_REVIEWS, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )
