@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-07
+
+### Added
+- **Hromadný export PDF mých posudků pro tisk.** V záložkách „Aktuálně vedené
+  práce" a „Oponované práce" lze ve stromu označit více prací (Ctrl/Shift) a
+  přes pravý klik → **📄 Export PDF mých posudků…** zkopírovat nejnovější PDF
+  posudku (vedoucího, resp. oponenta) do zvolené složky. Práce bez vytvořeného
+  PDF posudku se přeskočí; na konci se zobrazí souhrn (kolik exportováno, co
+  přeskočeno). Soubor stejného názvu ve cílové složce se přepíše.
+
 ## [1.2.6] - 2026-06-07
 
 ### Changed

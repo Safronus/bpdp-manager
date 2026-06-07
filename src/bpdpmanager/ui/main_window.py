@@ -471,6 +471,8 @@ class MainWindow(QMainWindow):
             year_mode=YEAR_MODE_CURRENT,
             profile_manager=pm,
         )
+        # Hromadný export PDF posudků vedoucího je jen v „Aktuálně vedené práce".
+        self.tab_current.tree.enable_review_export = True
         self.tab_future = _ThesesTab(
             service,
             lambda t: t.status in STATUSES_FUTURE,

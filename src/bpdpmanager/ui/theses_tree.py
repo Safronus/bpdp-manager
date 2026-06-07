@@ -472,13 +472,16 @@ class ThesesTreeWidget(QTreeWidget):
         super().__init__(parent)
         self.service = service
         self._filter_predicate = lambda t: True
+        # Hromadný export PDF posudků vedoucího — jen v „Aktuálně vedené práce".
+        self.enable_review_export = False
 
         self.setColumnCount(len(self.HEADERS))
         self.setHeaderLabels(self.HEADERS)
         self.setRootIsDecorated(True)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        # Vícenásobný výběr (Ctrl/Shift) — kvůli hromadnému exportu PDF posudků.
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setSortingEnabled(False)
 
@@ -775,6 +778,27 @@ class ThesesTreeWidget(QTreeWidget):
         if tid:
             self.thesis_selected.emit(tid)
 
+    def _export_my_review_pdfs(self) -> None:
+        """Hromadně zkopíruje PDF posudků vedoucího pro vybrané práce."""
+        from .export_reviews import export_my_review_pdfs
+
+        jobs: list[tuple[str, object]] = []
+        for it in self.selectedItems():
+            if it.data(0, ROLE_KIND) != "thesis":
+                continue
+            tid = it.data(0, ROLE_THESIS_ID)
+            thesis = self.service.get_thesis(tid) if tid else None
+            if thesis is None:
+                continue
+            student = (
+                self.service.get_student(thesis.student_id)
+                if thesis.student_id else None
+            )
+            name = student.full_name if student else thesis.display_title
+            pdf = self.service.current_supervisor_review_pdf(thesis)
+            jobs.append((name, pdf))
+        export_my_review_pdfs(self, jobs)
+
     def _on_context_menu(self, pos: QPoint) -> None:
         """Kontextové menu nad práci — Roll-back / kompletní smazání.
 
@@ -793,7 +817,32 @@ class ThesesTreeWidget(QTreeWidget):
         if thesis is None:
             return
 
+        # Pravý klik mimo výběr → vyber jen tuto práci (běžné chování).
+        if item not in self.selectedItems():
+            self.setCurrentItem(item)
+
         menu = QMenu(self)
+
+        # Hromadný export PDF mých posudků (posudek vedoucího) pro vybrané práce
+        # — jen v záložce „Aktuálně vedené práce".
+        if self.enable_review_export:
+            selected_theses = [
+                it for it in self.selectedItems()
+                if it.data(0, ROLE_KIND) == "thesis"
+            ]
+            act_export_pdf = QAction(
+                f"📄 Export PDF mých posudků ({len(selected_theses)})…", self
+            )
+            act_export_pdf.setToolTip(
+                "Zkopíruje nejnovější PDF posudku vedoucího pro vybrané práce do "
+                "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí."
+            )
+            act_export_pdf.setEnabled(bool(selected_theses))
+            act_export_pdf.triggered.connect(
+                lambda _checked=False: self._export_my_review_pdfs()
+            )
+            menu.addAction(act_export_pdf)
+            menu.addSeparator()
 
         act_update = QAction("🔄 Aktualizace práce ze STAG…", self)
         act_update.setToolTip(

@@ -119,7 +119,8 @@ class OpposingTab(QWidget):
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        # Vícenásobný výběr (Ctrl/Shift) — kvůli hromadnému exportu PDF posudků.
+        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tree.setMinimumHeight(160)
         h = self.tree.header()
@@ -359,9 +360,29 @@ class OpposingTab(QWidget):
         op_id = item.data(0, ROLE_ID)
         if not op_id:
             return  # year header — nemá menu
+        # Pravý klik mimo výběr → vyber jen tuto oponenturu (běžné chování).
+        if item not in self.tree.selectedItems():
+            self.tree.setCurrentItem(item)
         menu = self._build_context_menu(op_id)
         if menu is not None:
             menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def _export_my_review_pdfs(self) -> None:
+        """Hromadně zkopíruje PDF oponentských posudků pro vybrané práce."""
+        from .export_reviews import export_my_review_pdfs
+
+        jobs: list[tuple[str, object]] = []
+        for it in self.tree.selectedItems():
+            op_id = it.data(0, ROLE_ID)
+            if not op_id:
+                continue  # skupinová hlavička
+            op = self.service.get_opposing_thesis(op_id)
+            if op is None:
+                continue
+            name = op.student_full_name or "(neuvedený student)"
+            pdf = self.service.current_opponent_review_pdf(op)
+            jobs.append((name, pdf))
+        export_my_review_pdfs(self, jobs)
 
     def _build_context_menu(self, op_id: str) -> QMenu | None:
         """Sestaví kontextové menu pro daný posudek (bez ``exec`` — testovatelné)."""
@@ -370,6 +391,24 @@ class OpposingTab(QWidget):
 
         menu = QMenu(self.tree)
         op = self.service.get_opposing_thesis(op_id)
+
+        # Hromadný export PDF mých (oponentských) posudků pro vybrané práce.
+        selected_ops = [
+            it for it in self.tree.selectedItems() if it.data(0, ROLE_ID)
+        ]
+        act_export_pdf = QAction(
+            f"📄 Export PDF mých posudků ({len(selected_ops)})…", self.tree
+        )
+        act_export_pdf.setToolTip(
+            "Zkopíruje nejnovější PDF oponentského posudku pro vybrané práce do "
+            "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí."
+        )
+        act_export_pdf.setEnabled(bool(selected_ops))
+        act_export_pdf.triggered.connect(
+            lambda _checked=False: self._export_my_review_pdfs()
+        )
+        menu.addAction(act_export_pdf)
+        menu.addSeparator()
 
         # Aktualizace jedné oponentury ze STAG (stav + dohrání souborů).
         act_update = QAction("🔄 Aktualizace práce ze STAG…", self.tree)

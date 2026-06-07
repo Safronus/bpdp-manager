@@ -943,6 +943,14 @@ synchronizací.
   vedoucího* (otevře PDF; když posudek není, je akce neaktivní).
 - **📄 Otevřít text práce** — pravý klik na práci (vedenou i oponovanou) otevře
   plný text práce, je-li k dispozici (jinak neaktivní).
+- **📄 Export PDF mých posudků…** — pravý klik na práci (v *Aktuálně vedené
+  práce* i *Oponované práce*). Ve stromu lze předem **označit více prací**
+  (Ctrl/Shift klik) a hromadně **zkopírovat nejnovější PDF mého posudku** do
+  zvolené složky — u **vedených** prací posudek **vedoucího**, u **oponovaných**
+  posudek **oponenta**. Hodí se pro **tisk**: vyber jen práce, které ještě
+  tisknout chceš. Práce **bez vytvořeného PDF posudku** se přeskočí; na konci se
+  zobrazí **souhrn** (kolik exportováno, co přeskočeno). Soubor stejného názvu ve
+  cílové složce se **přepíše**.
 - **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
   do ZIP* nejdřív ukáže **výběr „co zahrnout"**: náhled dat práce (ta se
   exportují vždy), navázané entity (**student / oponent / obor**) a **soubory
