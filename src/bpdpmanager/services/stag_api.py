@@ -59,6 +59,12 @@ class StagCancelledError(StagError):
 # Velikost bloku pro streamované stahování souborů (průběžný progres).
 _DOWNLOAD_CHUNK = 64 * 1024
 
+# Timeout pro stahování SOUBORŮ je výrazně delší než pro běžné dotazy: STAG
+# velké přílohy / ZIP balíčky generuje až na vyžádání, takže než začne posílat
+# data (TTFB), může to trvat i desítky sekund až minuty (prohlížeč žádný pevný
+# limit nemá). Krátký 30s timeout takové soubory zbytečně shazoval.
+_DOWNLOAD_TIMEOUT = 600.0
+
 
 # Detail práce (veřejný, bez přihlášení) — odtud se tahá seznam souborů.
 DETAIL_URL = (
@@ -298,13 +304,15 @@ class StagClient:
         self,
         download_path: str,
         on_progress: Callable[[int, int | None], bool | None] | None = None,
+        timeout: float | None = None,
     ) -> bytes:
         """Stáhne soubor **po blocích** a po každém zavolá ``on_progress``.
 
         ``on_progress(downloaded, total)`` dostane počet stažených bajtů a
         celkovou velikost (z ``Content-Length``; ``None`` když není známá).
         Když callback vrátí ``False``, stahování se přeruší a vyhodí se
-        :class:`StagCancelledError`. Vrací kompletní obsah souboru.
+        :class:`StagCancelledError`. ``timeout`` je delší než u běžných dotazů
+        (velké/on-demand ZIP přílohy mají dlouhý TTFB). Vrací obsah souboru.
         """
         path = (download_path or "").strip()
         if not path:
@@ -314,8 +322,9 @@ class StagClient:
         req = urllib.request.Request(url, headers=headers)
         chunks: list[bytes] = []
         downloaded = 0
+        to = timeout if timeout is not None else _DOWNLOAD_TIMEOUT
         try:
-            with self._opener.open(req, timeout=self.timeout) as resp:
+            with self._opener.open(req, timeout=to) as resp:
                 cl = resp.headers.get("Content-Length")
                 total = int(cl) if cl and cl.isdigit() else None
                 if on_progress is not None and on_progress(0, total) is False:
@@ -332,7 +341,18 @@ class StagClient:
             raise StagError(
                 f"STAG odpověděl chybou HTTP {exc.code} při stahování souboru."
             ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        except TimeoutError as exc:  # socket.timeout je podtřída TimeoutError
+            raise StagError(
+                "STAG neodpověděl včas — velký soubor nebo příprava na serveru "
+                "trvá příliš dlouho. Zkus to prosím znovu."
+            ) from exc
+        except (urllib.error.URLError, OSError) as exc:
+            # URLError často obaluje socket.timeout → rozliš podle příčiny.
+            if isinstance(getattr(exc, "reason", None), TimeoutError):
+                raise StagError(
+                    "STAG neodpověděl včas — velký soubor nebo příprava na "
+                    "serveru trvá příliš dlouho. Zkus to prosím znovu."
+                ) from exc
             raise StagError(
                 "Nepodařilo se stáhnout soubor ze STAG (spojení / timeout)."
             ) from exc

@@ -538,8 +538,10 @@ ještě nemáš**. **Budoucí práce** (zájemci / vypsaná témata) se nekontro
 tlačítkem **⬇ Dostáhnout vybrané** je rovnou stáhneš a připojíš k práci (před
 zápisem se vytvoří záloha). **Průběh** stahování běží **přímo v seznamu** —
 u každého souboru se ukazuje staženo/celkem a po dokončení **✓ staženo**
-(nebo **✗ chyba**). Zvlášť se vypíšou práce **bez STAG ID** (nelze ověřit) a
-případné **chyby dotazu**.
+(nebo **✗ chyba**). U velkých / ZIP příloh STAG soubor teprve **připravuje**,
+takže než začne stahování, chvíli to trvá (řádek ukazuje *„STAG připravuje
+soubor…"*) — má na to dlouhý časový limit. Zvlášť se vypíšou práce
+**bez STAG ID** (nelze ověřit) a případné **chyby dotazu**.
 
 > **Průběh stahování.** Než STAG začne posílat data (server soubor občas
 > teprve generuje nebo přiškrtí spojení při mnoha souborech po sobě), ukazuje

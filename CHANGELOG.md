@@ -7,7 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.64.1] - 2026-06-06
+## [0.64.2] - 2026-06-07
+
+### Fixed
+- **Velké / ZIP přílohy ze STAG se nedařilo stáhnout** (hláška „Nepodařilo se
+  spojit se STAG"). STAG velké přílohy a ZIP balíčky **generuje až na
+  vyžádání**, takže než začne posílat data, trvá to i desítky sekund až minuty
+  — krátký 30s timeout je shazoval, i když připojení fungovalo. Timeout pro
+  **stahování souborů** je teď výrazně delší (10 min) a při jeho překročení se
+  ukáže srozumitelná hláška místo „zkontroluj připojení".
+
+### Changed
+- Během čekání na server se v průběhu stahování ukazuje **„⏳ STAG připravuje
+  soubor (čekám)…"** — než dorazí první data, příprava velkého souboru na
+  serveru může chvíli trvat (stejně jako v prohlížeči).
 
 ### Changed
 - **Kontrola se STAG: průběh stahování přímo v seznamu.** Při dostahování se

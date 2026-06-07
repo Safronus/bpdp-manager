@@ -416,7 +416,7 @@ class StagConsistencyDialog(QDialog):
             dn = state["downloaded"]
             tot = state["total"] or sf.size_hint or 0
             if dn <= 0:
-                leaf.setText(0, f"⏳ {label} — připojuji k STAG…")
+                leaf.setText(0, f"⏳ {label} — STAG připravuje soubor (čekám)…")
             else:
                 sz = (
                     f"{_fmt_size(dn)} / {_fmt_size(tot)}" if tot else _fmt_size(dn)

@@ -264,3 +264,31 @@ def test_download_huge_total_no_overflow(qapp, tmp_path, monkeypatch) -> None:
 
     assert accepted                      # došlo až k accept()
     assert dlg.result_items and dlg.result_items[0][1] is result
+
+
+def test_download_uses_long_timeout(monkeypatch) -> None:
+    """Stahování souboru používá výrazně delší timeout (velké/ZIP přílohy)."""
+    client = stag_api.StagClient()
+    captured: dict = {}
+
+    def fake_open(req, timeout=None):
+        captured["timeout"] = timeout
+        return _FakeResp(b"x" * 10, 10)
+
+    monkeypatch.setattr(client._opener, "open", fake_open)
+    client.download_file_streamed("/x")
+    assert captured["timeout"] == stag_api._DOWNLOAD_TIMEOUT
+    assert captured["timeout"] >= 300  # mnohem víc než běžných 30 s
+
+
+def test_download_timeout_friendly_message(monkeypatch) -> None:
+    """Timeout při stahování → srozumitelná hláška (ne „zkontroluj internet")."""
+    client = stag_api.StagClient()
+
+    def fake_open(req, timeout=None):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(client._opener, "open", fake_open)
+    with pytest.raises(stag_api.StagError) as ei:
+        client.download_file_streamed("/x")
+    assert "neodpověděl včas" in str(ei.value)

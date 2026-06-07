@@ -3342,8 +3342,9 @@ class StagDownloadDialog(QDialog):
                             state["cancel"] = True
                         dn = state["downloaded"]
                         if dn <= 0:
-                            # Čekáme na první bajt (STAG generuje/posílá soubor).
-                            suffix = "  ⏳ připojuji k STAG…"
+                            # Čekáme na první bajt — STAG velké/ZIP přílohy teprve
+                            # připravuje, může to trvat i desítky sekund.
+                            suffix = "  ⏳ STAG připravuje soubor (čekám)…"
                         else:
                             tot = state["total"] or sf.size_hint or 0
                             suffix = (
