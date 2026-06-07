@@ -39,8 +39,10 @@ from ..models.enums import (
 from ..services import ThesisService
 from .opposing_detail import OpposingDetail
 from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
+from .theses_tree import ROLE_GRADES, GradesDelegate
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
+COL_GRADES = 4  # sloupec „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
 
 # Reuse Czech locale setup from theses_tree
 _HAS_CZECH_LOCALE = False
@@ -144,7 +146,7 @@ class OpposingTab(QWidget):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(7)
         self.tree.setHeaderLabels(
-            ["Student / Skupina", "Téma", "Stav", "Vedoucí", "Známky",
+            ["Student / Skupina", "Téma", "Stav", "Vedoucí", "V/O",
              "Obor", "Odesláno"]
         )
         self.tree.setAlternatingRowColors(True)
@@ -159,6 +161,9 @@ class OpposingTab(QWidget):
         for col in range(2, 7):
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
+        # Sloupec V/O — barevné dvojice písmen, stejně jako ve vedených pracích.
+        self._grades_delegate = GradesDelegate(self.tree)
+        self.tree.setItemDelegateForColumn(COL_GRADES, self._grades_delegate)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -285,7 +290,11 @@ class OpposingTab(QWidget):
                         )
                     else:
                         sent_text, sent_tip = "", ""
-                    grades = self._format_grades(op)
+                    gs = (op.grade_supervisor or "").strip()
+                    go = (op.grade_opponent or "").strip()
+                    # Známky kreslí GradesDelegate z dat ROLE_GRADES; text buňky
+                    # je prázdný (a „—", když chybí obě).
+                    grades_text = "" if (gs or go) else "—"
                     obor = op.student_obor or "—"
                     type_prefix = op.type.value
                     leaf = QTreeWidgetItem(
@@ -294,12 +303,22 @@ class OpposingTab(QWidget):
                             title,
                             stav,
                             op.supervisor_name or "—",
-                            grades,
+                            grades_text,
                             obor,
                             sent_text,
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    if gs or go:
+                        leaf.setData(COL_GRADES, ROLE_GRADES, (gs, go))
+                        leaf.setToolTip(
+                            COL_GRADES,
+                            f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}",
+                        )
+                    leaf.setTextAlignment(
+                        COL_GRADES,
+                        Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
+                    )
                     if code:
                         leaf.setToolTip(
                             2, STAG_STATE_LABELS.get(code, code) + f" ({code})"
@@ -338,12 +357,6 @@ class OpposingTab(QWidget):
                 self._select_id(selected_id)
         finally:
             self.tree.blockSignals(False)
-
-    @staticmethod
-    def _format_grades(op: OpposingThesis) -> str:
-        sup = op.grade_supervisor or "—"
-        opp = op.grade_opponent or "—"
-        return f"V: {sup}  /  O: {opp}"
 
     def _selected_id(self) -> str | None:
         item = self.tree.currentItem()

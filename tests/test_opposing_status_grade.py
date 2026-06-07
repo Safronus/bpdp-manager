@@ -54,6 +54,25 @@ def _leaf_for(tab: OpposingTab, op_id: str) -> QTreeWidgetItem | None:
     return None
 
 
+def test_opposing_grades_use_vo_delegate(qapp, service) -> None:
+    """Sloupec V/O nese známky v datech (ROLE_GRADES), text buňky je prázdný."""
+    from bpdpmanager.ui.opposing_tab import COL_GRADES
+    from bpdpmanager.ui.theses_tree import ROLE_GRADES
+
+    op = OpposingThesis(type=ThesisType.BP, academic_year=service.current_academic_year(),
+                        student_last_name="Známkovaný",
+                        grade_supervisor="A", grade_opponent="C")
+    service.upsert_opposing_thesis(op)
+
+    tab = OpposingTab(service)
+    tab.refresh()
+    leaf = _leaf_for(tab, op.id)
+    assert leaf is not None
+    assert tab.tree.headerItem().text(COL_GRADES) == "V/O"
+    assert leaf.data(COL_GRADES, ROLE_GRADES) == ("A", "C")
+    assert leaf.text(COL_GRADES) == ""
+
+
 def test_opposing_status_column_and_year_gating(qapp, service) -> None:
     current = service.current_academic_year()
     past = "2018/2019"

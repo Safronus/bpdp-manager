@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.67.2] - 2026-06-07
+
+### Changed
+- **Sloupec známek „V/O" i v záložce „Oponentské posudky".** Použije stejnou
+  vizualizaci jako vedené práce — barevně podbarvená dvojice písmen
+  (vedoucí / oponent) místo dřívějšího textu „V: A / O: B".
+
 ## [0.67.1] - 2026-06-07
 
 ### Changed

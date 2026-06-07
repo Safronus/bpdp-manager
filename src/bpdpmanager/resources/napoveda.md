@@ -163,8 +163,8 @@ tě ještě čeká.
 Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
 **V/O** se známkou **vedoucího i oponenta** — vlevo známka vedoucího (V),
 vpravo oponenta (O), jako **barevně podbarvená dvojice písmen** (zelená A →
-červená F/FX; „—" když chybí obě, plný popis v tooltipu). Stejné známky jsou
-i ve sloupci záložky *Oponentské posudky*.
+červená F/FX; „—" když chybí obě, plný popis v tooltipu). **Stejně vypadající
+sloupec V/O** je i v záložce *Oponentské posudky*.
 
 > **Oponentury — řazení dle roku.** Práce jsou seskupené dle akademického roku;
 > defaultně je rozbalený **jen aktuální rok**, starší roky jsou sbalené.
