@@ -231,13 +231,15 @@ class OpposingTab(QWidget):
                     members = by_type.get(type_code)
                     if not members:
                         continue
+                    # Styl podskupiny sjednocen s vedenými pracemi:
+                    # „  Bakalářská práce  (N)" kurzívou, bez ikony, spanned.
                     type_item = QTreeWidgetItem(
-                        [f"📚 {ThesisType(type_code).label}  ({len(members)})",
+                        [f"  {ThesisType(type_code).label}  ({len(members)})",
                          "", "", "", ""]
                     )
                     type_item.setFirstColumnSpanned(True)
                     tf = type_item.font(0)
-                    tf.setBold(True)
+                    tf.setItalic(True)
                     type_item.setFont(0, tf)
                     year_item.addChild(type_item)
                     members = sorted(

@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-06-07
+
+### Changed
+- **Sjednocený styl podskupiny BP/DP v *Oponovaných pracích*** — nadpis
+  (např. *„Bakalářská práce"*) je teď kurzívou bez ikony, stejně jako
+  podskupiny ve vedených pracích.
+
 ## [1.2.2] - 2026-06-07
 
 ### Changed
