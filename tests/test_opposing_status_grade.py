@@ -31,7 +31,7 @@ def service(tmp_path: Path) -> ThesisService:
 
 
 def test_sync_opponent_grade_from_pdf(service, tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(svc_mod, "extract_grade_from_pdf", lambda p: "B")
+    monkeypatch.setattr(svc_mod, "extract_grade_from_file", lambda p: "B")
     op = OpposingThesis(type=ThesisType.BP, academic_year="2024/2025",
                         student_last_name="Novák")
     service.upsert_opposing_thesis(op)

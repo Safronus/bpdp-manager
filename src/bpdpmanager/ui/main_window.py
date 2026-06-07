@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QComboBox,
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -32,6 +33,7 @@ from PySide6.QtWidgets import (
 from ..models import Thesis
 from ..models.enums import (
     REVIEW_STATE_STRONG,
+    STATUS_LABELS,
     STATUSES_CURRENT,
     STATUSES_FUTURE,
     STATUSES_HISTORY,
@@ -90,15 +92,21 @@ class _ThesesTab(QWidget):
         parent=None,
         *,
         profile_manager=None,
+        status_filter_choices: list[ThesisStatus] | None = None,
+        status_filter_pref_key: str = "",
     ) -> None:
         super().__init__(parent)
         self.service = service
+        self._profile_manager = profile_manager
+        self._base_predicate = filter_predicate
+        self._status_filter_choices = list(status_filter_choices or [])
+        self._status_filter_pref_key = status_filter_pref_key
+        self._status_checks: dict[ThesisStatus, QCheckBox] = {}
 
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.setChildrenCollapsible(False)
         self.tree = ThesesTreeWidget(service)
         self.tree.setMinimumHeight(160)
-        self.tree.set_filter(filter_predicate)
         self.detail = ThesisDetail(
             service, year_mode=year_mode, profile_manager=profile_manager
         )
@@ -114,7 +122,12 @@ class _ThesesTab(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        if self._status_filter_choices:
+            layout.addLayout(self._build_status_filter_row())
         layout.addWidget(splitter)
+
+        # Filtr stromu = základní predikát + (volitelně) zaškrtnuté stavy.
+        self._apply_tree_filter()
 
         self.tree.thesis_selected.connect(self._on_thesis_selected)
         self.tree.rollback_requested.connect(self._on_rollback_requested)
@@ -126,6 +139,46 @@ class _ThesesTab(QWidget):
         self.detail.generate_review_requested.connect(self._on_generate_review_requested)
         self.detail.saved.connect(lambda _: (self.tree.refresh(), self.data_changed.emit()))
         self.detail.deleted.connect(lambda _: (self.tree.refresh(), self.data_changed.emit()))
+
+    def _build_status_filter_row(self) -> QHBoxLayout:
+        """Řádek s checkboxy stavů (default vše zaškrtnuto, perzistuje se)."""
+        saved = None
+        if self._profile_manager and self._status_filter_pref_key:
+            saved = self._profile_manager.get_ui_pref(self._status_filter_pref_key)
+        saved_set = set(saved) if isinstance(saved, list) else None
+
+        row = QHBoxLayout()
+        row.setContentsMargins(4, 2, 4, 0)
+        row.addWidget(QLabel("Zobrazit:"))
+        for status in self._status_filter_choices:
+            cb = QCheckBox(STATUS_LABELS.get(status, status.value))
+            # Bez uloženého nastavení je vše zaškrtnuté; jinak dle uložené volby.
+            cb.setChecked(saved_set is None or status.value in saved_set)
+            cb.toggled.connect(self._on_status_filter_changed)
+            self._status_checks[status] = cb
+            row.addWidget(cb)
+        row.addStretch(1)
+        return row
+
+    def _checked_statuses(self) -> set[ThesisStatus]:
+        return {s for s, cb in self._status_checks.items() if cb.isChecked()}
+
+    def _apply_tree_filter(self) -> None:
+        if not self._status_checks:
+            self.tree.set_filter(self._base_predicate)
+            return
+        allowed = self._checked_statuses()
+        base = self._base_predicate
+        self.tree.set_filter(lambda t: base(t) and t.status in allowed)
+
+    def _on_status_filter_changed(self, _checked: bool) -> None:
+        self._apply_tree_filter()
+        self.tree.refresh()
+        if self._profile_manager and self._status_filter_pref_key:
+            self._profile_manager.set_ui_pref(
+                self._status_filter_pref_key,
+                [s.value for s in self._checked_statuses()],
+            )
 
     def _on_thesis_selected(self, thesis_id: str) -> None:
         thesis = self.service.get_thesis(thesis_id)
@@ -250,6 +303,8 @@ class MainWindow(QMainWindow):
             lambda t: t.status in STATUSES_HISTORY,
             year_mode=YEAR_MODE_HISTORY,
             profile_manager=pm,
+            status_filter_choices=[ThesisStatus.DEFENDED, ThesisStatus.CANCELLED],
+            status_filter_pref_key="history_status_filter",
         )
         self.tab_all = _ThesesTab(
             service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm

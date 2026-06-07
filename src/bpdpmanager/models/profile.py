@@ -53,3 +53,5 @@ class ProfileRegistry(BaseModel):
     last_template_import_dir: str = ""
     # Tutorial „Začínáme" se ukazuje jen jednou (po prvním nastavení).
     tutorial_shown: bool = False
+    # Volné UI předvolby (klíč → hodnota), např. filtr stavů v záložce Historie.
+    ui_prefs: dict = Field(default_factory=dict)

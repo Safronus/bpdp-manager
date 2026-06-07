@@ -40,7 +40,7 @@ from .file_naming import (
     subdir_for,
 )
 from .harmonogram_parser import parse_pdf
-from .review_pdf import extract_grade_from_pdf
+from .review_pdf import extract_grade_from_file
 from .review_schema import extract_template_metadata, extract_template_schema
 from .review_template_filler import (
     fill_template,
@@ -48,6 +48,15 @@ from .review_template_filler import (
     plan_template_fill,
 )
 from .xlsx_cell_writer import set_cells
+
+
+# Přípony posudků, ze kterých umíme vyčíst navrženou známku (PDF + Word).
+_GRADE_SOURCE_SUFFIXES = (".pdf", ".docx", ".doc")
+
+
+def _is_grade_source(name: str) -> bool:
+    """True, pokud jde o soubor posudku, ze kterého lze zkusit vyčíst známku."""
+    return name.lower().endswith(_GRADE_SOURCE_SUFFIXES)
 
 
 class TransitionError(ValueError):
@@ -737,17 +746,17 @@ class ThesisService:
         )
         thesis.attachments.append(attachment)
 
-        # Z nahraného PDF posudku (vedoucího/oponenta) zkus vyčíst navrženou
+        # Z nahraného posudku (vedoucího/oponenta) zkus vyčíst navrženou
         # známku a doplnit ji — užitečné u historických prací, kde posudek není
-        # psaný v aplikaci, ale jen přiložený jako hotové PDF. Plní jen prázdné
-        # pole (in-app posudek má přednost a řeší ho sync_thesis_grades).
-        if target_path.suffix.lower() == ".pdf":
+        # psaný v aplikaci, ale jen přiložený jako hotové PDF/Word. Plní jen
+        # prázdné pole (in-app posudek má přednost a řeší ho sync_thesis_grades).
+        if _is_grade_source(target_path.name):
             if kind == AttachmentKind.SUPERVISOR_REVIEW and not thesis.grade_supervisor:
-                grade = extract_grade_from_pdf(target_path)
+                grade = extract_grade_from_file(target_path)
                 if grade:
                     thesis.grade_supervisor = grade
             elif kind == AttachmentKind.OPPONENT_REVIEW and not thesis.grade_opponent:
-                grade = extract_grade_from_pdf(target_path)
+                grade = extract_grade_from_file(target_path)
                 if grade:
                     thesis.grade_opponent = grade
 
@@ -912,13 +921,13 @@ class ThesisService:
         )
         op.attachments.append(attachment)
 
-        # Z nahraného PDF posudku VEDOUCÍHO zkus vyčíst navrženou známku a
-        # doplnit ji (externí vedoucí dodá hotové PDF — nemáme strukturovaná data).
+        # Z nahraného posudku VEDOUCÍHO zkus vyčíst navrženou známku a doplnit
+        # ji (externí vedoucí dodá hotové PDF/Word — nemáme strukturovaná data).
         if (
             kind == AttachmentKind.SUPERVISOR_REVIEW
-            and target_path.suffix.lower() == ".pdf"
+            and _is_grade_source(target_path.name)
         ):
-            grade = extract_grade_from_pdf(target_path)
+            grade = extract_grade_from_file(target_path)
             if grade:
                 op.grade_supervisor = grade
 
@@ -977,17 +986,17 @@ class ThesisService:
                 op.grade_opponent = rev.suggested_grade
                 changed = True
             else:
-                # Fallback: vyčti z nahraného PDF posudku oponenta (typicky
+                # Fallback: vyčti z nahraného posudku oponenta (PDF/Word, typicky
                 # vlastní posudek stažený ze STAG, bez napsaného posudku v appce).
                 for a in op.attachments:
                     if (
                         a.kind == AttachmentKind.OPPONENT_REVIEW
                         and a.is_file
-                        and a.url_or_path.lower().endswith(".pdf")
+                        and _is_grade_source(a.url_or_path)
                     ):
                         path = self.opposing_document_absolute_path(op_id, a)
                         if path is not None and path.exists():
-                            grade = extract_grade_from_pdf(path)
+                            grade = extract_grade_from_file(path)
                             if grade:
                                 op.grade_opponent = grade
                                 changed = True
@@ -998,11 +1007,11 @@ class ThesisService:
                 if (
                     a.kind == AttachmentKind.SUPERVISOR_REVIEW
                     and a.is_file
-                    and a.url_or_path.lower().endswith(".pdf")
+                    and _is_grade_source(a.url_or_path)
                 ):
                     path = self.opposing_document_absolute_path(op_id, a)
                     if path is not None and path.exists():
-                        grade = extract_grade_from_pdf(path)
+                        grade = extract_grade_from_file(path)
                         if grade:
                             op.grade_supervisor = grade
                             changed = True
@@ -1017,7 +1026,7 @@ class ThesisService:
 
         Pro každou roli (vedoucí / oponent):
         - přednost má **in-app posudek** (``Review.suggested_grade`` z kritérií),
-        - jinak se zkusí **vyčíst z nahraného PDF** posudku dané role.
+        - jinak se zkusí **vyčíst z nahraného posudku** (PDF/Word) dané role.
 
         Plní jen prázdné hodnoty (nepřepisuje ručně zadané). Vrací (případně
         aktualizovaný) ``Thesis``.
@@ -1044,17 +1053,17 @@ class ThesisService:
                 setattr(thesis, field, rev.suggested_grade)
                 changed = True
                 continue
-            # 2) fallback: vyčíst z nahraného PDF posudku
+            # 2) fallback: vyčíst z nahraného posudku (PDF/Word)
             for a in thesis.attachments:
                 if (
                     a.kind == kind
                     and a.is_file
                     and a.is_current
-                    and a.url_or_path.lower().endswith(".pdf")
+                    and _is_grade_source(a.url_or_path)
                 ):
                     path = self.document_absolute_path(thesis_id, a)
                     if path is not None and path.exists():
-                        grade = extract_grade_from_pdf(path)
+                        grade = extract_grade_from_file(path)
                         if grade:
                             setattr(thesis, field, grade)
                             changed = True

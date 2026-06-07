@@ -260,6 +260,15 @@ class ProfileManager:
         self._registry.last_template_import_dir = (path or "").strip()
         self._save_registry()
 
+    def get_ui_pref(self, key: str, default=None):
+        """Načte volnou UI předvolbu (napříč profily). Vrací ``default``, když chybí."""
+        return self._registry.ui_prefs.get(key, default)
+
+    def set_ui_pref(self, key: str, value) -> None:
+        """Uloží volnou UI předvolbu a persistuje rejstřík."""
+        self._registry.ui_prefs[key] = value
+        self._save_registry()
+
     @property
     def tutorial_shown(self) -> bool:
         return bool(self._registry.tutorial_shown)

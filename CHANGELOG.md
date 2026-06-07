@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-06-07
+
+### Added
+- **Filtr stavů v záložce „Historie".** Nad seznamem přibyly checkboxy
+  *Obhájeno* a *Nedokončeno* — defaultně obě zaškrtnuté. Odškrtnutím lze
+  zobrazit jen jeden stav. **Nastavení se pamatuje i po zavření aplikace.**
+- **Vyčtení navržené známky i z posudků ve Wordu (`.doc` / `.docx`).** Dosud
+  uměla aplikace přečíst navrženou známku jen z PDF; nově zpracuje i wordové
+  posudky (vedoucího i oponenta) — `.docx` čte přímo, starý binární `.doc`
+  převede na pozadí přes LibreOffice. Funguje všude, kde se známky doplňují
+  (nahrání posudku, *Kontrola se STAG*, zpětné dosynchronizování).
+
+### Changed
+- **Rozšířené rozpoznávání navržené známky** o formulaci typu *„doporučuji
+  k obhajobě s hodnocením B"* (vedle dosavadních *„navrhuji hodnocení…"*,
+  *„hodnotit stupněm…"* apod.).
+
 ## [0.65.0] - 2026-06-07
 
 ### Changed

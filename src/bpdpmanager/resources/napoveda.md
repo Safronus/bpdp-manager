@@ -88,6 +88,8 @@ brew install --cask libreoffice
 ```
 
 Bez něj se vygeneruje jen XLSX (PDF si vyrobíš v Excelu přes Export).
+LibreOffice se použije i k **vyčtení navržené známky ze starých `.doc`**
+posudků (převede je na pozadí na text). PDF a `.docx` fungují i bez něj.
 
 ### 6. Doporučený první krok — stáhnout své práce ze STAG
 Jakmile máš nastavené **jméno** (krok 2) a **obory s STAG zkratkami**
@@ -128,7 +130,9 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 
 - **Aktuální** — práce ve stavu *V řešení*
 - **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
-- **Historie** — *Obhájeno*, *Nedokončeno*
+- **Historie** — *Obhájeno*, *Nedokončeno*. Nad seznamem jsou **checkboxy
+  stavů** (*Obhájeno* / *Nedokončeno*) — defaultně obě zaškrtnuté; odškrtnutím
+  zobrazíš jen jeden stav. Volba se **pamatuje i po zavření aplikace**.
 - **Vše** — všechny vedené práce
 - **🧐 Oponentské posudky** — práce, kde jsi oponent (ne vedoucí).
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
@@ -165,7 +169,8 @@ záložky *Oponentské posudky*.
 > sloupec **Stav** (ze STAG, např. *nedokončeno / obhájeno*). Barevný puntík
 > stavu posudku, podbarvení a sloupec *Odesláno* se ukazují **jen u aktuálního
 > akademického roku** (u starších je to irelevantní). Známka oponenta se
-> u stažených oponentur doplní z nahraného **PDF posudku** automaticky.
+> u stažených oponentur doplní z nahraného **posudku** (PDF i Word `.doc`/
+> `.docx`) automaticky.
 
 Seznam prací v *Aktuální* i *Oponentské posudky* má jednotný sloupec
 **Odesláno**: u prací s **hotovým posudkem** ukazuje **✉ ✓ odesláno** /
@@ -214,11 +219,13 @@ hodnocení) a na konci **Soubory** (přehled aktuálních příloh — text prá
 posudky, přílohy…). Každá sekce má tlačítko 📋 pro zkopírování do schránky.
 
 > **Známky u historických prací.** Sekce *Známky* bere známku primárně
-> z posudku napsaného v aplikaci. Pokud posudek existuje jen jako **nahrané
-> PDF** (typicky u starších prací stažených ze STAG), aplikace se z PDF pokusí
-> navrženou známku **vyčíst** („navrhuji hodnocení B…", „Navržená známka: D"
-> apod.) a doplní ji. Děje se to automaticky při otevření práce i po stažení
-> posudku ze STAG; ručně zadanou známku nikdy nepřepíše.
+> z posudku napsaného v aplikaci. Pokud posudek existuje jen jako **nahraný
+> soubor** — PDF i Word (`.doc` / `.docx`), typicky u starších prací stažených
+> ze STAG — aplikace se z něj pokusí navrženou známku **vyčíst** („navrhuji
+> hodnocení B…", „Navržená známka: D", „doporučuji k obhajobě s hodnocením B"
+> apod.) a doplní ji. (Starý binární `.doc` se na pozadí převede přes
+> LibreOffice — viz krok 5 v *Začínáme*.) Děje se to automaticky při otevření
+> práce i po stažení posudku ze STAG; ručně zadanou známku nikdy nepřepíše.
 
 ### 📝 Téma zadání
 Rok, student, **obor**, oponent, název CZ + EN, anotace CZ + EN, body zadání
