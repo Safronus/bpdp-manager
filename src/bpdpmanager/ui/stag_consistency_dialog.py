@@ -14,14 +14,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QProgressDialog,
     QPushButton,
     QTreeWidget,
@@ -269,16 +268,18 @@ class StagConsistencyDialog(QDialog):
 
     # --- výběr + dostažení ---------------------------------------------------
 
-    def _checked_files(self) -> list[tuple[int, int]]:
-        out: list[tuple[int, int]] = []
+    def _checked_leaves(self) -> list[QTreeWidgetItem]:
+        out: list[QTreeWidgetItem] = []
 
         def walk(item: QTreeWidgetItem) -> None:
             for i in range(item.childCount()):
                 walk(item.child(i))
-            ri = item.data(0, _ROLE_ROW)
-            fi = item.data(0, _ROLE_FILE)
-            if ri is not None and fi is not None and item.checkState(0) == Qt.CheckState.Checked:
-                out.append((ri, fi))
+            if (
+                item.data(0, _ROLE_ROW) is not None
+                and item.data(0, _ROLE_FILE) is not None
+                and item.checkState(0) == Qt.CheckState.Checked
+            ):
+                out.append(item)
 
         root = self.tree.invisibleRootItem()
         for i in range(root.childCount()):
@@ -286,16 +287,35 @@ class StagConsistencyDialog(QDialog):
         return out
 
     def _update_btn(self) -> None:
-        n = len(self._checked_files())
+        n = len(self._checked_leaves())
         self.btn_download.setEnabled(n > 0)
         self.btn_download.setText(
             "⬇ Dostáhnout vybrané" if n == 0 else f"⬇ Dostáhnout vybrané ({n})"
         )
 
+    @staticmethod
+    def _leaf_label(kind, sf) -> str:
+        size = f"  ·  {_fmt_size(sf.size_hint)}" if sf.size_hint else ""
+        return f"{kind.label}: {sf.filename}{size}"
+
+    def _mark(self, leaf: QTreeWidgetItem, text: str, color: str,
+              done: bool = False) -> None:
+        leaf.setText(0, text)
+        leaf.setForeground(0, QBrush(QColor(color)))
+        if done:
+            # Hotovo → už nelze znovu vybrat (a nepočítá se do výběru).
+            self.tree.blockSignals(True)
+            leaf.setCheckState(0, Qt.CheckState.Unchecked)
+            leaf.setFlags(leaf.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
+            leaf.setData(0, _ROLE_ROW, None)
+            leaf.setData(0, _ROLE_FILE, None)
+            self.tree.blockSignals(False)
+
     def _download_selected(self) -> None:
-        checked = self._checked_files()
-        if not checked:
+        leaves = self._checked_leaves()
+        if not leaves:
             return
+        self.btn_download.setEnabled(False)
 
         # Záloha (záchranná brzda).
         if self.profile_manager and self.profile_manager.active:
@@ -307,86 +327,104 @@ class StagConsistencyDialog(QDialog):
             except Exception:  # noqa: BLE001
                 pass
 
-        # Seskup vybrané soubory dle práce (řádku).
-        by_row: dict[int, list[int]] = {}
-        for ri, fi in checked:
-            by_row.setdefault(ri, []).append(fi)
+        # Seskup listy dle práce (řádku) — soubory jedné práce sdílí session.
+        by_row: dict[int, list[QTreeWidgetItem]] = {}
+        for leaf in leaves:
+            by_row.setdefault(leaf.data(0, _ROLE_ROW), []).append(leaf)
 
-        progress = QProgressDialog(
-            "Dostahuji chybějící soubory…", "Přerušit", 0, len(by_row), self
-        )
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.setValue(0)
-
+        executor = ThreadPoolExecutor(max_workers=1)
         attached = 0
-        errors: list[str] = []
-        done = 0
-        for ri, file_idxs in by_row.items():
-            if progress.wasCanceled():
-                break
-            r = self._rows[ri]
-            progress.setLabelText(f"Dostahuji:\n{r.label}")
-            QApplication.processEvents()
-            want_soub = {r.missing[fi][1].soubidno for fi in file_idxs}
-            attached += self._download_for_work(r, want_soub, errors)
-            done += 1
-            progress.setValue(done)
-            QApplication.processEvents()
-        progress.close()
+        errors = 0
+        try:
+            for ri, row_leaves in by_row.items():
+                r = self._rows[ri]
+                client = stag_api.StagClient()
+                try:
+                    files = client.list_thesis_files(r.adipidno)
+                except Exception:  # noqa: BLE001
+                    for leaf in row_leaves:
+                        self._mark(leaf, "✗ chyba: výpis souborů ze STAG", "#c62828")
+                    errors += len(row_leaves)
+                    continue
+                by_soub = {f.soubidno: f for f in files}
+                any_here = False
+                for leaf in row_leaves:
+                    kind, sf0 = r.missing[leaf.data(0, _ROLE_FILE)]
+                    sf = by_soub.get(sf0.soubidno, sf0)
+                    label = self._leaf_label(kind, sf)
+                    data = self._download_bytes(executor, client, sf, leaf, label)
+                    if data is None:
+                        self._mark(leaf, f"✗ {label} — nestaženo", "#c62828")
+                        errors += 1
+                        continue
+                    safe = sf.filename or f"soubor_{sf.soubidno}"
+                    tmp = (
+                        Path(tempfile.gettempdir())
+                        / f"stagchk_{r.adipidno}_{sf.soubidno}_{safe}"
+                    )
+                    try:
+                        tmp.write_bytes(data)
+                    except OSError:
+                        self._mark(leaf, f"✗ {label} — zápis selhal", "#c62828")
+                        errors += 1
+                        continue
+                    kind_a = _SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER)
+                    try:
+                        if r.is_opposing:
+                            self.service.opposing_attach_document(r.obj_id, tmp, kind=kind_a)
+                        else:
+                            self.service.attach_document(r.obj_id, tmp, kind=kind_a)
+                        attached += 1
+                        any_here = True
+                        self._mark(leaf, f"✓ {label} — staženo", "#2e7d32", done=True)
+                    except Exception:  # noqa: BLE001
+                        self._mark(leaf, f"✗ {label} — nepřipojeno", "#c62828")
+                        errors += 1
+                if any_here:
+                    try:
+                        if r.is_opposing:
+                            self.service.sync_opposing_grades(r.obj_id)
+                        else:
+                            self.service.sync_thesis_grades(r.obj_id)
+                    except Exception:  # noqa: BLE001
+                        pass
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
         if attached:
             self.changed_any = True
             self.changed.emit()
-
-        # Souhrn + re-scan (aby zmizely dostažené).
-        msg = f"Dostaženo souborů: {attached}."
+        msg = f"Dostaženo souborů: <b>{attached}</b>"
         if errors:
-            msg += "\n\nChyby:\n" + "\n".join(f"• {e}" for e in errors[:10])
-        QMessageBox.information(self, "Kontrola se STAG", msg)
-        self._scan()
+            msg += f"  ·  chyby: {errors}"
+        msg += ".  Zbývající nestažené zůstávají v seznamu."
+        self.lbl_status.setText(msg)
+        self.lbl_status.setTextFormat(Qt.TextFormat.RichText)
+        self._update_btn()
 
-    def _download_for_work(self, r: _Row, want_soub: set, errors: list) -> int:
-        """Stáhne a připojí vybrané soubory jedné práce. Vrací počet připojených."""
-        client = stag_api.StagClient()
-        try:
-            files = client.list_thesis_files(r.adipidno)
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"{r.label}: výpis souborů — {exc}")
-            return 0
-        by_soub = {f.soubidno: f for f in files}
-        count = 0
-        for soub in want_soub:
-            sf = by_soub.get(soub)
-            if sf is None:
-                continue
-            try:
-                data = client.download_file(sf.download_path)
-            except Exception as exc:  # noqa: BLE001
-                errors.append(f"{r.label}: {sf.filename} — {exc}")
-                continue
-            safe = sf.filename or f"soubor_{soub}"
-            tmp = Path(tempfile.gettempdir()) / f"stagchk_{r.adipidno}_{soub}_{safe}"
-            try:
-                tmp.write_bytes(data)
-            except OSError as exc:
-                errors.append(f"{r.label}: zápis {sf.filename} — {exc}")
-                continue
-            kind = _SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER)
-            try:
-                if r.is_opposing:
-                    self.service.opposing_attach_document(r.obj_id, tmp, kind=kind)
-                else:
-                    self.service.attach_document(r.obj_id, tmp, kind=kind)
-                count += 1
-            except Exception as exc:  # noqa: BLE001
-                errors.append(f"{r.label}: přiložení {sf.filename} — {exc}")
-        # Dosynchronizuj známky z čerstvě připojených posudků.
-        try:
-            if r.is_opposing:
-                self.service.sync_opposing_grades(r.obj_id)
+    def _download_bytes(self, executor, client, sf, leaf: QTreeWidgetItem, label: str):
+        """Stáhne soubor na vlákně a v jeho řádku ukazuje průběh. None při chybě."""
+        state = {"downloaded": 0, "total": None}
+
+        def cb(downloaded, total, _s=state):
+            _s["downloaded"] = downloaded
+            _s["total"] = total
+            return True
+
+        fut = executor.submit(client.download_file_streamed, sf.download_path, cb)
+        while not fut.done():
+            dn = state["downloaded"]
+            tot = state["total"] or sf.size_hint or 0
+            if dn <= 0:
+                leaf.setText(0, f"⏳ {label} — připojuji k STAG…")
             else:
-                self.service.sync_thesis_grades(r.obj_id)
+                sz = (
+                    f"{_fmt_size(dn)} / {_fmt_size(tot)}" if tot else _fmt_size(dn)
+                )
+                leaf.setText(0, f"⏳ {label} — {sz}")
+            QApplication.processEvents()
+            QThread.msleep(40)
+        try:
+            return fut.result()
         except Exception:  # noqa: BLE001
-            pass
-        return count
+            return None

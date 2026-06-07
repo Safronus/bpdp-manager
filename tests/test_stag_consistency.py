@@ -140,7 +140,9 @@ def test_consistency_downloads_missing(qapp, service, monkeypatch) -> None:
         def list_thesis_files(self, a):
             return [review]
 
-        def download_file(self, p):
+        def download_file_streamed(self, p, on_progress=None):
+            if on_progress:
+                on_progress(10, 10)
             return b"%PDF-1.4 fake review"
 
     monkeypatch.setattr(mod.stag_api, "StagClient", FakeClient)
@@ -159,3 +161,16 @@ def test_consistency_downloads_missing(qapp, service, monkeypatch) -> None:
     updated = service.get_thesis(t.id)
     assert any(a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in updated.attachments)
     assert dlg.changed_any is True
+
+    # Soubor je v seznamu označený jako stažený (✓).
+    texts: list[str] = []
+
+    def collect(item):
+        for i in range(item.childCount()):
+            collect(item.child(i))
+        texts.append(item.text(0))
+
+    root = dlg.tree.invisibleRootItem()
+    for i in range(root.childCount()):
+        collect(root.child(i))
+    assert any(t.startswith("✓") and "staženo" in t for t in texts)

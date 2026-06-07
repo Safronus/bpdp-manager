@@ -319,7 +319,8 @@ class OpposingTab(QWidget):
                             1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
                         )
                     year_item.addChild(leaf)
-                year_item.setExpanded(True)
+                # Aktuální rok rozbalený, starší roky defaultně sbalené.
+                year_item.setExpanded(year == current_year)
 
             # Souhrn hotovo/chybí — jen za AKTUÁLNÍ rok (u starších je irelevantní).
             cur = [o for o in opposings if o.academic_year == current_year]

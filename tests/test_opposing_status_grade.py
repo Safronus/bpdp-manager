@@ -80,3 +80,22 @@ def test_opposing_status_column_and_year_gating(qapp, service) -> None:
     assert not old_leaf.text(1).startswith(("🔴", "🟡", "🟢"))
     # Odesláno (index 6) je u staršího roku prázdné.
     assert old_leaf.text(6) == ""
+
+
+def test_opposing_previous_years_collapsed(qapp, service) -> None:
+    """Aktuální rok rozbalený, starší roky defaultně sbalené."""
+    current = service.current_academic_year()
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.BP, academic_year=current, student_last_name="Cur"))
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.BP, academic_year="2018/2019", student_last_name="Old"))
+
+    tab = OpposingTab(service)
+    tab.refresh()
+    root = tab.tree.invisibleRootItem()
+    for i in range(root.childCount()):
+        year_item = root.child(i)
+        if current in year_item.text(0):
+            assert year_item.isExpanded()
+        elif "2018/2019" in year_item.text(0):
+            assert not year_item.isExpanded()

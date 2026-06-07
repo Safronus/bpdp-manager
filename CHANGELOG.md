@@ -7,7 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.64.0] - 2026-06-06
+## [0.64.1] - 2026-06-06
+
+### Changed
+- **Kontrola se STAG: průběh stahování přímo v seznamu.** Při dostahování se
+  u každého souboru ukazuje **průběh** (⏳ staženo/celkem MB) přímo v jeho
+  řádku a po dokončení se označí **✓ staženo** (nebo **✗ chyba**); UI nezamrzá.
+- **Oponentské posudky: starší roky sbalené.** Ve stromu seskupeném dle
+  akademického roku je defaultně rozbalený **jen aktuální rok**, starší roky
+  jsou sbalené.
 
 ### Added
 - **Kontrola se STAG umí chybějící soubory rovnou dostáhnout.** V dialogu

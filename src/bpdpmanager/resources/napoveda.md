@@ -158,6 +158,9 @@ Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
 „—" když chybí; plný popis v tooltipu). Stejné známky jsou i ve sloupci
 záložky *Oponentské posudky*.
 
+> **Oponentury — řazení dle roku.** Práce jsou seskupené dle akademického roku;
+> defaultně je rozbalený **jen aktuální rok**, starší roky jsou sbalené.
+>
 > **Oponentury — sloupec Stav a indikace dle roku.** Tabulka oponentur má
 > sloupec **Stav** (ze STAG, např. *nedokončeno / obhájeno*). Barevný puntík
 > stavu posudku, podbarvení a sloupec *Odesláno* se ukazují **jen u aktuálního
@@ -533,8 +536,10 @@ nabízí druh dokumentu** (plný text / příloha / posudek), který **v databá
 ještě nemáš**. **Budoucí práce** (zájemci / vypsaná témata) se nekontrolují
 (ve STAG ještě soubory nemají). Chybějící soubory jsou **předzaškrtnuté** a
 tlačítkem **⬇ Dostáhnout vybrané** je rovnou stáhneš a připojíš k práci (před
-zápisem se vytvoří záloha). Zvlášť se vypíšou práce **bez STAG ID** (nelze
-ověřit) a případné **chyby dotazu**.
+zápisem se vytvoří záloha). **Průběh** stahování běží **přímo v seznamu** —
+u každého souboru se ukazuje staženo/celkem a po dokončení **✓ staženo**
+(nebo **✗ chyba**). Zvlášť se vypíšou práce **bez STAG ID** (nelze ověřit) a
+případné **chyby dotazu**.
 
 > **Průběh stahování.** Než STAG začne posílat data (server soubor občas
 > teprve generuje nebo přiškrtí spojení při mnoha souborech po sobě), ukazuje
