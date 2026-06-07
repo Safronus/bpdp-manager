@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-06-07
+
+### Changed
+- **Sloupec „Odesláno" je názornější — obálka ✉ na barevném pozadí.** Místo
+  textu *✉ ✓ / ✉ ✗* je v záložkách *Aktuálně vedené*, *Vše* i *Oponované
+  práce* obálka s **pozadím zeleně (odesláno) / červeně (neodesláno)**.
+
 ## [0.77.0] - 2026-06-07
 
 ### Changed

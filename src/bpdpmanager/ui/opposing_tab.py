@@ -34,7 +34,7 @@ from ..models.enums import (
     REVIEW_STATE_TINTS,
     AttachmentKind,
     ThesisType,
-    review_sent_indicator,
+    review_sent_badge,
 )
 from ..services import ThesisService
 from .opposing_detail import OpposingDetail
@@ -288,11 +288,11 @@ class OpposingTab(QWidget):
                     stav = STAG_STATE_SHORT.get(code, code) if code else "—"
                     # Odeslání posudku sekretářce — jen aktuální rok.
                     if is_current:
-                        sent_text, sent_tip = review_sent_indicator(
+                        sent_text, sent_bg, sent_tip = review_sent_badge(
                             state == "done", op.opponent_review_sent_at
                         )
                     else:
-                        sent_text, sent_tip = "", ""
+                        sent_text, sent_bg, sent_tip = "", "", ""
                     gs = (op.grade_supervisor or "").strip()
                     go = (op.grade_opponent or "").strip()
                     # Známky kreslí GradesDelegate z dat ROLE_GRADES; text buňky
@@ -329,6 +329,12 @@ class OpposingTab(QWidget):
                     leaf.setTextAlignment(
                         COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                     )
+                    if sent_bg:
+                        leaf.setBackground(COL_SENT, QBrush(QColor(sent_bg)))
+                        leaf.setForeground(COL_SENT, QBrush(QColor("white")))
+                        sf = leaf.font(COL_SENT)
+                        sf.setBold(True)
+                        leaf.setFont(COL_SENT, sf)
                     if sent_tip:
                         leaf.setToolTip(COL_SENT, sent_tip)
                     # Oponentský posudek — podbarvi sloupec názvu práce

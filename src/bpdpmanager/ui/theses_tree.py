@@ -25,7 +25,7 @@ from ..models.enums import (
     AttachmentKind,
     ThesisStatus,
     ThesisType,
-    review_sent_indicator,
+    review_sent_badge,
 )
 from ..services import ThesisService
 
@@ -355,7 +355,7 @@ class ThesesTreeWidget(QTreeWidget):
         sent_at = thesis.supervisor_review_sent_at
         review_ready = thesis.supervisor_review_state == "done"
         sent_prepared = thesis.status == ThesisStatus.IN_PROGRESS and review_ready
-        sent_text, sent_tip = review_sent_indicator(sent_prepared, sent_at)
+        sent_text, sent_bg, sent_tip = review_sent_badge(sent_prepared, sent_at)
 
         # Známky vedoucí (V) / oponent (O) — kreslí je delegát (barevné dvojice
         # písmen). Když chybí obě, necháme decentní „—" jako prostý text.
@@ -387,6 +387,12 @@ class ThesesTreeWidget(QTreeWidget):
         leaf.setTextAlignment(
             self.COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )
+        if sent_bg:
+            leaf.setBackground(self.COL_SENT, QBrush(QColor(sent_bg)))
+            leaf.setForeground(self.COL_SENT, QBrush(QColor("white")))
+            f = leaf.font(self.COL_SENT)
+            f.setBold(True)
+            leaf.setFont(self.COL_SENT, f)
         if sent_tip:
             leaf.setToolTip(self.COL_SENT, sent_tip)
 

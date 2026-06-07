@@ -54,17 +54,23 @@ def test_tree_sent_indicator(qapp, service: ThesisService, tmp_path: Path) -> No
     tree = ThesesTreeWidget(service)
     tree.set_filter(lambda th: True)
 
-    def _sent_text() -> str:
-        # najdi leaf práce a vrať text sloupce Odesláno
+    def _sent_leaf():
         for i in range(tree.topLevelItemCount()):
             yr = tree.topLevelItem(i)
             for j in range(yr.childCount()):
                 grp = yr.child(j)
                 for k in range(grp.childCount()):
-                    return grp.child(k).text(tree.COL_SENT)
-        return ""
+                    return grp.child(k)
+        return None
 
-    assert "✗" in _sent_text()  # neodesláno
+    from bpdpmanager.models.enums import SENT_BG, UNSENT_BG
+
+    leaf = _sent_leaf()
+    # Obálka + barva pozadí (červená = neodesláno).
+    assert leaf.text(tree.COL_SENT) == "✉"
+    assert leaf.background(tree.COL_SENT).color().name() == UNSENT_BG
+
     service.set_supervisor_review_sent(t.id, True)
     tree.refresh()
-    assert "✓" in _sent_text()  # odesláno
+    leaf = _sent_leaf()
+    assert leaf.background(tree.COL_SENT).color().name() == SENT_BG  # zelená = odesláno

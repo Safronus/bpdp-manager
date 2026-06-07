@@ -190,6 +190,24 @@ def review_sent_indicator(prepared: bool, sent_at) -> tuple[str, str]:
     return "✉ ✗", "Posudek zatím NEODESLÁN sekretářce"
 
 
+# Barvy pro sloupec „Odesláno" (obálka na barevném pozadí).
+SENT_BG = "#43a047"     # zelená — odesláno
+UNSENT_BG = "#e53935"   # červená — neodesláno
+
+
+def review_sent_badge(prepared: bool, sent_at) -> tuple[str, str, str]:
+    """Indikace odeslání jako obálka + barva pozadí buňky.
+
+    Vrací ``(text, background_color, tooltip)``. Když posudek ještě není hotový
+    (není co odeslat), vrátí prázdný text i barvu.
+    """
+    if not prepared:
+        return "", "", ""
+    if sent_at:
+        return "✉", SENT_BG, f"Posudek odeslán sekretářce {sent_at.strftime('%d.%m.%Y')}"
+    return "✉", UNSENT_BG, "Posudek zatím NEODESLÁN sekretářce"
+
+
 # ── Tab buckety (status-driven, bez ohledu na rok) ──────────────────────────
 #
 # Status-driven filtrace pro hlavní záložky. Rok se používá jen pro
