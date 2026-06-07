@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.74.3] - 2026-06-07
+
+### Changed
+- **Panel „Přechod do stavu" se skrývá u historických prací všude.** Dosud jen
+  v záložce Historie; nově i v záložce *Vše* (a kdekoli jinde) — panel se
+  ukáže jen u rozpracovaných prací (*Aktuálně vedené* / budoucí), u
+  *Obhájeno / Neobhájeno / Nedokončeno* se skryje.
+- **Záložka „Práce v dalším akademickém roce" skrývá nepotřebné sloupce.**
+  Budoucí práce ještě nemají známky ani posudky, takže se v ní nezobrazují
+  sloupce **V/O** (známky), **Posudky** ani **Odesláno**.
+
 ## [0.74.2] - 2026-06-07
 
 ### Added

@@ -239,6 +239,7 @@ class ThesisDetail(QWidget):
             btn.clicked.connect(lambda _=False, s=status: self._transition(s))
             tl.addWidget(btn)
             self.transition_buttons[status] = btn
+        self._transition_box = transition_box
         transition_box.setVisible(self._show_transitions)
         layout.addWidget(transition_box)
 
@@ -805,6 +806,11 @@ class ThesisDetail(QWidget):
     def _update_transition_buttons(self) -> None:
         if self.thesis is None:
             return
+        # Panel přechodů má smysl jen u rozpracovaných prací (aktuální/budoucí).
+        # U historických (obhájeno/neobhájeno/nedokončeno) ho skryjeme — i v
+        # záložce „Vše". Tab Historie ho navíc vypíná natvrdo (_show_transitions).
+        visible = self._show_transitions and self.thesis.status not in STATUSES_HISTORY
+        self._transition_box.setVisible(visible)
         allowed = ALLOWED_TRANSITIONS.get(self.thesis.status, set())
         for status, btn in self.transition_buttons.items():
             btn.setEnabled(status in allowed and status != self.thesis.status)

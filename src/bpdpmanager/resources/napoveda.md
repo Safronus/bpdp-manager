@@ -130,15 +130,16 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 
 - **Aktuálně vedené práce** — práce ve stavu *V řešení*
 - **Práce v dalším akademickém roce R/R** — *Zájemce bez tématu*,
-  *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok)
+  *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok).
+  Budoucí práce ještě nemají známky ani posudky, takže se nezobrazují sloupce
+  **V/O**, *Posudky* ani *Odesláno*.
 - **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
   filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
   defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
   rozbalovací **Oponent**
   (jen oponenti z historie) a **Známka** (A–F/FX) — práce projde, když známce
   odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
-  sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**;
-  stejně tak je v detailu **skrytý panel „Přechod do stavu"**.
+  sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
 - **Vše** — všechny vedené práce
 - **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí).
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
@@ -221,7 +222,9 @@ Práce prochází 7 stavy:
 verzované (viz Dokumenty).
 
 Přechody mezi stavy jsou validované — tlačítka *Přechod do stavu*
-v detailu práce nabízejí jen povolené cíle.
+v detailu práce nabízejí jen povolené cíle. Panel *Přechod do stavu* se
+zobrazuje **jen u rozpracovaných prací** (aktuálně vedené / budoucí); u
+**historických** (*Obhájeno / Neobhájeno / Nedokončeno*) je skrytý.
 
 ---
 

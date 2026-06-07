@@ -386,6 +386,12 @@ class MainWindow(QMainWindow):
             lambda t: t.status in STATUSES_FUTURE,
             year_mode=YEAR_MODE_FUTURE,
             profile_manager=pm,
+            # Budoucí práce ještě nemají známky, posudky ani odeslání.
+            hidden_columns=[
+                ThesesTreeWidget.COL_GRADES,
+                ThesesTreeWidget.COL_REVIEWS,
+                ThesesTreeWidget.COL_SENT,
+            ],
         )
         self.tab_history = _ThesesTab(
             service,
