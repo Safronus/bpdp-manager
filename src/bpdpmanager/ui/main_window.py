@@ -510,7 +510,7 @@ class MainWindow(QMainWindow):
         # Tichá kontrola STAG na pozadí (krátce po startu, ať se okno stihne
         # vykreslit). Indikátor v proužku + odznaky na záložkách.
         self._stag_checker: object | None = None
-        QTimer.singleShot(900, self._start_stag_check)
+        QTimer.singleShot(900, lambda: self._start_stag_check(auto=True))
 
     # --- tichá kontrola STAG -------------------------------------------------
 
@@ -567,12 +567,18 @@ class MainWindow(QMainWindow):
         self._stag_banner_btn.setVisible(show_open)
         self._stag_banner.setVisible(True)
 
-    def _start_stag_check(self) -> None:
-        """Spustí tichou kontrolu STAG na pozadí (pokud už neběží)."""
+    def _start_stag_check(self, auto: bool = False) -> None:
+        """Spustí tichou kontrolu STAG na pozadí (pokud už neběží).
+
+        ``auto=True`` (start aplikace) se přeskočí, když kontrola dnes už
+        proběhla — zbytečně bychom zatěžovali STAG. Ruční spuštění běží vždy.
+        """
         from .stag_check import StagChecker
 
         if getattr(self, "_stag_checker", None) is not None:
             return  # už běží
+        if auto and self._stag_checked_today():
+            return  # dnes už proběhla automatická kontrola
         user_name = ""
         if self.profile_manager and self.profile_manager.active:
             user_name = self.profile_manager.active.user_name or ""
@@ -584,6 +590,16 @@ class MainWindow(QMainWindow):
         self._stag_checker = checker
         checker.start()
 
+    def _stag_checked_today(self) -> bool:
+        from datetime import date
+
+        if not self.profile_manager:
+            return False
+        return (
+            self.profile_manager.get_ui_pref("stag_autocheck_date")
+            == date.today().isoformat()
+        )
+
     def _auto_hide_stag_banner(self) -> None:
         """Skryje proužek po prodlevě — jen pokud pořád ukazuje „vše aktuální"."""
         result = getattr(self, "_last_stag_result", None)
@@ -592,11 +608,16 @@ class MainWindow(QMainWindow):
 
     def _on_stag_check_done(self, result) -> None:
         """Zobrazí výsledek tiché kontroly (proužek + odznaky na záložkách)."""
-        from datetime import datetime
+        from datetime import date, datetime
 
         self._stag_checker = None
         self._last_stag_result = result
         ts = datetime.now().strftime("%H:%M")
+        # Zaznamenej úspěšnou kontrolu — auto-kontrola pak dnes už neběží.
+        if result.ok and self.profile_manager:
+            self.profile_manager.set_ui_pref(
+                "stag_autocheck_date", date.today().isoformat()
+            )
 
         # Odznaky 🔄 na záložkách (jen aktuální + oponentury).
         self._stag_badges[id(self.tab_current)] = result.supervised_changes if result.ok else 0
@@ -848,14 +869,14 @@ class MainWindow(QMainWindow):
             "posudky, soubory) — vytvoří novou práci.",
         )
 
-        # Spacer → následující prvky (Kontroly, Profil, …) odsune doprava.
+        # Spacer → následující prvky (Aktualizace prací, Profil, …) odsune doprava.
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
 
-        # ── Rozbalovací „Kontroly" (vpravo) ─────────────────────────────
+        # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()
-        self._checks_button.setText("🔎 Kontroly")
+        self._checks_button.setText("🔄 Aktualizace prací")
         self._checks_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         checks_menu = QMenu(self._checks_button)
         act_check = checks_menu.addAction("🔄 Zkontrolovat změny ve STAG")

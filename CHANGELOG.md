@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.84.0] - 2026-06-07
+
+### Changed
+- **Rozbalovací tlačítko „Kontroly" přejmenováno na „🔄 Aktualizace prací".**
+- **Tichá kontrola STAG běží automaticky jen jednou denně** (ne při každém
+  startu) — zbytečně nezatěžuje STAG. Ruční spuštění (přes *Aktualizace prací
+  → Zkontrolovat změny ve STAG*) běží vždy.
+
+### Fixed
+- **Drag&drop v manažeru *Oponenti* správně obnoví seznam.** Po přetažení mezi
+  Interní/Externí se přesunutý oponent hned objeví v cílové skupině (refresh se
+  odkládá za drop event).
+
 ## [0.83.0] - 2026-06-07
 
 ### Added

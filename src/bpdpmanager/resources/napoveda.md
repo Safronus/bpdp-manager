@@ -582,9 +582,12 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 
 ### 🔄 Tichá kontrola STAG (na pozadí)
 
-Krátce **po startu** aplikace na pozadí porovná **aktuální akademický rok** se
-STAG a výsledek ukáže v **proužku nad záložkami**. Smysl: máš jistotu, že je
-vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola hlídá:
+Po startu aplikace (automaticky **nejvýš jednou denně** — ať zbytečně
+nezatěžuje STAG) porovná na pozadí **aktuální akademický rok** se STAG a
+výsledek ukáže v **proužku nad záložkami**. Kdykoli ji spustíš i ručně přes
+toolbar **🔄 Aktualizace prací → Zkontrolovat změny ve STAG**. Smysl: máš
+jistotu, že je vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola
+hlídá:
 
 - **změnu stavu** nebo **chybějící druh souboru** u vedených prací *V řešení*,
 - totéž u **oponentur aktuálního roku**,

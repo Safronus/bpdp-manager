@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -115,14 +115,16 @@ class _OpponentDnDTree(QTreeWidget):
         if not new_kind:
             event.ignore()
             return
-        moved_any = False
-        for it in self.selectedItems():
-            opp = it.data(0, Qt.ItemDataRole.UserRole)
-            if opp is not None and opp.kind.value != new_kind:
-                self.moved.emit(opp, new_kind)
-                moved_any = True
-        # Strom se přebuduje v handleru → Qt fyzický přesun nepouštíme.
-        event.acceptProposedAction() if moved_any else event.ignore()
+        # Posbírej cíle PŘED přebudováním stromu.
+        to_move = [
+            opp for it in self.selectedItems()
+            if (opp := it.data(0, Qt.ItemDataRole.UserRole)) is not None
+            and opp.kind.value != new_kind
+        ]
+        # Qt fyzický přesun NEpouštíme — handler strom přebuduje (odloženě).
+        event.ignore()
+        for opp in to_move:
+            self.moved.emit(opp, new_kind)
 
 
 class StudentsManageDialog(QDialog):
@@ -535,10 +537,14 @@ class OpponentsManageDialog(QDialog):
         )
 
     def _move_opponent(self, opp, new_kind_value: str) -> None:
-        """Drag&drop přesun oponenta mezi Interní / Externí (změní kind)."""
+        """Drag&drop přesun oponenta mezi Interní / Externí (změní kind).
+
+        Refresh odložíme (singleShot 0), ať doběhne drop event a strom se
+        přebuduje až poté — jinak se nová skupina neobnoví.
+        """
         opp.kind = OpponentKind(new_kind_value)
         self.service.upsert_opponent(opp)
-        self._refresh()
+        QTimer.singleShot(0, self._refresh)
 
     # --- načítání + grupování ----------------------------------------------
 
