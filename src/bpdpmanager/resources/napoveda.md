@@ -756,7 +756,10 @@ Pokud STAG u práce nabízí soubory, stáhnou se spolu s ní a otevře se
 
 Vybrané soubory se po importu **připojí k té správné práci** (párováno přes
 STAG ID) jako přílohy příslušného typu — objeví se v záložce **Dokumenty**.
-Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená známka**.
+Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená známka** —
+přednostně z **tabulkového pole „Navržená známka"** (orientační formulace
+v *Celkovém hodnocení* se ignoruje); u starších posudků bez toho pole se
+použije návrhová věta („navrhuji hodnocení …").
 
 > **📎 Stáhnout jen soubory:** když práci už v databázi máš a chceš jen
 > doplnit soubory, použij ve vyhledávacím okně tlačítko **📎 Stáhnout jen

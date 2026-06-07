@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-06-07
+
+### Fixed
+- **Vyčítání známky z posudku: přednost má strukturované pole „Navržená
+  známka", ne závěrová věta.** U FAI šablon se mohla v *Celkovém hodnocení*
+  objevit orientační formulace (např. „navrhuji hodnocení A"), která se
+  rozcházela s tabulkou — aplikace pak ukazovala špatnou známku. Nově se
+  čte **hodnota z tabulkového pole** (i když ji PDF extrakce „rozhodí" na
+  samostatný řádek); závěrová věta slouží jen jako **fallback u starších
+  posudků bez strukturovaného pole**. Když je pole prázdné, známka se
+  nehádá (zůstane nevyplněná k ručnímu doplnění).
+
 ## [1.0.6] - 2026-06-07
 
 ### Fixed

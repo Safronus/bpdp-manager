@@ -15,30 +15,59 @@ from pathlib import Path
 # pointing object …" — pro nás neškodná, ztlumíme ji.
 logging.getLogger("pypdf").setLevel(logging.ERROR)
 
-# Navrženou známku hledáme u několika formulací (FAI UTB šablony, novější
-# i historické). Záměrně NE u boilerplate „...v případě hodnocení stupněm
-# F – nedostatečně...", které je v každém posudku — proto se vážeme na
-# konkrétní návrhovou frázi (navrhuji / doporučuji hodnotit / navržená známka).
-# FX musí být v alternaci první, jinak by „F" pohltilo „FX".
-_GRADE_RE = re.compile(
-    r"(?:"
-    r"navržen[áé]\s+známka"                       # „Navržená známka: D"
-    r"|navrhuji\s+hodnocení"                       # „navrhuji hodnocení B - velmi dobře"
+# Navrženou známku čteme přednostně ze STRUKTUROVANÉHO pole „Navržená známka"
+# (FAI UTB šablony). To je autoritativní; volný text v „Celkovém hodnocení"
+# (např. „navrhuji hodnocení A") je u tohoto stylu jen orientační a může se
+# s tabulkou rozcházet — proto se používá jen jako fallback u STARŠÍCH posudků,
+# které strukturované pole vůbec nemají. FX je v alternaci první, jinak by „F"
+# pohltilo „FX".
+_GRADE = r"(FX|F|[A-E])"
+
+# Hodnota přímo za polem (i přes zalomení): „Navržená známka: D" / „…:\nA".
+_FIELD_INLINE_RE = re.compile(
+    r"(?:navržen[áé]\s+známka|navržen[áé]\s+klasifikace"
+    r"|výsledn[áé]\s+klasifikace|proposed\s+grade|suggested\s+grade)"
+    rf"\s*[:\-]?\s*{_GRADE}\b",
+    re.IGNORECASE,
+)
+# Samotný popisek pole (i bez hodnoty vedle) — značí strukturovaný posudek.
+_FIELD_LABEL_RE = re.compile(
+    r"navržen[áé]\s+známka|navržen[áé]\s+klasifikace"
+    r"|výsledn[áé]\s+klasifikace|proposed\s+grade|suggested\s+grade",
+    re.IGNORECASE,
+)
+# Známka jako samostatný řádek — hodnota buňky tabulky, kterou PDF extrakce
+# „rozhodí" mimo popisek (typicky generované FAI posudky).
+_STANDALONE_GRADE_RE = re.compile(rf"^[ \t]*{_GRADE}[ \t]*$", re.MULTILINE)
+# Orientační závěrová fráze — fallback jen pro posudky BEZ strukturovaného pole.
+_CONCLUSION_RE = re.compile(
+    r"(?:navrhuji\s+hodnocení"
     r"|navrhuji\s+(?:klasifikovat\s+stupněm|známku|hodnotit\s+stupněm)"
-    r"|doporučuji\s+hodnotit\s+stupněm"            # „doporučuji hodnotit stupněm B"
-    r"|hodnotit\s+stupněm"                         # „a doporučuji hodnotit stupněm B"
-    r"|s\s+hodnocením"                             # „doporučuji k obhajobě s hodnocením B"
-    r"|proposed\s+grade|suggested\s+grade"         # EN šablony
-    r")"
-    r"\s*[:\-]?\s*(FX|F|[A-E])\b",
+    r"|doporučuji\s+hodnotit\s+stupněm|hodnotit\s+stupněm|s\s+hodnocením)"
+    rf"\s*[:\-]?\s*{_GRADE}\b",
     re.IGNORECASE,
 )
 
 
 def parse_grade_from_text(text: str) -> str | None:
-    """Najde navrženou známku v textu posudku (CZ i EN). Vrací A–F / FX nebo None."""
-    m = _GRADE_RE.search(text or "")
-    return m.group(1).upper() if m else None
+    """Najde navrženou známku v textu posudku (CZ i EN). Vrací A–F / FX nebo None.
+
+    Priorita: 1) hodnota přímo u pole „Navržená známka", 2) je-li pole přítomné
+    (strukturovaný posudek), samostatná známka z rozhozené tabulky — závěrová
+    věta se ignoruje jako orientační, 3) u starších posudků bez pole závěrová
+    fráze („navrhuji hodnocení …").
+    """
+    text = text or ""
+    m = _FIELD_INLINE_RE.search(text)
+    if m:
+        return m.group(1).upper()
+    if _FIELD_LABEL_RE.search(text):
+        # Pole je autoritativní. Hodnotu vezmeme ze samostatného řádku, jen když
+        # je jednoznačná (právě jedna známka) — jinak raději nic (uživatel doplní).
+        uniq = {g.upper() for g in _STANDALONE_GRADE_RE.findall(text)}
+        return next(iter(uniq)) if len(uniq) == 1 else None
+    m3 = _CONCLUSION_RE.search(text)
+    return m3.group(1).upper() if m3 else None
 
 
 def extract_grade_from_pdf(path: Path) -> str | None:

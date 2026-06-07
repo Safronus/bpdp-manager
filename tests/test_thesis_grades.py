@@ -54,6 +54,26 @@ def test_parse_ignores_boilerplate() -> None:
     assert parse_grade_from_text(boiler) is None
 
 
+def test_structured_field_overrides_conclusion() -> None:
+    # Strukturovaný posudek (FAI): tabulka má „Navržená známka" (PDF ji rozhodí →
+    # samostatné „B"), ale závěrová věta navrhuje A. Pole vyhrává → B.
+    scrambled = (
+        "Splnění všech bodů zadání: splnil(a)\n95,0%\n"
+        "Navržená známka:\n– adekvátnost zvolených metod\n"
+        "Spolupráce autora s vedoucím práce\nB\n– náročnost tématu\n28,5\n"
+        "…doporučuji k obhajobě a navrhuji hodnocení A (výborně).\n"
+        "Celkové hodnocení práce, připomínky a dotazy:"
+    )
+    assert parse_grade_from_text(scrambled) == "B"
+
+
+def test_empty_structured_field_ignores_conclusion() -> None:
+    # Pole „Navržená známka" je prázdné a v tabulce není samostatná známka →
+    # závěrová věta je jen orientační → None (uživatel doplní ručně).
+    text = "Navržená známka:\n(nevyplněno)\nnavrhuji hodnocení A (výborně)."
+    assert parse_grade_from_text(text) is None
+
+
 def test_parse_proposal_before_boilerplate() -> None:
     # Skutečný posudek: návrhová věta (B) je před boilerplate (F) → vrátí B.
     text = (
