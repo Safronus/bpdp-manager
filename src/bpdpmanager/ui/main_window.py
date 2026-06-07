@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QStatusBar,
     QTabWidget,
@@ -541,11 +542,6 @@ class MainWindow(QMainWindow):
         self._stag_banner_btn.clicked.connect(self._show_stag_changes)
         self._stag_banner_btn.setVisible(False)
         lay.addWidget(self._stag_banner_btn)
-        btn_recheck = QPushButton("🔄 Zkontrolovat")
-        btn_recheck.setStyleSheet(btn_qss)
-        btn_recheck.setToolTip("Znovu zkontrolovat změny ve STAG (aktuální rok).")
-        btn_recheck.clicked.connect(self._start_stag_check)
-        lay.addWidget(btn_recheck)
         btn_close = QToolButton()
         btn_close.setText("✕")
         btn_close.setToolTip("Skrýt proužek")
@@ -588,6 +584,12 @@ class MainWindow(QMainWindow):
         self._stag_checker = checker
         checker.start()
 
+    def _auto_hide_stag_banner(self) -> None:
+        """Skryje proužek po prodlevě — jen pokud pořád ukazuje „vše aktuální"."""
+        result = getattr(self, "_last_stag_result", None)
+        if result is not None and result.ok and result.total_changes == 0:
+            self._stag_banner.setVisible(False)
+
     def _on_stag_check_done(self, result) -> None:
         """Zobrazí výsledek tiché kontroly (proužek + odznaky na záložkách)."""
         from datetime import datetime
@@ -615,6 +617,8 @@ class MainWindow(QMainWindow):
                 f"(prošlo {result.checked} prací). Detaily ↓",
                 "#e8f5e9", show_open=True,
             )
+            # Žádné novinky → proužek se po 15 s sám skryje (nepřekáží).
+            QTimer.singleShot(15000, self._auto_hide_stag_banner)
             return
 
         parts: list[str] = []
@@ -843,19 +847,27 @@ class MainWindow(QMainWindow):
             "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
             "posudky, soubory) — vytvoří novou práci.",
         )
-        add(
-            "🔍 Kontrola se STAG", self._check_stag_consistency, self._GROUP_IMPORT,
-            "Porovná soubory u prací (vedených i oponovaných) se STAG a vypíše, "
-            "kde STAG nabízí dokument (plný text / příloha / posudek), který "
-            "v databázi chybí. Read-only — jen kontrola, nic nestahuje.",
-        )
-        add(
-            "🗂 Přeřadit průběh obhajoby", self._reclassify_defense_records,
-            self._GROUP_IMPORT,
-            "Dotáhne ze STAG původní názvy příloh typu „Jiné“, spáruje je a "
-            "v náhledu (s checkboxy) nabídne přeřazení na „Soubor s průběhem "
-            "obhajoby“ — protokoly/zápisy obhajoby jsou předzaškrtnuté (se zálohou).",
-        )
+
+        # Spacer → následující prvky (Kontroly, Profil, …) odsune doprava.
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(spacer)
+
+        # ── Rozbalovací „Kontroly" (vpravo) ─────────────────────────────
+        self._checks_button = QToolButton()
+        self._checks_button.setText("🔎 Kontroly")
+        self._checks_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        checks_menu = QMenu(self._checks_button)
+        act_check = checks_menu.addAction("🔄 Zkontrolovat změny ve STAG")
+        act_check.setToolTip("Tichá kontrola: změny stavu/souborů + nové práce.")
+        act_check.triggered.connect(self._start_stag_check)
+        act_consist = checks_menu.addAction("🔍 Kontrola se STAG (chybějící soubory)")
+        act_consist.triggered.connect(self._check_stag_consistency)
+        act_defense = checks_menu.addAction("🗂 Přeřadit průběh obhajoby")
+        act_defense.triggered.connect(self._reclassify_defense_records)
+        self._checks_button.setMenu(checks_menu)
+        self._tint_widget(self._checks_button, self._GROUP_IMPORT)
+        toolbar.addWidget(self._checks_button)
 
         toolbar.addSeparator()
 

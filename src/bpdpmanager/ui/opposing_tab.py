@@ -42,7 +42,10 @@ from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
 from .theses_tree import ROLE_GRADES, GradesDelegate
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
-COL_GRADES = 4  # sloupec „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
+# Sloupce stromu oponentur (Obor je poslední — stejně jako v ostatních záložkách).
+COL_GRADES = 4   # „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
+COL_SENT = 5     # Odesláno
+COL_OBOR = 6     # Obor (poslední)
 
 # Reuse Czech locale setup from theses_tree
 _HAS_CZECH_LOCALE = False
@@ -147,7 +150,7 @@ class OpposingTab(QWidget):
         self.tree.setColumnCount(7)
         self.tree.setHeaderLabels(
             ["Student / Skupina", "Téma", "Stav", "Vedoucí", "V/O",
-             "Obor", "Odesláno"]
+             "Odesláno", "Obor"]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
@@ -304,8 +307,8 @@ class OpposingTab(QWidget):
                             stav,
                             op.supervisor_name or "—",
                             grades_text,
-                            obor,
                             sent_text,
+                            obor,
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
@@ -324,10 +327,10 @@ class OpposingTab(QWidget):
                             2, STAG_STATE_LABELS.get(code, code) + f" ({code})"
                         )
                     leaf.setTextAlignment(
-                        6, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                        COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                     )
                     if sent_tip:
-                        leaf.setToolTip(6, sent_tip)
+                        leaf.setToolTip(COL_SENT, sent_tip)
                     # Oponentský posudek — podbarvi sloupec názvu práce
                     # (🟢 hotový · 🟡 jen data · 🔴 chybí) — jen aktuální rok.
                     tint = REVIEW_STATE_TINTS.get(state) if is_current else None

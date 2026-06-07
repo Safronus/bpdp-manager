@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-06-07
+
+### Changed
+- **Rozbalovací tlačítko „🔎 Kontroly" v toolbaru (vpravo).** Sloučí akce
+  *Zkontrolovat změny ve STAG*, *Kontrola se STAG (chybějící soubory)* a
+  *Přeřadit průběh obhajoby* do jednoho menu. Tlačítko *Zkontrolovat* zmizelo
+  z proužku (je v menu).
+- **Proužek tiché kontroly se po 15 s sám skryje**, když je vše aktuální
+  (žádné novinky → nepřekáží). Při změnách zůstává.
+- **Sloupec „Obor" je v záložce *Oponované práce* poslední** — stejně jako
+  v ostatních záložkách.
+
 ## [0.76.0] - 2026-06-07
 
 ### Added
