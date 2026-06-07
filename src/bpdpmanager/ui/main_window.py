@@ -84,13 +84,27 @@ from .thesis_detail import (
 _FUTURE_CAPACITY = 15
 
 
+# Barvy do titulků záložek — světlejší odstíny, ať jsou čitelné i v dark theme.
+_TAB_GREEN = "#66bb6a"
+_TAB_AMBER = "#f9a825"
+_TAB_RED = "#ef5350"
+
+
 def _future_count_color(n: int) -> str:
     """Barva počtu budoucích prací podle kapacity (< 15 zelená, = 15 žlutá, > 15 červená)."""
     if n < _FUTURE_CAPACITY:
-        return "#2e7d32"   # zelená
+        return _TAB_GREEN
     if n == _FUTURE_CAPACITY:
-        return "#f9a825"   # žlutá
-    return "#c62828"       # červená
+        return _TAB_AMBER
+    return _TAB_RED
+
+
+def _reviews_complete_color(complete_flags: list[bool]) -> str | None:
+    """Barva titulku dle dokončenosti posudků: vše hotové+odeslané → zelená,
+    něco chybí → oranžová, žádné práce → bez barvy (``None``)."""
+    if not complete_flags:
+        return None
+    return _TAB_GREEN if all(complete_flags) else _TAB_AMBER
 
 
 class _ThesesTab(QWidget):
@@ -630,19 +644,30 @@ class MainWindow(QMainWindow):
             self._import_from_stag()
 
     def _refresh_tab_labels(self) -> None:
-        """Doplní k titulkům záložek počty prací (+ STAG odznak 🔄).
+        """Doplní k titulkům záložek počty prací (+ STAG odznak 🔄) a barvu.
 
-        Budoucí práce barví podle kapacity: < 15 zeleně, = 15 žlutě, > 15
-        červeně. Aktuálně vedené a oponentury (aktuální rok) jen počet + odznak.
+        Budoucí práce barví podle kapacity (< 15 zeleně, = 15 žlutě, > 15
+        červeně). *Aktuálně vedené* a *Oponované práce* barví podle dokončenosti
+        posudků: vše hotové **i odeslané** → zeleně, něco chybí → oranžově.
         """
         theses = self.service.list_theses()
-        n_current = sum(1 for t in theses if t.status in STATUSES_CURRENT)
+        current = [t for t in theses if t.status in STATUSES_CURRENT]
         n_future = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         current_year = ThesisService.current_academic_year()
-        n_opp = sum(
-            1 for o in self.service.list_opposing_theses()
+        opp_current = [
+            o for o in self.service.list_opposing_theses()
             if o.academic_year == current_year
-        )
+        ]
+
+        # Posudek je „kompletní" = hotový soubor (done) A odeslaný sekretářce.
+        sup_complete = [
+            t.supervisor_review_state == "done" and t.supervisor_review_sent_at is not None
+            for t in current
+        ]
+        opp_complete = [
+            o.opponent_review_state == "done" and o.opponent_review_sent_at is not None
+            for o in opp_current
+        ]
 
         def _apply(tab, count: int, color: str | None = None) -> None:
             idx = self.tabs.indexOf(tab)
@@ -658,9 +683,9 @@ class MainWindow(QMainWindow):
                 idx, QColor(color) if color else QColor()
             )
 
-        _apply(self.tab_current, n_current)
+        _apply(self.tab_current, len(current), _reviews_complete_color(sup_complete))
         _apply(self.tab_future, n_future, _future_count_color(n_future))
-        _apply(self.tab_opposing, n_opp)
+        _apply(self.tab_opposing, len(opp_current), _reviews_complete_color(opp_complete))
 
     def _auto_select_first_in_current(self) -> None:
         """Po startu vybere první práci v Aktuální záložce.

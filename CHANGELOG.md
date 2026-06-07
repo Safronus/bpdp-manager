@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.75.1] - 2026-06-07
+
+### Fixed
+- **Čitelnost zelené v titulku budoucích prací (dark theme).** Prahové barvy
+  počtu jsou světlejší (zelená/žlutá/červená), čitelné i v tmavém motivu.
+
+### Added
+- **Barva titulku podle dokončenosti posudků.** *Aktuálně vedené práce* a
+  *🧐 Oponované práce* mají počet **zeleně, když jsou všechny posudky hotové
+  i odeslané**, jinak **oranžově** (něco chybí) — vidíš stav na první pohled.
+
 ## [0.75.0] - 2026-06-07
 
 ### Added
