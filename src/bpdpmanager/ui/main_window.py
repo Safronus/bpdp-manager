@@ -476,11 +476,12 @@ class MainWindow(QMainWindow):
             lambda t: t.status in STATUSES_FUTURE,
             year_mode=YEAR_MODE_FUTURE,
             profile_manager=pm,
-            # Budoucí práce ještě nemají známky, posudky ani odeslání.
+            # Budoucí práce ještě nemají známky, posudky, odeslání ani plagiát.
             hidden_columns=[
                 ThesesTreeWidget.COL_GRADES,
                 ThesesTreeWidget.COL_REVIEWS,
                 ThesesTreeWidget.COL_SENT,
+                ThesesTreeWidget.COL_PLAGIARISM,
             ],
         )
         self.tab_history = _ThesesTab(
@@ -495,13 +496,19 @@ class MainWindow(QMainWindow):
             ],
             status_filter_pref_key="history_status_filter",
             enable_extra_filters=True,
-            # Hotové práce → indikace „Posudky" i „Odesláno" jsou irelevantní.
-            hidden_columns=[ThesesTreeWidget.COL_REVIEWS, ThesesTreeWidget.COL_SENT],
+            # Hotové práce → „Posudky", „Odesláno" i „Plagiát" jsou irelevantní.
+            hidden_columns=[
+                ThesesTreeWidget.COL_REVIEWS,
+                ThesesTreeWidget.COL_SENT,
+                ThesesTreeWidget.COL_PLAGIARISM,
+            ],
             # V Historii nepotřebuješ panel „Přechod do stavu".
             show_transitions=False,
         )
         self.tab_all = _ThesesTab(
-            service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm
+            service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm,
+            # „Plagiát" je relevantní jen v Aktuálně vedených.
+            hidden_columns=[ThesesTreeWidget.COL_PLAGIARISM],
         )
         self.tab_opposing = OpposingTab(service, profile_manager=pm)
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)

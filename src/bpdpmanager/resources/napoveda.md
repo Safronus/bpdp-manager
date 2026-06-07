@@ -338,6 +338,9 @@ Volný text + termíny/konzultace.
   verdiktu a procenta shody (rozbalovací menu nabízí konkrétní varianty).
   Plně editovatelné.
 - **PDF protokol** — nahrání a otevření protokolu z IS/STAG.
+- **Sloupec „Plagiát"** v seznamu *Aktuálně vedených prací* ukazuje zaobleným
+  badgem, zda kontrola **proběhla** (✓ zeleně = verdikt jiný než *Neposouzen*)
+  nebo **ne** (✗ červeně). V ostatních záložkách je skrytý (tam je irelevantní).
 
 ### 📎 Dokumenty
 Soubory a odkazy k práci, **agregované podle typu** (Text práce,

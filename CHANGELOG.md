@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-07
+
+### Added
+- **Sloupec „Plagiát" v záložce *Aktuálně vedené práce*.** Zaoblený barevný
+  badge (jako Známky): **✓ zeleně** = kontrola plagiátorství proběhla (verdikt
+  je jiný než *Neposouzen*), **✗ červeně** = zatím neproběhla. Sloupec je
+  jen v *Aktuálně vedených* — v Budoucích / Historii / Vše je skrytý
+  (tam je irelevantní).
+
 ## [1.1.3] - 2026-06-07
 
 ### Changed

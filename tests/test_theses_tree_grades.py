@@ -17,6 +17,7 @@ from bpdpmanager.services import ThesisService
 from bpdpmanager.storage import JsonRepository
 from bpdpmanager.ui.theses_tree import (
     ROLE_GRADES,
+    ROLE_PLAG,
     ROLE_REVIEWS,
     ROLE_STATUS,
     ROLE_THESIS_ID,

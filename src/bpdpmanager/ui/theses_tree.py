@@ -22,6 +22,7 @@ from ..models.enums import (
     GRADE_TINTS,
     REVIEW_STATE_LABELS,
     AttachmentKind,
+    PlagiarismVerdict,
     ThesisStatus,
     ThesisType,
     review_sent_badge,
@@ -36,6 +37,7 @@ ROLE_REVIEWS = Qt.ItemDataRole.UserRole + 5  # (has_supervisor_review, has_oppon
 ROLE_SENT = Qt.ItemDataRole.UserRole + 6     # barva pozadí badge „Odesláno" (nebo None)
 ROLE_OBOR = Qt.ItemDataRole.UserRole + 7     # název oboru (pro barevný badge) nebo None
 ROLE_STATUS = Qt.ItemDataRole.UserRole + 8   # (label, barva) stavu pro zaoblený badge
+ROLE_PLAG = Qt.ItemDataRole.UserRole + 9     # bool: kontrola plagiátorství proběhla? (None = neukazovat)
 
 
 def _contrast_text(bg_hex: str) -> str:
@@ -255,6 +257,43 @@ class SentBadgeDelegate(QStyledItemDelegate):
         return QSize(self._W + 10, max(base.height(), self._BADGE_H + 6))
 
 
+class PlagiarismBadgeDelegate(QStyledItemDelegate):
+    """Sloupec „Plagiát": ✓ (zelená) = kontrola proběhla / ✗ (červená) = ne.
+
+    Kreslí se jen když je ``ROLE_PLAG`` bool (jinak prázdná buňka) — sloupec je
+    relevantní jen v záložce *Aktuálně vedené*, jinde je skrytý.
+    """
+
+    _BADGE_H = 20
+    _W = 24
+
+    def paint(self, painter, option, index) -> None:
+        done = index.data(ROLE_PLAG)
+        if done is None:
+            super().paint(painter, option, index)
+            return
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        rect = option.rect
+        x = rect.x() + max(0, (rect.width() - self._W) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        br = QRectF(x, y, self._W, self._BADGE_H)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(_REVIEW_HAS_BG if done else _REVIEW_NONE_BG))
+        painter.drawRoundedRect(br, 4, 4)
+        painter.setPen(QColor("white"))
+        f = painter.font()
+        f.setBold(True)
+        painter.setFont(f)
+        painter.drawText(br, Qt.AlignmentFlag.AlignCenter, "✓" if done else "✗")
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        base = super().sizeHint(option, index)
+        return QSize(self._W + 10, max(base.height(), self._BADGE_H + 6))
+
+
 class OborBadgeDelegate(QStyledItemDelegate):
     """Sloupec „Obor": název v zaobleném barevném badge (barva dle programu)
     + 🇬🇧 vlaječka u anglických variant (-EN)."""
@@ -415,7 +454,7 @@ class ThesesTreeWidget(QTreeWidget):
 
     HEADERS = [
         "Student / Skupina", "Téma", "Stav", "Známky V/O",
-        "Posudky", "Odesláno", "Oponent", "Obor",
+        "Posudky", "Odesláno", "Oponent", "Obor", "Plagiát",
     ]
     COL_STUDENT = 0
     COL_TITLE = 1
@@ -425,6 +464,7 @@ class ThesesTreeWidget(QTreeWidget):
     COL_SENT = 5
     COL_OPPONENT = 6
     COL_OBOR = 7
+    COL_PLAGIARISM = 8  # jen v „Aktuálně vedené" — jinde skryt
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -449,6 +489,7 @@ class ThesesTreeWidget(QTreeWidget):
         h.setSectionResizeMode(self.COL_SENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OPPONENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OBOR, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(self.COL_PLAGIARISM, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
 
         # Sloupec V/O vykresluje barevné dvojice písmen (delegát).
@@ -466,6 +507,9 @@ class ThesesTreeWidget(QTreeWidget):
         # Sloupec Stav — zaoblený barevný badge s labelem stavu.
         self._status_delegate = StatusBadgeDelegate(self)
         self.setItemDelegateForColumn(self.COL_STATUS, self._status_delegate)
+        # Sloupec Plagiát — ✓/✗ badge (jen v „Aktuálně vedené", jinde skryto).
+        self._plag_delegate = PlagiarismBadgeDelegate(self)
+        self.setItemDelegateForColumn(self.COL_PLAGIARISM, self._plag_delegate)
 
         self.itemSelectionChanged.connect(self._on_selection)
 
@@ -632,6 +676,7 @@ class ThesesTreeWidget(QTreeWidget):
                 "",            # Odesláno — kreslí SentBadgeDelegate
                 opponent_name,
                 obor,
+                "",            # Plagiát — kreslí PlagiarismBadgeDelegate
             ]
         )
         leaf.setData(
@@ -669,6 +714,18 @@ class ThesesTreeWidget(QTreeWidget):
         leaf.setData(0, ROLE_KIND, "thesis")
         leaf.setData(0, ROLE_THESIS_ID, thesis.id)
         leaf.setData(self.COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
+        # Kontrola plagiátorství — ✓ proběhla (verdikt != Neposouzen) / ✗ ne.
+        plag_done = thesis.plagiarism_verdict != PlagiarismVerdict.NOT_ASSESSED
+        leaf.setData(self.COL_PLAGIARISM, ROLE_PLAG, plag_done)
+        leaf.setToolTip(
+            self.COL_PLAGIARISM,
+            "Kontrola plagiátorství proběhla" if plag_done
+            else "Kontrola plagiátorství zatím neproběhla (verdikt Neposouzen)",
+        )
+        leaf.setTextAlignment(
+            self.COL_PLAGIARISM,
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
+        )
         if thesis.related_thesis_id:
             leaf.setToolTip(
                 self.COL_TITLE,
