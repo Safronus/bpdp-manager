@@ -374,6 +374,46 @@ class ThesisService:
         self._db.theses = [t for t in self._db.theses if t.id != thesis_id]
         self.save()
 
+    def reclassify_defense_records(
+        self, *, dry_run: bool = False
+    ) -> list[tuple[str, str]]:
+        """Přeřadí přílohy typu „Jiné" vypadající jako protokol/zápis o průběhu
+        obhajoby na typ ``DEFENSE_RECORD``.
+
+        Vrací seznam ``(popis práce, název souboru)`` přeřazených příloh. Při
+        ``dry_run=True`` jen vrátí kandidáty bez zápisu (pro náhled/potvrzení).
+        """
+        from .stag_api import is_defense_record_filename
+
+        def _match(a) -> bool:
+            return (
+                a.kind == AttachmentKind.OTHER
+                and a.is_file
+                and is_defense_record_filename(a.label or a.url_or_path)
+            )
+
+        changes: list[tuple[str, str]] = []
+        for t in self._db.theses:
+            student = self.get_student(t.student_id) if t.student_id else None
+            name = student.full_name if student else "(bez studenta)"
+            label = f"{name} — {t.type.value} {t.academic_year}".strip()
+            for a in t.attachments:
+                if _match(a):
+                    changes.append((label, a.label))
+                    if not dry_run:
+                        a.kind = AttachmentKind.DEFENSE_RECORD
+        for o in self._db.opposing_theses:
+            name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+            label = f"{name} — {o.type.value} {o.academic_year} (oponentura)".strip()
+            for a in o.attachments:
+                if _match(a):
+                    changes.append((label, a.label))
+                    if not dry_run:
+                        a.kind = AttachmentKind.DEFENSE_RECORD
+        if changes and not dry_run:
+            self.save()
+        return changes
+
     # --- návrhy témat (proposals) -------------------------------------------
 
     def list_proposals(self) -> list[ThesisProposal]:

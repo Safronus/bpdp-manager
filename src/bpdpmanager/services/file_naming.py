@@ -28,6 +28,7 @@ KIND_TO_CODE: dict[AttachmentKind, str] = {
     AttachmentKind.SUPERVISOR_REVIEW: "posudek-vedouciho",
     AttachmentKind.OPPONENT_REVIEW: "posudek-oponenta",
     AttachmentKind.PRESENTATION: "prezentace",
+    AttachmentKind.DEFENSE_RECORD: "prubeh-obhajoby",
     AttachmentKind.STAG_EXPORT: "stag-export",
     AttachmentKind.OTHER: "jine",
 }
@@ -42,6 +43,7 @@ KIND_TO_SUBDIR: dict[AttachmentKind, str] = {
     AttachmentKind.SUPERVISOR_REVIEW: "posudky",
     AttachmentKind.OPPONENT_REVIEW: "posudky",
     AttachmentKind.PRESENTATION: "prezentace",
+    AttachmentKind.DEFENSE_RECORD: "obhajoba",
     AttachmentKind.STAG_EXPORT: "stag",
     AttachmentKind.OTHER: "ostatni",
 }
@@ -193,6 +195,9 @@ _HEURISTIC_RULES: list[tuple[re.Pattern[str], AttachmentKind]] = [
     (re.compile(r"prezent|slides|present", re.IGNORECASE), AttachmentKind.PRESENTATION),
     (re.compile(r"denik|journal|diary", re.IGNORECASE), AttachmentKind.WORK_JOURNAL),
     (re.compile(r"priloh|appendix|annex", re.IGNORECASE), AttachmentKind.THESIS_APPENDIX),
+    # Protokol / zápis o průběhu obhajoby (státní závěrečné zkoušky).
+    # Až po posudcích a prezentaci, aby je „obhajob" nepohltilo.
+    (re.compile(r"obhajob|zapis.*(statni|zaverecn)|(prubeh|zaznam).*obhajob", re.IGNORECASE), AttachmentKind.DEFENSE_RECORD),
     # Text práce poznáváme z explicitních slov; samotná přípona PDF/DOCX nestačí
     # (mohl by to být kterýkoli z výše uvedených typů).
     (re.compile(r"text.*prace|prace.*text|thesis|bakal|diplom|bp[_\-\s]?text|dp[_\-\s]?text", re.IGNORECASE), AttachmentKind.THESIS_TEXT),

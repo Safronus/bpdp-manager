@@ -543,14 +543,44 @@ def _parse_file_fragment(fragment_html: str) -> list[tuple[str, str, str, int]]:
     return out
 
 
+def _fold_ascii(s: str) -> str:
+    """Malá písmena bez diakritiky — pro porovnávání názvů souborů."""
+    import unicodedata
+
+    nfd = unicodedata.normalize("NFD", s or "")
+    return "".join(c for c in nfd if not unicodedata.combining(c)).lower()
+
+
+def is_defense_record_filename(name: str) -> bool:
+    """True, když název souboru vypadá jako protokol/zápis o průběhu obhajoby.
+
+    Pokrývá reálné názvy ze STAG: ``obhajoba_19.pdf``,
+    ``09_Prijmeni_zapis_o_statni_zaverecne_zkousky.pdf``, „protokol o obhajobě"
+    apod. Záměrně NEbere posudky ani prezentace.
+    """
+    f = _fold_ascii(name)
+    # „obhajoba…" jako začátek názvu (po případných číslicích/podtržítkách).
+    core = f.lstrip("0123456789_-. ")
+    if core.startswith("obhajoba") or core.startswith("obhajob_"):
+        return True
+    if "zapis" in f and ("statni" in f or "zaverecn" in f):
+        return True
+    if ("prubeh" in f or "protokol" in f or "zaznam" in f) and "obhajob" in f:
+        return True
+    return False
+
+
 def _refine_sections(files: list[StagFile]) -> None:
-    """V sekci „el. podoba" je 1. soubor plný text, další jsou přílohy."""
+    """V sekci „el. podoba" je 1. soubor plný text, další jsou přílohy;
+    soubory s názvem protokolu/zápisu obhajoby přeřadí z „other" na
+    „defense_record"."""
     first_elpodoba = True
     for f in files:
-        if f.section != "elpodoba":
-            continue
-        f.section = "text" if first_elpodoba else "appendix"
-        first_elpodoba = False
+        if f.section == "elpodoba":
+            f.section = "text" if first_elpodoba else "appendix"
+            first_elpodoba = False
+        elif f.section == "other" and is_defense_record_filename(f.filename):
+            f.section = "defense_record"
 
 
 _TAG_RE = re.compile(r"<[^>]+>")

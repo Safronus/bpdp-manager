@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-06-07
+
+### Added
+- **Nový typ přílohy „Soubor s průběhem obhajoby".** Protokol / zápis o
+  průběhu obhajoby (SZZ). Při stahování ze STAG se rozpozná podle názvu
+  (`obhajoba_…`, `…zapis_o_statni_zaverecne_…`, „protokol/záznam o obhajobě")
+  a zařadí automaticky; je i v nabídce typů v náhledu souborů a v auto-detekci
+  při ručním nahrání.
+- **Toolbar „🗂 Přeřadit průběh obhajoby" (skupina Import).** Najde už stažené
+  přílohy typu *Jiné*, které vypadají jako průběh obhajoby, ukáže **náhled**
+  a po potvrzení je **přeřadí** na nový typ (se zálohou).
+
 ## [0.70.0] - 2026-06-07
 
 ### Added

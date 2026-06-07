@@ -733,6 +733,13 @@ class MainWindow(QMainWindow):
             "kde STAG nabízí dokument (plný text / příloha / posudek), který "
             "v databázi chybí. Read-only — jen kontrola, nic nestahuje.",
         )
+        add(
+            "🗂 Přeřadit průběh obhajoby", self._reclassify_defense_records,
+            self._GROUP_IMPORT,
+            "Najde přílohy typu „Jiné“, které vypadají jako soubor s průběhem "
+            "obhajoby (protokol / zápis o SZZ), a po potvrzení je přeřadí na "
+            "nový typ „Soubor s průběhem obhajoby“ (se zálohou).",
+        )
 
         toolbar.addSeparator()
 
@@ -1391,6 +1398,52 @@ class MainWindow(QMainWindow):
         dlg.exec()
         if dlg.changed_any:
             self._refresh_all()
+
+    def _reclassify_defense_records(self) -> None:
+        """Přeřadí přílohy „Jiné" vypadající jako průběh obhajoby na nový typ.
+
+        Nejdřív ukáže náhled kandidátů, po potvrzení (se zálohou) přeřadí.
+        """
+        candidates = self.service.reclassify_defense_records(dry_run=True)
+        if not candidates:
+            QMessageBox.information(
+                self, "Soubor s průběhem obhajoby",
+                "Nenašel jsem žádné přílohy typu „Jiné“, které by vypadaly jako "
+                "soubor s průběhem obhajoby (protokol / zápis o SZZ).",
+            )
+            return
+
+        shown = "\n".join(f"• {lab}: {fn}" for lab, fn in candidates[:40])
+        if len(candidates) > 40:
+            shown += f"\n… a další ({len(candidates) - 40})"
+        confirm = QMessageBox.question(
+            self, "Přeřadit na „Soubor s průběhem obhajoby“",
+            f"Našel jsem {len(candidates)} příloh k přeřazení z „Jiné“ na "
+            "„Soubor s průběhem obhajoby“:\n\n"
+            f"{shown}\n\nPřeřadit? (vytvoří se záloha)",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        # Záloha (záchranná brzda) — stejně jako u STAG operací.
+        if self.profile_manager and self.profile_manager.active:
+            data_dir = self.profile_manager.active_data_dir()
+            try:
+                BackupManager(data_dir).create_backup(
+                    data_dir / "db.json",
+                    suffix="before-defense-reclassify", dedupe=False,
+                )
+            except Exception:
+                pass
+
+        applied = self.service.reclassify_defense_records(dry_run=False)
+        self._refresh_all()
+        QMessageBox.information(
+            self, "Hotovo",
+            f"Přeřazeno příloh: {len(applied)} → „Soubor s průběhem obhajoby“.",
+        )
 
     def _import_from_stag(self) -> None:
         """Otevře wizard pro import dat z STAG CSV exportu.

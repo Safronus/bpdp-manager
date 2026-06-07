@@ -38,6 +38,8 @@ class AttachmentKind(str, Enum):
     SUPERVISOR_REVIEW = "supervisor_review"
     OPPONENT_REVIEW = "opponent_review"
     PRESENTATION = "presentation"
+    # 0.71.0: protokol/zápis o průběhu obhajoby (státní závěrečné zkoušky).
+    DEFENSE_RECORD = "defense_record"
     STAG_EXPORT = "stag_export"
     OTHER = "other"
 
@@ -54,6 +56,7 @@ ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
     AttachmentKind.SUPERVISOR_REVIEW: "Posudek vedoucího",
     AttachmentKind.OPPONENT_REVIEW: "Posudek oponenta",
     AttachmentKind.PRESENTATION: "Prezentace",
+    AttachmentKind.DEFENSE_RECORD: "Soubor s průběhem obhajoby",
     AttachmentKind.STAG_EXPORT: "STAG export (CSV)",
     AttachmentKind.OTHER: "Jiné",
 }

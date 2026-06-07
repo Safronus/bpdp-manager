@@ -76,6 +76,7 @@ _SECTION_TO_KIND: dict[str, AttachmentKind] = {
     "appendix": AttachmentKind.THESIS_APPENDIX,
     "supervisor_review": AttachmentKind.SUPERVISOR_REVIEW,
     "opponent_review": AttachmentKind.OPPONENT_REVIEW,
+    "defense_record": AttachmentKind.DEFENSE_RECORD,
     "other": AttachmentKind.OTHER,
 }
 
@@ -85,6 +86,7 @@ _FILE_KIND_CHOICES: list[AttachmentKind] = [
     AttachmentKind.THESIS_APPENDIX,
     AttachmentKind.SUPERVISOR_REVIEW,
     AttachmentKind.OPPONENT_REVIEW,
+    AttachmentKind.DEFENSE_RECORD,
     AttachmentKind.OTHER,
 ]
 

@@ -266,7 +266,11 @@ Volný text + termíny/konzultace.
 ### 📎 Dokumenty
 Soubory a odkazy k práci, **agregované podle typu** (Text práce,
 Přílohy, Pracovní deník, Oficiální zadání, Posudek vedoucího, Posudek
-oponenta, Prezentace, STAG export, Jiné).
+oponenta, Prezentace, **Soubor s průběhem obhajoby**, STAG export, Jiné).
+*Soubor s průběhem obhajoby* = protokol / zápis o průběhu obhajoby (SZZ);
+ze STAG se rozpozná podle názvu automaticky. Už dříve stažené takové soubory
+(vedené jako *Jiné*) přeřadíš hromadně toolbarem **🗂 Přeřadit průběh obhajoby**
+(s náhledem a zálohou).
 
 - **Verzování:** nahrání dalšího souboru téhož typu vytvoří novou verzi;
   předchozí se označí jako *superseded*. Toggle **Zobrazit starší verze**
