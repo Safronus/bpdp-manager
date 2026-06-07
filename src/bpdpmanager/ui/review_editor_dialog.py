@@ -157,11 +157,10 @@ class ReviewEditorDialog(QDialog):
         self.saved = False  # True po úspěšném Save (i bez generování souborů)
 
         self.setWindowTitle(f"Posudek — {review.template_name or review.role}")
-        # Minimum + výchozí velikost — editor má hodně sekcí (kritéria,
-        # plagiátorství, komentář), takže otevři rovnou dost vysoko, ať
-        # uživatel nemusí ručně zvětšovat.
-        self.setMinimumSize(900, 600)
-        self.resize(960, 940)
+        # Šířka pevná; výšku přizpůsobíme obsahu (viz _fit_height_to_content na
+        # konci __init__) — co se vejde na obrazovku, ukáže se bez scrollování.
+        self.setMinimumSize(900, 420)
+        self.resize(960, 760)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
@@ -221,7 +220,7 @@ class ReviewEditorDialog(QDialog):
         outer.addLayout(quick)
 
         # ── Scroll area s obsahem ──────────────────────────────────────
-        scroll = QScrollArea()
+        scroll = self._scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         content = QWidget()
@@ -403,6 +402,23 @@ class ReviewEditorDialog(QDialog):
         outer.addLayout(btn_row)
 
         self._refresh_summary()
+        self._fit_height_to_content()
+
+    def _fit_height_to_content(self) -> None:
+        """Přizpůsobí výšku okna obsahu — vejde-li se, ukáže ho bez scrollování;
+        jinak se zastropuje výškou obrazovky (a scroll zůstane)."""
+        content = self._scroll.widget()
+        if content is None:
+            return
+        # Výška „chromu" = vše mimo scroll oblast (hlavička, meta, tlačítka,
+        # okraje) = sizeHint celého layoutu minus to, čím přispívá scroll.
+        chrome = self.layout().sizeHint().height() - self._scroll.sizeHint().height()
+        desired = chrome + content.sizeHint().height() + 4
+        screen = self.screen()
+        avail = screen.availableGeometry().height() if screen is not None else 1000
+        height = min(desired, int(avail * 0.95))
+        height = max(height, self.minimumHeight())
+        self.resize(self.width(), height)
 
     # ── helpers ─────────────────────────────────────────────────────────
 

@@ -112,3 +112,14 @@ def test_editor_has_open_text_and_opposite_review_buttons(qapp, service) -> None
     assert any("Otevřít text práce" in s for s in labels)
     # u posudku vedoucího je protější tlačítko „posudek oponenta"
     assert any("posudek oponenta" in s for s in labels)
+
+
+def test_editor_height_fits_within_screen(qapp, service) -> None:
+    """Výška okna se přizpůsobí obsahu, ale nepřekročí obrazovku."""
+    t = _thesis(service)
+    dlg = ReviewEditorDialog(service, t.id, _review(), opposing=False)
+    screen = dlg.screen()
+    if screen is not None:
+        avail = screen.availableGeometry().height()
+        assert dlg.height() <= int(avail * 0.95) + 1
+    assert dlg.height() >= dlg.minimumHeight()

@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-06-07
+
+### Changed
+- **Okno „Posudek…" přizpůsobuje výšku obsahu.** Otevře se přesně tak vysoké,
+  jak je potřeba (méně kritérií = nižší okno, žádné zbytečné prázdné místo);
+  když se obsah nevejde na obrazovku, zastropuje se výškou obrazovky a zůstane
+  posuvník.
+
 ## [1.2.5] - 2026-06-07
 
 ### Fixed
