@@ -64,13 +64,13 @@ def test_tree_sent_indicator(qapp, service: ThesisService, tmp_path: Path) -> No
         return None
 
     from bpdpmanager.models.enums import SENT_BG, UNSENT_BG
+    from bpdpmanager.ui.theses_tree import ROLE_SENT
 
     leaf = _sent_leaf()
-    # Obálka + barva pozadí (červená = neodesláno).
-    assert leaf.text(tree.COL_SENT) == "✉"
-    assert leaf.background(tree.COL_SENT).color().name() == UNSENT_BG
+    # Badge „Odesláno" kreslí delegát z barvy v ROLE_SENT (červená = neodesláno).
+    assert leaf.data(tree.COL_SENT, ROLE_SENT) == UNSENT_BG
 
     service.set_supervisor_review_sent(t.id, True)
     tree.refresh()
     leaf = _sent_leaf()
-    assert leaf.background(tree.COL_SENT).color().name() == SENT_BG  # zelená = odesláno
+    assert leaf.data(tree.COL_SENT, ROLE_SENT) == SENT_BG  # zelená = odesláno

@@ -43,8 +43,10 @@ from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
 from .theses_tree import (
     ROLE_GRADES,
     ROLE_REVIEWS,
+    ROLE_SENT,
     GradesDelegate,
     ReviewsBadgeDelegate,
+    SentBadgeDelegate,
 )
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
@@ -156,7 +158,7 @@ class OpposingTab(QWidget):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(8)
         self.tree.setHeaderLabels(
-            ["Student / Skupina", "Téma", "Stav", "Vedoucí", "V/O",
+            ["Student / Skupina", "Téma", "Stav", "Vedoucí", "Známky V/O",
              "Posudky", "Odesláno", "Obor"]
         )
         self.tree.setAlternatingRowColors(True)
@@ -175,6 +177,8 @@ class OpposingTab(QWidget):
         self._grades_delegate = GradesDelegate(self.tree)
         self._reviews_delegate = ReviewsBadgeDelegate(self.tree)
         self.tree.setItemDelegateForColumn(COL_REVIEWS, self._reviews_delegate)
+        self._sent_delegate = SentBadgeDelegate(self.tree)
+        self.tree.setItemDelegateForColumn(COL_SENT, self._sent_delegate)
         self.tree.setItemDelegateForColumn(COL_GRADES, self._grades_delegate)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
@@ -297,11 +301,11 @@ class OpposingTab(QWidget):
                     stav = STAG_STATE_SHORT.get(code, code) if code else "—"
                     # Odeslání posudku sekretářce — jen aktuální rok.
                     if is_current:
-                        sent_text, sent_bg, sent_tip = review_sent_badge(
+                        _, sent_bg, sent_tip = review_sent_badge(
                             state == "done", op.opponent_review_sent_at
                         )
                     else:
-                        sent_text, sent_bg, sent_tip = "", "", ""
+                        sent_bg, sent_tip = "", ""
                     gs = (op.grade_supervisor or "").strip()
                     go = (op.grade_opponent or "").strip()
                     # Známky kreslí GradesDelegate z dat ROLE_GRADES; text buňky
@@ -322,11 +326,13 @@ class OpposingTab(QWidget):
                             op.supervisor_name or "—",
                             grades_text,
                             "",          # Posudky — kreslí delegát
-                            sent_text,
+                            "",          # Odesláno — kreslí delegát
                             obor,
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    if sent_bg:
+                        leaf.setData(COL_SENT, ROLE_SENT, sent_bg)
                     leaf.setData(COL_REVIEWS, ROLE_REVIEWS, (has_v, has_o))
                     tip_v = "✓ k dispozici" if has_v else "chybí"
                     tip_o = "✓ k dispozici" if has_o else "chybí"
@@ -349,15 +355,6 @@ class OpposingTab(QWidget):
                         leaf.setToolTip(
                             2, STAG_STATE_LABELS.get(code, code) + f" ({code})"
                         )
-                    leaf.setTextAlignment(
-                        COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-                    )
-                    if sent_bg:
-                        leaf.setBackground(COL_SENT, QBrush(QColor(sent_bg)))
-                        leaf.setForeground(COL_SENT, QBrush(QColor("white")))
-                        sf = leaf.font(COL_SENT)
-                        sf.setBold(True)
-                        leaf.setFont(COL_SENT, sf)
                     if sent_tip:
                         leaf.setToolTip(COL_SENT, sent_tip)
                     # Oponentský posudek — podbarvi sloupec názvu práce

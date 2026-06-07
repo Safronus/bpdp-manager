@@ -68,7 +68,7 @@ def test_opposing_grades_use_vo_delegate(qapp, service) -> None:
     tab.refresh()
     leaf = _leaf_for(tab, op.id)
     assert leaf is not None
-    assert tab.tree.headerItem().text(COL_GRADES) == "V/O"
+    assert tab.tree.headerItem().text(COL_GRADES) == "Známky V/O"
     assert leaf.data(COL_GRADES, ROLE_GRADES) == ("A", "C")
     assert leaf.text(COL_GRADES) == ""
 

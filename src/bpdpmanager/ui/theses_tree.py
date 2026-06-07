@@ -34,6 +34,7 @@ ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
 ROLE_GRADES = Qt.ItemDataRole.UserRole + 4  # (grade_supervisor, grade_opponent)
 ROLE_REVIEWS = Qt.ItemDataRole.UserRole + 5  # (has_supervisor_review, has_opponent_review)
+ROLE_SENT = Qt.ItemDataRole.UserRole + 6     # barva pozadí badge „Odesláno" (nebo None)
 
 # Sloupec „Posudky": V (vedoucí) / O (oponent) — zelená = k dispozici, červená ne.
 _REVIEW_HAS_BG = "#43a047"   # zelená — posudek je
@@ -152,6 +153,37 @@ class ReviewsBadgeDelegate(QStyledItemDelegate):
         return QSize(self._total(option.fontMetrics) + 8,
                      max(base.height(), self._BADGE_H + 6))
 
+
+class SentBadgeDelegate(QStyledItemDelegate):
+    """Sloupec „Odesláno": obálka ✉ v zaobleném barevném čtverečku
+    (zelená = odesláno / červená = neodesláno), stejný styl jako známky."""
+
+    _BADGE_H = 18
+    _W = 22
+
+    def paint(self, painter, option, index) -> None:
+        bg = index.data(ROLE_SENT)
+        if not bg:
+            super().paint(painter, option, index)
+            return
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        rect = option.rect
+        x = rect.x() + max(0, (rect.width() - self._W) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        br = QRectF(x, y, self._W, self._BADGE_H)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(bg))
+        painter.drawRoundedRect(br, 4, 4)
+        painter.setPen(QColor("white"))
+        painter.drawText(br, Qt.AlignmentFlag.AlignCenter, "✉")
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        base = super().sizeHint(option, index)
+        return QSize(self._W + 10, max(base.height(), self._BADGE_H + 6))
+
 # ── České abecední řazení ────────────────────────────────────────────────────
 _HAS_CZECH_LOCALE = False
 for _loc in ("cs_CZ.UTF-8", "cs_CZ.utf8", "cs_CZ", "Czech_Czech Republic.1250"):
@@ -216,7 +248,7 @@ class ThesesTreeWidget(QTreeWidget):
     mark_review_sent_requested = Signal(str, bool)
 
     HEADERS = [
-        "Student / Skupina", "Téma", "Stav", "V/O",
+        "Student / Skupina", "Téma", "Stav", "Známky V/O",
         "Posudky", "Odesláno", "Oponent", "Obor",
     ]
     COL_STUDENT = 0
@@ -259,6 +291,9 @@ class ThesesTreeWidget(QTreeWidget):
         # Sloupec Posudky — V/O badge (zelená k dispozici / červená chybí).
         self._reviews_delegate = ReviewsBadgeDelegate(self)
         self.setItemDelegateForColumn(self.COL_REVIEWS, self._reviews_delegate)
+        # Sloupec Odesláno — obálka v zaobleném barevném badge.
+        self._sent_delegate = SentBadgeDelegate(self)
+        self.setItemDelegateForColumn(self.COL_SENT, self._sent_delegate)
 
         self.itemSelectionChanged.connect(self._on_selection)
 
@@ -407,7 +442,7 @@ class ThesesTreeWidget(QTreeWidget):
         sent_at = thesis.supervisor_review_sent_at
         review_ready = thesis.supervisor_review_state == "done"
         sent_prepared = thesis.status == ThesisStatus.IN_PROGRESS and review_ready
-        sent_text, sent_bg, sent_tip = review_sent_badge(sent_prepared, sent_at)
+        _, sent_bg, sent_tip = review_sent_badge(sent_prepared, sent_at)
 
         # Známky vedoucí (V) / oponent (O) — kreslí je delegát (barevné dvojice
         # písmen). Když chybí obě, necháme decentní „—" jako prostý text.
@@ -422,7 +457,7 @@ class ThesesTreeWidget(QTreeWidget):
                 f"  {thesis.status.label}  ",
                 grades_text,
                 reviews_text,
-                sent_text,
+                "",            # Odesláno — kreslí SentBadgeDelegate
                 opponent_name,
                 obor,
             ]
@@ -436,15 +471,8 @@ class ThesesTreeWidget(QTreeWidget):
                 self.COL_GRADES,
                 f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}",
             )
-        leaf.setTextAlignment(
-            self.COL_SENT, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-        )
         if sent_bg:
-            leaf.setBackground(self.COL_SENT, QBrush(QColor(sent_bg)))
-            leaf.setForeground(self.COL_SENT, QBrush(QColor("white")))
-            f = leaf.font(self.COL_SENT)
-            f.setBold(True)
-            leaf.setFont(self.COL_SENT, f)
+            leaf.setData(self.COL_SENT, ROLE_SENT, sent_bg)
         if sent_tip:
             leaf.setToolTip(self.COL_SENT, sent_tip)
 

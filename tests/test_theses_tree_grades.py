@@ -51,8 +51,8 @@ def _leaf(tree: ThesesTreeWidget, thesis_id: str) -> QTreeWidgetItem | None:
 
 def test_grades_column_header_is_vo(qapp, service) -> None:
     headers = ThesesTreeWidget.HEADERS
-    assert "V/O" in headers
-    assert headers.index("V/O") < headers.index("Posudky")
+    assert "Známky V/O" in headers
+    assert headers.index("Známky V/O") < headers.index("Posudky")
 
 
 def test_grades_column_stores_pair(qapp, service) -> None:

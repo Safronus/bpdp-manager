@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.80.1] - 2026-06-07
+
+### Changed
+- **Sloupec „Odesláno" má styl jako známky** — obálka ✉ v zaobleném barevném
+  čtverečku (zelená odesláno / červená neodesláno) místo podbarvení celé buňky.
+- **Hlavička sloupce známek je „Známky V/O"** (místo jen „V/O").
+
 ## [0.80.0] - 2026-06-07
 
 ### Added
