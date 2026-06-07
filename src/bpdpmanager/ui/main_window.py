@@ -389,7 +389,11 @@ class MainWindow(QMainWindow):
             lambda t: t.status in STATUSES_HISTORY,
             year_mode=YEAR_MODE_HISTORY,
             profile_manager=pm,
-            status_filter_choices=[ThesisStatus.DEFENDED, ThesisStatus.CANCELLED],
+            status_filter_choices=[
+                ThesisStatus.DEFENDED,
+                ThesisStatus.CANCELLED,
+                ThesisStatus.FAILED,
+            ],
             status_filter_pref_key="history_status_filter",
             enable_extra_filters=True,
             # Hotové práce → indikace „Posudky" i „Odesláno" jsou irelevantní.

@@ -99,6 +99,9 @@ class ThesisStatus(str, Enum):
     IN_PROGRESS = "in_progress"
     DEFENDED = "defended"
     CANCELLED = "cancelled"
+    # 0.68.0: „Neobhájeno" — neúspěšná obhajoba (odlišené od „Nedokončeno",
+    # což je práce nikdy nedotažená k obhajobě). Ze STAG: DBUO/OPUNO.
+    FAILED = "failed"
 
     @property
     def label(self) -> str:
@@ -120,6 +123,7 @@ STATUS_LABELS: dict[ThesisStatus, str] = {
     ThesisStatus.IN_PROGRESS: "V řešení",
     ThesisStatus.DEFENDED: "Obhájeno",
     ThesisStatus.CANCELLED: "Nedokončeno",
+    ThesisStatus.FAILED: "Neobhájeno",
 }
 
 STATUS_COLORS: dict[ThesisStatus, str] = {
@@ -129,6 +133,7 @@ STATUS_COLORS: dict[ThesisStatus, str] = {
     ThesisStatus.IN_PROGRESS: "#7e57c2",
     ThesisStatus.DEFENDED: "#66bb6a",
     ThesisStatus.CANCELLED: "#e57373",
+    ThesisStatus.FAILED: "#c62828",  # sytější červená — neúspěšná obhajoba
 }
 
 STATUS_ORDER: dict[ThesisStatus, int] = {
@@ -197,6 +202,7 @@ STATUSES_CURRENT: set[ThesisStatus] = {
 STATUSES_HISTORY: set[ThesisStatus] = {
     ThesisStatus.DEFENDED,
     ThesisStatus.CANCELLED,
+    ThesisStatus.FAILED,
 }
 
 
@@ -204,13 +210,26 @@ ALLOWED_TRANSITIONS: dict[ThesisStatus, set[ThesisStatus]] = {
     ThesisStatus.INTERESTED: {ThesisStatus.RESERVED, ThesisStatus.CANCELLED},
     ThesisStatus.RESERVED: {ThesisStatus.LISTED, ThesisStatus.INTERESTED, ThesisStatus.IN_PROGRESS, ThesisStatus.CANCELLED},
     ThesisStatus.LISTED: {ThesisStatus.IN_PROGRESS, ThesisStatus.RESERVED, ThesisStatus.CANCELLED},
-    ThesisStatus.IN_PROGRESS: {ThesisStatus.DEFENDED, ThesisStatus.CANCELLED, ThesisStatus.LISTED},
+    ThesisStatus.IN_PROGRESS: {
+        ThesisStatus.DEFENDED,
+        ThesisStatus.CANCELLED,
+        ThesisStatus.FAILED,
+        ThesisStatus.LISTED,
+    },
     ThesisStatus.DEFENDED: set(),
-    # Druhý pokus obhajoby: z Nedokončeno se dá zpět do V řešení (re-open)
-    # nebo přímo Obhájeno (oprava omylu / shortcut když práce už fakticky obhájena).
+    # Druhý pokus obhajoby: z Nedokončeno/Neobhájeno se dá zpět do V řešení
+    # (re-open) nebo přímo Obhájeno (oprava omylu / práce už fakticky obhájena).
+    # Mezi Nedokončeno a Neobhájeno lze přepnout (oprava klasifikace).
     ThesisStatus.CANCELLED: {
         ThesisStatus.INTERESTED,
         ThesisStatus.IN_PROGRESS,
         ThesisStatus.DEFENDED,
+        ThesisStatus.FAILED,
+    },
+    ThesisStatus.FAILED: {
+        ThesisStatus.INTERESTED,
+        ThesisStatus.IN_PROGRESS,
+        ThesisStatus.DEFENDED,
+        ThesisStatus.CANCELLED,
     },
 }

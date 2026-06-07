@@ -130,9 +130,10 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 
 - **Aktuální** — práce ve stavu *V řešení*
 - **Budoucí** — *Zájemce bez tématu*, *Zájemce s tématem*, *Vypsané téma*
-- **Historie** — *Obhájeno*, *Nedokončeno*. Nad seznamem jsou filtry:
-  **checkboxy stavů** (*Obhájeno* / *Nedokončeno*, defaultně obě zaškrtnuté;
-  volba se **pamatuje i po zavření aplikace**), rozbalovací **Oponent**
+- **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
+  filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
+  defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
+  rozbalovací **Oponent**
   (jen oponenti z historie) a **Známka** (A–F/FX) — práce projde, když známce
   odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
@@ -193,7 +194,7 @@ v *Aktuální*.
 
 ## Stavy práce a přechody
 
-Práce prochází 6 stavy:
+Práce prochází 7 stavy:
 
 1. **Zájemce bez tématu** — student má zájem, téma zatím není
 2. **Zájemce s tématem** — domluvené téma
@@ -201,11 +202,21 @@ Práce prochází 6 stavy:
 4. **V řešení** — schválené zadání, aktivní práce (vyžaduje název EN,
    body zadání a literaturu)
 5. **Obhájeno** — úspěšná obhajoba
-6. **Nedokončeno** — neúspěšná obhajoba / nedokončeno
+6. **Neobhájeno** — práce dotažená k obhajobě, ale obhajoba **neúspěšná**
+   (ze STAG kódy *DBUO* / *OPUNO*)
+7. **Nedokončeno** — práce **nikdy nedotažená** k obhajobě (ze STAG kód *ND*)
 
-**Druhý pokus obhajoby:** z *Nedokončeno* se práce dá vrátit do
-*V řešení* (znovuotevření) nebo přímo do *Obhájeno*. Posudky a text
-práce mohou být verzované (viz Dokumenty).
+> **Neobhájeno vs Nedokončeno.** *Neobhájeno* = student šel k obhajobě a
+> neuspěl; *Nedokončeno* = práci nikdy nedokončil / nedošlo k obhajobě.
+> Při importu/aktualizaci ze STAG se rozliší automaticky. U starších prací
+> stažených dřív (kdy se rozdíl neukládal) můžeš stav opravit ručně tlačítkem
+> *Přechod do stavu* (*Nedokončeno → Neobhájeno*) nebo práci znovu naimportovat
+> ze STAG.
+
+**Druhý pokus obhajoby:** z *Nedokončeno* i *Neobhájeno* se práce dá vrátit do
+*V řešení* (znovuotevření) nebo přímo do *Obhájeno*. Mezi *Nedokončeno* a
+*Neobhájeno* lze přepnout (oprava klasifikace). Posudky a text práce mohou být
+verzované (viz Dokumenty).
 
 Přechody mezi stavy jsou validované — tlačítka *Přechod do stavu*
 v detailu práce nabízejí jen povolené cíle.

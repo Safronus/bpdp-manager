@@ -7,6 +7,26 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-06-07
+
+### Added
+- **Nový stav „Neobhájeno"** (neúspěšná obhajoba) odlišený od „Nedokončeno"
+  (práce nikdy nedotažená k obhajobě). Vlastní barva a badge, vlastní
+  **checkbox v Historii** (defaultně zaškrtnutý). Ze STAG se naplní
+  automaticky: *DBUO* / *OPUNO* → **Neobhájeno**, *ND* → **Nedokončeno**.
+  Statistika *Úspěšnost obhajob* rozlišuje Obhájeno / Neobhájeno / Nedokončeno.
+
+### Changed
+- **Přechody stavů** rozšířeny: *V řešení* → *Neobhájeno*; druhý pokus
+  obhajoby i z *Neobhájeno* (→ *V řešení* / *Obhájeno*); mezi *Nedokončeno*
+  a *Neobhájeno* lze přepnout (oprava klasifikace).
+
+### Migrace
+- Existující práce ve stavu *Nedokončeno* se **nepřeřadí automaticky** —
+  u vedených prací se dřív surový STAG kód neukládal, takže nelze zpětně
+  rozlišit neúspěšnou obhajobu od nedotažené práce. Oprav je buď **ručně**
+  (*Přechod do stavu*), nebo **znovu naimportuj ze STAG** (stav se dorovná).
+
 ## [0.67.4] - 2026-06-07
 
 ### Removed

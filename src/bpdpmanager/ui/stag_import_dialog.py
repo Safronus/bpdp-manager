@@ -168,18 +168,18 @@ _BIG_TOTAL_BYTES = 300 * 1024 * 1024  # 300 MB
 #   R     - Rozpracovaná                              → V řešení
 #   DBPOO - Dokončená bez pokusu o obhajobu           → V řešení
 #   DUO   - Dokončená s úspěšnou obhajobou            → Obhájeno
-#   DBUO  - Dokončená s neúspěšnou obhajobou          → Nedokončeno
+#   DBUO  - Dokončená s neúspěšnou obhajobou          → Neobhájeno
+#   OPUNO - Odevzdaná, ukončená po neúspěšné obhajobě → Neobhájeno
 #   ND    - Nedokončená práce                         → Nedokončeno
 #
-# Pozn.: DBUO a ND mají v našem schématu společný stav (CANCELLED =
-# „Nedokončeno"). Nuance „failed defense" vs „abandoned work" lze
-# dohledat v poli ``stag_state_code`` u Thesis (zachovává se z importu).
+# Pozn.: neúspěšná obhajoba (DBUO/OPUNO) má vlastní stav „Neobhájeno"
+# (FAILED), odlišený od „Nedokončeno" (ND = práce nikdy nedotažená k obhajobě).
 STAG_STATE_TO_STATUS: dict[str, ThesisStatus] = {
     "R": ThesisStatus.IN_PROGRESS,
     "DBPOO": ThesisStatus.IN_PROGRESS,
     "DUO": ThesisStatus.DEFENDED,
-    "DBUO": ThesisStatus.CANCELLED,
-    "OPUNO": ThesisStatus.CANCELLED,  # odevzdaná, ukončená po neúspěšné obhajobě
+    "DBUO": ThesisStatus.FAILED,
+    "OPUNO": ThesisStatus.FAILED,
     "ND": ThesisStatus.CANCELLED,
 }
 
@@ -188,8 +188,8 @@ STAG_STATE_SHORT: dict[str, str] = {
     "R": "v řešení",
     "DBPOO": "čeká na obhajobu",
     "DUO": "obhájeno",
-    "DBUO": "neúsp. obhajoba",
-    "OPUNO": "neúsp. obhajoba",
+    "DBUO": "neobhájeno",
+    "OPUNO": "neobhájeno",
     "ND": "nedokončeno",
 }
 

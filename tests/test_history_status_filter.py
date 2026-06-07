@@ -49,7 +49,9 @@ def _history_tab(service, pm) -> _ThesesTab:
         service,
         lambda t: t.status in STATUSES_HISTORY,
         profile_manager=pm,
-        status_filter_choices=[ThesisStatus.DEFENDED, ThesisStatus.CANCELLED],
+        status_filter_choices=[
+            ThesisStatus.DEFENDED, ThesisStatus.CANCELLED, ThesisStatus.FAILED,
+        ],
         status_filter_pref_key="history_status_filter",
         enable_extra_filters=True,
         hidden_columns=[ThesesTreeWidget.COL_REVIEWS, ThesesTreeWidget.COL_SENT],
@@ -61,14 +63,37 @@ def test_default_all_checked(qapp, service) -> None:
     assert all(cb.isChecked() for cb in tab._status_checks.values())
 
 
+def test_failed_status_has_own_checkbox_and_filters(qapp, service) -> None:
+    tab = _history_tab(service, FakePM())
+    assert ThesisStatus.FAILED in tab._status_checks  # „Neobhájeno" má checkbox
+
+    # Odškrtni vše kromě „Neobhájeno" → projde jen FAILED.
+    tab._status_checks[ThesisStatus.DEFENDED].setChecked(False)
+    tab._status_checks[ThesisStatus.CANCELLED].setChecked(False)
+    pred = tab.tree._filter_predicate
+
+    class T:
+        def __init__(self, status):
+            self.status = status
+            self.opponent_id = None
+            self.grade_supervisor = ""
+            self.grade_opponent = ""
+
+    assert pred(T(ThesisStatus.FAILED)) is True
+    assert pred(T(ThesisStatus.CANCELLED)) is False
+    assert pred(T(ThesisStatus.DEFENDED)) is False
+
+
 def test_uncheck_persists_and_filters(qapp, service) -> None:
     pm = FakePM()
     tab = _history_tab(service, pm)
-    # Odškrtni „Nedokončeno" → uloží se jen DEFENDED.
+    # Odškrtni „Nedokončeno" → uloží se zbývající zaškrtnuté (Obhájeno + Neobhájeno).
     tab._status_checks[ThesisStatus.CANCELLED].setChecked(False)
-    assert pm.prefs["history_status_filter"] == [ThesisStatus.DEFENDED.value]
+    assert set(pm.prefs["history_status_filter"]) == {
+        ThesisStatus.DEFENDED.value, ThesisStatus.FAILED.value,
+    }
 
-    # Filtr stromu nyní propustí jen obhájené.
+    # Filtr stromu nyní nepropustí „Nedokončeno".
     pred = tab.tree._filter_predicate
 
     class T:

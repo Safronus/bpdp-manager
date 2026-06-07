@@ -316,14 +316,16 @@ class StatsTab(QWidget):
 
     def _defense_success(self, theses) -> str:
         defended = sum(1 for t in theses if t.status == ThesisStatus.DEFENDED)
+        failed = sum(1 for t in theses if t.status == ThesisStatus.FAILED)
         cancelled = sum(1 for t in theses if t.status == ThesisStatus.CANCELLED)
-        finished = defended + cancelled
+        finished = defended + failed + cancelled
         if not finished:
             return ""
         rate = defended / finished * 100.0
         rows = (
             self._bar("Obhájeno", defended, finished, "#2e7d32")
-            + self._bar("Nedokončeno", cancelled, finished, "#c62828")
+            + self._bar("Neobhájeno", failed, finished, "#c62828")
+            + self._bar("Nedokončeno", cancelled, finished, "#9e9e9e")
         )
         retakes = sum(1 for t in theses if t.related_thesis_id) // 2
         retake_line = (
