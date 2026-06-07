@@ -18,8 +18,10 @@ from bpdpmanager.storage import JsonRepository
 from bpdpmanager.ui.theses_tree import (
     ROLE_GRADES,
     ROLE_REVIEWS,
+    ROLE_STATUS,
     ROLE_THESIS_ID,
     ThesesTreeWidget,
+    _contrast_text,
 )
 
 
@@ -106,3 +108,21 @@ def test_reviews_badge_data(qapp, service, tmp_path) -> None:
     # Má posudek vedoucího, nemá oponenta.
     assert leaf.data(ThesesTreeWidget.COL_REVIEWS, ROLE_REVIEWS) == (True, False)
     assert leaf.text(ThesesTreeWidget.COL_REVIEWS) == ""  # kreslí delegát
+
+
+def test_status_badge_data_and_contrast(qapp, service) -> None:
+    """Stav je zaoblený badge (ROLE_STATUS = (label, barva)); světlá → tmavý text."""
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    t = Thesis(type=ThesisType.BP, status=ThesisStatus.CANCELLED,
+               academic_year="2024/2025", student_id=s.id)
+    service.upsert_thesis(t)
+
+    tree = ThesesTreeWidget(service)
+    tree.refresh()
+    leaf = _leaf(tree, t.id)
+    label, color = leaf.data(ThesesTreeWidget.COL_STATUS, ROLE_STATUS)
+    assert label == "Nedokončeno"
+    assert color == "#d6d6d6"                 # světle šedá
+    assert _contrast_text(color) == "#212121"  # tmavý text na světlém
+    assert leaf.text(ThesesTreeWidget.COL_STATUS) == ""  # kreslí delegát

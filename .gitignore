@@ -63,3 +63,4 @@ ui_*.h
 
 # Lokální překlady
 *.ts.bak
+*.tmp

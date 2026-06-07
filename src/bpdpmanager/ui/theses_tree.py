@@ -36,6 +36,14 @@ ROLE_GRADES = Qt.ItemDataRole.UserRole + 4  # (grade_supervisor, grade_opponent)
 ROLE_REVIEWS = Qt.ItemDataRole.UserRole + 5  # (has_supervisor_review, has_opponent_review)
 ROLE_SENT = Qt.ItemDataRole.UserRole + 6     # barva pozadí badge „Odesláno" (nebo None)
 ROLE_OBOR = Qt.ItemDataRole.UserRole + 7     # název oboru (pro barevný badge) nebo None
+ROLE_STATUS = Qt.ItemDataRole.UserRole + 8   # (label, barva) stavu pro zaoblený badge
+
+
+def _contrast_text(bg_hex: str) -> str:
+    """Vrátí „white"/„black" podle jasu pozadí (čitelný text na badge)."""
+    c = QColor(bg_hex)
+    lum = 0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()
+    return "#212121" if lum > 150 else "white"
 
 # Barvy oborů — světlé odstíny (tmavý text čitelný v light i dark theme).
 _OBOR_COLORS = {
@@ -278,6 +286,48 @@ class OborBadgeDelegate(QStyledItemDelegate):
         base = super().sizeHint(option, index)
         return QSize(w + 10, max(base.height(), self._BADGE_H + 6))
 
+
+class StatusBadgeDelegate(QStyledItemDelegate):
+    """Sloupec „Stav": label stavu v zaobleném barevném badge (jako známky),
+    barva textu se volí podle jasu pozadí (čitelná na světlém i tmavém)."""
+
+    _PAD = 9
+    _BADGE_H = 18
+
+    def paint(self, painter, option, index) -> None:
+        data = index.data(ROLE_STATUS)
+        if not data:
+            super().paint(painter, option, index)
+            return
+        label, color = data
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        fm = option.fontMetrics
+        bw = fm.horizontalAdvance(label) + 2 * self._PAD
+        rect = option.rect
+        x = rect.x() + max(2, (rect.width() - bw) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        br = QRectF(x, y, bw, self._BADGE_H)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(color))
+        painter.drawRoundedRect(br, 4, 4)
+        f = painter.font()
+        f.setBold(True)
+        painter.setFont(f)
+        painter.setPen(QColor(_contrast_text(color)))
+        painter.drawText(br, Qt.AlignmentFlag.AlignCenter, label)
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        data = index.data(ROLE_STATUS)
+        if not data:
+            return super().sizeHint(option, index)
+        label, _ = data
+        w = option.fontMetrics.horizontalAdvance(label) + 2 * self._PAD
+        base = super().sizeHint(option, index)
+        return QSize(w + 10, max(base.height(), self._BADGE_H + 6))
+
 # ── České abecední řazení ────────────────────────────────────────────────────
 _HAS_CZECH_LOCALE = False
 for _loc in ("cs_CZ.UTF-8", "cs_CZ.utf8", "cs_CZ", "Czech_Czech Republic.1250"):
@@ -391,6 +441,9 @@ class ThesesTreeWidget(QTreeWidget):
         # Sloupec Obor — barevný badge dle programu (+ 🇬🇧 u anglických).
         self._obor_delegate = OborBadgeDelegate(self)
         self.setItemDelegateForColumn(self.COL_OBOR, self._obor_delegate)
+        # Sloupec Stav — zaoblený barevný badge s labelem stavu.
+        self._status_delegate = StatusBadgeDelegate(self)
+        self.setItemDelegateForColumn(self.COL_STATUS, self._status_delegate)
 
         self.itemSelectionChanged.connect(self._on_selection)
 
@@ -551,13 +604,17 @@ class ThesesTreeWidget(QTreeWidget):
             [
                 student_name,
                 title,
-                f"  {thesis.status.label}  ",
+                "",            # Stav — kreslí StatusBadgeDelegate
                 grades_text,
                 reviews_text,
                 "",            # Odesláno — kreslí SentBadgeDelegate
                 opponent_name,
                 obor,
             ]
+        )
+        leaf.setData(
+            self.COL_STATUS, ROLE_STATUS,
+            (thesis.status.label, thesis.status.color),
         )
         leaf.setTextAlignment(
             self.COL_GRADES, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
@@ -597,16 +654,7 @@ class ThesesTreeWidget(QTreeWidget):
                 "studenta (řádný + opravný).",
             )
 
-        # Barevný stav: pozadí + bílý bold text, centrováno
-        status_color = QColor(thesis.status.color)
-        leaf.setBackground(self.COL_STATUS, QBrush(status_color))
-        leaf.setForeground(self.COL_STATUS, QBrush(QColor("white")))
-        font = leaf.font(self.COL_STATUS)
-        font.setBold(True)
-        leaf.setFont(self.COL_STATUS, font)
-        leaf.setTextAlignment(
-            self.COL_STATUS, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-        )
+        # Stav kreslí StatusBadgeDelegate z dat ROLE_STATUS (zaoblený badge).
 
         # Posudek vedoucího — podbarvi buňku NÁZVU práce (jen u prací „V řešení",
         # kde má smysl sledovat, co ještě jako vedoucí musím posoudit):

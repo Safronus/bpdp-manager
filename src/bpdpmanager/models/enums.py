@@ -135,7 +135,7 @@ STATUS_COLORS: dict[ThesisStatus, str] = {
     ThesisStatus.LISTED: "#64b5f6",
     ThesisStatus.IN_PROGRESS: "#7e57c2",
     ThesisStatus.DEFENDED: "#66bb6a",
-    ThesisStatus.CANCELLED: "#e57373",
+    ThesisStatus.CANCELLED: "#d6d6d6",  # světle šedá — nedokončeno (jen opuštěno)
     ThesisStatus.FAILED: "#c62828",  # sytější červená — neúspěšná obhajoba
 }
 

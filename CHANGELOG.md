@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.85.0] - 2026-06-07
+
+### Changed
+- **Sloupec „Stav" je zaoblený barevný badge** (jako známky) — label stavu
+  v zaobleném rámečku, barva textu se volí podle jasu pozadí (čitelná v light
+  i dark theme). Platí v záložkách *Aktuálně vedené*, *Historie*, *Vše*.
+- **„Nedokončeno" má světle šedou barvu** (s černým textem) — odlišuje opuštěné
+  práce od neúspěšné obhajoby (*Neobhájeno* zůstává červené).
+
 ## [0.84.0] - 2026-06-07
 
 ### Changed
