@@ -42,7 +42,8 @@ class RejectedStudentsDialog(QDialog):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
         self.tree.setHeaderLabels(["Jméno", "Obor", "Akademický rok"])
-        self.tree.setRootIsDecorated(False)
+        # Seskupeno podle akademického roku → zobraz rozbalovací šipky.
+        self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
         h = self.tree.header()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -88,10 +89,29 @@ class RejectedStudentsDialog(QDialog):
 
     def _refresh(self) -> None:
         self.tree.clear()
+        # Seskup podle akademického roku (sestupně, „bez roku" na konec).
+        groups: dict[str, list] = {}
         for r in self.service.list_rejected_students():
-            item = QTreeWidgetItem([r.name or "—", r.obor or "—", r.academic_year or "—"])
-            item.setData(0, Qt.ItemDataRole.UserRole, r.id)
-            self.tree.addTopLevelItem(item)
+            groups.setdefault(r.academic_year or "", []).append(r)
+        years = sorted((y for y in groups if y), reverse=True)
+        if "" in groups:
+            years.append("")
+
+        for year in years:
+            rejects = sorted(groups[year], key=lambda r: (r.name or "").casefold())
+            head = QTreeWidgetItem([f"📅 {year or '(bez roku)'}    ({len(rejects)})", "", ""])
+            head.setFirstColumnSpanned(True)
+            font = head.font(0)
+            font.setBold(True)
+            head.setFont(0, font)
+            # Skupinový řádek nelze vybrat ke smazání (jen rozbalit/sbalit).
+            head.setFlags(Qt.ItemFlag.ItemIsEnabled)
+            self.tree.addTopLevelItem(head)
+            for r in rejects:
+                child = QTreeWidgetItem([r.name or "—", r.obor or "—", ""])
+                child.setData(0, Qt.ItemDataRole.UserRole, r.id)
+                head.addChild(child)
+            head.setExpanded(True)
 
     def _add(self) -> None:
         name = self.ed_name.text().strip()

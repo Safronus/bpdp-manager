@@ -62,3 +62,28 @@ def test_rejected_in_stats(qapp, service: ThesisService) -> None:
     )
     w = StatsTab(service)
     assert "Odmítnut" in w.view.toHtml()
+
+
+def test_dialog_groups_by_academic_year(qapp, service: ThesisService) -> None:
+    """Manažer odmítnutých seskupuje podle akademického roku (sestupně)."""
+    from bpdpmanager.ui.rejected_students_dialog import RejectedStudentsDialog
+
+    service.upsert_rejected_student(RejectedStudent(name="A", academic_year="2024/2025"))
+    service.upsert_rejected_student(RejectedStudent(name="B", academic_year="2026/2027"))
+    service.upsert_rejected_student(RejectedStudent(name="C", academic_year="2026/2027"))
+    service.upsert_rejected_student(RejectedStudent(name="D", academic_year=""))
+
+    dlg = RejectedStudentsDialog(service)
+    tree = dlg.tree
+    # Top-level = roky, sestupně, „bez roku" na konci.
+    years = [tree.topLevelItem(i).text(0) for i in range(tree.topLevelItemCount())]
+    assert tree.topLevelItemCount() == 3
+    assert "2026/2027" in years[0] and "(2)" in years[0]   # 2 odmítnutí
+    assert "2024/2025" in years[1]
+    assert "(bez roku)" in years[2]
+    # Děti nesou ID odmítnutého (skupinový řádek ne).
+    head_2026 = tree.topLevelItem(0)
+    assert head_2026.childCount() == 2
+    from PySide6.QtCore import Qt
+    assert head_2026.child(0).data(0, Qt.ItemDataRole.UserRole)  # má ID
+    assert head_2026.data(0, Qt.ItemDataRole.UserRole) is None   # hlavička bez ID

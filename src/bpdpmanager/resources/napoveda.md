@@ -760,6 +760,8 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
 
 > **Odmítnutí zájemci** se evidují v toolbaru **🚫 Odmítnutí** (jméno, obor,
 > akademický rok) — souvisí s kapacitou vedení a promítají se do statistik.
+> Seznam je **seskupený podle akademického roku** (sbalitelné skupiny,
+> roky sestupně).
 
 ---
 

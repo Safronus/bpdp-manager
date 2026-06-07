@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.69.3] - 2026-06-07
+
+### Changed
+- **Manažer odmítnutých zájemců seskupuje podle akademického roku.** Místo
+  plochého seznamu jsou nyní práce sbalitelné skupiny *📅 rok (počet)*
+  (roky sestupně, „bez roku" na konci).
+
 ## [0.69.2] - 2026-06-07
 
 ### Fixed
