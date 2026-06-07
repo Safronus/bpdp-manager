@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-07
+
+### Changed
+- **Šablony posudků jsou form-neutrální.** Prezenční (`-P`) a kombinovaná
+  (`-K`) forma téhož oboru nově **sdílí jednu šablonu** — posudek se liší jen
+  oborem, ne formou (značky `-P/-K` jsou jen STAG rozlišení). Vestavěná
+  defaultní sada se tím zredukovala z **32 na 16** šablon; názvy už nenesou
+  formu (např. „Vedoucí DP — NSWI"). Výběr šablon i tak fungoval form-agnosticky
+  (matchuje se na obor), takže se generování nijak nemění.
+
+### Added
+- **🧹 Uklidit duplicity** ve správci šablon — sloučí redundantní `-P/-K`
+  duplicity do jedné. **Bezpečně:** sloučí jen **bajtově identické** šablony se
+  shodným typem/rolí/jazykem/oborem (s náhledem), takže o odlišnou šablonu
+  nepřijdeš. Určeno pro profily, které mají z dřívějška nasázených 32 šablon.
+
 ## [1.0.2a] - 2026-06-07
 
 ### Changed

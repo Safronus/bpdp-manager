@@ -137,11 +137,21 @@ generovat.
 > šablonu…** (aplikace z XLSX sama rozpozná typ, roli, jazyk, obor, rok
 > i strukturu kritérií).
 
+> **Šablony jsou form-neutrální.** Prezenční (**-P**) a kombinovaná (**-K**)
+> forma téhož oboru **sdílí jednu šablonu** — posudek se liší jen oborem, ne
+> formou, takže se ve výběru i ve správci ukáže **jen jedna** (značky `-P/-K`
+> jsou jen STAG rozlišení a pro šablony jsou zbytečné).
+
 > **⭐ Defaultní šablony:** tlačítko **Defaultní…** nabídne buď **doplnit
 > chybějící** z vestavěné sady FAI UTB (BP/DP, vedoucí/oponent, CZ/EN, podle
 > oboru; volitelně přepsat stejnojmenné), nebo **smazat všechny šablony
 > a nahradit je výchozí sadou**. Nový profil je dostane rovnou. (Akademický rok
 > se propíše z hlavičky šablony.)
+
+> **🧹 Uklidit duplicity:** pokud máš z dřívějška dvojí šablony pro `-P` a `-K`
+> formu, tlačítko **Uklidit duplicity** v knihovně je sloučí do jedné. Sloučí
+> **jen bajtově identické** šablony se stejným typem/rolí/jazykem/oborem
+> (s náhledem), takže o žádnou odlišnou šablonu nepřijdeš.
 
 ### 6. (Volitelně) LibreOffice pro PDF
 Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:

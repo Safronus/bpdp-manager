@@ -449,6 +449,12 @@ class ReviewTemplatesDialog(QDialog):
             "Doplní výchozí šablony posudků FAI UTB (BP/DP, vedoucí/oponent, "
             "CZ/EN, podle oboru). Existující nechá být; volitelně přepíše."
         )
+        btn_dedupe = QPushButton("🧹 Uklidit duplicity")
+        btn_dedupe.setToolTip(
+            "Sloučí redundantní duplicitní šablony (typicky prezenční -P / "
+            "kombinovaná -K forma téhož oboru). Sloučí jen bajtově identické "
+            "šablony se stejným typem/rolí/jazykem/oborem — ukáže náhled."
+        )
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._add)
         btn_edit.clicked.connect(self._edit)
@@ -456,6 +462,7 @@ class ReviewTemplatesDialog(QDialog):
         btn_reveal.clicked.connect(self._reveal)
         btn_delete.clicked.connect(self._delete)
         btn_defaults.clicked.connect(self._load_defaults)
+        btn_dedupe.clicked.connect(self._dedupe_duplicates)
         btn_close.clicked.connect(self.accept)
         row.addWidget(btn_new)
         row.addWidget(btn_edit)
@@ -463,6 +470,7 @@ class ReviewTemplatesDialog(QDialog):
         row.addWidget(btn_reveal)
         row.addWidget(btn_delete)
         row.addWidget(btn_defaults)
+        row.addWidget(btn_dedupe)
         row.addStretch()
         row.addWidget(btn_close)
         outer.addLayout(row)
@@ -697,6 +705,39 @@ class ReviewTemplatesDialog(QDialog):
             self, "Defaultní šablony",
             f"Přidáno: {res['added']} · přepsáno: {res['replaced']} · "
             f"ponecháno: {res['skipped']}.",
+        )
+
+    def _dedupe_duplicates(self) -> None:
+        """Sloučí redundantní duplicitní šablony (prezenční -P / kombinovaná -K)."""
+        pairs = self.service.dedupe_review_templates(dry_run=True)
+        if not pairs:
+            QMessageBox.information(
+                self, "Uklidit duplicity",
+                "Žádné duplicitní šablony k sloučení — knihovna je čistá.\n\n"
+                "(Slučují se jen bajtově identické šablony se stejným "
+                "typem, rolí, jazykem i oborem.)",
+            )
+            return
+        shown = "\n".join(
+            f"• {removed.name}  →  ponechá se „{keep.name}“"
+            for removed, keep in pairs[:40]
+        )
+        if len(pairs) > 40:
+            shown += f"\n… a další ({len(pairs) - 40})"
+        confirm = QMessageBox.question(
+            self, "Uklidit duplicity",
+            f"Sloučit {len(pairs)} duplicitních šablon? Odeberou se jen "
+            f"redundantní kopie (vč. jejich XLSX souborů), vždy zůstane jedna:\n\n"
+            f"{shown}\n\nUž vygenerované posudky u prací zůstávají nedotčené.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        applied = self.service.dedupe_review_templates(dry_run=False)
+        self._refresh()
+        QMessageBox.information(
+            self, "Uklidit duplicity", f"Sloučeno (odebráno): {len(applied)} šablon.",
         )
 
 

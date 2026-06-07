@@ -88,10 +88,13 @@ def test_parse_template_filename_variants() -> None:
 
 def test_bundled_templates_present_and_parse() -> None:
     specs = list_default_template_specs()
-    assert len(specs) == 32
+    # Form-neutrální sada: jedna šablona na obor/typ/role/jazyk (P/K sloučeno).
+    assert len(specs) == 16
     # názvy jsou unikátní (slouží jako klíč pro deduplikaci)
     names = [s.name for s in specs]
     assert len(set(names)) == len(names)
+    # názvy už nenesou formu (-P / -K)
+    assert all("-P" not in n and "-K" not in n for n in names)
     # každý zdrojový soubor existuje
     assert all(s.source_path.is_file() for s in specs)
 
@@ -126,23 +129,61 @@ def test_seed_default_obory_merge_and_overwrite(service: ThesisService) -> None:
 
 def test_seed_default_templates(service: ThesisService) -> None:
     missing, present = service.default_templates_seed_status()
-    assert missing == 32 and present == 0
+    assert missing == 16 and present == 0
 
     res = service.seed_default_templates()
-    assert res["added"] == 32 and res["replaced"] == 0
+    assert res["added"] == 16 and res["replaced"] == 0
     templates = service.list_review_templates()
-    assert len(templates) == 32
+    assert len(templates) == 16
     # schema se nascanovalo (kritéria nejsou prázdná)
     assert all(t.criteria for t in templates)
 
     # idempotence: druhý běh nic nepřidá
     res2 = service.seed_default_templates()
-    assert res2["added"] == 0 and res2["skipped"] == 32
+    assert res2["added"] == 0 and res2["skipped"] == 16
 
     # overwrite přegeneruje
     res3 = service.seed_default_templates(overwrite_existing=True)
-    assert res3["replaced"] == 32 and res3["added"] == 0
-    assert len(service.list_review_templates()) == 32
+    assert res3["replaced"] == 16 and res3["added"] == 0
+    assert len(service.list_review_templates()) == 16
+
+
+def test_dedupe_review_templates(service: ThesisService) -> None:
+    """Sloučí jen bajtově identické duplicity; odlišnou šablonu nechá být."""
+    spec = list_default_template_specs()[0]
+    # Dvě registrace TÉHOŽ zdroje se shodnými metadaty → identický soubor.
+    service.register_review_template(
+        name="Dup A", type=spec.type, role=spec.role, language=spec.language,
+        obor=spec.obor, academic_year="", source_path=spec.source_path,
+    )
+    service.register_review_template(
+        name="Dup B", type=spec.type, role=spec.role, language=spec.language,
+        obor=spec.obor, academic_year="", source_path=spec.source_path,
+    )
+    # Jiný obor se stejným souborem → NESMÍ se sloučit (jiná kombinace).
+    other = service.register_review_template(
+        name="Jiný obor", type=spec.type, role=spec.role, language=spec.language,
+        obor="ZZZ", academic_year="", source_path=spec.source_path,
+    )
+    assert len(service.list_review_templates()) == 3
+
+    pairs = service.dedupe_review_templates(dry_run=True)
+    assert len(pairs) == 1  # jen jeden pár (A/B), other zůstává
+    removed, keep = pairs[0]
+    assert {removed.name, keep.name} == {"Dup A", "Dup B"}
+
+    applied = service.dedupe_review_templates(dry_run=False)
+    assert len(applied) == 1
+    remaining = {t.id for t in service.list_review_templates()}
+    assert len(remaining) == 2
+    assert other.id in remaining  # odlišný obor zachován
+    assert keep.id in remaining and removed.id not in remaining
+    # idempotence: druhý běh už nic nesloučí
+    assert service.dedupe_review_templates(dry_run=True) == []
+    # ponechaná šablona má dál svůj XLSX soubor
+    assert service.review_template_file_path(
+        service.get_review_template(keep.id)
+    ).is_file()
 
 
 def test_seed_propagates_academic_year(service: ThesisService) -> None:
@@ -172,12 +213,12 @@ def test_reset_templates_to_defaults(service: ThesisService) -> None:
         name="MOJE VLASTNÍ", type=spec.type, role=spec.role,
         language=spec.language, obor="X", academic_year="", source_path=spec.source_path,
     )
-    assert len(service.list_review_templates()) == 33
+    assert len(service.list_review_templates()) == 17
     res = service.reset_templates_to_defaults()
-    assert res["added"] == 32
+    assert res["added"] == 16
     names = {t.name for t in service.list_review_templates()}
     assert "MOJE VLASTNÍ" not in names
-    assert len(names) == 32
+    assert len(names) == 16
 
 
 def test_relink_review_template_by_name(service: ThesisService) -> None:
@@ -216,7 +257,7 @@ def test_maybe_seed_defaults_only_on_fresh(tmp_path: Path) -> None:
     svc = ThesisService(repo)  # load() vytvořil čerstvou DB → created_fresh
     assert repo.created_fresh is True
     svc.maybe_seed_defaults()
-    assert len(svc.list_review_templates()) == 32
+    assert len(svc.list_review_templates()) == 16
     assert repo.created_fresh is False  # flag se shodil
 
     # nová služba nad EXISTUJÍCÍ DB → není fresh → no-op

@@ -1424,6 +1424,57 @@ class ThesisService:
         ]
         self.save()
 
+    def dedupe_review_templates(
+        self, *, dry_run: bool = True
+    ) -> list[tuple[ReviewTemplate, ReviewTemplate]]:
+        """Sloučí redundantní duplicity šablon (typicky -P/-K formy téhož oboru).
+
+        **Bezpečně:** sloučí jen šablony, které mají **shodnou kombinaci
+        typ/role/jazyk/obor** a navíc **bajtově identický XLSX soubor** — tím
+        se nikdy nesmaže obsahově odlišná šablona uživatele. Z každé skupiny
+        ponechá jednu (preferuje tu s nascanovanými kritérii / vyplněným
+        rokem) a ostatní vrátí jako ``(odebraná, ponechaná)``.
+
+        Při ``dry_run=False`` odebrané smaže (vč. XLSX souboru).
+        """
+        import hashlib
+
+        def _file_hash(t: ReviewTemplate) -> str | None:
+            fp = self.review_template_file_path(t)
+            if not fp or not fp.is_file():
+                return None
+            try:
+                return hashlib.sha1(fp.read_bytes()).hexdigest()
+            except OSError:
+                return None
+
+        def _keep_rank(t: ReviewTemplate) -> tuple:
+            # Nižší = lepší kandidát na ponechání.
+            return (0 if t.criteria else 1, 0 if t.academic_year else 1, t.name.lower())
+
+        groups: dict[tuple, list[ReviewTemplate]] = {}
+        for t in self._db.review_templates:
+            fh = _file_hash(t)
+            if fh is None:
+                continue  # bez souboru neslučujeme (nelze ověřit identitu)
+            key = (t.type.value, t.role, t.language, t.obor.strip(), fh)
+            groups.setdefault(key, []).append(t)
+
+        pairs: list[tuple[ReviewTemplate, ReviewTemplate]] = []
+        for members in groups.values():
+            if len(members) < 2:
+                continue
+            members_sorted = sorted(members, key=_keep_rank)
+            keep = members_sorted[0]
+            for removed in members_sorted[1:]:
+                pairs.append((removed, keep))
+
+        if not dry_run:
+            with self.batch():
+                for removed, _keep in pairs:
+                    self.delete_review_template(removed.id, delete_file=True)
+        return pairs
+
     # ── vyhledávání prací ─────────────────────────────────────────────────
 
     def search_works(self, query: str) -> list[dict]:
