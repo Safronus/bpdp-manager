@@ -49,6 +49,29 @@ def test_thesis_summary_sent_indicator(qapp, service: ThesisService, tmp_path: P
     assert "odesláno" in html2 and "neodesláno" not in html2
 
 
+def test_history_summary_hides_sent_section(qapp, service: ThesisService, tmp_path: Path) -> None:
+    """U historických prací (obhájeno/nedokončeno) se sekce Odeslání neukazuje."""
+    from bpdpmanager.ui.thesis_detail import ThesisDetail
+
+    student = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(student)
+    t = Thesis(type=ThesisType.BP, academic_year="2024/2025", student_id=student.id,
+               status=ThesisStatus.IN_PROGRESS, title_cs="Práce")
+    service.upsert_thesis(t)
+    src = tmp_path / "pv.pdf"
+    src.write_bytes(b"%PDF dummy")
+    service.attach_document(t.id, src, kind=AttachmentKind.SUPERVISOR_REVIEW)
+    service.mark_supervisor_review_sent(t.id)
+
+    det = ThesisDetail(service)
+    # Dokud je „V řešení", sekce se ukazuje.
+    assert "Odeslání posudku" in det._build_summary_html(service.get_thesis(t.id))
+
+    # Po přechodu do historie (Obhájeno) sekce zmizí — fakt je irelevantní.
+    service.transition(t.id, ThesisStatus.DEFENDED)
+    assert "Odeslání posudku" not in det._build_summary_html(service.get_thesis(t.id))
+
+
 def test_opposing_summary_sent_indicator(qapp, service: ThesisService, tmp_path: Path) -> None:
     from bpdpmanager.ui.opposing_detail import OpposingDetail
 

@@ -181,7 +181,9 @@ Seznam prací v *Aktuální* i *Oponentské posudky* má jednotný sloupec
 **✉ ✗ neodesláno** (stejná informace je i v Souhrnu — *Odeslání posudku:
 ✓/✗*). Posudek se označí jako odeslaný **automaticky** při odeslání e-mailem,
 nebo **ručně** přes pravý klik na práci → *✉ Označit posudek za odeslaný
-sekretářce* (a zpět).
+sekretářce* (a zpět). U **historických prací** (*Obhájeno* / *Nedokončeno*)
+se odeslání posudku už neřeší — sekce *Odeslání posudku* se v jejich Souhrnu
+**nezobrazuje**.
 
 Každý tab prací má nahoře **strom** (rok → BP/DP → práce) a dole
 **detail** vybrané práce. Po startu se automaticky otevře první práce

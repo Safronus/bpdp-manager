@@ -117,6 +117,7 @@ def _setup_searchable_combo(combo: QComboBox) -> None:
 from ..models import Thesis
 from ..models.enums import (
     ALLOWED_TRANSITIONS,
+    STATUSES_HISTORY,
     AttachmentKind,
     PlagiarismVerdict,
     ThesisStatus,
@@ -1166,7 +1167,14 @@ class ThesisDetail(QWidget):
         )
 
     def _build_sent_summary_html(self, thesis, e, section_header_style: str) -> str:
-        """Indikace, zda byl posudek vedoucího odeslán sekretářce."""
+        """Indikace, zda byl posudek vedoucího odeslán sekretářce.
+
+        U **historických** prací (obhájeno / nedokončeno) je odeslání posudku
+        sekretářce už irelevantní — sekci proto vůbec neukazujeme, i kdyby
+        práce dřív byla „V řešení".
+        """
+        if thesis.status in STATUSES_HISTORY:
+            return ""
         has_review = any(
             a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in thesis.attachments
         ) or any(r.role == "supervisor" for r in thesis.reviews)

@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.67.3] - 2026-06-07
+
+### Changed
+- **Souhrn historické práce už neukazuje „Odeslání posudku".** U prací ve
+  stavu *Obhájeno* / *Nedokončeno* je odeslání posudku sekretářce irelevantní,
+  takže se sekce v Souhrnu vůbec nezobrazí — i kdyby práce dříve byla
+  „V řešení".
+
 ## [0.67.2] - 2026-06-07
 
 ### Changed
