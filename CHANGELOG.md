@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-07
+
+### Changed
+- **Tutoriál (Začínáme / nápověda + README):** prvnotní **import ze STAG** je
+  nově prezentován jako **hlavní krok onboardingu**. STAG import sám zakládá
+  **studenty, oponenty i vedoucí**, takže je nový uživatel **nemusí vytvářet
+  ručně**. Krok *Studijní obory* je přeřazen na *doporučené* nastavení (kvůli
+  správnému mapování a sekretářkám), kroky přečíslovány.
+
 ## [1.0.1] - 2026-06-07
 
 ### Changed

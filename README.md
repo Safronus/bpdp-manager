@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 1.0.1** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 1.0.2** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -144,6 +144,8 @@ python -m bpdpmanager
 ```
 
 Při prvním spuštění se vytvoří složka `~/.bpdpmanager/` s prázdnou databází.
+
+**Doporučený první krok:** po vyplnění svého jména v profilu spusť **📥 Import ze STAG** (*🎓 Moje vedené práce… / 🧐 Moje oponentury…*). Ten **sám založí studenty, oponenty i vedoucí** přímo z dat STAG — ručně je zakládat nemusíš (obory je vhodné mít s STAG kódy kvůli mapování a sekretářkám, nebo je doplnit tlačítkem ⭐ *Defaultní*). Podrobně viz [🚀 Začínáme v nápovědě](src/bpdpmanager/resources/napoveda.md#-začínáme-první-spuštění).
 
 ## Demo data
 

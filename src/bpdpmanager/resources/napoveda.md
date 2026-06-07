@@ -12,8 +12,12 @@ a **diplomových (DP)** prací jednoho akademického vedoucího.
 
 ## 🚀 Začínáme (první spuštění)
 
-Než začneš importovat ze STAG nebo psát posudky, projdi tento checklist.
-Postupuj odshora dolů.
+**Nejrychlejší a doporučená cesta je prvnotní hromadný import ze STAG.** Ten ti
+**sám založí studenty, oponenty i vedoucí** přímo z dat STAG — **nemusíš je
+zakládat ručně**. Stačí tedy: vybrat **datový profil** (krok 1), vyplnit **své
+jméno** (krok 2, kvůli auto-detekci role) a spustit **import ze STAG** (krok 3),
+který naplní databázi. Obory, šablony posudků a LibreOffice jsou doplňkové
+nastavení (kroky 4–6).
 
 ### 1. Datový profil a složka s daty
 Při prvním spuštění tě uvítá okno, kde zvolíš, **kam se ukládají data**:
@@ -63,8 +67,29 @@ V **👤 → 🗂 Správa profilů**:
 > *Oponentů* / *Vedoucích* — ukáže náhled a rozparsuje i jméno vedoucího
 > uložené u oponentur.
 
-### 3. Studijní obory (+ STAG zkratky)
-V toolbaru **Obory + sekretářky** přidej obory, které vedeš. U každého můžeš vyplnit:
+### 3. 🌟 Prvnotní import ze STAG — hlavní krok
+Jakmile máš nastavené **jméno** (krok 2), je nejrychlejší start **hromadně
+stáhnout své práce přímo ze STAG**:
+
+1. Toolbar **📥 Import ze STAG…**
+2. **🎓 Moje vedené práce…** — najde a předvybere všechny tvé vedené práce
+   (historické i aktuální) podle jména z profilu.
+3. **🧐 Moje oponentury…** — totéž pro práce, kde jsi oponent.
+4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. U velkého objemu příloh
+   zvol *„Jen data (bez příloh)"* — gigabajty plných textů dotáhneš později
+   cíleně. Stav a chybějící soubory pak průběžně doplníš přes
+   *🔄 Aktualizovat …* a zkontroluješ tlačítkem *🔍 Kontrola se STAG*.
+
+Před zápisem se objeví **📋 Souhrn před importem** s výčtem **nových studentů,
+oponentů, vedoucích a oborů, které se automaticky založí**. Díky tomu
+**nemusíš ručně zakládat studenty, oponenty ani vedoucí** — STAG import je
+vytvoří za tebe (oponenti se založí jako *interní*, kind a kontakt lze upravit
+dodatečně). Tím máš databázi naplněnou během chvíle.
+
+### 4. Studijní obory (+ STAG zkratky) — doporučené
+Obory import v nouzi založí i sám, ale pro **správné mapování** (a hlavně
+přiřazení **sekretářky** kvůli odesílání posudků e-mailem) je vhodné mít je
+nachystané. V toolbaru **Obory + sekretářky** u každého vyplň:
 
 - **STAG kód** (např. `knIT-KYB`) — **důležité pro STAG import**:
   podle něj se obor automaticky namapuje. Bez něj tě import upozorní,
@@ -72,6 +97,10 @@ V toolbaru **Obory + sekretářky** přidej obory, které vedeš. U každého m�
 - volitelně sekretářku oboru (jméno, email, telefon) a její **oslovení
   v mailu** (např. „Vážená paní Nováková") — použije se při odesílání posudků;
   prázdné = formální výchozí „Dobrý den, paní {jméno},".
+
+> Nejrychleji obory nachystáš tlačítkem **⭐ Defaultní…** (viz níže) — doplní
+> celou sadu FAI UTB i s STAG kódy. Můžeš to udělat i **dodatečně** kdykoli po
+> importu.
 
 > Manažer **seskupuje obory podle sekretářky**; ve sloupci **Oslovení** vidíš
 > její oslovení. **Dvojklik na hlavičku sekretářky** upraví její kontakt
@@ -84,7 +113,7 @@ V toolbaru **Obory + sekretářky** přidej obory, které vedeš. U každého m�
 > přepsat lišící se STAG kódy), nebo **smazat celý číselník a nahradit ho
 > výchozími**. Nový (prázdný) profil obory dostane rovnou.
 
-### 4. Šablony posudků
+### 5. Šablony posudků
 V toolbaru **📝 Šablony posudků → + Přidat šablonu…** nahraj XLSX
 šablony posudků (vedoucího / oponenta, BP / DP, CZ / EN). Aplikace
 z šablony **sama rozpozná** typ, roli, jazyk, obor, rok i strukturu
@@ -97,7 +126,7 @@ kritérií. Bez šablon nelze generovat posudky.
 > hned psát posudky bez ručního nahrávání. (Akademický rok se propíše z hlavičky
 > šablony.)
 
-### 5. (Volitelně) LibreOffice pro PDF
+### 6. (Volitelně) LibreOffice pro PDF
 Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:
 
 ```bash
@@ -108,26 +137,14 @@ Bez něj se vygeneruje jen XLSX (PDF si vyrobíš v Excelu přes Export).
 LibreOffice se použije i k **vyčtení navržené známky ze starých `.doc`**
 posudků (převede je na pozadí na text). PDF a `.docx` fungují i bez něj.
 
-### 6. Doporučený první krok — stáhnout své práce ze STAG
-Jakmile máš nastavené **jméno** (krok 2) a **obory s STAG zkratkami**
-(krok 3), je nejrychlejší start **hromadně stáhnout své práce přímo ze STAG**:
-
-1. Toolbar **📥 Import ze STAG…**
-2. **🎓 Moje vedené práce…** — najde a předvybere všechny tvé vedené práce
-   (historické i aktuální) podle jména z profilu.
-3. **🧐 Moje oponentury…** — totéž pro práce, kde jsi oponent.
-4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. U velkého objemu příloh
-   zvol *„Jen data (bez příloh)"* — gigabajty plných textů dotáhneš později
-   cíleně. Stav a chybějící soubory pak průběžně doplníš přes
-   *🔄 Aktualizovat …* a zkontroluješ tlačítkem *🔍 Kontrola se STAG*.
-
-Tím máš databázi naplněnou během chvíle. (Detaily importu viz sekce
-*Import ze STAG* níže.)
+(Detaily importu ze STAG viz sekce *Import ze STAG* níže.)
 
 ### 7. Co dál
-Dále můžeš:
+Studenti, oponenti i vedoucí už v databázi jsou (založil je import ze STAG —
+krok 3), takže je **ručně zakládat nemusíš**. Dále můžeš:
 
-- nebo **ručně přidat práci** (toolbar *+ Nová práce*),
+- **ručně přidat práci** (toolbar *+ Nová práce*) — pro případy, které ve STAG
+  nejsou,
 - **🌱 Zájemce** — nová budoucí práce s dialogem, kde rovnou (volitelně)
   vyplníš **studenta, obor, název a anotaci** (nic není povinné — co
   nevyplníš, zůstane prázdné). Studenta lze rovnou **založit tlačítkem
