@@ -24,6 +24,7 @@ from ..models import OpposingThesis
 from ..models.enums import (
     REVIEW_STATE_LABELS,
     AttachmentKind,
+    ThesisType,
     review_sent_badge,
 )
 from ..services import ThesisService
@@ -222,102 +223,33 @@ class OpposingTab(QWidget):
                 year_item.setFont(0, f)
                 self.tree.addTopLevelItem(year_item)
 
-                ops = sorted(
-                    groups[year],
-                    key=lambda o: (
-                        o.type.value,
-                        _czech_key(o.student_last_name),
-                        _czech_key(o.student_first_name),
-                    ),
-                )
-                for op in ops:
-                    name = (
-                        f"{op.student_last_name}, {op.student_first_name}"
-                        if op.student_last_name or op.student_first_name
-                        else "(neuvedený student)"
+                # Podskupiny BP / DP (prázdná se neukáže) — jako u vedených prací.
+                by_type: dict[str, list[OpposingThesis]] = {}
+                for op in groups[year]:
+                    by_type.setdefault(op.type.value, []).append(op)
+                for type_code in ("BP", "DP"):
+                    members = by_type.get(type_code)
+                    if not members:
+                        continue
+                    type_item = QTreeWidgetItem(
+                        [f"📚 {ThesisType(type_code).label}  ({len(members)})",
+                         "", "", "", ""]
                     )
-                    title = op.title_cs or "(bez názvu)"
-                    state = op.opponent_review_state
-                    # Indikace stavu posudku (puntík / Odesláno / podbarvení) má
-                    # smysl jen u AKTUÁLNÍHO akademického roku — u starších let je
-                    # irelevantní, takže ji potlačíme.
-                    is_current = op.academic_year == current_year
-                    if is_current:
-                        dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
-                        if dot:
-                            title = f"{dot} {title}"
-                    if op.related_thesis_id:
-                        title = f"🔁 {title}"
-                    # Stav práce ze STAG (DUO/ND/…) — užitečné hlavně u
-                    # nedokončených.
-                    code = op.stag_state_code
-                    stav = STAG_STATE_SHORT.get(code, code) if code else "—"
-                    # Odeslání posudku sekretářce — jen aktuální rok.
-                    if is_current:
-                        _, sent_bg, sent_tip = review_sent_badge(
-                            state == "done", op.opponent_review_sent_at
-                        )
-                    else:
-                        sent_bg, sent_tip = "", ""
-                    gs = (op.grade_supervisor or "").strip()
-                    go = (op.grade_opponent or "").strip()
-                    # Známky kreslí GradesDelegate z dat ROLE_GRADES; text buňky
-                    # je prázdný (a „—", když chybí obě).
-                    grades_text = "" if (gs or go) else "—"
-                    # Posudky V/O — k dispozici (zelená) / chybí (červená).
-                    has_v = any(a.kind == AttachmentKind.SUPERVISOR_REVIEW
-                                for a in op.attachments)
-                    has_o = any(a.kind == AttachmentKind.OPPONENT_REVIEW
-                                for a in op.attachments)
-                    obor = op.student_obor or "—"
-                    type_prefix = op.type.value
-                    leaf = QTreeWidgetItem(
-                        [
-                            f"{type_prefix} · {name}",
-                            title,
-                            stav,
-                            op.supervisor_name or "—",
-                            grades_text,
-                            "",          # Posudky — kreslí delegát
-                            "",          # Odesláno — kreslí delegát
-                            obor,
-                        ]
+                    type_item.setFirstColumnSpanned(True)
+                    tf = type_item.font(0)
+                    tf.setBold(True)
+                    type_item.setFont(0, tf)
+                    year_item.addChild(type_item)
+                    members = sorted(
+                        members,
+                        key=lambda o: (
+                            _czech_key(o.student_last_name),
+                            _czech_key(o.student_first_name),
+                        ),
                     )
-                    leaf.setData(0, ROLE_ID, op.id)
-                    leaf.setData(COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
-                    if sent_bg:
-                        leaf.setData(COL_SENT, ROLE_SENT, sent_bg)
-                    leaf.setData(COL_REVIEWS, ROLE_REVIEWS, (has_v, has_o))
-                    tip_v = "✓ k dispozici" if has_v else "chybí"
-                    tip_o = "✓ k dispozici" if has_o else "chybí"
-                    leaf.setToolTip(
-                        COL_REVIEWS,
-                        f"V = posudek vedoucího: {tip_v}\n"
-                        f"O = posudek oponenta: {tip_o}",
-                    )
-                    if gs or go:
-                        leaf.setData(COL_GRADES, ROLE_GRADES, (gs, go))
-                        leaf.setToolTip(
-                            COL_GRADES,
-                            f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}",
-                        )
-                    leaf.setTextAlignment(
-                        COL_GRADES,
-                        Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
-                    )
-                    if code:
-                        leaf.setToolTip(
-                            2, STAG_STATE_LABELS.get(code, code) + f" ({code})"
-                        )
-                    if sent_tip:
-                        leaf.setToolTip(COL_SENT, sent_tip)
-                    # Oponentský posudek — indikuje jen barevná tečka v názvu
-                    # (🟢/🟡/🔴 u aktuálního roku); pozadí se nepodbarvuje.
-                    if is_current and state in REVIEW_STATE_LABELS:
-                        leaf.setToolTip(
-                            1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
-                        )
-                    year_item.addChild(leaf)
+                    for op in members:
+                        type_item.addChild(self._make_opposing_leaf(op, current_year))
+                    type_item.setExpanded(True)
                 # Aktuální rok rozbalený, starší roky defaultně sbalené.
                 year_item.setExpanded(year == current_year)
 
@@ -326,6 +258,70 @@ class OpposingTab(QWidget):
         finally:
             self.tree.blockSignals(False)
 
+    def _make_opposing_leaf(self, op, current_year: str) -> QTreeWidgetItem:
+        """Sestaví řádek (list) jedné oponentury. Typ (BP/DP) nese podskupina,
+        proto jméno studenta už nemá prefix „BP · "."""
+        name = (
+            f"{op.student_last_name}, {op.student_first_name}"
+            if op.student_last_name or op.student_first_name
+            else "(neuvedený student)"
+        )
+        title = op.title_cs or "(bez názvu)"
+        state = op.opponent_review_state
+        # Indikace stavu posudku má smysl jen u AKTUÁLNÍHO roku (jinak potlačit).
+        is_current = op.academic_year == current_year
+        if is_current:
+            dot = {"done": "🟢", "draft": "🟡", "none": "🔴"}.get(state, "")
+            if dot:
+                title = f"{dot} {title}"
+        if op.related_thesis_id:
+            title = f"🔁 {title}"
+        code = op.stag_state_code
+        stav = STAG_STATE_SHORT.get(code, code) if code else "—"
+        if is_current:
+            _, sent_bg, sent_tip = review_sent_badge(
+                state == "done", op.opponent_review_sent_at
+            )
+        else:
+            sent_bg, sent_tip = "", ""
+        gs = (op.grade_supervisor or "").strip()
+        go = (op.grade_opponent or "").strip()
+        grades_text = "" if (gs or go) else "—"
+        has_v = any(a.kind == AttachmentKind.SUPERVISOR_REVIEW for a in op.attachments)
+        has_o = any(a.kind == AttachmentKind.OPPONENT_REVIEW for a in op.attachments)
+        obor = op.student_obor or "—"
+        leaf = QTreeWidgetItem(
+            [name, title, stav, op.supervisor_name or "—", grades_text, "", "", obor]
+        )
+        leaf.setData(0, ROLE_ID, op.id)
+        leaf.setData(COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
+        if sent_bg:
+            leaf.setData(COL_SENT, ROLE_SENT, sent_bg)
+        leaf.setData(COL_REVIEWS, ROLE_REVIEWS, (has_v, has_o))
+        tip_v = "✓ k dispozici" if has_v else "chybí"
+        tip_o = "✓ k dispozici" if has_o else "chybí"
+        leaf.setToolTip(
+            COL_REVIEWS,
+            f"V = posudek vedoucího: {tip_v}\nO = posudek oponenta: {tip_o}",
+        )
+        if gs or go:
+            leaf.setData(COL_GRADES, ROLE_GRADES, (gs, go))
+            leaf.setToolTip(
+                COL_GRADES, f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}"
+            )
+        leaf.setTextAlignment(
+            COL_GRADES, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+        if code:
+            leaf.setToolTip(2, STAG_STATE_LABELS.get(code, code) + f" ({code})")
+        if sent_tip:
+            leaf.setToolTip(COL_SENT, sent_tip)
+        if is_current and state in REVIEW_STATE_LABELS:
+            leaf.setToolTip(
+                1, f"Oponentský posudek: {REVIEW_STATE_LABELS.get(state, '')}"
+            )
+        return leaf
+
     def _selected_id(self) -> str | None:
         item = self.tree.currentItem()
         if item is None:
@@ -333,13 +329,15 @@ class OpposingTab(QWidget):
         return item.data(0, ROLE_ID)
 
     def _select_id(self, op_id: str) -> bool:
-        for i in range(self.tree.topLevelItemCount()):
-            year_item = self.tree.topLevelItem(i)
-            for j in range(year_item.childCount()):
-                leaf = year_item.child(j)
-                if leaf.data(0, ROLE_ID) == op_id:
-                    self.tree.setCurrentItem(leaf)
-                    return True
+        # Strom: rok → podskupina BP/DP → list. Procházíme do hloubky.
+        stack = [self.tree.topLevelItem(i) for i in range(self.tree.topLevelItemCount())]
+        while stack:
+            item = stack.pop()
+            if item.data(0, ROLE_ID) == op_id:
+                self.tree.setCurrentItem(item)
+                return True
+            for j in range(item.childCount()):
+                stack.append(item.child(j))
         return False
 
     def _on_selection_changed(self) -> None:

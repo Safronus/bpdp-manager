@@ -237,8 +237,9 @@ vpravo oponenta (O), jako **barevně podbarvená dvojice písmen** (zelená A �
 červená F/FX; „—" když chybí obě, plný popis v tooltipu). **Stejně vypadající
 sloupec V/O** je i v záložce *Oponované práce*.
 
-> **Oponentury — řazení dle roku.** Práce jsou seskupené dle akademického roku;
-> defaultně je rozbalený **jen aktuální rok**, starší roky jsou sbalené.
+> **Oponentury — řazení dle roku a typu.** Práce jsou seskupené dle
+> akademického roku a uvnitř ještě na **BP / DP** (prázdná podskupina se
+> nezobrazí); defaultně je rozbalený **jen aktuální rok**, starší roky sbalené.
 >
 > **Oponentury — sloupec Stav a indikace dle roku.** Tabulka oponentur má
 > sloupec **Stav** (ze STAG, např. *nedokončeno / obhájeno*). Barevný puntík

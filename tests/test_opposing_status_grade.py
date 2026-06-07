@@ -44,13 +44,15 @@ def test_sync_opponent_grade_from_pdf(service, tmp_path, monkeypatch) -> None:
 
 
 def _leaf_for(tab: OpposingTab, op_id: str) -> QTreeWidgetItem | None:
-    root = tab.tree.invisibleRootItem()
-    for i in range(root.childCount()):
-        year = root.child(i)
-        for j in range(year.childCount()):
-            leaf = year.child(j)
-            if leaf.data(0, ROLE_ID) == op_id:
-                return leaf
+    # Strom: rok → podskupina BP/DP → list. Projdeme do hloubky.
+    stack = [tab.tree.invisibleRootItem().child(i)
+             for i in range(tab.tree.invisibleRootItem().childCount())]
+    while stack:
+        item = stack.pop()
+        if item.data(0, ROLE_ID) == op_id:
+            return item
+        for j in range(item.childCount()):
+            stack.append(item.child(j))
     return None
 
 

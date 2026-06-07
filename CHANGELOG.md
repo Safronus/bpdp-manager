@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-06-07
+
+### Changed
+- **Oponované práce: seskupení podle typu (BP / DP)** uvnitř každého roku
+  (jako u vedených prací) — prázdná podskupina se nezobrazuje. Z názvu studenta
+  zmizel prefix *„BP · "* (typ teď nese podskupina).
+
 ## [1.2.1] - 2026-06-07
 
 ### Changed
