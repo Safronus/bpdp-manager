@@ -123,6 +123,7 @@ class OpposingTab(QWidget):
         self.tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tree.setMinimumHeight(160)
         h = self.tree.header()
+        h.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         for col in range(2, 8):
@@ -232,14 +233,14 @@ class OpposingTab(QWidget):
                     if not members:
                         continue
                     # Styl podskupiny sjednocen s vedenými pracemi:
-                    # „  Bakalářská práce  (N)" kurzívou, bez ikony, spanned.
+                    # „📚 Bakalářská práce  (N)" tučně, spanned.
                     type_item = QTreeWidgetItem(
-                        [f"  {ThesisType(type_code).label}  ({len(members)})",
+                        [f"📚 {ThesisType(type_code).label}  ({len(members)})",
                          "", "", "", ""]
                     )
                     type_item.setFirstColumnSpanned(True)
                     tf = type_item.font(0)
-                    tf.setItalic(True)
+                    tf.setBold(True)
                     type_item.setFont(0, tf)
                     year_item.addChild(type_item)
                     members = sorted(

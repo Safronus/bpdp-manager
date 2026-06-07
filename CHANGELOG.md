@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-06-07
+
+### Changed
+- **Titulky sloupců v seznamech jsou vycentrované** (vedené práce — Aktuální /
+  Budoucí / Historie / Vše — i Oponované práce).
+- **Sjednocený styl podskupiny BP/DP na „📚 Bakalářská práce (N)" (tučně)**
+  ve všech záložkách (vedené i oponentury) — vrácena ikona 📚 a tučné písmo.
+
 ## [1.2.3] - 2026-06-07
 
 ### Changed

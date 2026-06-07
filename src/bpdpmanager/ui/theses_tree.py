@@ -483,6 +483,7 @@ class ThesesTreeWidget(QTreeWidget):
         self.setSortingEnabled(False)
 
         h = self.header()
+        h.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
         h.setSectionResizeMode(self.COL_STUDENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_TITLE, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(self.COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
@@ -570,11 +571,11 @@ class ThesesTreeWidget(QTreeWidget):
 
                     type_label = ThesisType(type_code).label
                     type_item = QTreeWidgetItem(
-                        [f"  {type_label}  ({len(theses)})", "", "", "", ""]
+                        [f"📚 {type_label}  ({len(theses)})", "", "", "", ""]
                     )
                     type_item.setData(0, ROLE_KIND, "type")
                     type_font = type_item.font(0)
-                    type_font.setItalic(True)
+                    type_font.setBold(True)
                     type_item.setFont(0, type_font)
                     type_item.setFirstColumnSpanned(True)
                     year_item.addChild(type_item)
