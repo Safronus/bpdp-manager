@@ -328,7 +328,12 @@ class SendReviewsDialog(QDialog):
                     )
                 )
         else:
+            current_year = self.service.current_academic_year()
             for op in self.service.list_opposing_theses():
+                # Jen oponentury AKTUÁLNÍHO akademického roku — starší se
+                # sekretářce neposílají (jejich „odesláno" je irelevantní).
+                if op.academic_year != current_year:
+                    continue
                 pdf = self.service.current_opponent_review_pdf(op)
                 if pdf is None or not pdf.exists():
                     continue

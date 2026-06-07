@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-06-07
+
+### Fixed
+- **Odeslání oponentských posudků nabízelo i práce z předchozích let.** Dialog
+  *✉ Odeslat sekretářce* (oponentury) nyní nabízí **jen posudky aktuálního
+  akademického roku** — starší oponentury se sekretářce neposílají (jejich stav
+  „odesláno" je irelevantní). U vedoucích posudků filtr existoval už dřív (jen
+  práce *V řešení*).
+
 ## [1.0.9] - 2026-06-07
 
 ### Added

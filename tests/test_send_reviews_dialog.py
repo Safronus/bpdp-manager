@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from bpdpmanager.models import Obor, Profile, Student, Thesis  # noqa: E402
+from bpdpmanager.models import Obor, OpposingThesis, Profile, Student, Thesis  # noqa: E402
 from bpdpmanager.models.enums import AttachmentKind, ThesisStatus, ThesisType  # noqa: E402
 from bpdpmanager.services import ThesisService  # noqa: E402
 from bpdpmanager.storage import JsonRepository  # noqa: E402
@@ -91,6 +91,27 @@ def test_sent_work_hidden_by_default(qapp, service: ThesisService, tmp_path: Pat
     dlg.chk_show_sent.setChecked(True)
     assert dlg.table.rowCount() == 1
     assert dlg.table.item(0, 0).checkState() == Qt.CheckState.Unchecked
+
+
+def test_opponent_reviews_only_current_year(
+    qapp, service: ThesisService, tmp_path: Path
+) -> None:
+    """Odeslání oponentských posudků nabízí jen AKTUÁLNÍ akademický rok."""
+    cur = service.current_academic_year()
+    op_now = OpposingThesis(type=ThesisType.BP, academic_year=cur,
+                            student_last_name="Aktualni")
+    op_old = OpposingThesis(type=ThesisType.BP, academic_year="2018/2019",
+                            student_last_name="Stary")
+    for op in (op_now, op_old):
+        service.upsert_opposing_thesis(op)
+        pdf = tmp_path / f"{op.id}.pdf"
+        pdf.write_bytes(b"%PDF dummy")
+        service.opposing_attach_document(op.id, pdf, kind=AttachmentKind.OPPONENT_REVIEW)
+
+    dlg = SendReviewsDialog(service, _pm(), "opponent")
+    ids = {it.work_id for it in dlg._all_role_items()}
+    assert op_now.id in ids        # aktuální rok se nabízí
+    assert op_old.id not in ids    # starší rok NE
 
 
 def test_no_secretary_no_rows(qapp, service: ThesisService, tmp_path: Path) -> None:

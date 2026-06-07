@@ -542,7 +542,8 @@ V dialogu:
    > vybereš ručně. Počet skrytých prací aplikace napoví pod tabulkou.
 2. **Seznam prací** — nabídnou se jen práce s **hotovým PDF posudku**.
    U vedených prací **jen ty aktuální („V řešení")** — z Historie (obhájeno /
-   nedokončeno) se posudky nenabízejí. Nezaslané jsou předzaškrtnuté,
+   nedokončeno) se posudky nenabízejí. U **oponentur** se nabízí **jen aktuální
+   akademický rok** (starší oponentury se sekretářce neposílají). Nezaslané jsou předzaškrtnuté,
    **už odeslané** se defaultně skryjí (zaškrtni *Zobrazit i už odeslané*,
    pokud chceš poslat znovu). BP i DP můžeš poslat naráz.
 3. **Náhled e-mailu** — předmět a tělo se sestaví automaticky (pozdrav +

@@ -59,7 +59,7 @@ def _obor_with_secretary(service: ThesisService) -> None:
 def test_opponent_matches_by_stag_code(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
     _obor_with_secretary(service)
     op = OpposingThesis(
-        type=ThesisType.BP, academic_year="2024/2025",
+        type=ThesisType.BP, academic_year=service.current_academic_year(),
         student_first_name="Jan", student_last_name="Novák",
         student_obor="NSWI-K",  # STAG kód, NE název
         title_cs="Nějaká práce",
@@ -117,7 +117,7 @@ def test_supervisor_skips_history(qapp, service: ThesisService, pm: _StubPM, tmp
 def test_no_match_other_obor(qapp, service: ThesisService, pm: _StubPM, tmp_path: Path) -> None:
     _obor_with_secretary(service)
     op = OpposingThesis(
-        type=ThesisType.BP, academic_year="2024/2025",
+        type=ThesisType.BP, academic_year=service.current_academic_year(),
         student_last_name="Cizí", student_obor="UPLNE-JINY",
         title_cs="Práce",
     )
