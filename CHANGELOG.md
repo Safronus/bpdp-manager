@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-06-07
+
+### Added
+- **Tichá kontrola STAG na pozadí.** Krátce po startu (a kdykoli ručně
+  tlačítkem **🔄 Zkontrolovat** v proužku) aplikace na pozadí porovná aktuální
+  rok se STAG a v **proužku nad záložkami** ukáže výsledek — i stav
+  **„✓ vše aktuální"**, takže máš jistotu, že kontrola proběhla. Hlídá:
+  - **změnu stavu / chybějící soubor** u vedených prací *V řešení*,
+  - **změnu stavu / chybějící soubor** u oponentur aktuálního roku,
+  - **nové práce ve STAG** (dle jména), které ještě nemáš v databázi.
+  Při změnách svítí **odznak 🔄 na záložkách** *Aktuální* a *🧐 Oponentské
+  posudky* a v proužku je tlačítko **Otevřít Import ze STAG…**. Offline kontrola
+  tiše oznámí, že se nezdařila (data se nemění — kontrola je jen pro čtení).
+
 ## [0.69.3] - 2026-06-07
 
 ### Changed

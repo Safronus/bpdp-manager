@@ -557,6 +557,24 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 > - Před importem se vytvoří záloha `before-stag-import` a celý import jde
 >   **vrátit** tlačítkem *„↩ Vrátit celý import zpět"*.
 
+### 🔄 Tichá kontrola STAG (na pozadí)
+
+Krátce **po startu** aplikace na pozadí porovná **aktuální akademický rok** se
+STAG a výsledek ukáže v **proužku nad záložkami**. Smysl: máš jistotu, že je
+vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola hlídá:
+
+- **změnu stavu** nebo **chybějící druh souboru** u vedených prací *V řešení*,
+- totéž u **oponentur aktuálního roku**,
+- **nové práce ve STAG** (dle tvého jména), které ještě nemáš v databázi.
+
+Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
+práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuální* a *🧐
+Oponentské posudky* a v proužku je tlačítko **Otevřít Import ze STAG…** (odtud
+*Aktualizovat…* / *Najít nové práce…*). Kontrolu lze kdykoli **ručně zopakovat**
+tlačítkem **🔄 Zkontrolovat** v proužku; **proužek skryješ** křížkem. Kontrola
+je **jen pro čtení** (nic nemění); když je STAG nedostupný (offline), tiše to
+oznámí.
+
 ### 🔍 Kontrola se STAG (co chybí)
 
 Toolbarové tlačítko **🔍 Kontrola se STAG** (skupina *Import*): projde práce

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -436,6 +437,8 @@ class MainWindow(QMainWindow):
         search_row.addWidget(self.ed_search, stretch=1)
         search_row.addWidget(btn_search)
         cv.addLayout(search_row)
+        # Proužek tiché kontroly STAG (skrytý, dokud kontrola nedoběhne).
+        cv.addWidget(self._build_stag_banner())
         cv.addWidget(self.tabs, stretch=1)
         self.setCentralWidget(central)
         self.setStatusBar(QStatusBar())
@@ -456,6 +459,117 @@ class MainWindow(QMainWindow):
         # Po startu otevři první práci v Aktuálním seznamu (pokud existuje) —
         # uživatel rovnou vidí, na čem aktuálně dělá, nemusí klikat.
         self._auto_select_first_in_current()
+
+        # Tichá kontrola STAG na pozadí (krátce po startu, ať se okno stihne
+        # vykreslit). Indikátor v proužku + odznaky na záložkách.
+        self._stag_checker: object | None = None
+        QTimer.singleShot(900, self._start_stag_check)
+
+    # --- tichá kontrola STAG -------------------------------------------------
+
+    def _build_stag_banner(self) -> QFrame:
+        """Proužek s výsledkem tiché kontroly STAG (skrytý, dokud nedoběhne)."""
+        bar = QFrame()
+        bar.setAutoFillBackground(True)
+        bar.setFrameShape(QFrame.Shape.StyledPanel)
+        lay = QHBoxLayout(bar)
+        lay.setContentsMargins(10, 4, 6, 4)
+        lay.setSpacing(8)
+        self._stag_banner_label = QLabel("")
+        self._stag_banner_label.setTextFormat(Qt.TextFormat.RichText)
+        self._stag_banner_label.setWordWrap(True)
+        lay.addWidget(self._stag_banner_label, stretch=1)
+        self._stag_banner_btn = QPushButton("Otevřít Import ze STAG…")
+        self._stag_banner_btn.clicked.connect(self._import_from_stag)
+        self._stag_banner_btn.setVisible(False)
+        lay.addWidget(self._stag_banner_btn)
+        btn_recheck = QPushButton("🔄 Zkontrolovat")
+        btn_recheck.setToolTip("Znovu zkontrolovat změny ve STAG (aktuální rok).")
+        btn_recheck.clicked.connect(self._start_stag_check)
+        lay.addWidget(btn_recheck)
+        btn_close = QToolButton()
+        btn_close.setText("✕")
+        btn_close.setAutoRaise(True)
+        btn_close.setToolTip("Skrýt proužek")
+        btn_close.clicked.connect(lambda: self._stag_banner.setVisible(False))
+        lay.addWidget(btn_close)
+        self._stag_banner = bar
+        bar.setVisible(False)
+        return bar
+
+    def _set_stag_banner(self, html: str, bg: str, *, show_open: bool) -> None:
+        self._stag_banner_label.setText(html)
+        self._stag_banner.setStyleSheet(
+            f"QFrame {{ background: {bg}; border: 1px solid rgba(0,0,0,0.10); "
+            "border-radius: 6px; }}"
+        )
+        self._stag_banner_btn.setVisible(show_open)
+        self._stag_banner.setVisible(True)
+
+    def _start_stag_check(self) -> None:
+        """Spustí tichou kontrolu STAG na pozadí (pokud už neběží)."""
+        from .stag_check import StagChecker
+
+        if getattr(self, "_stag_checker", None) is not None:
+            return  # už běží
+        user_name = ""
+        if self.profile_manager and self.profile_manager.active:
+            user_name = self.profile_manager.active.user_name or ""
+        self._set_stag_banner(
+            "⏳ Kontroluji změny ve STAG…", "#e3f2fd", show_open=False
+        )
+        checker = StagChecker(self.service, user_name, parent=self)
+        checker.finished.connect(self._on_stag_check_done)
+        self._stag_checker = checker
+        checker.start()
+
+    def _on_stag_check_done(self, result) -> None:
+        """Zobrazí výsledek tiché kontroly (proužek + odznaky na záložkách)."""
+        from datetime import datetime
+
+        self._stag_checker = None
+        ts = datetime.now().strftime("%H:%M")
+
+        # Odznaky na záložkách (jen aktuální + oponentury).
+        sup = result.supervised_changes if result.ok else 0
+        opp = result.opposing_changes if result.ok else 0
+        self._set_tab_badge(self.tab_current, "Aktuální", sup)
+        self._set_tab_badge(self.tab_opposing, "🧐 Oponentské posudky", opp)
+
+        if not result.ok:
+            self._set_stag_banner(
+                f"⚠ STAG: kontrolu se nepodařilo dokončit ({result.error}). "
+                f"Naposledy {ts}.",
+                "#fff3e0", show_open=False,
+            )
+            return
+
+        if result.total_changes == 0:
+            self._set_stag_banner(
+                f"✓ STAG zkontrolováno v {ts} — <b>vše aktuální</b> "
+                "(žádné změny ani nové práce).",
+                "#e8f5e9", show_open=False,
+            )
+            return
+
+        parts: list[str] = []
+        if result.supervised_changes:
+            parts.append(f"{result.supervised_changes}× vedená práce")
+        if result.opposing_changes:
+            parts.append(f"{result.opposing_changes}× oponentura")
+        if result.new_works:
+            parts.append(f"🆕 {result.new_works}× nová práce ve STAG")
+        self._set_stag_banner(
+            f"🔄 STAG zkontrolováno v {ts} — <b>změny: {', '.join(parts)}</b>. "
+            "Otevři Import ze STAG a aktualizuj.",
+            "#fff8e1", show_open=True,
+        )
+
+    def _set_tab_badge(self, tab, base_title: str, count: int) -> None:
+        idx = self.tabs.indexOf(tab)
+        if idx < 0:
+            return
+        self.tabs.setTabText(idx, f"{base_title}  🔄{count}" if count else base_title)
 
     def _auto_select_first_in_current(self) -> None:
         """Po startu vybere první práci v Aktuální záložce.
@@ -1305,6 +1419,9 @@ class MainWindow(QMainWindow):
             self._focus_thesis(dlg.focus_thesis_id)
         elif dlg.focus_opposing_id:
             self._focus_opposing_thesis(dlg.focus_opposing_id)
+
+        # Po importu/aktualizaci přepočítej indikátor STAG (banner + odznaky).
+        self._start_stag_check()
 
     def _focus_opposing_thesis(self, opposing_id: str) -> None:
         """Přepne se na záložku Oponentské posudky a vybere konkrétní záznam."""
