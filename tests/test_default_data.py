@@ -149,41 +149,58 @@ def test_seed_default_templates(service: ThesisService) -> None:
 
 
 def test_dedupe_review_templates(service: ThesisService) -> None:
-    """Sloučí jen bajtově identické duplicity; odlišnou šablonu nechá být."""
-    spec = list_default_template_specs()[0]
-    # Dvě registrace TÉHOŽ zdroje se shodnými metadaty → identický soubor.
+    """Sloučí form-varianty (-P/-K) podle form-neutrálního názvu + přejmenuje."""
+    spec = next(s for s in list_default_template_specs() if s.obor == "SWI"
+                and s.type == ThesisType.BP and s.role == "supervisor"
+                and s.language == "cs")
+    # Dvě „form" varianty téhož (liší se jen -P/-K v názvu) → sloučí se.
     service.register_review_template(
-        name="Dup A", type=spec.type, role=spec.role, language=spec.language,
-        obor=spec.obor, academic_year="", source_path=spec.source_path,
+        name="Vedoucí BP — SWI-P", type=spec.type, role=spec.role,
+        language=spec.language, obor=spec.obor, academic_year="",
+        source_path=spec.source_path,
     )
     service.register_review_template(
-        name="Dup B", type=spec.type, role=spec.role, language=spec.language,
-        obor=spec.obor, academic_year="", source_path=spec.source_path,
+        name="Vedoucí BP — SWI-K", type=spec.type, role=spec.role,
+        language=spec.language, obor=spec.obor, academic_year="",
+        source_path=spec.source_path,
     )
-    # Jiný obor se stejným souborem → NESMÍ se sloučit (jiná kombinace).
+    # Odlišný obor → samostatná šablona, jen se přejmenuje (nemá -P/-K → beze změny).
     other = service.register_review_template(
-        name="Jiný obor", type=spec.type, role=spec.role, language=spec.language,
-        obor="ZZZ", academic_year="", source_path=spec.source_path,
+        name="Vedoucí BP — ITA", type=spec.type, role=spec.role,
+        language=spec.language, obor="ITA", academic_year="",
+        source_path=spec.source_path,
     )
     assert len(service.list_review_templates()) == 3
 
-    pairs = service.dedupe_review_templates(dry_run=True)
-    assert len(pairs) == 1  # jen jeden pár (A/B), other zůstává
-    removed, keep = pairs[0]
-    assert {removed.name, keep.name} == {"Dup A", "Dup B"}
+    res = service.dedupe_review_templates(dry_run=True)
+    assert len(res["merged"]) == 1            # SWI-P + SWI-K → jeden pár
+    assert len(res["renamed"]) == 1           # ponechaná SWI se přejmenuje na „— SWI"
+    removed, keep = res["merged"][0]
+    assert {removed.name, keep.name} == {"Vedoucí BP — SWI-P", "Vedoucí BP — SWI-K"}
 
-    applied = service.dedupe_review_templates(dry_run=False)
-    assert len(applied) == 1
-    remaining = {t.id for t in service.list_review_templates()}
+    service.dedupe_review_templates(dry_run=False)
+    remaining = service.list_review_templates()
     assert len(remaining) == 2
-    assert other.id in remaining  # odlišný obor zachován
-    assert keep.id in remaining and removed.id not in remaining
-    # idempotence: druhý běh už nic nesloučí
-    assert service.dedupe_review_templates(dry_run=True) == []
+    names = {t.name for t in remaining}
+    assert names == {"Vedoucí BP — SWI", "Vedoucí BP — ITA"}  # form-neutrální
+    assert other.id in {t.id for t in remaining}              # odlišný obor zachován
+    # idempotence: druhý běh už nic nezmění
+    res2 = service.dedupe_review_templates(dry_run=True)
+    assert res2["merged"] == [] and res2["renamed"] == []
     # ponechaná šablona má dál svůj XLSX soubor
-    assert service.review_template_file_path(
-        service.get_review_template(keep.id)
-    ).is_file()
+    keep_now = next(t for t in remaining if t.name == "Vedoucí BP — SWI")
+    assert service.review_template_file_path(keep_now).is_file()
+
+
+def test_form_neutral_name() -> None:
+    from bpdpmanager.services.default_data import form_neutral_name
+    assert form_neutral_name("Vedoucí DP — NKYB-P-EN (EN)") == "Vedoucí DP — NKYB (EN)"
+    assert form_neutral_name("Oponent DP — NKYB-K-EN (EN)") == "Oponent DP — NKYB (EN)"
+    assert form_neutral_name("Oponent BP — SWI-K") == "Oponent BP — SWI"
+    assert form_neutral_name("Vedoucí DP — NUI-K") == "Vedoucí DP — NUI"
+    # idempotence (form-neutrální názvy zůstávají)
+    assert form_neutral_name("Vedoucí DP — NSWI") == "Vedoucí DP — NSWI"
+    assert form_neutral_name("Vedoucí DP — NKYB (EN)") == "Vedoucí DP — NKYB (EN)"
 
 
 def test_seed_propagates_academic_year(service: ThesisService) -> None:

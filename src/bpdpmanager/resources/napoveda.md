@@ -149,9 +149,11 @@ generovat.
 > se propíše z hlavičky šablony.)
 
 > **🧹 Uklidit duplicity:** pokud máš z dřívějška dvojí šablony pro `-P` a `-K`
-> formu, tlačítko **Uklidit duplicity** v knihovně je sloučí do jedné. Sloučí
-> **jen bajtově identické** šablony se stejným typem/rolí/jazykem/oborem
-> (s náhledem), takže o žádnou odlišnou šablonu nepřijdeš.
+> formu (nebo názvy se značkou formy), tlačítko **Uklidit duplicity** v knihovně
+> je **sjednotí**: šablony se stejným typem/rolí/jazykem/oborem, jejichž název
+> se liší jen značkou `-P/-K`, **sloučí do jedné** a přeživší **přejmenuje na
+> form-neutrální název** (zmizí `-P`/`-K` i redundantní `-EN` v kódu). Ukáže
+> náhled; už vygenerované posudky zůstávají nedotčené.
 
 ### 6. (Volitelně) LibreOffice pro PDF
 Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:

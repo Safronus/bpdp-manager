@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-07
+
+### Fixed
+- **„Uklidit duplicity" u šablon nyní opravdu sjednotí form-varianty.** Dřívější
+  varianta slučovala jen **bajtově identické** šablony, takže u starších profilů
+  zůstávaly v názvech značky `-P/-K` a EN duplicity s drobně odlišným obsahem
+  (např. *NKYB-K-EN* i *NKYB-P-EN*) se nesloučily. Nově se šablony se stejným
+  typem/rolí/jazykem/oborem, jejichž **název se liší jen značkou `-P/-K`**,
+  **sloučí do jedné** a přeživší se **přejmenuje na form-neutrální název**
+  (zmizí `-P`/`-K` i redundantní `-EN` v kódu, např. *„Vedoucí DP — NKYB (EN)"*).
+
 ## [1.0.3] - 2026-06-07
 
 ### Changed

@@ -451,9 +451,9 @@ class ReviewTemplatesDialog(QDialog):
         )
         btn_dedupe = QPushButton("🧹 Uklidit duplicity")
         btn_dedupe.setToolTip(
-            "Sloučí redundantní duplicitní šablony (typicky prezenční -P / "
-            "kombinovaná -K forma téhož oboru). Sloučí jen bajtově identické "
-            "šablony se stejným typem/rolí/jazykem/oborem — ukáže náhled."
+            "Sjednotí form-varianty šablon (prezenční -P / kombinovaná -K téhož "
+            "oboru): sloučí duplicity a přejmenuje šablony na form-neutrální "
+            "názvy (bez -P/-K). Ukáže náhled."
         )
         btn_close = QPushButton("Zavřít")
         btn_new.clicked.connect(self._add)
@@ -708,27 +708,42 @@ class ReviewTemplatesDialog(QDialog):
         )
 
     def _dedupe_duplicates(self) -> None:
-        """Sloučí redundantní duplicitní šablony (prezenční -P / kombinovaná -K)."""
-        pairs = self.service.dedupe_review_templates(dry_run=True)
-        if not pairs:
+        """Sjednotí form-varianty šablon (-P/-K) — sloučí duplicity + přejmenuje."""
+        res = self.service.dedupe_review_templates(dry_run=True)
+        merged = res["merged"]
+        renamed = res["renamed"]
+        if not merged and not renamed:
             QMessageBox.information(
                 self, "Uklidit duplicity",
-                "Žádné duplicitní šablony k sloučení — knihovna je čistá.\n\n"
-                "(Slučují se jen bajtově identické šablony se stejným "
-                "typem, rolí, jazykem i oborem.)",
+                "Žádné form-duplicity ani názvy se značkou -P/-K — knihovna "
+                "je čistá.",
             )
             return
-        shown = "\n".join(
-            f"• {removed.name}  →  ponechá se „{keep.name}“"
-            for removed, keep in pairs[:40]
-        )
-        if len(pairs) > 40:
-            shown += f"\n… a další ({len(pairs) - 40})"
+
+        parts: list[str] = []
+        if merged:
+            lines = "\n".join(
+                f"• {removed.name}  →  sloučit do „{keep.name}“"
+                for removed, keep in merged[:30]
+            )
+            if len(merged) > 30:
+                lines += f"\n… a další ({len(merged) - 30})"
+            parts.append(f"<b>Sloučit ({len(merged)}):</b>\n{lines}")
+        if renamed:
+            lines = "\n".join(
+                f"• {old}  →  „{new}“" for _t, old, new in renamed[:30]
+            )
+            if len(renamed) > 30:
+                lines += f"\n… a další ({len(renamed) - 30})"
+            parts.append(f"<b>Přejmenovat na form-neutrální ({len(renamed)}):</b>\n{lines}")
+
         confirm = QMessageBox.question(
             self, "Uklidit duplicity",
-            f"Sloučit {len(pairs)} duplicitních šablon? Odeberou se jen "
-            f"redundantní kopie (vč. jejich XLSX souborů), vždy zůstane jedna:\n\n"
-            f"{shown}\n\nUž vygenerované posudky u prací zůstávají nedotčené.",
+            "Sjednotit šablony na form-neutrální (prezenční -P i kombinovaná -K "
+            "sdílí jednu šablonu)?\n\n"
+            + "\n\n".join(parts)
+            + "\n\nOdebrané kopie se smažou (vč. XLSX souborů); už vygenerované "
+            "posudky u prací zůstávají nedotčené.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -737,7 +752,9 @@ class ReviewTemplatesDialog(QDialog):
         applied = self.service.dedupe_review_templates(dry_run=False)
         self._refresh()
         QMessageBox.information(
-            self, "Uklidit duplicity", f"Sloučeno (odebráno): {len(applied)} šablon.",
+            self, "Uklidit duplicity",
+            f"Sloučeno (odebráno): {len(applied['merged'])} · "
+            f"přejmenováno: {len(applied['renamed'])} šablon.",
         )
 
 

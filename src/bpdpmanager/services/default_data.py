@@ -18,6 +18,7 @@ přes tlačítko „Defaultní" v manažeru oborů / šablon.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,6 +49,25 @@ class DefaultTemplateSpec:
     language: str          # „cs" / „en"
     obor: str              # disciplína pro filtr šablon: SWI / KYB / UI / ITA
     name: str              # lidský název šablony (a klíč pro deduplikaci)
+
+
+def form_neutral_name(name: str) -> str:
+    """Odstraní z názvu šablony značku formy (``-P``/``-K``) a redundantní
+    ``-EN`` v kódu (jazyk drží přípona „ (EN)").
+
+    Šablony posudků jsou form-neutrální (prezenční i kombinovaná forma sdílí
+    jednu šablonu), takže název nemá formu zobrazovat. Idempotentní:
+
+    >>> form_neutral_name("Vedoucí DP — NKYB-P-EN (EN)")
+    'Vedoucí DP — NKYB (EN)'
+    >>> form_neutral_name("Oponent BP — SWI-K")
+    'Oponent BP — SWI'
+    >>> form_neutral_name("Vedoucí DP — NSWI")
+    'Vedoucí DP — NSWI'
+    """
+    out = re.sub(r"-[PK]\b", "", name)          # odeber -P / -K segmenty
+    out = re.sub(r"-EN\b(\s*\(EN\))", r"\1", out)  # „…-EN (EN)" → „… (EN)"
+    return out
 
 
 def discipline_from_app_code(app_code: str) -> str:
