@@ -35,6 +35,48 @@ ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
 ROLE_GRADES = Qt.ItemDataRole.UserRole + 4  # (grade_supervisor, grade_opponent)
 ROLE_REVIEWS = Qt.ItemDataRole.UserRole + 5  # (has_supervisor_review, has_opponent_review)
 ROLE_SENT = Qt.ItemDataRole.UserRole + 6     # barva pozadí badge „Odesláno" (nebo None)
+ROLE_OBOR = Qt.ItemDataRole.UserRole + 7     # název oboru (pro barevný badge) nebo None
+
+# Barvy oborů — světlé odstíny (tmavý text čitelný v light i dark theme).
+_OBOR_COLORS = {
+    "BTSM": "#a5d6a7",   # zelená
+    "SWI": "#90caf9",    # modrá
+    "NSWI": "#80deea",   # tyrkysová
+    "NKYB": "#b39ddb",   # fialová
+    "ITA": "#ffcc80",    # oranžová
+    "NUI": "#f48fb1",    # růžová
+    "IRT": "#fff176",    # žlutá
+}
+_OBOR_FALLBACK = [
+    "#bcaaa4", "#80cbc4", "#c5e1a5", "#9fa8da",
+    "#ce93d8", "#ffab91", "#e6ee9c", "#b0bec5",
+]
+
+
+def _obor_program_key(name: str) -> str:
+    """Z názvu oboru (např. „NSWI-P-EN") odvodí program (bez formy P/K a EN)."""
+    toks = [t for t in name.split("-") if t and t.upper() != "EN"]
+    if toks and toks[-1].upper() in ("P", "K"):
+        toks = toks[:-1]
+    return "-".join(toks).upper()
+
+
+def obor_badge(name: str) -> tuple[str | None, str | None, bool]:
+    """Vrátí ``(popisek, barva, je_anglicky)`` pro barevný badge oboru.
+
+    ``popisek`` je název bez „-EN" (angličtinu indikuje vlaječka). Když není
+    obor (prázdné / „—"), vrátí ``(None, None, False)``.
+    """
+    name = (name or "").strip()
+    if not name or name == "—":
+        return None, None, False
+    is_en = any(t.upper() == "EN" for t in name.split("-"))
+    label = "-".join(t for t in name.split("-") if t.upper() != "EN")
+    key = _obor_program_key(name)
+    color = _OBOR_COLORS.get(key)
+    if color is None:
+        color = _OBOR_FALLBACK[sum(ord(c) for c in key) % len(_OBOR_FALLBACK)]
+    return label, color, is_en
 
 # Sloupec „Posudky": V (vedoucí) / O (oponent) — zelená = k dispozici, červená ne.
 _REVIEW_HAS_BG = "#43a047"   # zelená — posudek je
@@ -184,6 +226,58 @@ class SentBadgeDelegate(QStyledItemDelegate):
         base = super().sizeHint(option, index)
         return QSize(self._W + 10, max(base.height(), self._BADGE_H + 6))
 
+
+class OborBadgeDelegate(QStyledItemDelegate):
+    """Sloupec „Obor": název v zaobleném barevném badge (barva dle programu)
+    + 🇬🇧 vlaječka u anglických variant (-EN)."""
+
+    _PAD = 7
+    _BADGE_H = 18
+    _FLAG = "🇬🇧"
+
+    def paint(self, painter, option, index) -> None:
+        name = index.data(ROLE_OBOR)
+        label, color, is_en = obor_badge(name) if name else (None, None, False)
+        if not label:
+            super().paint(painter, option, index)
+            return
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        fm = option.fontMetrics
+        bw = fm.horizontalAdvance(label) + 2 * self._PAD
+        flag_w = (fm.horizontalAdvance(self._FLAG) + 6) if is_en else 0
+        total = bw + flag_w
+        rect = option.rect
+        x = rect.x() + max(2, (rect.width() - total) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        br = QRectF(x, y, bw, self._BADGE_H)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(color))
+        painter.drawRoundedRect(br, 4, 4)
+        painter.setPen(QColor("#212121"))
+        painter.drawText(br, Qt.AlignmentFlag.AlignCenter, label)
+        if is_en:
+            painter.setPen(QColor("#212121"))
+            painter.drawText(
+                QRectF(x + bw + 6, y, flag_w, self._BADGE_H),
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                self._FLAG,
+            )
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        name = index.data(ROLE_OBOR)
+        label, _, is_en = obor_badge(name) if name else (None, None, False)
+        if not label:
+            return super().sizeHint(option, index)
+        fm = option.fontMetrics
+        w = fm.horizontalAdvance(label) + 2 * self._PAD
+        if is_en:
+            w += fm.horizontalAdvance(self._FLAG) + 10
+        base = super().sizeHint(option, index)
+        return QSize(w + 10, max(base.height(), self._BADGE_H + 6))
+
 # ── České abecední řazení ────────────────────────────────────────────────────
 _HAS_CZECH_LOCALE = False
 for _loc in ("cs_CZ.UTF-8", "cs_CZ.utf8", "cs_CZ", "Czech_Czech Republic.1250"):
@@ -294,6 +388,9 @@ class ThesesTreeWidget(QTreeWidget):
         # Sloupec Odesláno — obálka v zaobleném barevném badge.
         self._sent_delegate = SentBadgeDelegate(self)
         self.setItemDelegateForColumn(self.COL_SENT, self._sent_delegate)
+        # Sloupec Obor — barevný badge dle programu (+ 🇬🇧 u anglických).
+        self._obor_delegate = OborBadgeDelegate(self)
+        self.setItemDelegateForColumn(self.COL_OBOR, self._obor_delegate)
 
         self.itemSelectionChanged.connect(self._on_selection)
 
@@ -492,6 +589,7 @@ class ThesesTreeWidget(QTreeWidget):
         )
         leaf.setData(0, ROLE_KIND, "thesis")
         leaf.setData(0, ROLE_THESIS_ID, thesis.id)
+        leaf.setData(self.COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
         if thesis.related_thesis_id:
             leaf.setToolTip(
                 self.COL_TITLE,

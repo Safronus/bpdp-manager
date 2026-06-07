@@ -42,9 +42,11 @@ from .opposing_detail import OpposingDetail
 from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
 from .theses_tree import (
     ROLE_GRADES,
+    ROLE_OBOR,
     ROLE_REVIEWS,
     ROLE_SENT,
     GradesDelegate,
+    OborBadgeDelegate,
     ReviewsBadgeDelegate,
     SentBadgeDelegate,
 )
@@ -179,6 +181,8 @@ class OpposingTab(QWidget):
         self.tree.setItemDelegateForColumn(COL_REVIEWS, self._reviews_delegate)
         self._sent_delegate = SentBadgeDelegate(self.tree)
         self.tree.setItemDelegateForColumn(COL_SENT, self._sent_delegate)
+        self._obor_delegate = OborBadgeDelegate(self.tree)
+        self.tree.setItemDelegateForColumn(COL_OBOR, self._obor_delegate)
         self.tree.setItemDelegateForColumn(COL_GRADES, self._grades_delegate)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
@@ -331,6 +335,7 @@ class OpposingTab(QWidget):
                         ]
                     )
                     leaf.setData(0, ROLE_ID, op.id)
+                    leaf.setData(COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
                     if sent_bg:
                         leaf.setData(COL_SENT, ROLE_SENT, sent_bg)
                     leaf.setData(COL_REVIEWS, ROLE_REVIEWS, (has_v, has_o))

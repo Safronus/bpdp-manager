@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-06-07
+
+### Added
+- **Barevné odlišení oborů ve sloupci „Obor".** Obor je v barevném badge podle
+  programu (BTSM, SWI, NSWI, NKYB, ITA, NUI, IRT — každý jinou barvou, ostatní
+  dostanou stálou barvu z palety). U **anglických variant** (-EN) je navíc
+  **🇬🇧 vlaječka**. Forma (-P/-K) na barvu nemá vliv. Platí v záložkách, kde je
+  sloupec Obor (*Aktuálně vedené*, *Historie*, *Vše*, *Oponované práce*).
+
 ## [0.81.0] - 2026-06-07
 
 ### Added
