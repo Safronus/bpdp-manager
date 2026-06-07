@@ -17,19 +17,12 @@ from PySide6.QtCore import QTimer, QUrl, Signal
 from PySide6.QtGui import QCursor, QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
-    QButtonGroup,
     QComboBox,
-    QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMessageBox,
-    QPlainTextEdit,
     QPushButton,
-    QRadioButton,
-    QScrollArea,
-    QSizePolicy,
     QTabWidget,
     QTextBrowser,
     QToolTip,
@@ -38,14 +31,10 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import OpposingThesis
-from ..models.enums import AttachmentKind, ThesisType
+from ..models.enums import AttachmentKind
 from ..services import ThesisService
-from .supervisor_dialog import SupervisorDialog
 from .thesis_detail import (
-    YEAR_MODE_ALL,
-    _academic_year_choices,
     _format_numbered,
-    _setup_searchable_combo,
     _split_items,
 )
 from .widgets import DocumentsWidget
@@ -53,16 +42,10 @@ from .widgets import DocumentsWidget
 AUTOSAVE_DEBOUNCE_MS = 1500
 
 
-def _make_form() -> QFormLayout:
-    f = QFormLayout()
-    f.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-    f.setHorizontalSpacing(12)
-    f.setVerticalSpacing(8)
-    return f
-
-
 class OpposingDetail(QWidget):
-    """Editor oponentského posudku — vlastní záložky Souhrn / Detail / Dokumenty."""
+    """Editor oponentského posudku — záložky Souhrn (vč. editace známek V/O)
+    a Dokumenty. Ostatní data (student, název, vedoucí, obor, rok) jsou jen
+    pro čtení a plní se importem ze STAG / vyčtením z posudku."""
 
     saved = Signal(str)  # opposing thesis id
     deleted = Signal(str)
@@ -125,7 +108,6 @@ class OpposingDetail(QWidget):
         # Tabs
         self.tabs = QTabWidget()
         self.tabs.addTab(self._build_summary_tab(), "📋 Souhrn")
-        self.tabs.addTab(self._build_detail_tab(), "📝 Detail")
         self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
         self.tabs.currentChanged.connect(self._on_tab_changed)
         layout.addWidget(self.tabs, stretch=1)
@@ -145,137 +127,14 @@ class OpposingDetail(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.summary_view = QTextBrowser()
-        self.summary_view.setOpenExternalLinks(False)
-        self.summary_view.setOpenLinks(False)
-        self.summary_view.anchorClicked.connect(self._on_summary_anchor_clicked)
-        self.summary_view.setStyleSheet("QTextBrowser { padding: 12px; }")
-        layout.addWidget(self.summary_view)
-        return w
 
-    def _build_detail_tab(self) -> QWidget:
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-
-        inner = QWidget()
-        v = QVBoxLayout(inner)
-        v.setContentsMargins(8, 8, 8, 8)
-        v.setSpacing(12)
-
-        # Sekce: Základní info (1. řádek: Typ + Rok ; 2. řádek: STAG ; 3. řádek student ; 4. řádek vedoucí)
-        box_basic = QGroupBox("Základní info")
-        bl = QVBoxLayout(box_basic)
-        bl.setContentsMargins(8, 12, 8, 8)
-
-        # row1: Typ + Rok
-        row1 = QHBoxLayout()
-        row1.addWidget(QLabel("Typ:"))
-        self.rb_bp = QRadioButton("BP")
-        self.rb_dp = QRadioButton("DP")
-        self._type_group = QButtonGroup(self)
-        self._type_group.addButton(self.rb_bp, 0)
-        self._type_group.addButton(self.rb_dp, 1)
-        self.rb_bp.setChecked(True)
-        row1.addWidget(self.rb_bp)
-        row1.addWidget(self.rb_dp)
-        row1.addSpacing(16)
-        row1.addWidget(QLabel("Rok:"))
-        self.cb_year = QComboBox()
-        self.cb_year.setEditable(True)
-        for y in _academic_year_choices(YEAR_MODE_ALL):
-            self.cb_year.addItem(y)
-        self.cb_year.setMinimumContentsLength(9)
-        row1.addWidget(self.cb_year)
-        row1.addStretch()
-        bl.addLayout(row1)
-
-        # row2: STAG
-        row2 = QHBoxLayout()
-        row2.addWidget(QLabel("STAG:"))
-        self.ed_stag_url = QLineEdit()
-        self.ed_stag_url.setPlaceholderText("odkaz na práci v IS/STAG (volitelné)")
-        row2.addWidget(self.ed_stag_url, stretch=1)
-        bl.addLayout(row2)
-
-        v.addWidget(box_basic)
-
-        # Sekce: Student
-        box_student = QGroupBox("Student")
-        sl = QHBoxLayout(box_student)
-        sl.setContentsMargins(8, 12, 8, 8)
-        self.ed_student_first = QLineEdit()
-        self.ed_student_first.setPlaceholderText("Jméno")
-        self.ed_student_last = QLineEdit()
-        self.ed_student_last.setPlaceholderText("Příjmení")
-        # Obor jako editovatelný combobox — dropdown nabízí jen obory založené
-        # v manažeru (aby se obor spároval na sekretářku), ale zachová i ručně
-        # zadanou / importovanou hodnotu.
-        self.ed_student_obor = QComboBox()
-        self.ed_student_obor.setEditable(True)
-        self.ed_student_obor.setMaximumWidth(180)
-        self.ed_student_obor.lineEdit().setPlaceholderText("Obor")
-        self._reload_obor_items()
-        self.ed_student_uni_id = QLineEdit()
-        self.ed_student_uni_id.setPlaceholderText("Os. č.")
-        self.ed_student_uni_id.setMaximumWidth(120)
-        sl.addWidget(self.ed_student_first, stretch=2)
-        sl.addWidget(self.ed_student_last, stretch=2)
-        sl.addWidget(self.ed_student_obor, stretch=1)
-        sl.addWidget(self.ed_student_uni_id, stretch=0)
-        v.addWidget(box_student)
-
-        # Sekce: Vedoucí (combo se searchable našeptáváním z registru)
-        box_sup = QGroupBox("Vedoucí")
-        spl = QHBoxLayout(box_sup)
-        spl.setContentsMargins(8, 12, 8, 8)
-        self.cb_sup_name = QComboBox()
-        _setup_searchable_combo(self.cb_sup_name)
-        if self.cb_sup_name.lineEdit() is not None:
-            self.cb_sup_name.lineEdit().setPlaceholderText(
-                "Jméno (např. doc. Ing. Petr Novák, Ph.D.)"
-            )
-        self.cb_sup_name.activated.connect(self._on_supervisor_picked)
-        self.btn_new_supervisor = QPushButton("+")
-        self.btn_new_supervisor.setFixedWidth(28)
-        self.btn_new_supervisor.setToolTip("Nový vedoucí v registru")
-        self.btn_new_supervisor.clicked.connect(self._new_supervisor)
-        self.ed_sup_email = QLineEdit()
-        self.ed_sup_email.setPlaceholderText("email@utb.cz")
-        self.ed_sup_email.setMaximumWidth(280)
-        spl.addWidget(self.cb_sup_name, stretch=2)
-        spl.addWidget(self.btn_new_supervisor)
-        spl.addSpacing(8)
-        spl.addWidget(self.ed_sup_email, stretch=1)
-        v.addWidget(box_sup)
-
-        # Sekce: Téma + body zadání + známky
-        box_topic = QGroupBox("Téma a body zadání")
-        tl = QVBoxLayout(box_topic)
-        tl.setContentsMargins(8, 12, 8, 8)
-        # Název
-        title_form = _make_form()
-        self.ed_title_cs = QLineEdit()
-        title_form.addRow("Název (CZ)", self.ed_title_cs)
-        tl.addLayout(title_form)
-        # Body zadání
-        lbl_obj = QLabel(
-            "Body zadání — každý bod na nové řádce, číslování se přidá automaticky v Souhrnu."
-        )
-        lbl_obj.setContentsMargins(8, 4, 8, 0)
-        tl.addWidget(lbl_obj)
-        self.ed_objectives = QPlainTextEdit()
-        self.ed_objectives.setMinimumHeight(120)
-        self.ed_objectives.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        tl.addWidget(self.ed_objectives, stretch=1)
-        v.addWidget(box_topic, stretch=1)
-
-        # Sekce: Známky
+        # Editovatelné známky V/O — jediná věc, kterou u oponentury ručně měníš
+        # (zbytek dat se plní importem ze STAG / vyčte z posudku). Ostatní pole
+        # se u oponovaných prací needitují, proto samostatná záložka „Detail"
+        # není (oprava jména/názvu apod. se řeší přes STAG re-import).
         box_grades = QGroupBox("Známky")
         gl = QHBoxLayout(box_grades)
-        gl.setContentsMargins(8, 12, 8, 8)
+        gl.setContentsMargins(8, 10, 8, 8)
         gl.addWidget(QLabel("Vedoucí:"))
         self.cb_grade_sup = self._make_grade_combo()
         gl.addWidget(self.cb_grade_sup)
@@ -284,59 +143,15 @@ class OpposingDetail(QWidget):
         self.cb_grade_opp = self._make_grade_combo()
         gl.addWidget(self.cb_grade_opp)
         gl.addStretch()
-        v.addWidget(box_grades)
+        layout.addWidget(box_grades)
 
-        scroll.setWidget(inner)
-        return scroll
-
-    def _refresh_supervisors_combo(self) -> None:
-        """Naplní combo aktuálním registrem vedoucích (zachová text v editLine)."""
-        prev_text = self.cb_sup_name.currentText() if self.cb_sup_name.isEditable() else ""
-        was_loading = self._loading
-        self._loading = True
-        try:
-            self.cb_sup_name.clear()
-            for sup in self.service.list_supervisors():
-                # Jméno vč. titulů — propíše se do supervisor_name (i do posudku).
-                self.cb_sup_name.addItem(sup.display_name, sup.id)
-            # Obnov text, kdyby byl něčím vyplněn (např. ručně zadané jméno)
-            if prev_text:
-                idx = self.cb_sup_name.findText(prev_text)
-                if idx >= 0:
-                    self.cb_sup_name.setCurrentIndex(idx)
-                else:
-                    if self.cb_sup_name.lineEdit() is not None:
-                        self.cb_sup_name.lineEdit().setText(prev_text)
-            else:
-                self.cb_sup_name.setCurrentIndex(-1)
-        finally:
-            self._loading = was_loading
-
-    def _on_supervisor_picked(self, index: int) -> None:
-        """Když uživatel vybere vedoucího ze suggestion / dropdownu, auto-vyplň email."""
-        if index < 0:
-            return
-        sup_id = self.cb_sup_name.itemData(index)
-        if not sup_id:
-            return
-        sup = self.service.get_supervisor(sup_id)
-        if sup is None:
-            return
-        # Pokud má email a uživatel zatím nemá nic / má jiný → auto-fill
-        if sup.email and self.ed_sup_email.text().strip() != sup.email:
-            self.ed_sup_email.setText(sup.email)
-
-    def _new_supervisor(self) -> None:
-        """Otevři dialog pro vytvoření nového vedoucího + ihned ho vyber."""
-        dlg = SupervisorDialog(self.service, parent=self)
-        if not dlg.exec():
-            return
-        self._refresh_supervisors_combo()
-        # vyber nově vytvořeného
-        idx = self.cb_sup_name.findData(dlg.supervisor.id)
-        if idx >= 0:
-            self.cb_sup_name.setCurrentIndex(idx)
-            self._on_supervisor_picked(idx)
+        self.summary_view = QTextBrowser()
+        self.summary_view.setOpenExternalLinks(False)
+        self.summary_view.setOpenLinks(False)
+        self.summary_view.anchorClicked.connect(self._on_summary_anchor_clicked)
+        self.summary_view.setStyleSheet("QTextBrowser { padding: 12px; }")
+        layout.addWidget(self.summary_view, stretch=1)
+        return w
 
     @staticmethod
     def _make_grade_combo() -> QComboBox:
@@ -396,19 +211,6 @@ class OpposingDetail(QWidget):
         self.placeholder.setVisible(False)
         self.container.setVisible(True)
 
-    def _reload_obor_items(self) -> None:
-        """Naplní dropdown oboru názvy oborů z manažeru (zachová zadaný text)."""
-        current = self.ed_student_obor.currentText() if self.ed_student_obor.count() else ""
-        self.ed_student_obor.blockSignals(True)
-        try:
-            self.ed_student_obor.clear()
-            self.ed_student_obor.addItem("")
-            for o in self.service.list_obor_objects():
-                self.ed_student_obor.addItem(o.name)
-            self.ed_student_obor.setCurrentText(current)
-        finally:
-            self.ed_student_obor.blockSignals(False)
-
     def set_opposing(self, op: OpposingThesis | None) -> None:
         # flush rozdělané z předchozího posudku
         if self._dirty and self.op is not None:
@@ -427,37 +229,8 @@ class OpposingDetail(QWidget):
 
         self._loading = True
         try:
-            if op.type == ThesisType.BP:
-                self.rb_bp.setChecked(True)
-            else:
-                self.rb_dp.setChecked(True)
-            self.cb_year.setCurrentText(op.academic_year or "")
-            self.ed_stag_url.setText(op.stag_url or "")
-
-            self.ed_student_first.setText(op.student_first_name or "")
-            self.ed_student_last.setText(op.student_last_name or "")
-            self.ed_student_obor.setCurrentText(op.student_obor or "")
-            self.ed_student_uni_id.setText(op.student_university_id or "")
-
-            self._refresh_supervisors_combo()
-            # Nastav text vedoucího — pokud sedí s registrem, vybere se daná
-            # položka (auto-fill emailu pro pohodlí), jinak zůstane jen v textu.
-            if op.supervisor_name:
-                idx = self.cb_sup_name.findText(op.supervisor_name)
-                if idx >= 0:
-                    self.cb_sup_name.setCurrentIndex(idx)
-                else:
-                    if self.cb_sup_name.lineEdit() is not None:
-                        self.cb_sup_name.lineEdit().setText(op.supervisor_name)
-            else:
-                self.cb_sup_name.setCurrentIndex(-1)
-                if self.cb_sup_name.lineEdit() is not None:
-                    self.cb_sup_name.lineEdit().clear()
-            self.ed_sup_email.setText(op.supervisor_email or "")
-
-            self.ed_title_cs.setText(op.title_cs or "")
-            self.ed_objectives.setPlainText(op.objectives or "")
-
+            # Editují se jen známky V/O; ostatní data práce jsou jen pro čtení
+            # (v Souhrnu) a plní se importem ze STAG / vyčtením z posudku.
             self.cb_grade_sup.setCurrentText(op.grade_supervisor or "")
             self.cb_grade_opp.setCurrentText(op.grade_opponent or "")
 
@@ -476,20 +249,9 @@ class OpposingDetail(QWidget):
     # --- dirty / autosave ---------------------------------------------------
 
     def _connect_dirty_signals(self) -> None:
-        for w in (
-            self.ed_stag_url, self.ed_student_first, self.ed_student_last,
-            self.ed_student_uni_id,
-            self.ed_sup_email, self.ed_title_cs,
-        ):
-            w.textChanged.connect(self._mark_dirty)
-        self.ed_student_obor.currentTextChanged.connect(self._mark_dirty)
-        self.cb_sup_name.currentTextChanged.connect(self._mark_dirty)
-        self.cb_year.currentTextChanged.connect(self._mark_dirty)
+        # Editují se jen známky V/O.
         self.cb_grade_sup.currentTextChanged.connect(self._mark_dirty)
         self.cb_grade_opp.currentTextChanged.connect(self._mark_dirty)
-        self.ed_objectives.textChanged.connect(self._mark_dirty)
-        self.rb_bp.toggled.connect(self._mark_dirty)
-        self.rb_dp.toggled.connect(self._mark_dirty)
 
     def _mark_dirty(self, *_args) -> None:
         if self._loading or self.op is None:
@@ -550,21 +312,11 @@ class OpposingDetail(QWidget):
         self.lbl_save_state.setStyleSheet("color:#2e7d32;font-size:11px;")
 
     def _collect(self) -> None:
+        # Z editoru se ukládají jen známky V/O; ostatní pole zůstávají beze
+        # změny (plní se importem ze STAG / z posudku), attachments řeší tabulka.
         assert self.op is not None
-        self.op.type = ThesisType.BP if self.rb_bp.isChecked() else ThesisType.DP
-        self.op.academic_year = self.cb_year.currentText().strip()
-        self.op.stag_url = self.ed_stag_url.text().strip()
-        self.op.student_first_name = self.ed_student_first.text().strip()
-        self.op.student_last_name = self.ed_student_last.text().strip()
-        self.op.student_obor = self.ed_student_obor.currentText().strip()
-        self.op.student_university_id = self.ed_student_uni_id.text().strip()
-        self.op.supervisor_name = self.cb_sup_name.currentText().strip()
-        self.op.supervisor_email = self.ed_sup_email.text().strip()
-        self.op.title_cs = self.ed_title_cs.text().strip()
-        self.op.objectives = self.ed_objectives.toPlainText()
         self.op.grade_supervisor = self.cb_grade_sup.currentText().strip()
         self.op.grade_opponent = self.cb_grade_opp.currentText().strip()
-        # attachments spravuje tabulka dokumentů, neměníme tady
 
     # --- header label -------------------------------------------------------
 

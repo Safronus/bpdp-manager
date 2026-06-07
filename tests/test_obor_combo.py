@@ -11,7 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from bpdpmanager.models import Obor, OpposingThesis, Student, Thesis  # noqa: E402
+from bpdpmanager.models import Obor, Student, Thesis  # noqa: E402
 from bpdpmanager.models.enums import ThesisStatus, ThesisType  # noqa: E402
 from bpdpmanager.services import ThesisService  # noqa: E402
 from bpdpmanager.storage import JsonRepository  # noqa: E402
@@ -52,17 +52,5 @@ def test_thesis_detail_obor_loads_and_saves(qapp, service: ThesisService) -> Non
     det.flush()
     assert service.get_student(student.id).obor == "NSWI-K"
 
-
-def test_opposing_detail_obor_combo(qapp, service: ThesisService) -> None:
-    from bpdpmanager.ui.opposing_detail import OpposingDetail
-
-    op = OpposingThesis(type=ThesisType.BP, academic_year="2024/2025",
-                        student_last_name="Malá", student_obor="BITA-P")
-    service.upsert_opposing_thesis(op)
-
-    det = OpposingDetail(service)
-    det.set_opposing(op)
-    # Zachová původní (i neevidovanou) hodnotu
-    assert det.ed_student_obor.currentText() == "BITA-P"
-    items = [det.ed_student_obor.itemText(i) for i in range(det.ed_student_obor.count())]
-    assert "ITA-P" in items  # dropdown má evidované obory
+    # (Oponentury už editovatelný obor combo nemají — Detail záložka zrušena;
+    #  obor se u oponentur plní importem ze STAG.)

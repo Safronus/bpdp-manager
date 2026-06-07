@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
-    QInputDialog,
     QLineEdit,
     QMenu,
     QPushButton,
@@ -222,15 +221,9 @@ class OpposingTab(QWidget):
     # --- načtení / refresh --------------------------------------------------
 
     def refresh_combos(self) -> None:
-        """Re-naplnění comb vedoucích + oborů v detail panelu (po správě registry)."""
-        try:
-            self.detail._refresh_supervisors_combo()
-        except Exception:
-            pass
-        try:
-            self.detail._reload_obor_items()
-        except Exception:
-            pass
+        """Bez efektu — detail oponentury už needituje vedoucího ani obor
+        (zůstává kvůli kompatibilitě volání z hlavního okna po správě registrů)."""
+        return
 
     def refresh(self) -> None:
         selected_id = self._selected_id()

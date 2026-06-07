@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-06-07
+
+### Changed
+- **Oponované práce: zrušena záložka *Detail*.** U oponentur nemá smysl
+  editovat body zadání, anotaci ani další „autorská" pole (práce není tvoje).
+  Detail se proto odebral; **známky V/O** (jediné, co se ručně mění) se editují
+  přímo v záložce **Souhrn**. Ostatní údaje (student, název, vedoucí, obor, rok)
+  se plní importem ze STAG / vyčtením z posudku; jejich oprava se řeší
+  **STAG re-importem**. Záložky oponentury jsou nyní **Souhrn** + **Dokumenty**.
+
 ## [1.0.10] - 2026-06-07
 
 ### Fixed
