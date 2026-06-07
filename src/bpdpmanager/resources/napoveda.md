@@ -863,11 +863,20 @@ synchronizací.
 - **📄 Otevřít text práce** — pravý klik na práci (vedenou i oponovanou) otevře
   plný text práce, je-li k dispozici (jinak neaktivní).
 - **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
-  do ZIP* uloží **kompletní balík** (data, stav, posudky, známky a všechny
-  soubory). Na jiném zařízení / v jiném profilu ho přes toolbar **📦 Import
-  práce ze ZIP…** naimportuješ jako **novou práci** (obnoví se i navázaný
-  student, oponent a obor; soubory se přenesou). Vhodné pro přesun jediné
-  práce mezi profily nebo zálohu jedné práce.
+  do ZIP* nejdřív ukáže **výběr „co zahrnout"**: náhled dat práce (ta se
+  exportují vždy), navázané entity (**student / oponent / obor**) a **soubory
+  seskupené po kategoriích** — odznačit lze i **jednotlivý soubor**. Defaultně
+  je vše zaškrtnuté (tlačítka *Vybrat vše / Zrušit vše*).
+
+  Na jiném zařízení / v jiném profilu balík otevřeš přes toolbar **📦 Import
+  práce ze ZIP…**. Import sám **pozná, zda práce už existuje** (podle ID
+  z balíku, jinak podle studenta + typu + akademického roku):
+  - když **neexistuje**, vytvoří se **nová práce** (obnoví se i navázaný
+    student, oponent a obor; soubory se přenesou);
+  - když **existuje**, nabídne *vytvořit novou* / **aktualizovat existující**.
+    U aktualizace si stejným výběrem zvolíš, **co se přepíše** (data práce,
+    jednotlivé entity, vybrané soubory). Vhodné pro přesun jediné práce mezi
+    profily, zálohu, nebo doplnění/aktualizaci už evidované práce.
 
 ---
 

@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 0.87.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 0.88.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -46,6 +46,7 @@ o budoucí témata.
 - **Termíny a poznámky** z konzultací u každé práce
 - **Autosave** na pozadí — změny v detailu práce se samy uloží 1,5 s po poslední úpravě (debounce), s 30s pojistkou, plus flush při přepnutí práce a zavření okna
 - **Profily — pojmenované datové sady**: víc datových profilů (osobní / sdílený / pro různé instituce), libovolná složka, přepínání za chodu. Welcome dialog při prvním spuštění, toolbar 👤 menu pro přepínání. **Nový profil může startovat s daty importovanými z existujícího profilu** (db.json, dokumenty, harmonogramy — volitelně). Vhodné pro sdílení přes iCloud mezi více Macy téhož uživatele.
+- **📦 Export / import jedné práce jako ZIP** (pravý klik na práci → *Exportovat práci do ZIP*; toolbar *📦 Import práce ze ZIP…*). Export nejdřív nabídne **výběr „co zahrnout"** — náhled dat práce (ta se exportují vždy), navázané entity (**student / oponent / obor**) a **soubory seskupené po kategoriích**, kde lze odznačit i jednotlivý soubor (defaultně vše zaškrtnuté). Import **pozná, zda práce už existuje** (podle ID z balíku, fallback student + typ + akademický rok): když ne, vytvoří **novou práci**; když ano, nabídne *vytvořit novou* / **aktualizovat existující** — u aktualizace si uživatel stejným výběrem zvolí, **co se přepíše** (data, jednotlivé entity, vybrané soubory). Vhodné pro přesun jediné práce mezi profily, zálohu, nebo doplnění už evidované práce.
 - **📤 Export / 📥 Import profilu jako ZIP** (toolbar 👤 menu). Vytvoří přenosný balík `{název}_{datum}.zip` obsahující `manifest.json` + `db.json` (volitelně + dokumenty, harmonogramy, rotující zálohy). Na druhém zařízení se přes *Importovat profil ze ZIPu…* otevře — ukáže manifest preview (profil, app verze, schema, počty souborů), uživatel zvolí název + cílovou složku, rozbalí a aplikace se rovnou přepne na nový profil. Vhodné pro reinstalaci, migraci na nový notebook, sdílení mezi kolegy.
 - **Rotující zálohy (10×)** v každém profilu — vytváří se po každém uloženi (s dedupe podle hash), dialog *Zálohy* umožní obnovit libovolný stav, před každou obnovou se vytvoří záloha aktuálního stavu jako `before-restore`.
 - **Lock soubor** proti dvojímu otevření profilu na různých zařízeních — pokud detekuje souběžný přístup, varuje uživatele (s detaily kdo/kde/kdy) a nabídne pokračovat nebo zrušit.

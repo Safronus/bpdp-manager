@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-06-07
+
+### Added
+- **Export práce do ZIP s výběrem „co zahrnout".** Před uložením balíku se
+  zobrazí dialog: náhled dat práce (exportují se vždy), navázané entity
+  (**student / oponent / obor**) a **soubory seskupené po kategoriích** —
+  odznačit lze i **jednotlivý soubor**. Defaultně vše zaškrtnuté.
+- **Import práce ze ZIP umí aktualizovat existující práci.** Import **pozná,
+  zda práce už existuje** (podle ID z balíku, fallback student + typ +
+  akademický rok). Když existuje, nabídne *vytvořit novou* / **aktualizovat
+  existující**; u aktualizace si uživatel zvolí, **co se přepíše** (data práce,
+  jednotlivé entity, vybrané soubory). Když neexistuje, vytvoří novou práci
+  jako dosud.
+
 ## [0.87.0] - 2026-06-07
 
 ### Added

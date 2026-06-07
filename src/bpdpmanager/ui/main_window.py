@@ -353,8 +353,9 @@ class _ThesesTab(QWidget):
         self.data_changed.emit()
 
     def _on_export_thesis(self, thesis_id: str) -> None:
-        """Exportuje práci do ZIP balíku."""
+        """Exportuje práci do ZIP balíku (s výběrem, co zahrnout)."""
         from ..services.thesis_export import ThesisExportError, export_thesis_to_zip
+        from .thesis_transfer_dialog import ThesisExportDialog
 
         try:
             self.detail.flush()
@@ -363,6 +364,16 @@ class _ThesesTab(QWidget):
         thesis = self.service.get_thesis(thesis_id)
         if thesis is None:
             return
+
+        try:
+            dlg = ThesisExportDialog(self.service, thesis_id, self)
+        except ThesisExportError as exc:
+            QMessageBox.critical(self, "Export", f"Export selhal:\n{exc}")
+            return
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        selection = dlg.selection()
+
         surname = ""
         if thesis.student_id:
             student = self.service.get_student(thesis.student_id)
@@ -376,7 +387,9 @@ class _ThesesTab(QWidget):
         if not path_str:
             return
         try:
-            stats = export_thesis_to_zip(self.service, thesis_id, Path(path_str))
+            stats = export_thesis_to_zip(
+                self.service, thesis_id, Path(path_str), selection=selection
+            )
         except (ThesisExportError, OSError) as exc:
             QMessageBox.critical(self, "Export", f"Export selhal:\n{exc}")
             return
@@ -1549,8 +1562,9 @@ class MainWindow(QMainWindow):
         ).exec()
 
     def _import_thesis_zip(self) -> None:
-        """Importuje práci z dříve vyexportovaného ZIP balíku."""
+        """Importuje práci ze ZIP — vytvoří novou, nebo aktualizuje existující."""
         from ..services.thesis_export import ThesisExportError, import_thesis_from_zip
+        from .thesis_transfer_dialog import ThesisImportDialog
 
         path_str, _ = QFileDialog.getOpenFileName(
             self, "Import práce ze ZIP", str(Path.home()), "ZIP balík (*.zip)"
@@ -1558,13 +1572,30 @@ class MainWindow(QMainWindow):
         if not path_str:
             return
         try:
-            new_id = import_thesis_from_zip(self.service, Path(path_str))
+            dlg = ThesisImportDialog(self.service, Path(path_str), self)
+        except (ThesisExportError, OSError) as exc:
+            QMessageBox.critical(self, "Import", f"Import selhal:\n{exc}")
+            return
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        try:
+            if dlg.mode() == ThesisImportDialog.MODE_UPDATE:
+                thesis_id = import_thesis_from_zip(
+                    self.service, Path(path_str),
+                    update_target_id=dlg.target_id(),
+                    selection=dlg.update_selection(),
+                )
+                done_msg = "Existující práce byla aktualizována."
+            else:
+                thesis_id = import_thesis_from_zip(self.service, Path(path_str))
+                done_msg = "Práce byla naimportována jako nová."
         except (ThesisExportError, OSError) as exc:
             QMessageBox.critical(self, "Import", f"Import selhal:\n{exc}")
             return
         self._refresh_all()
-        self._focus_thesis(new_id)
-        QMessageBox.information(self, "Import hotov", "Práce byla naimportována.")
+        self._focus_thesis(thesis_id)
+        QMessageBox.information(self, "Import hotov", done_msg)
 
     def _check_stag_consistency(self) -> None:
         """Kontrola: které soubory STAG nabízí a v DB chybí (+ dostažení)."""
