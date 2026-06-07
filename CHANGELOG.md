@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-06-07
+
+### Added
+- **Počty prací v titulcích záložek.** *Aktuálně vedené práce*, *Práce v dalším
+  akademickém roce* a *🧐 Oponované práce* (aktuální rok) ukazují u názvu počet.
+  U **budoucích** prací je počet **barevný podle kapacity**: pod 15 zeleně,
+  rovných 15 žlutě, nad 15 červeně. Počty se průběžně aktualizují a kombinují
+  se s odznakem 🔄 tiché kontroly STAG.
+
 ## [0.74.3] - 2026-06-07
 
 ### Changed

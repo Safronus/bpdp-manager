@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QCloseEvent
+from PySide6.QtGui import QAction, QCloseEvent, QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QCheckBox,
@@ -78,6 +78,19 @@ from .thesis_detail import (
     YEAR_MODE_HISTORY,
     ThesisDetail,
 )
+
+# Orientační kapacita budoucích prací (na další akademický rok). Počet
+# v titulku záložky se barví: pod limit zeleně, na limitu žlutě, nad červeně.
+_FUTURE_CAPACITY = 15
+
+
+def _future_count_color(n: int) -> str:
+    """Barva počtu budoucích prací podle kapacity (< 15 zelená, = 15 žlutá, > 15 červená)."""
+    if n < _FUTURE_CAPACITY:
+        return "#2e7d32"   # zelená
+    if n == _FUTURE_CAPACITY:
+        return "#f9a825"   # žlutá
+    return "#c62828"       # červená
 
 
 class _ThesesTab(QWidget):
@@ -430,6 +443,15 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
         self.tabs.addTab(self.tab_stats, "📊 Statistiky")
 
+        # Základní titulky záložek s počty (počet doplňuje _refresh_tab_labels);
+        # STAG odznak 🔄 se přidává zvlášť (drží se v _stag_badges).
+        self._tab_base = {
+            id(self.tab_current): "Aktuálně vedené práce",
+            id(self.tab_future): f"Práce v dalším akademickém roce {next_year}",
+            id(self.tab_opposing): "🧐 Oponované práce",
+        }
+        self._stag_badges: dict[int, int] = {}
+
         # Globální vyhledávání + navigace nad záložkami.
         central = QWidget()
         cv = QVBoxLayout(central)
@@ -465,7 +487,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
         self._build_toolbar(current_year, next_year)
-        self._update_status()
+        self._update_status()  # nastaví i počty v titulcích záložek
         # Po startu otevři první práci v Aktuálním seznamu (pokud existuje) —
         # uživatel rovnou vidí, na čem aktuálně dělá, nemusí klikat.
         self._auto_select_first_in_current()
@@ -560,11 +582,10 @@ class MainWindow(QMainWindow):
         self._last_stag_result = result
         ts = datetime.now().strftime("%H:%M")
 
-        # Odznaky na záložkách (jen aktuální + oponentury).
-        sup = result.supervised_changes if result.ok else 0
-        opp = result.opposing_changes if result.ok else 0
-        self._set_tab_badge(self.tab_current, "Aktuálně vedené práce", sup)
-        self._set_tab_badge(self.tab_opposing, "🧐 Oponované práce", opp)
+        # Odznaky 🔄 na záložkách (jen aktuální + oponentury).
+        self._stag_badges[id(self.tab_current)] = result.supervised_changes if result.ok else 0
+        self._stag_badges[id(self.tab_opposing)] = result.opposing_changes if result.ok else 0
+        self._refresh_tab_labels()
 
         if not result.ok:
             self._set_stag_banner(
@@ -608,11 +629,38 @@ class MainWindow(QMainWindow):
         if dlg.open_import:
             self._import_from_stag()
 
-    def _set_tab_badge(self, tab, base_title: str, count: int) -> None:
-        idx = self.tabs.indexOf(tab)
-        if idx < 0:
-            return
-        self.tabs.setTabText(idx, f"{base_title}  🔄{count}" if count else base_title)
+    def _refresh_tab_labels(self) -> None:
+        """Doplní k titulkům záložek počty prací (+ STAG odznak 🔄).
+
+        Budoucí práce barví podle kapacity: < 15 zeleně, = 15 žlutě, > 15
+        červeně. Aktuálně vedené a oponentury (aktuální rok) jen počet + odznak.
+        """
+        theses = self.service.list_theses()
+        n_current = sum(1 for t in theses if t.status in STATUSES_CURRENT)
+        n_future = sum(1 for t in theses if t.status in STATUSES_FUTURE)
+        current_year = ThesisService.current_academic_year()
+        n_opp = sum(
+            1 for o in self.service.list_opposing_theses()
+            if o.academic_year == current_year
+        )
+
+        def _apply(tab, count: int, color: str | None = None) -> None:
+            idx = self.tabs.indexOf(tab)
+            if idx < 0:
+                return
+            base = self._tab_base.get(id(tab), "")
+            badge = self._stag_badges.get(id(tab), 0)
+            text = f"{base} ({count})"
+            if badge:
+                text += f"  🔄{badge}"
+            self.tabs.setTabText(idx, text)
+            self.tabs.tabBar().setTabTextColor(
+                idx, QColor(color) if color else QColor()
+            )
+
+        _apply(self.tab_current, n_current)
+        _apply(self.tab_future, n_future, _future_count_color(n_future))
+        _apply(self.tab_opposing, n_opp)
 
     def _auto_select_first_in_current(self) -> None:
         """Po startu vybere první práci v Aktuální záložce.
@@ -1521,6 +1569,7 @@ class MainWindow(QMainWindow):
             elif isinstance(widget, StatsTab):
                 widget.refresh()
         self._update_status()
+        self._refresh_tab_labels()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt API)
         """Při zavření okna ještě flushne všechny dirty formuláře."""
@@ -1567,6 +1616,8 @@ class MainWindow(QMainWindow):
             f"<span style='color:{g};'>hotovo {opp_done}</span> · "
             f"<span style='color:{r};'>chybí {opp_missing}</span>"
         )
+        # Počty v titulcích záložek (data se mohla změnit).
+        self._refresh_tab_labels()
 
     # --- globální vyhledávání + navigace -------------------------------------
 

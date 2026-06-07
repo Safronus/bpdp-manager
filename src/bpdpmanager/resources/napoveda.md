@@ -128,11 +128,13 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 *Import ze STAG*, šedá *Profil / Obnovit / Nápověda*), pod ním
 **🔍 vyhledávací pole** a pak **záložky** (taby):
 
-- **Aktuálně vedené práce** — práce ve stavu *V řešení*
+- **Aktuálně vedené práce** — práce ve stavu *V řešení*. V titulku záložky je
+  **počet** vedených prací.
 - **Práce v dalším akademickém roce R/R** — *Zájemce bez tématu*,
   *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok).
-  Budoucí práce ještě nemají známky ani posudky, takže se nezobrazují sloupce
-  **V/O**, *Posudky* ani *Odesláno*.
+  V titulku je **počet budoucích prací barevně podle kapacity**: pod 15 zeleně,
+  rovných 15 žlutě, nad 15 červeně. Budoucí práce ještě nemají známky ani
+  posudky, takže se nezobrazují sloupce **V/O**, *Posudky* ani *Odesláno*.
 - **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
   filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
   defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
@@ -141,7 +143,8 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
 - **Vše** — všechny vedené práce
-- **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí).
+- **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí). V titulku je
+  **počet oponentur aktuálního akademického roku**.
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
 - **📅 Harmonogram** — fakultní termíny z PDF
 
