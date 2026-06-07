@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-06-07
+
+### Added
+- **Filtr podle oboru a typu (BP/DP) v záložce *Historie*.** Obory jsou
+  **agregované** do skupin (**BTSM** = jakákoli BTSM varianta, **SWI**, **NSWI**,
+  **NKYB**, **IRT**, **ITA**, **NUI**, **Jiné**). Filtry se kombinují se
+  stávajícími (stav, oponent, známka).
+
 ## [0.85.0] - 2026-06-07
 
 ### Changed

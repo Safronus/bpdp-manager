@@ -145,9 +145,10 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 - **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
   filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
   defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
-  rozbalovací **Oponent**
-  (jen oponenti z historie) a **Známka** (A–F/FX) — práce projde, když známce
-  odpovídá vedoucí **nebo** oponent. Filtry se kombinují. U hotových prací jsou
+  rozbalovací **Oponent** (jen oponenti z historie), **Známka** (A–F/FX —
+  projde, když odpovídá vedoucí **nebo** oponent), **Obor** (agregovaně:
+  *BTSM* = jakákoli BTSM varianta, *SWI*, *NSWI*, *NKYB*, *IRT*, *ITA*, *NUI*,
+  *Jiné*) a **Typ** (BP/DP). Filtry se kombinují. U hotových prací jsou
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
 - **Vše** — všechny vedené práce
 - **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí). V titulku je

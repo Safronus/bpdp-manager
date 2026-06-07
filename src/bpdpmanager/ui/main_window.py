@@ -71,7 +71,7 @@ from .review_templates_dialog import GenerateReviewDialog, ReviewTemplatesDialog
 from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
 from .stag_consistency_dialog import StagConsistencyDialog
 from .stag_import_dialog import StagImportDialog
-from .theses_tree import ThesesTreeWidget
+from .theses_tree import OBOR_FILTER_GROUPS, ThesesTreeWidget, obor_filter_group
 from .thesis_detail import (
     YEAR_MODE_ALL,
     YEAR_MODE_CURRENT,
@@ -138,6 +138,8 @@ class _ThesesTab(QWidget):
         self._status_checks: dict[ThesisStatus, QCheckBox] = {}
         self._cb_opponent: QComboBox | None = None
         self._cb_grade: QComboBox | None = None
+        self._cb_obor: QComboBox | None = None
+        self._cb_type: QComboBox | None = None
         self._populating_filters = False
 
         splitter = QSplitter(Qt.Orientation.Vertical)
@@ -216,6 +218,22 @@ class _ThesesTab(QWidget):
                 self._cb_grade.addItem(g, userData=g)
             self._cb_grade.currentIndexChanged.connect(self._on_extra_filter_changed)
             row.addWidget(self._cb_grade)
+            row.addSpacing(8)
+            row.addWidget(QLabel("Obor:"))
+            self._cb_obor = QComboBox()
+            self._cb_obor.addItem("Všechny obory", userData=None)
+            for grp in OBOR_FILTER_GROUPS:
+                self._cb_obor.addItem(grp, userData=grp)
+            self._cb_obor.currentIndexChanged.connect(self._on_extra_filter_changed)
+            row.addWidget(self._cb_obor)
+            row.addSpacing(8)
+            row.addWidget(QLabel("Typ:"))
+            self._cb_type = QComboBox()
+            self._cb_type.addItem("BP i DP", userData=None)
+            self._cb_type.addItem("BP", userData="BP")
+            self._cb_type.addItem("DP", userData="DP")
+            self._cb_type.currentIndexChanged.connect(self._on_extra_filter_changed)
+            row.addWidget(self._cb_type)
             self._populate_opponent_combo()
 
         row.addStretch(1)
@@ -262,6 +280,8 @@ class _ThesesTab(QWidget):
         allowed = self._checked_statuses() if self._status_checks else None
         opp_id = self._cb_opponent.currentData() if self._cb_opponent else None
         grade = self._cb_grade.currentData() if self._cb_grade else None
+        obor_grp = self._cb_obor.currentData() if self._cb_obor else None
+        type_code = self._cb_type.currentData() if self._cb_type else None
 
         def predicate(t) -> bool:
             if not base(t):
@@ -274,6 +294,13 @@ class _ThesesTab(QWidget):
                 gs = (t.grade_supervisor or "").upper().strip()
                 go = (t.grade_opponent or "").upper().strip()
                 if grade not in (gs, go):
+                    return False
+            if type_code and t.type.value != type_code:
+                return False
+            if obor_grp:
+                student = self.service.get_student(t.student_id) if t.student_id else None
+                obor = student.obor if student else ""
+                if obor_filter_group(obor) != obor_grp:
                     return False
             return True
 

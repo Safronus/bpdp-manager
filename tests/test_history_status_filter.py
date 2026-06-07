@@ -164,3 +164,33 @@ def test_grade_filter_matches_supervisor_or_opponent(qapp, service) -> None:
     assert pred(t_sup) is True    # A u vedoucího
     assert pred(t_opp) is True    # A u oponenta
     assert pred(t_none) is False  # žádná A
+
+
+def _defended_student_obor(service, obor, type_=ThesisType.BP):
+    s = Student(first_name="A", last_name="B", obor=obor)
+    service.upsert_student(s)
+    t = Thesis(type=type_, status=ThesisStatus.DEFENDED,
+               academic_year="2024/2025", student_id=s.id)
+    service.upsert_thesis(t)
+    return t
+
+
+def test_obor_and_type_filters(qapp, service) -> None:
+    t_btsm = _defended_student_obor(service, "NBTSM-M-K")   # BTSM skupina
+    t_nswi = _defended_student_obor(service, "NSWI-P", ThesisType.DP)
+    t_swi = _defended_student_obor(service, "SWI-K")        # SWI (ne NSWI)
+
+    tab = _history_tab(service, FakePM())
+
+    # Filtr obor = BTSM → jen NBTSM-M (agregováno do BTSM).
+    tab._cb_obor.setCurrentIndex(tab._cb_obor.findData("BTSM"))
+    pred = tab.tree._filter_predicate
+    assert pred(t_btsm) is True
+    assert pred(t_nswi) is False and pred(t_swi) is False
+
+    # Zpět na všechny obory, filtr typ = DP → jen NSWI (DP).
+    tab._cb_obor.setCurrentIndex(0)
+    tab._cb_type.setCurrentIndex(tab._cb_type.findData("DP"))
+    pred = tab.tree._filter_predicate
+    assert pred(t_nswi) is True
+    assert pred(t_btsm) is False and pred(t_swi) is False

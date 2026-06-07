@@ -69,6 +69,23 @@ def _obor_program_key(name: str) -> str:
     return "-".join(toks).upper()
 
 
+# Agregované skupiny oborů pro filtr (Historie). BTSM = jakákoli BTSM varianta.
+OBOR_FILTER_GROUPS = ["BTSM", "SWI", "NSWI", "NKYB", "IRT", "ITA", "NUI", "Jiné"]
+_OBOR_EXACT_GROUPS = {"SWI", "NSWI", "NKYB", "IRT", "ITA", "NUI"}
+
+
+def obor_filter_group(name: str) -> str | None:
+    """Zařadí obor do agregované skupiny pro filtr (BTSM/SWI/NSWI/…/Jiné)."""
+    key = _obor_program_key(name)
+    if not key:
+        return None
+    if "BTSM" in key:           # BTSM, NBTSM-*, BTSM-PH → jedna skupina
+        return "BTSM"
+    if key in _OBOR_EXACT_GROUPS:
+        return key
+    return "Jiné"
+
+
 def obor_badge(name: str) -> tuple[str | None, str | None, bool]:
     """Vrátí ``(popisek, barva, je_anglicky)`` pro barevný badge oboru.
 
