@@ -240,7 +240,7 @@ def test_download_huge_total_no_overflow(qapp, tmp_path, monkeypatch) -> None:
         def list_thesis_files(self, adip):
             return [huge]
 
-        def download_file_streamed(self, path, on_progress=None):
+        def download_file_streamed(self, path, on_progress=None, timeout=None):
             if on_progress:
                 on_progress(10, 10)
             return b"x" * 10

@@ -63,7 +63,21 @@ _DOWNLOAD_CHUNK = 64 * 1024
 # velké přílohy / ZIP balíčky generuje až na vyžádání, takže než začne posílat
 # data (TTFB), může to trvat i desítky sekund až minuty (prohlížeč žádný pevný
 # limit nemá). Krátký 30s timeout takové soubory zbytečně shazoval.
-_DOWNLOAD_TIMEOUT = 600.0
+_DOWNLOAD_TIMEOUT = 600.0      # fallback, když velikost neznáme
+_DOWNLOAD_TIMEOUT_BASE = 120.0  # rezerva na TTFB (příprava na serveru)
+_DOWNLOAD_TIMEOUT_MAX = 1800.0  # strop (30 min)
+
+
+def download_timeout_for(size_hint: int) -> float:
+    """Flexibilní timeout pro stažení souboru podle jeho velikosti.
+
+    Velký soubor (STAG ho déle připravuje a déle posílá) dostane více času,
+    malý naopak selže rychleji, když opravdu visí. Při neznámé velikosti
+    vrací velkorysý fallback. Přibližně ``base + 1 s/MB``, max 30 min.
+    """
+    if not size_hint or size_hint <= 0:
+        return _DOWNLOAD_TIMEOUT
+    return min(_DOWNLOAD_TIMEOUT_MAX, _DOWNLOAD_TIMEOUT_BASE + size_hint / (1024 * 1024))
 
 
 # Detail práce (veřejný, bez přihlášení) — odtud se tahá seznam souborů.

@@ -3314,6 +3314,7 @@ class StagDownloadDialog(QDialog):
                     canceled3 = True
                     break
                 dl = None
+                last_err = ""
                 # 1 opakování na přechodné selhání (STAG občas přiškrtí spojení
                 # při mnoha souborech po sobě).
                 for attempt in (1, 2):
@@ -3363,8 +3364,9 @@ class StagDownloadDialog(QDialog):
                     except stag_api.StagCancelledError:
                         canceled3 = True
                         break
-                    except Exception:  # noqa: BLE001
+                    except Exception as exc:  # noqa: BLE001
                         dl = None
+                        last_err = str(exc)
                     if dl is not None:
                         break  # úspěch → neopakuj
 
@@ -3375,7 +3377,8 @@ class StagDownloadDialog(QDialog):
                     temp_files.append(dl.path)
                     bytes_done += dl.size or sf.size_hint or 0
                 else:
-                    failed.append(f"{result.student_full}: {sf.filename}")
+                    reason = f" — {last_err}" if last_err else ""
+                    failed.append(f"{result.student_full}: {sf.filename}{reason}")
                     bytes_done += sf.size_hint or 0
                 if not use_bytes:
                     progress.setValue(idx + 1)
@@ -3451,15 +3454,24 @@ class StagDownloadDialog(QDialog):
         )
 
         # Fáze 3: stáhni soubory dohledaných prací (velké přeskoč dle volby).
+        dl_errors: list[str] = []
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
         try:
             for result, _tid, _oid, stag_files in matched:
-                dl = self._download_listed(client, result, stag_files, skip_ids)
+                dl = self._download_listed(
+                    client, result, stag_files, skip_ids, dl_errors
+                )
                 if dl:
                     files_by_adip[result.adipidno] = dl
         finally:
             QApplication.restoreOverrideCursor()
+        if dl_errors:
+            QMessageBox.warning(
+                self, "STAG — některé soubory se nestáhly",
+                "Tyto soubory se nepodařilo stáhnout:\n\n"
+                + "\n".join(f"• {e}" for e in dl_errors),
+            )
 
         if not matched:
             self._update_download_btn()
@@ -3595,17 +3607,23 @@ class StagDownloadDialog(QDialog):
         result: stag_api.StagThesisResult,
         stag_files: list[stag_api.StagFile],
         skip_soubidno: set[str],
+        errors: list[str] | None = None,
     ) -> list[_DownloadedStagFile]:
         """Stáhne dané (už vypsané) soubory do dočasného úložiště.
 
         Soubory ze ``skip_soubidno`` (uživatel je odmítl kvůli velikosti)
-        přeskočí.
+        přeskočí. Chyby (vč. timeoutu) přidá do ``errors`` (je-li předán).
         """
         out: list[_DownloadedStagFile] = []
         for sf in stag_files:
             if sf.soubidno in skip_soubidno:
                 continue
-            dl = self._download_one_file(client, result, sf)
+            try:
+                dl = self._download_one_file(client, result, sf)
+            except stag_api.StagError as exc:
+                if errors is not None:
+                    errors.append(f"{result.student_full}: {sf.filename} — {exc}")
+                continue
             if dl is not None:
                 out.append(dl)
         return out
@@ -3621,13 +3639,18 @@ class StagDownloadDialog(QDialog):
 
         ``on_progress(downloaded, total)`` se volá průběžně; přerušení
         (callback vrátí ``False``) propustí jako :class:`stag_api.StagCancelledError`.
+        Při chybě stažení/zápisu vyhodí :class:`stag_api.StagError` s důvodem
+        (rozliší timeout od jiné chyby).
         """
         try:
-            data = client.download_file_streamed(sf.download_path, on_progress)
-        except stag_api.StagCancelledError:
+            data = client.download_file_streamed(
+                sf.download_path, on_progress,
+                timeout=stag_api.download_timeout_for(sf.size_hint),
+            )
+        except (stag_api.StagCancelledError, stag_api.StagError):
             raise
-        except Exception:  # noqa: BLE001
-            return None
+        except Exception as exc:  # noqa: BLE001
+            raise stag_api.StagError(str(exc)) from exc
         safe = re.sub(r"[^0-9A-Za-zÀ-ž._-]+", "_", sf.filename).strip("_")
         if not safe:
             safe = f"soubor_{sf.soubidno}"
@@ -3637,8 +3660,8 @@ class StagDownloadDialog(QDialog):
         )
         try:
             target.write_bytes(data)
-        except OSError:
-            return None
+        except OSError as exc:
+            raise stag_api.StagError(f"zápis souboru selhal: {exc}") from exc
         return _DownloadedStagFile(
             path=target,
             filename=sf.filename,

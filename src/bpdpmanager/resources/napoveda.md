@@ -540,7 +540,9 @@ zápisem se vytvoří záloha). **Průběh** stahování běží **přímo v sez
 u každého souboru se ukazuje staženo/celkem a po dokončení **✓ staženo**
 (nebo **✗ chyba**). U velkých / ZIP příloh STAG soubor teprve **připravuje**,
 takže než začne stahování, chvíli to trvá (řádek ukazuje *„STAG připravuje
-soubor…"*) — má na to dlouhý časový limit. Zvlášť se vypíšou práce
+soubor…"*) — časový limit se **přizpůsobí velikosti** souboru. Když přesto
+vyprší, ukáže se to v řádku jako *„✗ … — STAG neodpověděl včas…"* (stejně
+srozumitelně i u ostatních způsobů stahování). Zvlášť se vypíšou práce
 **bez STAG ID** (nelze ověřit) a případné **chyby dotazu**.
 
 > **Průběh stahování.** Než STAG začne posílat data (server soubor občas

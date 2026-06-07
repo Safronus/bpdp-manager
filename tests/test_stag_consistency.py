@@ -140,7 +140,7 @@ def test_consistency_downloads_missing(qapp, service, monkeypatch) -> None:
         def list_thesis_files(self, a):
             return [review]
 
-        def download_file_streamed(self, p, on_progress=None):
+        def download_file_streamed(self, p, on_progress=None, timeout=None):
             if on_progress:
                 on_progress(10, 10)
             return b"%PDF-1.4 fake review"
@@ -174,3 +174,43 @@ def test_consistency_downloads_missing(qapp, service, monkeypatch) -> None:
     for i in range(root.childCount()):
         collect(root.child(i))
     assert any(t.startswith("✓") and "staženo" in t for t in texts)
+
+
+def test_consistency_download_shows_timeout_reason(qapp, service, monkeypatch) -> None:
+    """Timeout při dostahování se ukáže jako důvod přímo v řádku souboru."""
+    monkeypatch.setattr(mod.QTimer, "singleShot", lambda *a, **k: None)
+    review = StagFile(soubidno="r1", filename="prilohy.zip", download_path="/dl",
+                      section="appendix")
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", lambda a: [review])
+
+    class FakeClient:
+        def list_thesis_files(self, a):
+            return [review]
+
+        def download_file_streamed(self, p, on_progress=None, timeout=None):
+            raise mod.stag_api.StagError("STAG neodpověděl včas — velký soubor…")
+
+    monkeypatch.setattr(mod.stag_api, "StagClient", FakeClient)
+
+    st = Student(first_name="A", last_name="B")
+    service.upsert_student(st)
+    service.upsert_thesis(Thesis(
+        type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+        academic_year="2025/2026", student_id=st.id, adipidno="111"))
+
+    dlg = StagConsistencyDialog(service)
+    dlg._scan()
+    dlg._download_selected()
+
+    texts: list[str] = []
+
+    def collect(item):
+        for i in range(item.childCount()):
+            collect(item.child(i))
+        texts.append(item.text(0))
+
+    root = dlg.tree.invisibleRootItem()
+    for i in range(root.childCount()):
+        collect(root.child(i))
+    assert any(t.startswith("✗") and "neodpověděl včas" in t for t in texts)
+    assert dlg.changed_any is False  # nic se nepřipojilo

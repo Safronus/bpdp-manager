@@ -7,7 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [0.64.2] - 2026-06-07
+## [0.65.0] - 2026-06-07
+
+### Changed
+- **Flexibilní timeout stahování podle velikosti přílohy.** Místo pevného
+  limitu se timeout odvozuje z velikosti souboru (větší příloha = víc času,
+  malá selže rychleji, když opravdu visí): zhruba *120 s + 1 s/MB*, strop
+  30 min, u neznámé velikosti velkorysý fallback.
+- **Jednotná indikace timeoutu při stahování příloh.** Když stahování spadne
+  na timeout, ukáže se to **srozumitelně a všude**, kde se soubory stahují —
+  v *Kontrole se STAG* přímo v řádku souboru (*„✗ … — STAG neodpověděl
+  včas…"*), i ve výpisu chyb u hromadného stažení, *Aktualizovat …* a
+  *Stáhnout jen soubory*. *Aktualizovat …* nově stahuje stejným (delším)
+  způsobem jako ostatní místa.
+
+### Added
+- **Dev nástroj `tools/bench_stag_downloads.py`** — nanečisto stáhne soubory
+  prací ze STAG do dočasné složky, změří časy (TTFB, průtok) a **hned smaže**;
+  z naměřeného navrhne timeout. Databázi pouze čte (neovlivní ji).
 
 ### Fixed
 - **Velké / ZIP přílohy ze STAG se nedařilo stáhnout** (hláška „Nepodařilo se

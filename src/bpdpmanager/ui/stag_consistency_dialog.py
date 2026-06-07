@@ -352,9 +352,10 @@ class StagConsistencyDialog(QDialog):
                     kind, sf0 = r.missing[leaf.data(0, _ROLE_FILE)]
                     sf = by_soub.get(sf0.soubidno, sf0)
                     label = self._leaf_label(kind, sf)
-                    data = self._download_bytes(executor, client, sf, leaf, label)
+                    data, err = self._download_bytes(executor, client, sf, leaf, label)
                     if data is None:
-                        self._mark(leaf, f"✗ {label} — nestaženo", "#c62828")
+                        reason = err or "nestaženo"
+                        self._mark(leaf, f"✗ {label} — {reason}", "#c62828")
                         errors += 1
                         continue
                     safe = sf.filename or f"soubor_{sf.soubidno}"
@@ -403,7 +404,11 @@ class StagConsistencyDialog(QDialog):
         self._update_btn()
 
     def _download_bytes(self, executor, client, sf, leaf: QTreeWidgetItem, label: str):
-        """Stáhne soubor na vlákně a v jeho řádku ukazuje průběh. None při chybě."""
+        """Stáhne soubor na vlákně, v řádku ukazuje průběh.
+
+        Vrací ``(data, None)`` při úspěchu, ``(None, popis_chyby)`` při selhání
+        (popis rozliší timeout od jiné chyby).
+        """
         state = {"downloaded": 0, "total": None}
 
         def cb(downloaded, total, _s=state):
@@ -411,7 +416,10 @@ class StagConsistencyDialog(QDialog):
             _s["total"] = total
             return True
 
-        fut = executor.submit(client.download_file_streamed, sf.download_path, cb)
+        fut = executor.submit(
+            client.download_file_streamed, sf.download_path, cb,
+            timeout=stag_api.download_timeout_for(sf.size_hint),
+        )
         while not fut.done():
             dn = state["downloaded"]
             tot = state["total"] or sf.size_hint or 0
@@ -425,6 +433,8 @@ class StagConsistencyDialog(QDialog):
             QApplication.processEvents()
             QThread.msleep(40)
         try:
-            return fut.result()
-        except Exception:  # noqa: BLE001
-            return None
+            return fut.result(), None
+        except stag_api.StagError as exc:
+            return None, str(exc)
+        except Exception as exc:  # noqa: BLE001
+            return None, str(exc)

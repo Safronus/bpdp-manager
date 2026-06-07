@@ -133,7 +133,7 @@ def test_apply_updates_status_and_attaches(qapp, service, monkeypatch) -> None:
         def list_thesis_files(self, adip):
             return [_review_file()]
 
-        def download_file(self, path):
+        def download_file_streamed(self, path, on_progress=None, timeout=None):
             return b"%PDF-1.4 downloaded review"
 
     monkeypatch.setattr(mod.stag_api, "StagClient", FakeClient)

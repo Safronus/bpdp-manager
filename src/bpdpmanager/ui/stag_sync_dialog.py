@@ -474,7 +474,12 @@ class StagSyncDialog(QDialog):
             if sf is None:
                 continue
             try:
-                data = client.download_file(sf.download_path)
+                # Stejně jako jinde: streamované stahování s timeoutem dle
+                # velikosti (velké/ZIP přílohy mají dlouhý TTFB).
+                data = client.download_file_streamed(
+                    sf.download_path,
+                    timeout=stag_api.download_timeout_for(sf.size_hint),
+                )
             except Exception as exc:  # noqa: BLE001
                 stats["errors"].append(f"{tgt.label}: {sf.filename} — {exc}")
                 continue
