@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.69.1] - 2026-06-07
+
+### Added
+- **Tlačítko „🆕 Najít nové práce…" v dialogu *Aktualizovat … ze STAG*.**
+  „Aktualizovat" jen osvěžuje práce, které už máš v DB — nové práce (např. pro
+  nový akademický rok) se v něm neobjeví. Nové tlačítko otevře hromadné
+  vyhledání *Moje vedené práce… / Moje oponentury…* (podle jména, s odznaky
+  🆕 nové / ✓ už máš). Dialog navíc na tuto možnost upozorní, když není co
+  aktualizovat, a v úvodu vysvětlí rozdíl.
+
 ## [0.69.0] - 2026-06-07
 
 ### Added

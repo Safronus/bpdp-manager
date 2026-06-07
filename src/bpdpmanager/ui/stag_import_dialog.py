@@ -593,6 +593,10 @@ class StagImportDialog(QDialog):
             self.service, role, parent=self, profile_manager=self.profile_manager
         )
         sync.exec()
+        if sync.open_new_works:
+            # Uživatel chce stáhnout NOVÉ práce → otevři hromadné vyhledání role.
+            self._open_stag_download(auto_role=role)
+            return
         if sync.changed:
             # Zavři import dialog (accept) → MainWindow spustí _refresh_all().
             self.accept()

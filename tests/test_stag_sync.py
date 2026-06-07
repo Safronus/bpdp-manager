@@ -88,6 +88,14 @@ def test_resolve_adipidno_by_surname(qapp, monkeypatch) -> None:
     assert mod._resolve_adipidno("Novák", "DP", mod.ROLE_SUPERVISOR) == "888"
 
 
+def test_find_new_works_sets_flag(qapp, service) -> None:
+    """„Najít nové práce…" nastaví příznak (caller pak otevře hromadné stažení)."""
+    dlg = StagSyncDialog(service, "supervisor")
+    assert dlg.open_new_works is False
+    dlg._find_new_works()
+    assert dlg.open_new_works is True
+
+
 def test_scan_populates_status_and_file_actions(qapp, service, monkeypatch) -> None:
     _seed_thesis(service)
     monkeypatch.setattr(mod.stag_api, "download_csv", lambda a: _CSV_DUO)

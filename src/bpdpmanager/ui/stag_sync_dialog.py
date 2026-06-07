@@ -128,6 +128,8 @@ class StagSyncDialog(QDialog):
         self.profile_manager = profile_manager
         self._targets: list[_SyncTarget] = []
         self.changed = False  # nastav True, když se něco aktualizovalo
+        # Uživatel klikl na „Najít nové práce…" → caller otevře hromadné stažení.
+        self.open_new_works = False
 
         led = role == ROLE_SUPERVISOR
         what = "vedené práce v řešení" if led else "oponentury (aktuální rok)"
@@ -143,10 +145,14 @@ class StagSyncDialog(QDialog):
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
+        new_what = "vedené práce" if led else "oponentury"
         intro = QLabel(
             "Porovná tvé práce se STAG a nabídne <b>změnu stavu</b> a "
             "<b>dohrání chybějících souborů</b> (např. nový posudek nebo "
-            "odevzdaná práce). Zaškrtni, co aplikovat."
+            "odevzdaná práce). Zaškrtni, co aplikovat.<br>"
+            f"<span style='color:#1565c0;'>Hledáš <b>nové</b> {new_what} "
+            "(např. nový akademický rok)? Tady se neobjeví — použij "
+            "tlačítko <b>🆕 Najít nové práce…</b> dole.</span>"
         )
         intro.setTextFormat(Qt.TextFormat.RichText)
         intro.setWordWrap(True)
@@ -163,6 +169,13 @@ class StagSyncDialog(QDialog):
         outer.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
+        btn_new = QPushButton("🆕 Najít nové práce…")
+        btn_new.setToolTip(
+            "Otevře hromadné vyhledání tvých prací ve STAG podle jména "
+            "(napříč roky) — odtud stáhneš a naimportuješ NOVÉ práce, které "
+            "ještě nemáš v databázi (např. pro nový akademický rok)."
+        )
+        btn_new.clicked.connect(self._find_new_works)
         btn_close = QPushButton("Zavřít")
         btn_close.clicked.connect(self.reject)
         self.btn_apply = QPushButton("✓ Aktualizovat vybrané")
@@ -171,12 +184,18 @@ class StagSyncDialog(QDialog):
         af.setBold(True)
         self.btn_apply.setFont(af)
         self.btn_apply.clicked.connect(self._apply)
+        row.addWidget(btn_new)
         row.addStretch()
         row.addWidget(btn_close)
         row.addWidget(self.btn_apply)
         outer.addLayout(row)
 
         QTimer.singleShot(0, self._scan)
+
+    def _find_new_works(self) -> None:
+        """Zavře dialog a požádá caller o otevření hromadného stažení (nové práce)."""
+        self.open_new_works = True
+        self.accept()
 
     # --- sběr prací z DB -----------------------------------------------------
 
@@ -218,7 +237,9 @@ class StagSyncDialog(QDialog):
         if not targets:
             self.lbl_status.setText(
                 "Nemáš žádné práce k aktualizaci "
-                "(vedené v řešení / oponentury aktuálního roku)."
+                "(vedené v řešení / oponentury aktuálního roku).\n"
+                "Chceš stáhnout NOVÉ práce ze STAG? Použij dole "
+                "🆕 Najít nové práce…"
             )
             return
 

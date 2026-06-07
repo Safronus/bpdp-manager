@@ -621,6 +621,13 @@ udělá **záloha** a v souhrnu je tlačítko **„↩ Vrátit vše"**. Práce *
 ID**, které se nepodaří dohledat podle příjmení, se **přeskočí a vypíšou**
 (doimportuj je klasicky přes hledání).
 
+> **Pozor — „Aktualizovat" jen osvěžuje práce, které už máš.** Nové práce
+> (např. pro **nový akademický rok**), které v databázi ještě nemáš, se zde
+> **neobjeví**. Na ně je v dialogu *Aktualizovat…* tlačítko **🆕 Najít nové
+> práce…** (otevře hromadné vyhledání *Moje vedené práce… / Moje oponentury…*
+> podle tvého jména, s odznaky **🆕 nové / ✓ už máš**). Když není co
+> aktualizovat, dialog na tuto možnost rovnou upozorní.
+
 ### Soubory práce (plný text, přílohy, posudky)
 
 Pokud STAG u práce nabízí soubory, stáhnou se spolu s ní a otevře se
