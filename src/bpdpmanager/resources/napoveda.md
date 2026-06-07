@@ -852,6 +852,8 @@ synchronizací.
 - **Otevřít posudek** — pravý klik: u **vedené práce** *📕 Otevřít posudek
   oponenta*, u **oponované práce aktuálního roku** *📘 Otevřít posudek
   vedoucího* (otevře PDF; když posudek není, je akce neaktivní).
+- **📄 Otevřít text práce** — pravý klik na práci (vedenou i oponovanou) otevře
+  plný text práce, je-li k dispozici (jinak neaktivní).
 - **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
   do ZIP* uloží **kompletní balík** (data, stav, posudky, známky a všechny
   soubory). Na jiném zařízení / v jiném profilu ho přes toolbar **📦 Import

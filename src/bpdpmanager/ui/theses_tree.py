@@ -697,6 +697,22 @@ class ThesesTreeWidget(QTreeWidget):
             )
         menu.addAction(act_open_opp)
 
+        # Otevřít TEXT práce (plný text), pokud je k dispozici.
+        text_att = next(
+            (a for a in thesis.attachments
+             if a.kind == AttachmentKind.THESIS_TEXT and a.is_file and a.is_current),
+            None,
+        )
+        text_path = (
+            self.service.document_absolute_path(thesis_id, text_att)
+            if text_att is not None else None
+        )
+        act_open_text = QAction("📄 Otevřít text práce", self)
+        act_open_text.setEnabled(text_path is not None and text_path.exists())
+        if act_open_text.isEnabled():
+            act_open_text.triggered.connect(lambda _c=False, p=text_path: open_path(p))
+        menu.addAction(act_open_text)
+
         # Označení posudku za odeslaný — jen u prací „V řešení" s hotovým posudkem.
         if (
             thesis is not None

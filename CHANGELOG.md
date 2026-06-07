@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [0.83.0] - 2026-06-07
+
+### Added
+- **Kontextová akce „📄 Otevřít text práce".** Pravým klikem na práci
+  v záložkách *Aktuálně vedené*, *Historie*, *Vše* i *Oponované práce* otevřeš
+  plný text práce (PDF), pokud je k dispozici — jinak je akce neaktivní.
+
 ## [0.82.0] - 2026-06-07
 
 ### Added

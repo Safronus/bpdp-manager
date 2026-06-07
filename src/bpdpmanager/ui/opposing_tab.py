@@ -450,6 +450,22 @@ class OpposingTab(QWidget):
         if act_open_sup.isEnabled():
             act_open_sup.triggered.connect(lambda _c=False, p=sup_path: open_path(p))
         menu.addAction(act_open_sup)
+
+        # Otevřít TEXT práce (plný text), pokud je k dispozici.
+        text_att = next(
+            (a for a in op.attachments
+             if a.kind == AttachmentKind.THESIS_TEXT and a.is_file and a.is_current),
+            None,
+        ) if op is not None else None
+        text_path = (
+            self.service.opposing_document_absolute_path(op_id, text_att)
+            if text_att is not None else None
+        )
+        act_open_text = QAction("📄 Otevřít text práce", self.tree)
+        act_open_text.setEnabled(text_path is not None and text_path.exists())
+        if act_open_text.isEnabled():
+            act_open_text.triggered.connect(lambda _c=False, p=text_path: open_path(p))
+        menu.addAction(act_open_text)
         menu.addSeparator()
 
         # Označení posudku za odeslaný — jen když je posudek hotový.
