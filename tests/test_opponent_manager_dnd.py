@@ -126,6 +126,47 @@ def test_students_surname_filter(qapp, service) -> None:
     assert _visible_surnames() == {"Novák", "Svoboda", "Dvořák"}
 
 
+def test_students_hide_history_filter(qapp, service) -> None:
+    """„Skrýt historické studenty" skryje obhájené i nedokončené práce."""
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+
+    cases = {
+        "Aktivni": ThesisStatus.IN_PROGRESS,
+        "Obhajeny": ThesisStatus.DEFENDED,
+        "Nedokonceny": ThesisStatus.CANCELLED,
+        "Neobhajeny": ThesisStatus.FAILED,
+    }
+    for ln, status in cases.items():
+        s = Student(first_name="X", last_name=ln)
+        service.upsert_student(s)
+        service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2024/2025",
+                                     student_id=s.id, status=status))
+
+    dlg = StudentsManageDialog(service)
+
+    def _visible() -> set[str]:
+        out: set[str] = set()
+        stack = [dlg.tree.invisibleRootItem()]
+        while stack:
+            it = stack.pop()
+            for j in range(it.childCount()):
+                ch = it.child(j)
+                data = ch.data(0, Qt.ItemDataRole.UserRole)
+                if data is not None and getattr(data, "last_name", None):
+                    out.add(data.last_name)
+                stack.append(ch)
+        return out
+
+    assert _visible() == {"Aktivni", "Obhajeny", "Nedokonceny", "Neobhajeny"}
+    dlg.chk_hide_history.setChecked(True)
+    # obhájený i nedokončený se skryjí; aktivní zůstává
+    visible = _visible()
+    assert "Obhajeny" not in visible
+    assert "Nedokonceny" not in visible
+    assert "Aktivni" in visible
+
+
 def test_move_opponent_changes_kind(qapp, service) -> None:
     o = Opponent(name="Jan Novák", kind=OpponentKind.INTERNAL)
     service.upsert_opponent(o)

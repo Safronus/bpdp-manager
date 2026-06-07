@@ -53,7 +53,8 @@ V **👤 → 🗂 Správa profilů**:
 > Σ** všech oponovaných prací.
 >
 > **Manažer *Studenti*** má nahoře **🔎 filtr podle příjmení** (real-time,
-> necitlivý na diakritiku) a checkbox *Skrýt dokončené studenty*.
+> necitlivý na diakritiku) a checkbox *Skrýt historické studenty* (skryje
+> studenty s **obhájenou** i **nedokončenou** prací).
 >
 > **Tituly ze STAG.** STAG dává jména ve formátu *„Příjmení Jméno, tituly"*
 > (vše za jménem). Při stahování práce je aplikace **rozparsuje** na tituly

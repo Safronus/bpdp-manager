@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-07
+
+### Changed
+- Správce *Studenti*: checkbox **Skrýt dokončené studenty** přejmenován na
+  **Skrýt historické studenty** a nově skryje i studenty s prací ve stavu
+  **Nedokončeno** (dosud jen *Obhájeno*).
+
 ## [1.0.0] - 2026-06-07
 
 První **stabilní verze (1.0.0)**. Aplikace pokrývá kompletní workflow vedení

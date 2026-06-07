@@ -66,6 +66,13 @@ _ACTIVE_STATES = {
     ThesisStatus.IN_PROGRESS,
 }
 
+# Stavy považované za „historické" pro filtr ve správci studentů —
+# obhájené i nedokončené práce.
+_HISTORY_HIDE_STATES = {
+    ThesisStatus.DEFENDED,
+    ThesisStatus.CANCELLED,
+}
+
 
 def _run_title_cleanup(dialog, cleanup_fn, what: str, refresh_fn) -> None:
     """Společný flow „Uklidit tituly": náhled (dry-run) → potvrzení → aplikace.
@@ -139,7 +146,8 @@ class _OpponentDnDTree(QTreeWidget):
 class StudentsManageDialog(QDialog):
     """Správa studentů — grupování podle typu práce (BP/DP) → obor, řazení dle příjmení.
 
-    - Checkbox *Skrýt dokončené studenty* odfiltruje studenty s obhájenou prací.
+    - Checkbox *Skrýt historické studenty* odfiltruje studenty s obhájenou
+      i nedokončenou prací.
     - Studenti se barevně odlišují podle stavu/roku jejich aktuální práce:
       modře = běží v aktuálním ak. roce, tyrkysově = budoucí rok / zájemce,
       šedě kurzívou = dokončeno, červeně kurzívou = nedokončeno.
@@ -163,9 +171,12 @@ class StudentsManageDialog(QDialog):
         self.search_edit.textChanged.connect(self._refresh)
         top_row.addWidget(self.search_edit)
         top_row.addSpacing(16)
-        self.chk_hide_defended = QCheckBox("Skrýt dokončené studenty")
-        self.chk_hide_defended.toggled.connect(self._refresh)
-        top_row.addWidget(self.chk_hide_defended)
+        self.chk_hide_history = QCheckBox("Skrýt historické studenty")
+        self.chk_hide_history.setToolTip(
+            "Skryje studenty, jejichž aktuální práce je obhájená nebo nedokončená."
+        )
+        self.chk_hide_history.toggled.connect(self._refresh)
+        top_row.addWidget(self.chk_hide_history)
         top_row.addStretch()
         self.lbl_info = QLabel("")
         self.lbl_info.setStyleSheet("color: #888; font-size: 11px;")
@@ -222,7 +233,7 @@ class StudentsManageDialog(QDialog):
         self.tree.clear()
 
         current_year = ThesisService.current_academic_year()
-        hide_defended = self.chk_hide_defended.isChecked()
+        hide_history = self.chk_hide_history.isChecked()
         needle = _strip_diacritics(self.search_edit.text().strip().lower())
 
         # group: type_code -> obor -> [(student, primary_thesis)]
@@ -241,7 +252,7 @@ class StudentsManageDialog(QDialog):
             if primary is None:
                 no_thesis.append(student)
                 continue
-            if hide_defended and primary.status == ThesisStatus.DEFENDED:
+            if hide_history and primary.status in _HISTORY_HIDE_STATES:
                 hidden_count += 1
                 continue
             type_code = primary.type.value
@@ -302,14 +313,14 @@ class StudentsManageDialog(QDialog):
 
         # info
         shown = total - filtered_count
-        if hide_defended:
+        if hide_history:
             shown -= hidden_count
         info = f"Zobrazeno: {shown} / {total}"
         extras = []
         if needle and filtered_count:
             extras.append(f"odfiltrováno: {filtered_count}")
-        if hide_defended and hidden_count:
-            extras.append(f"skryto dokončených: {hidden_count}")
+        if hide_history and hidden_count:
+            extras.append(f"skryto historických: {hidden_count}")
         if extras:
             info += f"   ({', '.join(extras)})"
         self.lbl_info.setText(info)
