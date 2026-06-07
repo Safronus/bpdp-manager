@@ -127,3 +127,31 @@ def test_status_badge_data_and_contrast(qapp, service) -> None:
     assert color == "#d6d6d6"                 # světle šedá
     assert _contrast_text(color) == "#212121"  # tmavý text na světlém
     assert leaf.text(ThesesTreeWidget.COL_STATUS) == ""  # kreslí delegát
+
+
+def test_plagiarism_column_after_reviews(qapp, service) -> None:
+    headers = ThesesTreeWidget.HEADERS
+    assert "Plagiát posouzen" in headers
+    assert ThesesTreeWidget.COL_PLAGIARISM == headers.index("Plagiát posouzen")
+    # Hned za sloupcem „Posudky".
+    assert ThesesTreeWidget.COL_PLAGIARISM == ThesesTreeWidget.COL_REVIEWS + 1
+
+
+def test_plagiarism_done_when_verdict_set(qapp, service) -> None:
+    from bpdpmanager.models.enums import PlagiarismVerdict
+
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    t1 = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                academic_year="2024/2025", student_id=s.id,
+                plagiarism_verdict=PlagiarismVerdict.NOT_PLAGIARISM)
+    service.upsert_thesis(t1)
+    t2 = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                academic_year="2024/2025", student_id=s.id,
+                plagiarism_verdict=PlagiarismVerdict.NOT_ASSESSED)
+    service.upsert_thesis(t2)
+
+    tree = ThesesTreeWidget(service)
+    tree.refresh()
+    assert _leaf(tree, t1.id).data(ThesesTreeWidget.COL_PLAGIARISM, ROLE_PLAG) is True
+    assert _leaf(tree, t2.id).data(ThesesTreeWidget.COL_PLAGIARISM, ROLE_PLAG) is False

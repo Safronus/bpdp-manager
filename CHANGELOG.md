@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-06-07
+
+### Changed
+- **Sloupec *Odesláno*: ✓ / ✗ místo obálky** (jasnější — ✓ zeleně odesláno,
+  ✗ červeně neodesláno).
+- **Výraznější gradient barev u sloupce *Známky V/O*** — A sytě zelená,
+  C žlutá, E červenooranžová, F/FX sytě červená; text se kreslí kontrastně
+  (čitelný i na sytých barvách).
+- **Sloupec plagiátorství přesunut za *Posudky*** a přejmenován na
+  **„Plagiát posouzen"** (✓ = kontrola proběhla; dřív matoucí, jako by ✓
+  znamenalo „je plagiát").
+
 ## [1.2.0] - 2026-06-07
 
 ### Added

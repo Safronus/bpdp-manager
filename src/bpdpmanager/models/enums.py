@@ -148,13 +148,14 @@ STATUS_ORDER: dict[ThesisStatus, int] = {
 # přechod zelená (A) → červená (F/FX).
 GRADES_ORDER: list[str] = ["A", "B", "C", "D", "E", "F", "FX"]
 GRADE_TINTS: dict[str, str] = {
-    "A": "#c8e6c9",   # zelená
-    "B": "#dcedc8",   # zelenožlutá
-    "C": "#fff9c4",   # žlutá
-    "D": "#ffe0b2",   # oranžová
-    "E": "#ffccbc",   # červenooranžová
-    "F": "#ffcdd2",   # červená
-    "FX": "#ef9a9a",  # sytější červená
+    # Výraznější gradient A→F/FX (text se kreslí kontrastně — viz GradesDelegate).
+    "A": "#66bb6a",   # výrazná zelená
+    "B": "#9ccc65",   # zelenožlutá
+    "C": "#ffee58",   # žlutá
+    "D": "#ffa726",   # oranžová
+    "E": "#ff7043",   # červenooranžová (výraznější)
+    "F": "#ef5350",   # červená (výraznější)
+    "FX": "#e53935",  # sytá červená (nejvýraznější)
 }
 
 # Stav posudku (vedoucího / oponenta) → barva pro odlišení v seznamech.

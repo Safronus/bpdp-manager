@@ -153,10 +153,11 @@ class GradesDelegate(QStyledItemDelegate):
         for lbl, w in zip(labels, widths, strict=True):
             br = QRectF(x, y, w, self._BADGE_H)
             if lbl != "–":
+                tint = GRADE_TINTS.get(lbl, "#e0e0e0")
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QColor(GRADE_TINTS.get(lbl, "#e0e0e0")))
+                painter.setBrush(QColor(tint))
                 painter.drawRoundedRect(br, 4, 4)
-                painter.setPen(QColor("#212121"))
+                painter.setPen(QColor(_contrast_text(tint)))  # čitelné i na sytých
             else:
                 painter.setPen(QColor("#9e9e9e"))
             painter.drawText(br, Qt.AlignmentFlag.AlignCenter, lbl)
@@ -223,8 +224,8 @@ class ReviewsBadgeDelegate(QStyledItemDelegate):
 
 
 class SentBadgeDelegate(QStyledItemDelegate):
-    """Sloupec „Odesláno": obálka ✉ v zaobleném barevném čtverečku
-    (zelená = odesláno / červená = neodesláno), stejný styl jako známky."""
+    """Sloupec „Odesláno": ✓ (zelená = odesláno) / ✗ (červená = neodesláno)
+    v zaobleném barevném badge, stejný styl jako známky."""
 
     _BADGE_H = 20
     _W = 24
@@ -245,11 +246,12 @@ class SentBadgeDelegate(QStyledItemDelegate):
         painter.setBrush(QColor(bg))
         painter.drawRoundedRect(br, 4, 4)
         painter.setPen(QColor("white"))
-        # Větší font, ať je ✉ čitelná obálka, ne malý obdélníček.
-        glyph_font = painter.font()
-        glyph_font.setPointSizeF(glyph_font.pointSizeF() + 3)
-        painter.setFont(glyph_font)
-        painter.drawText(br, Qt.AlignmentFlag.AlignCenter, "✉")
+        f = painter.font()
+        f.setBold(True)
+        painter.setFont(f)
+        # ✓ = odesláno (zelené pozadí) / ✗ = neodesláno (červené).
+        glyph = "✓" if str(bg) == _REVIEW_HAS_BG else "✗"
+        painter.drawText(br, Qt.AlignmentFlag.AlignCenter, glyph)
         painter.restore()
 
     def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
@@ -454,17 +456,17 @@ class ThesesTreeWidget(QTreeWidget):
 
     HEADERS = [
         "Student / Skupina", "Téma", "Stav", "Známky V/O",
-        "Posudky", "Odesláno", "Oponent", "Obor", "Plagiát",
+        "Posudky", "Plagiát posouzen", "Odesláno", "Oponent", "Obor",
     ]
     COL_STUDENT = 0
     COL_TITLE = 1
     COL_STATUS = 2
     COL_GRADES = 3
     COL_REVIEWS = 4
-    COL_SENT = 5
-    COL_OPPONENT = 6
-    COL_OBOR = 7
-    COL_PLAGIARISM = 8  # jen v „Aktuálně vedené" — jinde skryt
+    COL_PLAGIARISM = 5  # jen v „Aktuálně vedené" — jinde skryt
+    COL_SENT = 6
+    COL_OPPONENT = 7
+    COL_OBOR = 8
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -673,10 +675,10 @@ class ThesesTreeWidget(QTreeWidget):
                 "",            # Stav — kreslí StatusBadgeDelegate
                 grades_text,
                 reviews_text,
+                "",            # Plagiát posouzen — kreslí PlagiarismBadgeDelegate
                 "",            # Odesláno — kreslí SentBadgeDelegate
                 opponent_name,
                 obor,
-                "",            # Plagiát — kreslí PlagiarismBadgeDelegate
             ]
         )
         leaf.setData(
