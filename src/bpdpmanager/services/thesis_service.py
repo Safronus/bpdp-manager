@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 import shutil
 from collections.abc import Iterator
@@ -25,7 +26,13 @@ from ..models import (
     Thesis,
     ThesisProposal,
 )
-from ..models.enums import ALLOWED_TRANSITIONS, AttachmentKind, OpponentKind, ThesisStatus, ThesisType
+from ..models.enums import (
+    ALLOWED_TRANSITIONS,
+    AttachmentKind,
+    OpponentKind,
+    ThesisStatus,
+    ThesisType,
+)
 from ..storage import Database, Repository
 from .default_data import (
     DefaultTemplateSpec,
@@ -49,7 +56,6 @@ from .review_template_filler import (
     plan_template_fill,
 )
 from .xlsx_cell_writer import set_cells
-
 
 # Přípony posudků, ze kterých umíme vyčíst navrženou známku (PDF + Word).
 _GRADE_SOURCE_SUFFIXES = (".pdf", ".docx", ".doc")
@@ -2123,8 +2129,18 @@ class ThesisService:
             else:
                 values[cell] = value
 
-        # 4) Jeden zápis — zachová logo i veškeré formátování šablony 1:1
-        set_cells(tmpl_path, target_path, values)
+        # 4) Výška řádků pro dlouhé volné texty (slovní hodnocení, zdůvodnění)
+        #    — ať se v PDF (LibreOffice) neusekne kvůli pevné výšce buňky.
+        text_cells = {
+            tmpl.field_cells[k]: extras[k]
+            for k in ("overall_comment", "plagiarism_justification",
+                      "assignment_fulfilled")
+            if tmpl.field_cells.get(k) and extras.get(k)
+        }
+        row_heights = self._estimate_text_row_heights(tmpl_path, text_cells)
+
+        # 5) Jeden zápis — zachová logo i veškeré formátování šablony 1:1
+        set_cells(tmpl_path, target_path, values, row_heights=row_heights)
 
         # 3) Připoj XLSX jako Attachment (auto-versioning)
         same_kind = []
@@ -2367,6 +2383,69 @@ class ThesisService:
             return val if isinstance(val, str) else str(val)
         except Exception:  # noqa: BLE001
             return None
+
+    @staticmethod
+    def _estimate_text_row_heights(
+        tmpl_path: Path, text_cells: dict[str, str]
+    ) -> dict[int, float]:
+        """Odhad výšky řádků pro buňky s dlouhým textem (aby se PDF neuseklo).
+
+        ``text_cells``: ``{souřadnice: text}``. Vrací ``{řádek: výška_v_bodech}``.
+        Best-effort — při chybě (chybí openpyxl, neznámá geometrie) vrací {}.
+        Bere v úvahu sloučené buňky (sečte šířky sloupců) a explicitní zalomení.
+        """
+        if not text_cells:
+            return {}
+        try:
+            from openpyxl.utils.cell import (
+                column_index_from_string,
+                coordinate_from_string,
+                get_column_letter,
+            )
+            wb = load_template_workbook(tmpl_path, data_only=False)
+            ws = wb.active
+        except Exception:
+            return {}
+        try:
+            merges = list(ws.merged_cells.ranges)
+
+            def span(coord: str) -> tuple[int, int, int]:
+                letter, row = coordinate_from_string(coord)
+                col = column_index_from_string(letter)
+                for rng in merges:
+                    mc, mr, xc, xr = rng.bounds
+                    if mc <= col <= xc and mr <= row <= xr:
+                        return mc, xc, row
+                return col, col, row
+
+            heights: dict[int, float] = {}
+            for coord, text in text_cells.items():
+                if not text:
+                    continue
+                min_col, max_col, row = span(coord)
+                total_w = 0.0
+                for ci in range(min_col, max_col + 1):
+                    dim = ws.column_dimensions.get(get_column_letter(ci))
+                    total_w += dim.width if dim and dim.width else 8.43
+                # Excelová šířka ≈ počet znaků; mírně podhodnotíme (→ vyšší řádek,
+                # raději trochu místa navíc než useknutý text).
+                chars_per_line = max(12.0, total_w * 0.95)
+                lines = 0
+                for line in str(text).split("\n"):
+                    lines += max(1, math.ceil(len(line) / chars_per_line))
+                if lines < 3:
+                    continue  # krátký text — výšku necháme na šabloně
+                heights[row] = max(
+                    heights.get(row, 0.0), min(lines * 15.0 + 6.0, 2000.0)
+                )
+            return heights
+        except Exception:
+            return {}
+        finally:
+            try:
+                wb.close()
+            except Exception:
+                pass
 
     def _xlsx_to_pdf(self, xlsx_path: Path) -> Path | None:
         """Konvertuje XLSX na PDF přes LibreOffice headless.

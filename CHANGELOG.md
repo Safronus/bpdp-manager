@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-06-08
+
+### Fixed
+- **Dlouhý text posudku se v PDF už neusekne.** U buněk s volným textem
+  (slovní zhodnocení, zdůvodnění plagiátu) se nově **dopočítá a nastaví výška
+  řádku** podle délky textu a šířky (sloučené) buňky. Dřív měla buňka pevnou
+  výšku ze šablony, takže LibreOffice při exportu do PDF delší text ořízl.
+
 ## [1.7.1] - 2026-06-08
 
 ### Changed

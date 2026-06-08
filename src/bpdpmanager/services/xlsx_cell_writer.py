@@ -178,6 +178,25 @@ def _edit_sheet_xml(sheet_xml: str, values: dict[str, object]) -> str:
     return sheet_xml
 
 
+def _set_row_height(sheet_xml: str, rownum: int, height: float) -> str:
+    """Nastaví výšku řádku (``ht`` + ``customHeight``) na otevíracím ``<row>`` tagu.
+
+    KRITICKÉ pro dlouhé texty (slovní hodnocení): šablona má u buňky pevnou
+    výšku řádku, takže se dlouhý text v PDF (LibreOffice) usekne. Dopočtenou
+    výšku tu vnutíme, aby se vešel celý.
+    """
+    m = re.search(rf'<row\b([^>]*?\br="{rownum}")([^>]*?)(/?)>', sheet_xml)
+    if not m:
+        return sheet_xml  # řádek (zatím) neexistuje — nic neměníme
+    attrs = m.group(1) + m.group(2)
+    # Odstraň existující ht/customHeight (jen jako samostatné atributy —
+    # `\s+` brání záměně s podřetězcem v „customHeight").
+    attrs = re.sub(r'\s+(?:ht|customHeight)="[^"]*"', "", attrs)
+    attrs = attrs.rstrip() + f' ht="{height:.2f}" customHeight="1"'
+    new_tag = f"<row{attrs}{m.group(3)}>"
+    return sheet_xml[: m.start()] + new_tag + sheet_xml[m.end():]
+
+
 # Cache vzorce: ``</f><v>…</v>`` nebo ``<f …/><v>…</v>`` → zahodit ``<v>``.
 _FORMULA_CACHE_RE = re.compile(
     r"(</f>|<f\b[^>]*/>)\s*<v\b[^>]*?(?:/>|>.*?</v>)", re.DOTALL
@@ -273,6 +292,7 @@ def set_cells(
     values: dict[str, object],
     *,
     sheet_part: str | None = None,
+    row_heights: dict[int, float] | None = None,
 ) -> None:
     """Zapíše ``values`` (souřadnice → hodnota) do kopie ``template_path``.
 
@@ -303,6 +323,10 @@ def set_cells(
 
     if clean:
         sheet_xml = _edit_sheet_xml(sheet_xml, clean)
+    # Výška řádků s dlouhým textem (slovní hodnocení) — ať se v PDF neusekne.
+    for rownum, height in (row_heights or {}).items():
+        if height and height > 0:
+            sheet_xml = _set_row_height(sheet_xml, int(rownum), float(height))
     # Zahoď cache vzorců → Excel/LibreOffice přepočítají body/procenta/známku.
     sheet_xml = _clear_formula_caches(sheet_xml)
     contents[part] = sheet_xml.encode("utf-8")
