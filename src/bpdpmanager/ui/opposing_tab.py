@@ -9,11 +9,9 @@ from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QHBoxLayout,
     QHeaderView,
     QMenu,
     QMessageBox,
-    QPushButton,
     QSplitter,
     QTreeWidget,
     QTreeWidgetItem,
@@ -88,9 +86,6 @@ class OpposingTab(QWidget):
 
     # Emitne se po změně dat (posudek/uložení) — pro souhrn v dolní liště.
     changed = Signal()
-    # Požadavek na odeslání oponentských posudků sekretářce (odbaví MainWindow,
-    # který má přístup k profilu / e-mailovým nastavením).
-    send_reviews_requested = Signal()
 
     def __init__(self, service: ThesisService, parent=None, *, profile_manager=None) -> None:
         super().__init__(parent)
@@ -103,22 +98,9 @@ class OpposingTab(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        # Toolbar uvnitř tabu. Ruční „Nový oponentský posudek" byl odebrán —
-        # oponentury vznikají importem ze STAG (ruční záznam nešlo vyplnit, viz
-        # zrušená záložka Detail). Aktualizace jedné práce je v kontextovém menu.
-        top = QHBoxLayout()
-        top.setContentsMargins(6, 6, 6, 0)
-        btn_send = QPushButton("✉ Odeslat sekretářce…")
-        btn_send.setToolTip(
-            "Odeslání připravených oponentských posudků sekretářce e-mailem "
-            "(vybere se podle oborů sekretářky; přiloží se PDF posudků)."
-        )
-        btn_send.clicked.connect(self.send_reviews_requested.emit)
-        top.addWidget(btn_send)
-        top.addStretch()
-        # Souhrn hotovo/chybí se NEukazuje tady — duplikoval by barevný souhrn
-        # posudků v dolní liště hlavního okna (ten pokrývá vedené i oponentury).
-        outer.addLayout(top)
+        # Pozn.: Odeslání posudků sekretářce je v hlavním toolbaru (skupina
+        # „Odeslat sekretářce"), takže tady už samostatné tlačítko není.
+        # Aktualizace jedné/více prací je v kontextovém menu.
 
         # Splitter
         splitter = QSplitter(Qt.Orientation.Vertical)

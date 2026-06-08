@@ -575,9 +575,6 @@ V toolbaru je tlačítko **✉ Odeslat posudky** s volbou:
   vedoucí.
 - **🧐 Oponované práce** — posudky, které jsi napsal(a) jako oponent.
 
-(Oponované práce lze poslat i přímo z jejich záložky tlačítkem
-**✉ Odeslat sekretářce…**.)
-
 V dialogu:
 
 1. **Vyber sekretářku** — nabízejí se sekretářky vyplněné u oborů (👤 e-mail

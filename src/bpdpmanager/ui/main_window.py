@@ -625,7 +625,6 @@ class MainWindow(QMainWindow):
         self.tab_all.tree.blank_future_reviews = True
         self.tab_all.tree.refresh()
         self.tab_opposing = OpposingTab(service, profile_manager=pm)
-        self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
         self.tab_proposals = ProposalsTab(service)
         self.tab_proposals.converted.connect(self._on_proposal_converted)
         # Počet návrhů v titulku záložky drž aktuální i po přidání/smazání.

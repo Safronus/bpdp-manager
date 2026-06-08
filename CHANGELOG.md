@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.4] - 2026-06-08
+
+### Removed
+- **Tlačítko „✉ Odeslat sekretářce…" v záložce *Oponované práce*** — bylo
+  duplicitní; odesílání oponentských posudků se řeší toolbarem **✉ Odeslat
+  posudky** (skupina) v hlavním okně.
+
 ## [1.14.3] - 2026-06-08
 
 ### Added
