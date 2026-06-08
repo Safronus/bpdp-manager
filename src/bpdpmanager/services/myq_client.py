@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import re
+import socket
 import ssl
 import urllib.error
 import urllib.parse
@@ -110,11 +111,32 @@ class MyQClient:
         except urllib.error.HTTPError as exc:
             raise MyQError(f"MyQ odpověděl chybou HTTP {exc.code}.") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise MyQError(
-                "Nepodařilo se spojit s MyQ (myq.utb.cz). Zkontroluj připojení "
-                "k internetu (a případně univerzitní VPN)."
-            ) from exc
+            raise MyQError(self._connect_error_message(exc)) from exc
         return raw.decode("utf-8", "replace") if decode else raw
+
+    @staticmethod
+    def _connect_error_message(exc: Exception) -> str:
+        """Lidsky čitelná diagnostika selhání spojení s MyQ.
+
+        MyQ (`myq.utb.cz`) běží na **vnitřní univerzitní síti** (privátní IP).
+        Mimo ni se jméno sice přeloží, ale na server se nelze připojit —
+        proto zdůrazňujeme síť/VPN, ne „internet".
+        """
+        reason = getattr(exc, "reason", exc)
+        net_hint = (
+            "MyQ je dostupné jen z univerzitní sítě (myq.utb.cz má interní "
+            "adresu). Připoj se na fakultní síť nebo univerzitní VPN a zkus "
+            "to znovu."
+        )
+        if isinstance(reason, ssl.SSLError):
+            return f"Selhalo ověření TLS certifikátu MyQ ({reason})."
+        if isinstance(reason, socket.gaierror):
+            return (
+                "Název myq.utb.cz nejde přeložit (DNS). " + net_hint
+            )
+        if isinstance(reason, TimeoutError) or isinstance(exc, TimeoutError):
+            return "MyQ (myq.utb.cz) neodpovídá — spojení vypršelo. " + net_hint
+        return f"Nepodařilo se spojit s MyQ (myq.utb.cz): {reason}. " + net_hint
 
     def _post_form(self, path: str, fields: dict[str, str]) -> str:
         data = urllib.parse.urlencode(fields, encoding="utf-8").encode()

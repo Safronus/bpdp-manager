@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-06-08
+
+### Changed
+- **Srozumitelnější chyba spojení s MyQ.** Rozlišuje timeout / DNS / TLS a
+  zdůrazňuje, že `myq.utb.cz` je **interní služba** dostupná jen z univerzitní
+  sítě (fakultní síť nebo VPN) — místo obecného „zkontroluj připojení
+  k internetu".
+
 ## [1.5.1] - 2026-06-08
 
 ### Changed

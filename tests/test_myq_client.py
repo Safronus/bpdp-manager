@@ -165,3 +165,18 @@ def test_upload_missing_file_raises() -> None:
     _login(c, _FakeNet([_LOGIN_PAGE, "", _APP_PAGE]))
     with pytest.raises(MyQError):
         c.upload("/does/not/exist.pdf")
+
+
+def test_connect_error_messages() -> None:
+    import socket
+    import ssl
+    import urllib.error
+
+    msg = MyQClient._connect_error_message
+    # timeout / DNS → zdůrazní univerzitní síť / VPN (MyQ je interní)
+    assert "VPN" in msg(urllib.error.URLError(TimeoutError("t")))
+    assert "vypršelo" in msg(urllib.error.URLError(TimeoutError("t")))
+    assert "DNS" in msg(urllib.error.URLError(socket.gaierror(8, "x")))
+    assert "VPN" in msg(urllib.error.URLError(socket.gaierror(8, "x")))
+    # TLS chyba se hlásí samostatně (není to o síti)
+    assert "TLS" in msg(urllib.error.URLError(ssl.SSLError("CERT")))
