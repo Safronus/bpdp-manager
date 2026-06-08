@@ -314,19 +314,36 @@ class MyQClient:
         self._req_id = 0
         self._app_ready = False
 
+    def _absorb(self, resp_text: str) -> None:
+        """Převezme rotující token z odpovědi.
+
+        WSF rotuje anti-CSRF token: další požadavek MUSÍ použít ``requestHash``
+        a ``requestID`` z předchozí odpovědi, jinak server vrátí
+        „Bad request. Your request is probably expired." (HTTP 400).
+        """
+        try:
+            data = json.loads(resp_text)
+        except (ValueError, TypeError):
+            return
+        if not isinstance(data, dict):
+            return
+        if data.get("requestID") is not None:
+            self._req_id = data["requestID"]
+        if data.get("requestHash"):
+            self._hash_id = data["requestHash"]
+
     def _wsf_post(self, wsf: dict) -> str:
-        return self._post_form(
+        wsf["requestID"] = self._req_id
+        wsf["instanceID"] = self._instance_id
+        resp = self._post_form(
             APP_PATH,
             {
                 "wsfState": json.dumps(wsf, ensure_ascii=False),
                 "wsfHashId": self._hash_id or "",
             },
         )
-
-    def _next_req(self) -> int:
-        rid = self._req_id
-        self._req_id += 1
-        return rid
+        self._absorb(resp)
+        return resp
 
     def _ensure_jobs_tab(self) -> None:
         """Otevře frontu úloh (jednou za session) — tam je tlačítko Tisk."""
@@ -336,15 +353,13 @@ class MyQClient:
             "async": True, "hash": {"r": "dashboard"}, "object": _TAB_OBJECT,
             "method": "createTabCtrl", "params": ["*dashboard", {}],
             "ctrlsState": {"C2": {"defaultPageRef": "*dashboard"}},
-            "deletedServerCtrls": [], "requestID": self._next_req(),
-            "instanceID": self._instance_id,
+            "deletedServerCtrls": [],
         })
         self._wsf_post({
             "async": True, "hash": {"r": "jobs"}, "object": _TAB_OBJECT,
             "method": "createTabCtrl", "params": ["*jobs", {}],
             "ctrlsState": {"C1": {"_focusedCtrl": None}},
-            "deletedServerCtrls": [], "requestID": self._next_req(),
-            "instanceID": self._instance_id,
+            "deletedServerCtrls": [],
         })
         self._app_ready = True
 
@@ -362,8 +377,7 @@ class MyQClient:
         self._wsf_post({
             "async": True, "hash": {"r": "jobs"}, "object": _PRINT_OBJECT,
             "method": "onPrintFile", "params": {}, "ctrlsState": {},
-            "deletedServerCtrls": [], "requestID": self._next_req(),
-            "instanceID": self._instance_id,
+            "deletedServerCtrls": [],
         })
 
         # ③ potvrď dialog s nahraným souborem + nastavením tisku (multipart)
@@ -371,8 +385,7 @@ class MyQClient:
             "async": True, "hash": {"r": "jobs"}, "object": _DIALOG_OBJECT,
             "method": "onOK", "params": [],
             "ctrlsState": {_SETTINGS_CTRL: {"selId": _SETTINGS_SELID}},
-            "deletedServerCtrls": [], "requestID": self._next_req(),
-            "instanceID": self._instance_id,
+            "deletedServerCtrls": [],
         }
         resp = self._post_multipart(wsf, pdf_path)
         # Úspěch MyQ hlásí bublinou „Operace běží na pozadí".
@@ -387,13 +400,14 @@ class MyQClient:
             self._wsf_post({
                 "async": True, "hash": {"r": "jobs"}, "object": _REFRESH_OBJECT,
                 "method": "refresh", "params": {}, "ctrlsState": {},
-                "deletedServerCtrls": [], "requestID": self._next_req(),
-                "instanceID": self._instance_id,
+                "deletedServerCtrls": [],
             })
         except MyQError:
             pass  # refresh je kosmetický; úloha už je odeslaná
 
     def _post_multipart(self, wsf: dict, pdf_path: Path) -> str:
+        wsf["requestID"] = self._req_id
+        wsf["instanceID"] = self._instance_id
         boundary = "----BPDPManager" + uuid.uuid4().hex
         crlf = b"\r\n"
         parts: list[bytes] = []
@@ -420,7 +434,7 @@ class MyQClient:
         parts.append(f"--{boundary}--\r\n".encode())
         body = b"".join(parts)
 
-        return self._open(
+        resp = self._open(
             APP_PATH,
             data=body,
             headers={
@@ -428,3 +442,5 @@ class MyQClient:
                 "X-Requested-With": "XMLHttpRequest",
             },
         )
+        self._absorb(resp)
+        return resp

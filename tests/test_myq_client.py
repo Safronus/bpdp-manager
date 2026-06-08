@@ -166,6 +166,39 @@ def test_upload_sequence_and_multipart(tmp_path: Path) -> None:
                        "multipart", "refresh"]
 
 
+def test_upload_threads_rotating_token(tmp_path: Path) -> None:
+    """WSF rotuje token: každý další request musí použít requestHash/requestID
+    z předchozí odpovědi (jinak 400 „request expired")."""
+    c = MyQClient()
+    _login(c, _FakeNet([_LOGIN_PAGE, "", _APP_PAGE]))
+    # po loginu má klient hash z app stránky
+    assert c._hash_id == "ffff1111ffff1111ffff1111ffff1111"
+    pdf = tmp_path / "x.pdf"
+    pdf.write_bytes(b"%PDF")
+    net = _FakeNet([
+        '{"requestID":1,"requestHash":"H1"}',
+        '{"requestID":2,"requestHash":"H2"}',
+        '{"requestID":3,"requestHash":"H3"}',
+        '{"requestID":4,"requestHash":"H4","bubbleMsgs":[{"html":"pozadí"}]}',
+        '{"requestID":5,"requestHash":"H5"}',
+    ])
+    c._open = net
+    c.upload(pdf)
+
+    # wsfHashId poslaný v jednotlivých requestech = hash z PŘEDCHOZÍ odpovědi
+    sent_hashes = []
+    for call in net.calls:
+        data = call["data"]
+        if "multipart" in call["headers"].get("Content-Type", ""):
+            seg = data.split(b'name="wsfHashId"')[1].split(b"\r\n\r\n")[1]
+            sent_hashes.append(seg.split(b"\r\n")[0].decode())
+        else:
+            sent_hashes.append(up.parse_qs(data.decode())["wsfHashId"][0])
+    assert sent_hashes == [
+        "ffff1111ffff1111ffff1111ffff1111", "H1", "H2", "H3", "H4"
+    ]
+
+
 def test_upload_unexpected_response_raises(tmp_path: Path) -> None:
     c = MyQClient()
     _login(c, _FakeNet([_LOGIN_PAGE, "", _APP_PAGE]))

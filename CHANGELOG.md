@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-06-08
+
+### Fixed
+- **Tisk na MyQ — rotující bezpečnostní token.** WSF po každé odpovědi vrací
+  nový `requestHash` + `requestID`, které musí použít další požadavek; jinak
+  server odpoví `Bad request. Your request is probably expired.` (HTTP 400).
+  Konektor je teď z odpovědí přebírá, takže nahrávací sekvence (fronta → dialog
+  → odeslání souboru) projde. (Login byl opraven v 1.5.6.)
+
 ## [1.6.0] - 2026-06-08
 
 ### Added
