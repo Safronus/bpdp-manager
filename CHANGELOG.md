@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-08
+
+### Added
+- **Tisk posudků i na systémovou tiskárnu.** Tlačítko v toolbaru přejmenováno
+  na **🖨 Tisk posudků** a v dialogu se volí **cíl tisku**: *MyQ* (jako dosud)
+  nebo *systémová tiskárna*. U systémové tiskárny vybereš zařízení z nabídky
+  (CUPS, macOS/Linux) a volitelně *Oboustranně*; tiskne se přes `lp` (původní
+  PDF, plná kvalita). Výběr prací, podskupiny a označení „Vytištěno" fungují
+  pro oba cíle stejně.
+
 ## [1.6.1] - 2026-06-08
 
 ### Fixed

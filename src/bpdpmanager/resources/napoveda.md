@@ -598,11 +598,17 @@ e-mail odesílatele, **SMTP server / port / zabezpečení** a tlačítko
 
 ---
 
-## Tisk posudků přes MyQ
+## Tisk posudků
 
-Hotové **PDF posudky** můžeš poslat rovnou do tiskové fronty **MyQ**
-(`myq.utb.cz`) — pro pohodlný tisk a vyzvednutí u libovolné univerzitní
-multifunkce. V toolbaru je tlačítko **🖨 Tisk posudků (MyQ)**.
+Hotové **PDF posudky** vytiskneš přímo z aplikace — tlačítko **🖨 Tisk posudků**
+v toolbaru. V dialogu zvolíš **cíl tisku**:
+
+- **MyQ (`myq.utb.cz`)** — odešle posudky do tiskové fronty univerzity (vyzvedneš
+  je u libovolné multifunkce kartou/PINem). Zadáš přihlašovací **jméno + PIN**
+  (nikam se neukládají). Když to hlásí **chybu certifikátu**, odznač *Ověřit TLS
+  certifikát serveru* (MyQ je interní server).
+- **Systémová tiskárna** — vytiskne na **vybranou tiskárnu** nastavenou v systému
+  (macOS/Linux přes CUPS). Vybereš tiskárnu z nabídky a volitelně *Oboustranně*.
 
 V dialogu:
 - **Vybereš posudky.** Nabízejí se práce s **hotovým PDF posudkem** z aktuálně
@@ -611,20 +617,15 @@ V dialogu:
   vytištěné** (samostatný seznam, nezaškrtnuté — pro případný opětovný tisk).
   V každé skupině jsou posudky seskupené do podskupin **🎓 Posudky vedoucího**
   a **🧐 Posudky oponenta**. Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
-- **Zadáš přihlašovací jméno a PIN do MyQ.** Údaje se **nikam neukládají** —
-  použijí se jen pro toto jedno odeslání a dál se nedrží (PIN je maskovaný).
-- Když tisk hlásí **chybu certifikátu** (`CERTIFICATE_VERIFY_FAILED`), odznač
-  **Ověřit TLS certifikát serveru** — MyQ je interní univerzitní server, jen
-  jeho certifikát Python neumí ověřit.
-- **🖨 Odeslat na tisk** přihlásí a postupně nahraje vybraná PDF do tvé fronty
-  (tisk **oboustranně**). Na konci se zobrazí **souhrn** (kolik odesláno, co
+- **🖨 Odeslat na tisk** postupně vytiskne vybraná PDF (do MyQ fronty, nebo na
+  systémovou tiskárnu). Na konci se zobrazí **souhrn** (kolik vytištěno, co
   případně selhalo) a dialog se **zeptá, zda odeslané označit jako vytištěné**
-  (promítne se do sloupce *Vytištěno*). Úlohy pak vyzvedneš u stroje (karta/PIN).
+  (promítne se do sloupce *Vytištěno*).
 
-> **Pozn.:** Konektor komunikuje přímo s webem MyQ. Když UTB MyQ výrazně změní
-> své rozhraní, může být potřeba konektor upravit; v takovém případě jde tisk
-> vždy provést i ručně přes web `myq.utb.cz` (posudky si připravíš přes
-> **📄 Export PDF mých posudků**).
+> **Pozn.:** MyQ konektor komunikuje přímo s webem `myq.utb.cz`. Když UTB MyQ
+> výrazně změní rozhraní, lze tisk vždy provést i ručně přes web (posudky si
+> připravíš přes **📄 Export PDF mých posudků**), nebo použít systémovou
+> tiskárnu.
 
 ---
 

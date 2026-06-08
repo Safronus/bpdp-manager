@@ -949,10 +949,10 @@ class MainWindow(QMainWindow):
         self._tint_widget(self._send_button, self._GROUP_REVIEW)
         toolbar.addWidget(self._send_button)
         add(
-            "🖨 Tisk posudků (MyQ)", self._print_reviews_myq, self._GROUP_REVIEW,
-            "Odeslat PDF posudků (vedoucího i oponentské) k tisku na "
-            "myq.utb.cz — vybereš práce, zadáš jméno + PIN (neukládá se). "
-            "Tiskne oboustranně.",
+            "🖨 Tisk posudků", self._print_reviews_myq, self._GROUP_REVIEW,
+            "Vytisknout PDF posudků (vedoucího i oponentské) — přes MyQ "
+            "(myq.utb.cz) nebo na systémovou tiskárnu. Vybereš práce a cíl "
+            "tisku. Tiskne oboustranně.",
         )
 
         toolbar.addSeparator()

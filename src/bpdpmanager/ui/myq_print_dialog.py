@@ -21,7 +21,9 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -31,13 +33,15 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QRadioButton,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from ..models.enums import STATUSES_CURRENT
-from ..services import ThesisService
+from ..services import ThesisService, system_print
 
 _ROLE_PDF = Qt.ItemDataRole.UserRole + 1
 _ROLE_NAME = Qt.ItemDataRole.UserRole + 2
@@ -82,26 +86,52 @@ class _PrintWorker(QThread):
         self.done.emit(results)
 
 
+class _SystemPrintWorker(QThread):
+    """Vytiskne vybraná PDF na systémovou tiskárnu (CUPS) mimo hlavní vlákno."""
+
+    progress = Signal(int, int, str)
+    done = Signal(list)
+    failed = Signal(str)
+
+    def __init__(self, jobs: list[tuple[str, Path]], printer: str,
+                 *, duplex: bool = True) -> None:
+        super().__init__()
+        self._jobs = jobs
+        self._printer = printer
+        self._duplex = duplex
+
+    def run(self) -> None:
+        results: list[tuple[bool, str]] = []
+        total = len(self._jobs)
+        for i, (name, pdf) in enumerate(self._jobs, start=1):
+            self.progress.emit(i, total, name)
+            try:
+                system_print.print_pdf(pdf, self._printer, duplex=self._duplex)
+                results.append((True, ""))
+            except Exception as exc:  # chybu reportujeme v souhrnu
+                results.append((False, str(exc)))
+        self.done.emit(results)
+
+
 class MyQPrintDialog(QDialog):
-    """Výběr posudků + přihlášení + odeslání na tisk MyQ."""
+    """Výběr posudků + cíl tisku (MyQ / systémová tiskárna) + odeslání."""
 
     data_changed = Signal()  # po označení prací jako vytištěné
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self._worker: _PrintWorker | None = None
+        self._worker: _PrintWorker | _SystemPrintWorker | None = None
         self._jobs: list[tuple[str, Path]] = []
-        self.setWindowTitle("Tisk posudků přes MyQ")
-        self.setMinimumSize(640, 560)
+        self.setWindowTitle("Tisk posudků")
+        self.setMinimumSize(640, 600)
 
         outer = QVBoxLayout(self)
 
         intro = QLabel(
-            "Vyber posudky k tisku, zadej přihlašovací jméno a PIN do MyQ "
-            "(<b>nikam se neukládají</b>) a odešli je do tiskové fronty na "
-            "myq.utb.cz. Tisknou se <b>oboustranně</b>. Předzaškrtnuté jsou "
-            "posudky, které ještě nebyly vytištěné."
+            "Vyber posudky k tisku a cíl: <b>MyQ</b> (tisková fronta univerzity) "
+            "nebo <b>systémová tiskárna</b>. Tisknou se <b>oboustranně</b>. "
+            "Předzaškrtnuté jsou posudky, které ještě nebyly vytištěné."
         )
         intro.setWordWrap(True)
         outer.addWidget(intro)
@@ -127,7 +157,24 @@ class MyQPrintDialog(QDialog):
         sel_row.addStretch(1)
         outer.addLayout(sel_row)
 
-        # ── přihlašovací údaje ────────────────────────────────────────────
+        # ── cíl tisku: MyQ / systémová tiskárna ───────────────────────────
+        dest_row = QHBoxLayout()
+        dest_row.addWidget(QLabel("Tisknout přes:"))
+        self.rb_myq = QRadioButton("MyQ (myq.utb.cz)")
+        self.rb_system = QRadioButton("Systémová tiskárna")
+        self.rb_myq.setChecked(True)
+        self._dest_group = QButtonGroup(self)
+        self._dest_group.addButton(self.rb_myq)
+        self._dest_group.addButton(self.rb_system)
+        dest_row.addWidget(self.rb_myq)
+        dest_row.addWidget(self.rb_system)
+        dest_row.addStretch(1)
+        outer.addLayout(dest_row)
+
+        # ── MyQ: přihlašovací údaje + TLS ─────────────────────────────────
+        self._myq_box = QWidget()
+        myq_v = QVBoxLayout(self._myq_box)
+        myq_v.setContentsMargins(0, 0, 0, 0)
         cred = QHBoxLayout()
         cred.addWidget(QLabel("Jméno:"))
         self.ed_user = QLineEdit()
@@ -139,11 +186,8 @@ class MyQPrintDialog(QDialog):
         self.ed_pin.setPlaceholderText("PIN")
         self.ed_pin.setMaximumWidth(120)
         cred.addWidget(self.ed_pin)
-        outer.addLayout(cred)
-
-        # TLS ověření — MyQ server někdy posílá certifikát, který Python neumí
-        # ověřit (neúplný řetězec / interní univerzitní CA). Pak je třeba ho
-        # odznačit. Default zapnuto (bezpečně).
+        myq_v.addLayout(cred)
+        # MyQ posílá certifikát, který Python neumí ověřit (interní CA) → vypnout.
         self.cb_verify = QCheckBox("Ověřit TLS certifikát serveru")
         self.cb_verify.setChecked(True)
         self.cb_verify.setToolTip(
@@ -151,7 +195,31 @@ class MyQPrintDialog(QDialog):
             "odznač — MyQ je interní univerzitní server, jen jeho certifikát "
             "Python neumí ověřit. Vypnutím se na něj připojíš bez ověření."
         )
-        outer.addWidget(self.cb_verify)
+        myq_v.addWidget(self.cb_verify)
+        outer.addWidget(self._myq_box)
+
+        # ── Systémová tiskárna: výběr + oboustranně ───────────────────────
+        self._sys_box = QWidget()
+        sys_v = QHBoxLayout(self._sys_box)
+        sys_v.setContentsMargins(0, 0, 0, 0)
+        sys_v.addWidget(QLabel("Tiskárna:"))
+        self.cmb_printer = QComboBox()
+        for p in system_print.list_printers():
+            label = p.label + ("  (výchozí)" if p.is_default else "")
+            self.cmb_printer.addItem(label, p.name)
+        sys_v.addWidget(self.cmb_printer, stretch=1)
+        self.cb_duplex = QCheckBox("Oboustranně")
+        self.cb_duplex.setChecked(True)
+        sys_v.addWidget(self.cb_duplex)
+        outer.addWidget(self._sys_box)
+        if not system_print.system_print_available() or self.cmb_printer.count() == 0:
+            self.rb_system.setEnabled(False)
+            self.rb_system.setToolTip(
+                "Systémový tisk není dostupný (chybí CUPS/lp nebo tiskárna)."
+            )
+
+        self.rb_myq.toggled.connect(self._update_dest)
+        self._update_dest()
 
         # ── průběh ────────────────────────────────────────────────────────
         self.status = QLabel("")
@@ -313,6 +381,12 @@ class MyQPrintDialog(QDialog):
         width = max(self.minimumWidth(), min(want, int(avail * 0.9)))
         self.resize(width, self.height())
 
+    # ── cíl tisku ──────────────────────────────────────────────────────────
+    def _update_dest(self) -> None:
+        myq = self.rb_myq.isChecked()
+        self._myq_box.setVisible(myq)
+        self._sys_box.setVisible(not myq)
+
     # ── odeslání ──────────────────────────────────────────────────────────
     def _on_send(self) -> None:
         selected = self._selected()
@@ -321,29 +395,43 @@ class MyQPrintDialog(QDialog):
                 self, "Tisk posudků", "Nevybral jsi žádný posudek k tisku."
             )
             return
-        user = self.ed_user.text().strip()
-        pin = self.ed_pin.text().strip()
-        if not user or not pin:
-            QMessageBox.information(
-                self, "Tisk posudků", "Zadej přihlašovací jméno i PIN do MyQ."
+
+        worker_jobs = [(it["name"], it["pdf"]) for it in selected]
+        if self.rb_myq.isChecked():
+            user = self.ed_user.text().strip()
+            pin = self.ed_pin.text().strip()
+            if not user or not pin:
+                QMessageBox.information(
+                    self, "Tisk posudků", "Zadej přihlašovací jméno i PIN do MyQ."
+                )
+                return
+            worker = _PrintWorker(
+                user, pin, worker_jobs, verify_tls=self.cb_verify.isChecked()
             )
-            return
+            worker.failed.connect(self._on_failed)
+            status = "Přihlašuji se do MyQ…"
+        else:
+            printer = self.cmb_printer.currentData()
+            if not printer:
+                QMessageBox.information(
+                    self, "Tisk posudků", "Vyber systémovou tiskárnu."
+                )
+                return
+            worker = _SystemPrintWorker(
+                worker_jobs, printer, duplex=self.cb_duplex.isChecked()
+            )
+            status = "Posílám na tiskárnu…"
 
         self._jobs = selected
         self._set_busy(True)
         self.progress.setVisible(True)
         self.progress.setRange(0, len(selected))
         self.progress.setValue(0)
-        self.status.setText("Přihlašuji se do MyQ…")
-
-        worker_jobs = [(it["name"], it["pdf"]) for it in selected]
-        self._worker = _PrintWorker(
-            user, pin, worker_jobs, verify_tls=self.cb_verify.isChecked()
-        )
-        self._worker.progress.connect(self._on_progress)
-        self._worker.done.connect(self._on_done)
-        self._worker.failed.connect(self._on_failed)
-        self._worker.start()
+        self.status.setText(status)
+        worker.progress.connect(self._on_progress)
+        worker.done.connect(self._on_done)
+        self._worker = worker
+        worker.start()
 
     def _on_progress(self, done: int, total: int, name: str) -> None:
         self.progress.setValue(done - 1)
@@ -393,10 +481,15 @@ class MyQPrintDialog(QDialog):
         self.data_changed.emit()
 
     def _set_busy(self, busy: bool) -> None:
-        self.btn_send.setEnabled(not busy)
-        self.tree.setEnabled(not busy)
-        self.ed_user.setEnabled(not busy)
-        self.ed_pin.setEnabled(not busy)
+        for w in (
+            self.btn_send, self.tree, self.ed_user, self.ed_pin,
+            self.rb_myq, self.rb_system, self.cmb_printer, self.cb_duplex,
+            self.cb_verify,
+        ):
+            w.setEnabled(not busy)
+        # systémový tisk může zůstat zakázaný, i když nejsme busy
+        if not busy and self.cmb_printer.count() == 0:
+            self.rb_system.setEnabled(False)
 
     def reject(self) -> None:  # zabraň zavření během odesílání
         if self._worker is not None and self._worker.isRunning():
