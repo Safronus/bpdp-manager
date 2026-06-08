@@ -23,10 +23,16 @@ from bpdpmanager.services.myq_client import (
 )
 
 _LOGIN_PAGE = (
-    '<html><input type="hidden" name="wsfHashId" '
+    '<html><body class="Web_ViewLogin"><form id="wsfForm" method="post">'
+    '<input type="hidden" name="wsfState" id="wsfState"/>'
+    '<input type="hidden" name="wsfHashId" '
     'value="abc123abc123abc123abc123abc12300" id="wsfHashId"/>'
     '<script>g_app(0,{"requestID":0,"instanceID":"wsfLOGIN1"});</script>'
-    '<input type="password" name="pwd"/></html>'
+    '<div id="C3" class="wsfCtrl Wsf_Forms_CtrlForm Web_Login_FormLogin">'
+    '<input name="domain" type="text" id="C7input" value="utb"/>'
+    '<input name="user" type="text" id="C8input" value=""/>'
+    '<input name="pwd" type="password" id="C9input" value=""/>'
+    "</div></form></body></html>"
 )
 _APP_PAGE = (
     '<html><input type="hidden" name="wsfHashId" '
@@ -74,12 +80,16 @@ def test_login_posts_onlogin_and_credentials_not_stored() -> None:
         kv.split("=", 1) for kv in post["data"].decode().split("&")
     )
     assert "wsfState" in fields and "wsfHashId" in fields
+    # pojmenovaná pole formuláře: user/pwd přepsaná, domain ve svém defaultu
+    assert up.unquote_plus(fields["user"]) == "zacek"
+    assert up.unquote_plus(fields["pwd"]) == "123456"
+    assert up.unquote_plus(fields["domain"]) == "utb"
     wsf = json.loads(up.unquote_plus(fields["wsfState"]))
     assert wsf["method"] == "onLogin"
-    assert wsf["object"] == "C3"
-    # credentials placed into the login controls
-    blob = json.dumps(wsf, ensure_ascii=False)
-    assert "zacek" in blob and "123456" in blob
+    assert wsf["object"] == "C3"  # id formuláře z živé stránky
+    # credentials i v ctrlsState správných controlů (C8 = user, C9 = pwd)
+    assert wsf["ctrlsState"]["C8"]["value"] == "zacek"
+    assert wsf["ctrlsState"]["C9"]["value"] == "123456"
 
     # po přihlášení se vezme wsfHashId z app stránky
     assert c._hash_id == "ffff1111ffff1111ffff1111ffff1111"
@@ -88,6 +98,15 @@ def test_login_posts_onlogin_and_credentials_not_stored() -> None:
     # klient si neukládá jméno ani PIN do atributů
     state = " ".join(str(v) for v in vars(c).values())
     assert "zacek" not in state and "123456" not in state
+
+
+def test_parse_login_form() -> None:
+    form = MyQClient._parse_login_form(_LOGIN_PAGE)
+    assert form["user"] == ("user", "C8")
+    assert form["pin"] == ("pwd", "C9")
+    assert form["form_ctrl"] == "C3"
+    assert form["fields"]["domain"] == "utb"
+    assert "wsfState" not in form["fields"]  # plní se zvlášť
 
 
 def test_login_already_logged_in_skips_post() -> None:

@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-06-08
+
+### Fixed
+- **Přihlášení do MyQ.** Konektor nově **parsuje živý přihlašovací formulář**
+  (pole `user` / `pwd` / `domain`, control ID se mezi sezeními liší, takže je
+  nelze natvrdo) místo dřívějšího odhadu zachyceného z HARu. Vyplní jen jméno
+  a PIN, ostatní pole (např. `domain`) nechá ve výchozí hodnotě.
+
 ## [1.5.3] - 2026-06-08
 
 ### Added

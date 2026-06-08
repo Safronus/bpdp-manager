@@ -41,13 +41,11 @@ _USER_AGENT = "Mozilla/5.0 (BPDPManager MyQ print)"
 _DEFAULT_TIMEOUT = 30.0
 
 # ── WSF konstanty zachycené z HAR (doladit, kdyby MyQ změnilo UI) ──────────────
-# Přihlášení (POST /cs/):
-_LOGIN_OBJECT = "C3"                 # objekt s metodou onLogin
-_LOGIN_USER_CTRL = "C8"              # control jména v ctrlsState
-_LOGIN_PIN_CTRL = "C9"               # control PINu v ctrlsState
-_LOGIN_FORM_SEL = "Web_Login_FormLogin"
-_LOGIN_USER_FIELD = "C6"             # top-level form pole (jméno)
-_LOGIN_PIN_FIELD = "pwd"             # top-level form pole (PIN)
+# Přihlášení (POST /cs/): formulář i jeho control ID se mezi sezeními LIŠÍ,
+# proto je nehardcodujeme — parsujeme živý formulář (viz _parse_login_form).
+# Jediné stabilní je CSS třída přihlašovacího formuláře a názvy polí user/pwd.
+_LOGIN_FORM_CLASS = "Web_Login_FormLogin"
+_LOGIN_OBJECT_FALLBACK = "C3"       # když se id formuláře nepodaří najít
 # Tisk (POST /cs/app/):
 _TAB_OBJECT = "C2"                   # createTabCtrl
 _PRINT_OBJECT = "C68"               # onPrintFile (tlačítko „Tisk souboru")
@@ -180,6 +178,56 @@ class MyQClient:
     def _is_logged_in(html: str) -> bool:
         return "Odhlásit" in html or "FormLogout" in html
 
+    @staticmethod
+    def _parse_login_form(html: str) -> dict:
+        """Rozparsuje živý přihlašovací formulář MyQ.
+
+        Vrací: ``fields`` (název → výchozí hodnota všech <input> krom wsfState),
+        ``user`` (name, control_id) pole jména, ``pin`` (name, control_id) pole
+        hesla/PINu, ``form_ctrl`` id formuláře. Control ID i názvy čteme z živé
+        stránky, protože se mezi sezeními liší.
+        """
+        fields: dict[str, str] = {}
+        user_field: tuple[str, str] | None = None
+        pin_field: tuple[str, str] | None = None
+        for m in re.finditer(r"<input\b[^>]*>", html):
+            tag = m.group(0)
+            name_m = re.search(r'name="([^"]*)"', tag)
+            if not name_m:
+                continue
+            name = name_m.group(1)
+            if name == "wsfState":
+                continue  # plníme zvlášť (JSON stav)
+            value = (re.search(r'value="([^"]*)"', tag) or (None, ""))[1]
+            typ = (re.search(r'type="([^"]*)"', tag) or (None, "text"))[1]
+            idv = (re.search(r'id="([^"]*)"', tag) or (None, ""))[1]
+            ctrl = idv[:-5] if idv.endswith("input") else ""
+            fields[name] = value
+            if typ == "password" and pin_field is None:
+                pin_field = (name, ctrl)
+            elif typ == "text" and name == "user":
+                user_field = (name, ctrl)
+        # fallback: jméno = první textové pole, které není „domain"/heslo
+        if user_field is None:
+            for m in re.finditer(r"<input\b[^>]*>", html):
+                tag = m.group(0)
+                name_m = re.search(r'name="([^"]*)"', tag)
+                typ = (re.search(r'type="([^"]*)"', tag) or (None, "text"))[1]
+                if name_m and typ == "text" and name_m.group(1) not in ("domain",):
+                    idv = (re.search(r'id="([^"]*)"', tag) or (None, ""))[1]
+                    user_field = (name_m.group(1),
+                                  idv[:-5] if idv.endswith("input") else "")
+                    break
+        form_m = re.search(
+            r'id="(C\d+)"[^>]*\b' + re.escape(_LOGIN_FORM_CLASS), html
+        )
+        return {
+            "fields": fields,
+            "user": user_field,
+            "pin": pin_field,
+            "form_ctrl": form_m.group(1) if form_m else _LOGIN_OBJECT_FALLBACK,
+        }
+
     # ── veřejné API ───────────────────────────────────────────────────────
     def login(self, username: str, pin: str) -> None:
         """Přihlásí se do MyQ jménem + PINem. Údaje se nikam neukládají."""
@@ -195,37 +243,36 @@ class MyQClient:
             return
 
         hash_id, instance = self._parse_tokens(page)
-        if not hash_id:
+        form = self._parse_login_form(page)
+        if not hash_id or form["user"] is None or form["pin"] is None:
             raise MyQError(
-                "MyQ nevrátil přihlašovací formulář (změna stránky?). "
-                "Zkus to znovu, případně se přihlas ručně přes web."
+                "Nepodařilo se rozpoznat přihlašovací formulář MyQ "
+                "(změna stránky?). Zkus to znovu, případně se přihlas ručně "
+                "přes web."
             )
+        user_name, user_ctrl = form["user"]
+        pin_name, pin_ctrl = form["pin"]
 
+        # Stav formuláře: vyplníme jen jméno + PIN do jejich controlů.
+        ctrls: dict[str, dict] = {"C1": {"_focusedCtrl": pin_ctrl}}
+        if user_ctrl:
+            ctrls[user_ctrl] = {"modified": True, "value": username}
+        if pin_ctrl:
+            ctrls[pin_ctrl] = {"modified": True, "value": pin}
         wsf = {
-            "async": True,
-            "hash": {},
-            "object": _LOGIN_OBJECT,
-            "method": "onLogin",
-            "params": {},
-            "ctrlsState": {
-                "C1": {"_focusedCtrl": _LOGIN_PIN_CTRL},
-                _LOGIN_USER_CTRL: {"modified": True, "value": username},
-                _LOGIN_PIN_CTRL: {"modified": True, "value": pin},
-                "C12": {"selIDs": [_LOGIN_FORM_SEL]},
-            },
-            "deletedServerCtrls": [],
-            "requestID": 0,
-            "instanceID": instance,
+            "async": True, "hash": {}, "object": form["form_ctrl"],
+            "method": "onLogin", "params": {}, "ctrlsState": ctrls,
+            "deletedServerCtrls": [], "requestID": 0, "instanceID": instance,
         }
-        self._post_form(
-            LOGIN_PATH,
-            {
-                "wsfState": json.dumps(wsf, ensure_ascii=False),
-                "wsfHashId": hash_id,
-                _LOGIN_USER_FIELD: username,
-                _LOGIN_PIN_FIELD: pin,
-            },
-        )
+
+        # POST: wsfState + wsfHashId + pojmenovaná pole formuláře
+        # (user/pwd přepsaná, ostatní — domain apod. — ve svém defaultu).
+        post_fields = dict(form["fields"])
+        post_fields[user_name] = username
+        post_fields[pin_name] = pin
+        post_fields["wsfState"] = json.dumps(wsf, ensure_ascii=False)
+        post_fields["wsfHashId"] = hash_id
+        self._post_form(LOGIN_PATH, post_fields)
 
         # Ověření: dashboard musí ukazovat odhlášení (= jsme přihlášení).
         app = self._open(APP_PATH)
