@@ -140,7 +140,12 @@ def test_supervised_menu_single_vs_multi(qapp, tmp_path) -> None:
 
     leaf(t2.id).setSelected(True)
     multi = _labels(tree._build_context_menu(l1))
-    assert multi == ["📄 Export PDF mých posudků (2)…"]
+    # Multi-select: hromadný export + hromadné akce nad vybranými.
+    assert any("Export PDF" in x for x in multi)
+    assert any("Aktualizace 2 prací ze STAG" in x for x in multi)
+    assert any("Otevřít texty prací" in x for x in multi)
+    assert any("Označit posudky za odeslané" in x for x in multi)
+    assert any("Roll-back" in x and "2 prací" in x for x in multi)
 
 
 def test_supervised_menu_multi_empty_without_export(qapp, tmp_path) -> None:
@@ -180,8 +185,12 @@ def test_supervised_menu_multi_empty_without_export(qapp, tmp_path) -> None:
         walk(root.child(i))
     for it in leaves:
         it.setSelected(True)
-    menu = tree._build_context_menu(leaves[0])
-    assert menu.isEmpty()  # _on_context_menu pak menu vůbec nezobrazí
+    labels = _labels(tree._build_context_menu(leaves[0]))
+    # Bez exportu (mimo „Aktuálně vedené") nabízí multi-select hromadné akce,
+    # ale NE export PDF posudků.
+    assert not any("Export PDF" in x for x in labels)
+    assert any("Aktualizace 2 prací ze STAG" in x for x in labels)
+    assert any("Roll-back" in x and "2 prací" in x for x in labels)
 
 
 def test_opposing_menu_single_vs_multi(qapp, tmp_path) -> None:
@@ -229,7 +238,9 @@ def test_opposing_menu_single_vs_multi(qapp, tmp_path) -> None:
     for it in found:
         it.setSelected(True)
     multi = _labels(tab._build_context_menu(found[0].data(0, ROLE_ID)))
-    assert multi == ["📄 Export PDF mých posudků (2)…"]
+    assert any("Export PDF" in x for x in multi)
+    assert any("Aktualizace 2 prací ze STAG" in x for x in multi)
+    assert any("Roll-back" in x and "2 prací" in x for x in multi)
 
 
 def test_opposing_tab_multiselect_export(qapp, tmp_path) -> None:

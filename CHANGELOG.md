@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-06-08
+
+### Added
+- **Hromadné (multi-select) kontextové akce** ve stromu *vedených* i *oponovaných*
+  prací. Po označení více prací (Ctrl/Shift) nabídne pravý klik:
+  - **🔄 Aktualizace N prací ze STAG** — v jednom dialogu (porovná jen vybrané).
+  - **📄 Otevřít texty prací** a **📘 Otevřít posudky vedoucího i oponenta** —
+    otevře dostupné soubory u všech vybraných.
+  - **✉ Označit / zrušit odeslání** posudků a **🖨 Označit / zrušit vytištění**.
+  - **🗑 Roll-back — smazat N prací** s jedním potvrzením.
+- **Otevření obou posudků.** Kontextové menu teď umí otevřít **posudek vedoucího
+  i oponenta** (dřív jen jeden) — ve vedených i oponovaných pracích.
+
 ## [1.13.0] - 2026-06-08
 
 ### Added

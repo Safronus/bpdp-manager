@@ -860,6 +860,14 @@ ID**, které se nepodaří dohledat podle příjmení, se **přeskočí a vypí�
 > (na rozdíl od hromadné aktualizace, která bere jen práce *V řešení*). Když
 > je vše aktuální, dialog to oznámí (nic k aktualizaci).
 
+> **Hromadné akce nad více pracemi (multi-select).** Označ víc prací
+> (**Ctrl/Shift** klik) a pravý klik nabídne hromadně — ve vedených i
+> oponovaných: **🔄 Aktualizace N prací ze STAG** (jeden dialog, jen vybrané),
+> **📄 Otevřít texty prací**, **📘 Otevřít posudky vedoucího i oponenta**,
+> **✉ Označit / zrušit odeslání**, **🖨 Označit / zrušit vytištění** a
+> **🗑 Roll-back — smazat N prací** (s jedním potvrzením). U jedné vybrané práce
+> je k dispozici plné per-práce menu (vč. otevření **obou** posudků).
+
 > **Pozor — „Aktualizovat" jen osvěžuje práce, které už máš.** Nové práce
 > (např. pro **nový akademický rok**), které v databázi ještě nemáš, se zde
 > **neobjeví**. Na ně je v dialogu *Aktualizovat…* tlačítko **🆕 Najít nové

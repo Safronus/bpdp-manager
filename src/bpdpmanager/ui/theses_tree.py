@@ -464,6 +464,11 @@ class ThesesTreeWidget(QTreeWidget):
     # Vyžádaná aktualizace jedné práce ze STAG (stav + soubory)
     update_from_stag_requested = Signal(str)
     mark_review_printed_requested = Signal(str, bool)
+    # Hromadné (multi-select) varianty — list thesis_id
+    update_many_from_stag_requested = Signal(list)
+    mark_reviews_sent_requested = Signal(list, bool)
+    mark_reviews_printed_requested = Signal(list, bool)
+    rollback_many_requested = Signal(list)
 
     HEADERS = [
         "Student / Skupina", "Téma", "Stav", "Známky V/O",
@@ -877,8 +882,9 @@ class ThesesTreeWidget(QTreeWidget):
             menu.addAction(act_export_pdf)
             menu.addSeparator()
 
-        # Při výběru více prací jen hromadný export (viz docstring).
+        # Při výběru více prací nabídni hromadné akce nad vybranými.
         if multi:
+            self._add_multi_actions(menu, selected_theses)
             return menu
 
         act_update = QAction("🔄 Aktualizace práce ze STAG…", self)
@@ -901,6 +907,14 @@ class ThesesTreeWidget(QTreeWidget):
             lambda _checked=False, tid=thesis_id: self.generate_review_requested.emit(tid)
         )
         menu.addAction(act_generate)
+
+        # Otevřít posudek VEDOUCÍHO (můj), pokud je k dispozici.
+        sup_path = self._review_path(thesis_id, thesis, AttachmentKind.SUPERVISOR_REVIEW)
+        act_open_sup = QAction("📘 Otevřít posudek vedoucího (můj)", self)
+        act_open_sup.setEnabled(sup_path is not None)
+        if sup_path is not None:
+            act_open_sup.triggered.connect(lambda _c=False, p=sup_path: open_path(p))
+        menu.addAction(act_open_sup)
 
         # Otevřít posudek OPONENTA, pokud je u vedené práce k dispozici.
         opp_att = next(
@@ -999,3 +1013,90 @@ class ThesesTreeWidget(QTreeWidget):
         menu.addAction(act_rollback)
 
         return menu
+
+    # --- pomocné (cesty k souborům, hromadné akce) ---------------------------
+    def _review_path(self, thesis_id, thesis, kind):
+        """Absolutní cesta k aktuálnímu posudku daného druhu (None, když chybí)."""
+        att = next(
+            (a for a in thesis.attachments
+             if a.kind == kind and a.is_file and a.is_current),
+            None,
+        )
+        if att is None:
+            return None
+        p = self.service.document_absolute_path(thesis_id, att)
+        return p if p is not None and p.exists() else None
+
+    def _text_path(self, thesis_id, thesis):
+        return self._review_path(thesis_id, thesis, AttachmentKind.THESIS_TEXT)
+
+    @staticmethod
+    def _open_files(paths) -> None:
+        for p in paths:
+            if p is not None:
+                open_path(p)
+
+    def _add_multi_actions(self, menu: QMenu, selected_items) -> None:
+        """Hromadné akce nad více vybranými pracemi."""
+        ids = [it.data(0, ROLE_THESIS_ID) for it in selected_items]
+        ids = [i for i in ids if i]
+        n = len(ids)
+        theses = [(i, self.service.get_thesis(i)) for i in ids]
+        theses = [(i, t) for i, t in theses if t is not None]
+
+        act_update = QAction(f"🔄 Aktualizace {n} prací ze STAG…", self)
+        act_update.triggered.connect(
+            lambda _c=False, v=ids: self.update_many_from_stag_requested.emit(v)
+        )
+        menu.addAction(act_update)
+        menu.addSeparator()
+
+        text_paths = [self._text_path(i, t) for i, t in theses]
+        n_text = sum(p is not None for p in text_paths)
+        act_text = QAction(f"📄 Otevřít texty prací ({n_text})", self)
+        act_text.setEnabled(n_text > 0)
+        act_text.triggered.connect(
+            lambda _c=False, v=text_paths: self._open_files(v)
+        )
+        menu.addAction(act_text)
+
+        rev_paths = []
+        for i, t in theses:
+            rev_paths.append(self._review_path(i, t, AttachmentKind.SUPERVISOR_REVIEW))
+            rev_paths.append(self._review_path(i, t, AttachmentKind.OPPONENT_REVIEW))
+        n_rev = sum(p is not None for p in rev_paths)
+        act_rev = QAction(f"📘 Otevřít posudky vedoucího i oponenta ({n_rev})", self)
+        act_rev.setEnabled(n_rev > 0)
+        act_rev.triggered.connect(lambda _c=False, v=rev_paths: self._open_files(v))
+        menu.addAction(act_rev)
+        menu.addSeparator()
+
+        act_sent = QAction("✉ Označit posudky za odeslané", self)
+        act_sent.triggered.connect(
+            lambda _c=False, v=ids: self.mark_reviews_sent_requested.emit(v, True)
+        )
+        menu.addAction(act_sent)
+        act_unsent = QAction("✉ Zrušit označení odeslání", self)
+        act_unsent.triggered.connect(
+            lambda _c=False, v=ids: self.mark_reviews_sent_requested.emit(v, False)
+        )
+        menu.addAction(act_unsent)
+
+        if not self.isColumnHidden(self.COL_PRINTED):
+            act_pr = QAction("🖨 Označit posudky za vytištěné", self)
+            act_pr.triggered.connect(
+                lambda _c=False, v=ids: self.mark_reviews_printed_requested.emit(v, True)
+            )
+            menu.addAction(act_pr)
+            act_unpr = QAction("🖨 Zrušit označení vytištění", self)
+            act_unpr.triggered.connect(
+                lambda _c=False, v=ids: self.mark_reviews_printed_requested.emit(v, False)
+            )
+            menu.addAction(act_unpr)
+        menu.addSeparator()
+
+        act_rollback = QAction(f"🗑 Roll-back — smazat {n} prací…", self)
+        act_rollback.triggered.connect(
+            lambda _c=False, v=ids: self.rollback_many_requested.emit(v)
+        )
+        menu.addAction(act_rollback)

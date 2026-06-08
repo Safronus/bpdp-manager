@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QMenu,
+    QMessageBox,
     QPushButton,
     QSplitter,
     QTreeWidget,
@@ -441,9 +442,9 @@ class OpposingTab(QWidget):
         menu.addAction(act_export_pdf)
         menu.addSeparator()
 
-        # Při výběru více prací dává smysl jen hromadná akce (export) —
-        # ostatní akce jsou per-práce, takže se ukážou jen u jedné vybrané.
+        # Při výběru více prací nabídni hromadné akce nad vybranými.
         if len(selected_ops) > 1:
+            self._add_multi_actions(menu, selected_ops)
             return menu
 
         # Aktualizace jedné oponentury ze STAG (stav + dohrání souborů).
@@ -490,6 +491,22 @@ class OpposingTab(QWidget):
         if act_open_sup.isEnabled():
             act_open_sup.triggered.connect(lambda _c=False, p=sup_path: open_path(p))
         menu.addAction(act_open_sup)
+
+        # Otevřít posudek OPONENTA (můj), pokud je k dispozici.
+        opp_att = next(
+            (a for a in op.attachments
+             if a.kind == AttachmentKind.OPPONENT_REVIEW and a.is_file and a.is_current),
+            None,
+        ) if op is not None else None
+        opp_path = (
+            self.service.opposing_document_absolute_path(op_id, opp_att)
+            if opp_att is not None else None
+        )
+        act_open_opp = QAction("📕 Otevřít posudek oponenta (můj)", self.tree)
+        act_open_opp.setEnabled(opp_path is not None and opp_path.exists())
+        if act_open_opp.isEnabled():
+            act_open_opp.triggered.connect(lambda _c=False, p=opp_path: open_path(p))
+        menu.addAction(act_open_opp)
 
         # Otevřít TEXT práce (plný text), pokud je k dispozici.
         text_att = next(
@@ -564,6 +581,150 @@ class OpposingTab(QWidget):
         act_rollback.triggered.connect(_do_rollback)
         menu.addAction(act_rollback)
         return menu
+
+    # --- hromadné (multi-select) akce ---------------------------------------
+    def _review_path(self, op_id, op, kind):
+        att = next(
+            (a for a in op.attachments
+             if a.kind == kind and a.is_file and a.is_current),
+            None,
+        )
+        if att is None:
+            return None
+        p = self.service.opposing_document_absolute_path(op_id, att)
+        return p if p is not None and p.exists() else None
+
+    @staticmethod
+    def _open_files(paths) -> None:
+        for p in paths:
+            if p is not None:
+                open_path(p)
+
+    def _add_multi_actions(self, menu, selected_ops) -> None:
+        ids = [it.data(0, ROLE_ID) for it in selected_ops]
+        ids = [i for i in ids if i]
+        n = len(ids)
+        ops = [(i, self.service.get_opposing_thesis(i)) for i in ids]
+        ops = [(i, o) for i, o in ops if o is not None]
+
+        act_update = QAction(f"🔄 Aktualizace {n} prací ze STAG…", self.tree)
+        act_update.triggered.connect(lambda _c=False, v=ids: self._on_update_many(v))
+        menu.addAction(act_update)
+        menu.addSeparator()
+
+        text_paths = [self._review_path(i, o, AttachmentKind.THESIS_TEXT) for i, o in ops]
+        n_text = sum(p is not None for p in text_paths)
+        act_text = QAction(f"📄 Otevřít texty prací ({n_text})", self.tree)
+        act_text.setEnabled(n_text > 0)
+        act_text.triggered.connect(lambda _c=False, v=text_paths: self._open_files(v))
+        menu.addAction(act_text)
+
+        rev_paths = []
+        for i, o in ops:
+            rev_paths.append(self._review_path(i, o, AttachmentKind.SUPERVISOR_REVIEW))
+            rev_paths.append(self._review_path(i, o, AttachmentKind.OPPONENT_REVIEW))
+        n_rev = sum(p is not None for p in rev_paths)
+        act_rev = QAction(f"📘 Otevřít posudky vedoucího i oponenta ({n_rev})", self.tree)
+        act_rev.setEnabled(n_rev > 0)
+        act_rev.triggered.connect(lambda _c=False, v=rev_paths: self._open_files(v))
+        menu.addAction(act_rev)
+        menu.addSeparator()
+
+        act_sent = QAction("✉ Označit posudky za odeslané", self.tree)
+        act_sent.triggered.connect(lambda _c=False, v=ids: self._mark_many_sent(v, True))
+        menu.addAction(act_sent)
+        act_unsent = QAction("✉ Zrušit označení odeslání", self.tree)
+        act_unsent.triggered.connect(lambda _c=False, v=ids: self._mark_many_sent(v, False))
+        menu.addAction(act_unsent)
+
+        act_pr = QAction("🖨 Označit posudky za vytištěné", self.tree)
+        act_pr.triggered.connect(lambda _c=False, v=ids: self._mark_many_printed(v, True))
+        menu.addAction(act_pr)
+        act_unpr = QAction("🖨 Zrušit označení vytištění", self.tree)
+        act_unpr.triggered.connect(lambda _c=False, v=ids: self._mark_many_printed(v, False))
+        menu.addAction(act_unpr)
+        menu.addSeparator()
+
+        act_rollback = QAction(f"🗑 Roll-back — smazat {n} prací…", self.tree)
+        act_rollback.triggered.connect(lambda _c=False, v=ids: self._rollback_many(v))
+        menu.addAction(act_rollback)
+
+    def _on_update_many(self, ids: list) -> None:
+        """Aktualizuje vybrané oponentury ze STAG (jeden dialog, subset)."""
+        from .stag_sync_dialog import ROLE_OPPONENT, StagSyncDialog
+
+        ids = [i for i in ids if i]
+        if not ids:
+            return
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        dlg = StagSyncDialog(
+            self.service, ROLE_OPPONENT, self,
+            profile_manager=self.profile_manager, subset=ids,
+        )
+        dlg.exec()
+        if dlg.changed:
+            self.refresh()
+            self.changed.emit()
+
+    def _mark_many_sent(self, ids: list, sent: bool) -> None:
+        n = 0
+        for oid in ids:
+            if self.service.get_opposing_thesis(oid) is not None:
+                self.service.set_opponent_review_sent(oid, sent)
+                n += 1
+        if n:
+            self.refresh()
+            self.changed.emit()
+
+    def _mark_many_printed(self, ids: list, printed: bool) -> None:
+        n = 0
+        for oid in ids:
+            if self.service.get_opposing_thesis(oid) is not None:
+                self.service.set_opponent_review_printed(oid, printed)
+                n += 1
+        if n:
+            self.refresh()
+            self.changed.emit()
+
+    def _rollback_many(self, ids: list) -> None:
+        ids = [i for i in ids if i and self.service.get_opposing_thesis(i) is not None]
+        if not ids:
+            return
+        names = []
+        for oid in ids[:12]:
+            o = self.service.get_opposing_thesis(oid)
+            nm = (o.student_full_name if o else None) or "(neuvedený student)"
+            names.append(f"• {nm} ({o.type.value})")
+        more = f"\n… a další {len(ids) - 12}" if len(ids) > 12 else ""
+        resp = QMessageBox.warning(
+            self, "Roll-back více posudků",
+            f"Nenávratně smazat {len(ids)} oponentur z databáze včetně jejich "
+            f"souborů?\n\n" + "\n".join(names) + more,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if resp != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self.detail.flush()
+        except Exception:
+            pass
+        deleted = 0
+        for oid in ids:
+            try:
+                self.service.rollback_opposing_thesis(oid)
+                deleted += 1
+            except Exception:
+                pass
+        self.detail.set_opposing(None)
+        self.refresh()
+        self.changed.emit()
+        QMessageBox.information(
+            self, "Roll-back hotov", f"Smazáno {deleted} z {len(ids)} oponentur."
+        )
 
     # --- akce ---------------------------------------------------------------
 

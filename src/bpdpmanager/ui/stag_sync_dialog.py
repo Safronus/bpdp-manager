@@ -124,6 +124,7 @@ class StagSyncDialog(QDialog):
     def __init__(
         self, service, role: str, parent=None, *, profile_manager=None,
         single: tuple[bool, str] | None = None,
+        subset: list[str] | None = None,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -131,7 +132,10 @@ class StagSyncDialog(QDialog):
         self.profile_manager = profile_manager
         # single = (is_opposing, obj_id) → aktualizuje JEN tuhle jednu práci
         # (kontextová akce nad vybranou prací); None = hromadný režim.
+        # subset = [obj_id, …] → aktualizuje jen vybrané práce (multi-select);
+        #   is_opposing se odvodí z role. Má přednost před hromadným režimem.
         self._single = single
+        self._subset = subset
         self._targets: list[_SyncTarget] = []
         self.changed = False  # nastav True, když se něco aktualizovalo
         # Uživatel klikl na „Najít nové práce…" → caller otevře hromadné stažení.
@@ -145,11 +149,14 @@ class StagSyncDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        if single is not None:
-            self.setWindowTitle("Aktualizace práce ze STAG")
-            title = QLabel("🔄 Aktualizace práce ze STAG")
+        if single is not None or subset is not None:
+            n = len(subset) if subset is not None else 1
+            what = "práce" if n == 1 else "prací"
+            self.setWindowTitle(f"Aktualizace {what} ze STAG")
+            title = QLabel(f"🔄 Aktualizace {n} {what} ze STAG"
+                           if subset is not None else "🔄 Aktualizace práce ze STAG")
             intro = QLabel(
-                "Porovná tuto práci se STAG a nabídne <b>změnu stavu</b> a "
+                "Porovná vybrané práce se STAG a nabídne <b>změnu stavu</b> a "
                 "<b>dohrání chybějících souborů</b> (např. nový posudek nebo "
                 "odevzdaná práce). Zaškrtni, co aplikovat. <b>Když je vše "
                 "aktuální, nic se nenabídne.</b>"
@@ -191,8 +198,8 @@ class StagSyncDialog(QDialog):
             "ještě nemáš v databázi (např. pro nový akademický rok)."
         )
         btn_new.clicked.connect(self._find_new_works)
-        if self._single is not None:
-            btn_new.setVisible(False)  # u jedné práce nedává smysl
+        if self._single is not None or self._subset is not None:
+            btn_new.setVisible(False)  # u vybraných prací nedává smysl
         btn_close = QPushButton("Zavřít")
         btn_close.clicked.connect(self.reject)
         self.btn_apply = QPushButton("✓ Aktualizovat vybrané")
@@ -216,36 +223,47 @@ class StagSyncDialog(QDialog):
 
     # --- sběr prací z DB -----------------------------------------------------
 
+    def _target_for(self, is_opp: bool, obj_id: str) -> _SyncTarget | None:
+        """Sestaví ``_SyncTarget`` pro jednu práci/oponenturu (None, když nenajde)."""
+        if is_opp:
+            o = self.service.get_opposing_thesis(obj_id)
+            if o is None:
+                return None
+            name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+            label = f"{name} — {o.title_cs or '(bez názvu)'} ({o.type.value})"
+            kinds = {a.kind for a in o.attachments if a.is_current}
+            return _SyncTarget(
+                is_opposing=True, obj_id=o.id, type_code=o.type.value,
+                surname=o.student_last_name, label=label, local_status=None,
+                local_kinds=kinds, adipidno=o.adipidno or "",
+            )
+        t = self.service.get_thesis(obj_id)
+        if t is None:
+            return None
+        student = self.service.get_student(t.student_id) if t.student_id else None
+        surname = student.last_name if student else ""
+        name = student.full_name if student else "(neznámý student)"
+        label = f"{name} — {t.title_cs or '(bez názvu)'} ({t.type.value})"
+        kinds = {a.kind for a in t.attachments if a.is_current}
+        return _SyncTarget(
+            is_opposing=False, obj_id=t.id, type_code=t.type.value,
+            surname=surname, label=label, local_status=t.status,
+            local_kinds=kinds, adipidno=t.adipidno or "",
+        )
+
     def _collect_targets(self) -> list[_SyncTarget]:
         targets: list[_SyncTarget] = []
         # Single režim — jen jedna vybraná práce (bez ohledu na stav/rok).
         if self._single is not None:
-            is_opp, obj_id = self._single
-            if is_opp:
-                o = self.service.get_opposing_thesis(obj_id)
-                if o is None:
-                    return []
-                name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
-                label = f"{name} — {o.title_cs or '(bez názvu)'} ({o.type.value})"
-                kinds = {a.kind for a in o.attachments if a.is_current}
-                return [_SyncTarget(
-                    is_opposing=True, obj_id=o.id, type_code=o.type.value,
-                    surname=o.student_last_name, label=label, local_status=None,
-                    local_kinds=kinds, adipidno=o.adipidno or "",
-                )]
-            t = self.service.get_thesis(obj_id)
-            if t is None:
-                return []
-            student = self.service.get_student(t.student_id) if t.student_id else None
-            surname = student.last_name if student else ""
-            name = student.full_name if student else "(neznámý student)"
-            label = f"{name} — {t.title_cs or '(bez názvu)'} ({t.type.value})"
-            kinds = {a.kind for a in t.attachments if a.is_current}
-            return [_SyncTarget(
-                is_opposing=False, obj_id=t.id, type_code=t.type.value,
-                surname=surname, label=label, local_status=t.status,
-                local_kinds=kinds, adipidno=t.adipidno or "",
-            )]
+            tgt = self._target_for(*self._single)
+            return [tgt] if tgt is not None else []
+        # Subset — jen vybrané práce (multi-select); is_opposing dle role.
+        if self._subset is not None:
+            is_opp = self.role == ROLE_OPPONENT
+            return [
+                t for t in (self._target_for(is_opp, oid) for oid in self._subset)
+                if t is not None
+            ]
         if self.role == ROLE_SUPERVISOR:
             for t in self.service.list_theses():
                 if t.status != ThesisStatus.IN_PROGRESS:
