@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.5] - 2026-06-08
+
+### Changed
+- **Hezčí rozbalovací tlačítka v toolbaru.** Nativní šipka menu (která na macOS
+  vypadala jako „chyba") je skrytá; místo ní je za názvem tlačítka čistý znak
+  **⌄** s mezerami (*🔄 Aktualizace prací ⌄*, *✉ Odeslat posudky ⌄*, *👤 profil ⌄*).
+
 ## [1.14.4] - 2026-06-08
 
 ### Removed

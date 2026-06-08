@@ -984,8 +984,19 @@ class MainWindow(QMainWindow):
             f"border: 1px solid rgba({r},{g},{b},0.34); border-radius: 5px; "
             f"padding: 4px 9px; margin: 2px 2px; }} "
             f"QToolButton:hover {{ background: rgba({r},{g},{b},0.26); }} "
-            f"QToolButton:pressed {{ background: rgba({r},{g},{b},0.40); }}"
+            f"QToolButton:pressed {{ background: rgba({r},{g},{b},0.40); }} "
+            # Nativní šipka rozbalovacího menu vypadá na macOS jako „chyba";
+            # skryjeme ji a místo ní dáme čistý znak ⌄ přímo do textu tlačítka.
+            f"QToolButton::menu-indicator {{ image: none; width: 0px; }}"
         )
+
+    # Přípona rozbalovacích tlačítek v toolbaru: mezery + šipka dolů.
+    _DROPDOWN_SUFFIX = "   ⌄"
+
+    @classmethod
+    def _dropdown_text(cls, label: str) -> str:
+        """Text rozbalovacího toolbar-tlačítka s čistou šipkou na konci."""
+        return f"{label}{cls._DROPDOWN_SUFFIX}"
 
     def _build_toolbar(self, current_year: str, next_year: str) -> None:
         toolbar = QToolBar("Hlavní")
@@ -1051,7 +1062,7 @@ class MainWindow(QMainWindow):
         )
         # „Odeslat posudky" s volbou: vedoucího (vedené práce) / oponentské.
         self._send_button = QToolButton()
-        self._send_button.setText("✉ Odeslat posudky")
+        self._send_button.setText(self._dropdown_text("✉ Odeslat posudky"))
         self._send_button.setToolTip(
             "Odeslání připravených posudků sekretářce e-mailem — vyber, zda "
             "posudky vedoucího (vedené práce) nebo oponentské."
@@ -1093,7 +1104,7 @@ class MainWindow(QMainWindow):
 
         # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()
-        self._checks_button.setText("🔄 Aktualizace prací")
+        self._checks_button.setText(self._dropdown_text("🔄 Aktualizace prací"))
         self._checks_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         checks_menu = QMenu(self._checks_button)
         act_check = checks_menu.addAction("🔄 Zkontrolovat změny ve STAG")
@@ -1125,10 +1136,10 @@ class MainWindow(QMainWindow):
         # ── Profil (šedá) + akce ────────────────────────────────────────
         if self.profile_manager is not None:
             self._profile_button = QToolButton()
-            self._profile_button.setText(
+            self._profile_button.setText(self._dropdown_text(
                 "👤 "
                 + (self.profile_manager.active.name if self.profile_manager.active else "Profil")
-            )
+            ))
             self._profile_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
             self._tint_widget(self._profile_button, self._GROUP_NEUTRAL)
             self._refresh_profile_menu()
@@ -1267,7 +1278,7 @@ class MainWindow(QMainWindow):
         self._profile_button.setMenu(menu)
         # Update label
         if active is not None:
-            self._profile_button.setText("👤 " + active.name)
+            self._profile_button.setText(self._dropdown_text("👤 " + active.name))
 
     def _switch_profile(self, profile_id: str) -> None:
         if self.profile_manager is None:
