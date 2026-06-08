@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from pathlib import Path
 
 from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
@@ -107,6 +108,20 @@ def _reviews_complete_color(complete_flags: list[bool]) -> str | None:
     if not complete_flags:
         return None
     return _TAB_GREEN if all(complete_flags) else _TAB_AMBER
+
+
+def _fold_search(s: str) -> str:
+    """Pro hledání: bez diakritiky a malými písmeny (``Goláň`` → ``golan``)."""
+    nfd = unicodedata.normalize("NFD", s or "")
+    return "".join(c for c in nfd if not unicodedata.combining(c)).casefold()
+
+
+class _FoldingCompleter(QCompleter):
+    """Našeptávač ignorující diakritiku — vstup se foldí na ASCII a porovnává
+    se s předfoldovaným textem v modelu (``EditRole``)."""
+
+    def splitPath(self, path: str):  # noqa: N802 (Qt API)
+        return [_fold_search(path)]
 
 
 class _ThesesTab(QWidget):
@@ -545,6 +560,9 @@ class _ThesesTab(QWidget):
 
 
 class MainWindow(QMainWindow):
+    # Role v modelu našeptávače pro foldovaný (bez diakritiky) hledací text.
+    _ROLE_SEARCH_FOLD = Qt.ItemDataRole.UserRole + 1
+
     def __init__(
         self,
         service: ThesisService,
@@ -667,9 +685,14 @@ class MainWindow(QMainWindow):
         )
         self.ed_search.returnPressed.connect(self._do_search)
         # Real-time našeptávač — ukazuje pasující práce hned při psaní.
+        # Porovnává proti EditRole (předfoldovaný text bez diakritiky), zobrazuje
+        # DisplayRole (čitelný popisek). _FoldingCompleter foldí i vstup.
         self._search_model = QStandardItemModel(self)
-        self._completer = QCompleter(self._search_model, self)
+        self._completer = _FoldingCompleter(self._search_model, self)
         self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        # Vlastní role pro foldovaný text (EditRole nelze — QStandardItem ho
+        # sdílí s DisplayRole a přepsal by čitelný popisek v nabídce).
+        self._completer.setCompletionRole(self._ROLE_SEARCH_FOLD)
         self._completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self._completer.setCompletionMode(
             QCompleter.CompletionMode.PopupCompletion
@@ -1967,20 +1990,28 @@ class MainWindow(QMainWindow):
 
     # --- našeptávač (real-time) ---------------------------------------------
     def _search_label(self, h: dict) -> str:
-        """Řádek našeptávače: [záložka] Vedená/Oponovaná · BP/DP · student — název."""
+        """Řádek našeptávače: [záložka] Vedená/Oponovaná · BP/DP · student — název · obor."""
         role = "Oponovaná" if h["kind"] == "opposing" else "Vedená"
         uid = f"  ·  {h['uid']}" if h.get("uid") else ""
+        obor = f"  ·  {h['obor']}" if h.get("obor") else ""
         return (
             f"[{self._bucket_label(h)}]  {role} · {h.get('type', '')} · "
-            f"{h['student']} — {h['title']}{uid}"
+            f"{h['student']} — {h['title']}{uid}{obor}"
         )
 
     def _rebuild_search_model(self) -> None:
         """Naplní model našeptávače aktuálním seznamem prací (vedené + oponentury)."""
         self._search_model.clear()
         for h in self.service.search_index():
-            item = QStandardItem(self._search_label(h))
+            item = QStandardItem(self._search_label(h))  # DisplayRole = popisek
             item.setEditable(False)
+            # Foldovaný text (bez diakritiky) pro hledání: jméno + název + ID + obor.
+            item.setData(
+                _fold_search(
+                    f"{h['student']} {h['title']} {h.get('uid', '')} {h.get('obor', '')}"
+                ),
+                self._ROLE_SEARCH_FOLD,
+            )
             item.setData(h, Qt.ItemDataRole.UserRole)
             self._search_model.appendRow(item)
 

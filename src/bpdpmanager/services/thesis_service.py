@@ -4,6 +4,7 @@ import hashlib
 import math
 import re
 import shutil
+import unicodedata
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -1908,21 +1909,28 @@ class ThesisService:
 
     # ── vyhledávání prací ─────────────────────────────────────────────────
 
-    def search_works(self, query: str) -> list[dict]:
-        """Najde vedené práce i oponentury podle jména studenta / názvu / ID.
+    @staticmethod
+    def _search_fold(s: str) -> str:
+        """Pro hledání: bez diakritiky a malými písmeny (``Goláň`` → ``golan``)."""
+        nfd = unicodedata.normalize("NFD", s or "")
+        return "".join(c for c in nfd if not unicodedata.combining(c)).casefold()
 
-        ``query`` se hledá (case-insensitive, substring) ve jméně studenta,
-        názvu práce a univerzitním ID (Axxxxx). Vrací list dictů
-        ``{kind, id, student, title, status, uid}`` — ``kind`` je
-        ``"thesis"`` / ``"opposing"``, ``status`` je ``ThesisStatus`` u
-        vedených prací, ``None`` u oponentur.
+    def search_works(self, query: str) -> list[dict]:
+        """Najde vedené práce i oponentury podle jména studenta / názvu / ID / oboru.
+
+        Hledá se **substring, bez ohledu na velikost písmen i diakritiku**
+        (``gol`` najde ``Goláň``) ve jméně studenta, názvu práce, univerzitním ID
+        (Axxxxx) a oboru. Vrací list dictů ``{kind, id, student, title, status,
+        type, uid, obor}``.
         """
-        q = (query or "").strip().lower()
+        q = self._search_fold((query or "").strip())
         if not q:
             return []
         return [
             h for h in self.search_index()
-            if q in f"{h['student']}\n{h['title']}\n{h['uid']}".lower()
+            if q in self._search_fold(
+                f"{h['student']}\n{h['title']}\n{h['uid']}\n{h['obor']}"
+            )
         ]
 
     def search_index(self) -> list[dict]:
@@ -1936,16 +1944,18 @@ class ThesisService:
             student = self.get_student(t.student_id) if t.student_id else None
             name = student.full_name if student else ""
             uid = (student.university_id or "") if student else ""
+            obor = (student.obor or "") if student else ""
             out.append({
                 "kind": "thesis", "id": t.id, "student": name or "—",
                 "title": t.display_title, "status": t.status,
-                "type": t.type.value, "uid": uid,
+                "type": t.type.value, "uid": uid, "obor": obor,
             })
         for o in self._db.opposing_theses:
             out.append({
                 "kind": "opposing", "id": o.id, "student": o.student_full_name or "—",
                 "title": o.display_title, "status": None,
                 "type": o.type.value, "uid": o.student_university_id or "",
+                "obor": o.student_obor or "",
             })
         return out
 

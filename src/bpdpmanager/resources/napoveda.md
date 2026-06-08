@@ -225,11 +225,13 @@ Do pole nad záložkami napiš **jméno studenta**, **název práce** nebo
 **osobní číslo (Axxxxx)** — hledá napříč vedenými pracemi i oponenturami.
 
 **Našeptává v reálném čase:** stačí napsat **kousek** příjmení nebo názvu
-(nemusí být celé) a hned se rozbalí **seznam pasujících prací**. Každý řádek
-ukazuje, **kde práce je** a o co jde:
-`[záložka]  Vedená/Oponovaná · BP/DP · jméno studenta — název`. Výběrem řádku
-(šipky + Enter, nebo klik) aplikace rovnou **skočí na práci** (přepne záložku
-a vybere ji).
+(nemusí být celé) a hned se rozbalí **seznam pasujících prací**. Hledá se
+**bez ohledu na diakritiku i velikost písmen** — `gol` (i `golan`) najde
+studenta **Goláň** — a také **podle oboru**. Každý řádek ukazuje, **kde práce
+je** a o co jde:
+`[záložka]  Vedená/Oponovaná · BP/DP · jméno studenta — název · obor`. Výběrem
+řádku (šipky + Enter, nebo klik) aplikace rovnou **skočí na práci** (přepne
+záložku a vybere ji).
 
 Když napíšeš dotaz a dáš **Enter** bez výběru z našeptávače (nebo klikneš na
 **Najít**), platí původní chování: jedna shoda rovnou skočí, víc shod nabídne

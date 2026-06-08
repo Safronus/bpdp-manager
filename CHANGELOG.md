@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.6] - 2026-06-08
+
+### Changed
+- **Našeptávač hledá bez diakritiky a velikosti písmen.** Napsání `gol` (i `golan`
+  nebo `GOLÁŇ`) najde studenta **Goláň**. Hledá se i podle **oboru**.
+- **Obor ve výsledcích našeptávače.** Každý řádek nabídky končí **oborem**
+  (`… — název · NSWI-P`).
+
 ## [1.14.5] - 2026-06-08
 
 ### Changed
