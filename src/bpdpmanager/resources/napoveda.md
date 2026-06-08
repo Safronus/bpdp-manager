@@ -587,6 +587,30 @@ e-mail odesílatele, **SMTP server / port / zabezpečení** a tlačítko
 
 ---
 
+## Tisk posudků přes MyQ
+
+Hotové **PDF posudky** můžeš poslat rovnou do tiskové fronty **MyQ**
+(`myq.utb.cz`) — pro pohodlný tisk a vyzvednutí u libovolné univerzitní
+multifunkce. V toolbaru je tlačítko **🖨 Tisk posudků (MyQ)**.
+
+V dialogu:
+- **Vybereš posudky** ze dvou skupin — **🎓 Aktuálně vedené práce** (posudek
+  vedoucího) a **🧐 Aktuálně oponované práce** (posudek oponenta). Nabízejí se
+  jen práce, které **mají hotový PDF posudek**; tlačítka *Vybrat vše / Zrušit
+  vše* usnadní výběr (hodí se, když máš část už vytištěnou).
+- **Zadáš přihlašovací jméno a PIN do MyQ.** Údaje se **nikam neukládají** —
+  použijí se jen pro toto jedno odeslání a dál se nedrží (PIN je maskovaný).
+- **🖨 Odeslat na tisk** přihlásí a postupně nahraje vybraná PDF do tvé fronty
+  (tisk **oboustranně**). Na konci se zobrazí **souhrn** (kolik odesláno, co
+  případně selhalo). Úlohy pak vyzvedneš u stroje (karta/PIN).
+
+> **Pozn.:** Konektor komunikuje přímo s webem MyQ. Když UTB MyQ výrazně změní
+> své rozhraní, může být potřeba konektor upravit; v takovém případě jde tisk
+> vždy provést i ručně přes web `myq.utb.cz` (posudky si připravíš přes
+> **📄 Export PDF mých posudků**).
+
+---
+
 ## Import ze STAG (CSV)
 
 Toolbar **📥 Import ze STAG…** umí práci buď **stáhnout přímo ze STAG**,

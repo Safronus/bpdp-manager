@@ -933,6 +933,12 @@ class MainWindow(QMainWindow):
         self._send_button.setMenu(send_menu)
         self._tint_widget(self._send_button, self._GROUP_REVIEW)
         toolbar.addWidget(self._send_button)
+        add(
+            "🖨 Tisk posudků (MyQ)", self._print_reviews_myq, self._GROUP_REVIEW,
+            "Odeslat PDF posudků (vedoucího i oponentské) k tisku na "
+            "myq.utb.cz — vybereš práce, zadáš jméno + PIN (neukládá se). "
+            "Tiskne oboustranně.",
+        )
 
         toolbar.addSeparator()
 
@@ -998,6 +1004,12 @@ class MainWindow(QMainWindow):
 
     def _show_help(self) -> None:
         HelpDialog(self).exec()
+
+    def _print_reviews_myq(self) -> None:
+        """Otevře dialog pro odeslání PDF posudků k tisku na MyQ."""
+        from .myq_print_dialog import MyQPrintDialog
+
+        MyQPrintDialog(self.service, self).exec()
 
     def _send_supervisor_reviews(self) -> None:
         """Otevře dialog pro odeslání posudků vedoucího sekretářce."""

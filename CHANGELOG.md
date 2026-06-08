@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-08
+
+### Added
+- **Tisk posudků přes MyQ (`myq.utb.cz`).** Nové tlačítko v toolbaru
+  **🖨 Tisk posudků (MyQ)** otevře dialog, kde zaškrtneš posudky z **aktuálně
+  vedených** i **oponovaných** prací (nabízejí se jen ty s hotovým PDF), zadáš
+  přihlašovací **jméno + PIN** (nikam se neukládají) a odešleš je do tiskové
+  fronty na MyQ — **oboustranně**. Na konci souhrn (kolik odesláno / případné
+  chyby). Konektor je postavený na čistém stdlib (žádné nové závislosti) a je
+  záměrně izolovaný (`services/myq_client.py` + dialog + jediné napojení), aby
+  šel snadno odebrat nebo rozšířit o další způsoby tisku.
+
 ## [1.3.1] - 2026-06-08
 
 ### Changed
