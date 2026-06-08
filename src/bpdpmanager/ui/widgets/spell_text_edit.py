@@ -54,6 +54,10 @@ class SpellCheckEdit(QPlainTextEdit):
         super().__init__(text, parent)
         self._highlighter = _SpellHighlighter(self.document())
 
+    def recheck(self) -> None:
+        """Přepočítá podtržení — po doplnění/stažení slovníku za běhu."""
+        self._highlighter.rehighlight()
+
     def contextMenuEvent(self, event) -> None:  # noqa: N802 (Qt API)
         menu = self.createStandardContextMenu()
         if spellcheck.is_available():

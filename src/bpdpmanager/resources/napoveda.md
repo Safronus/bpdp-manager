@@ -434,7 +434,10 @@ Workflow:
      pod kterou píšeš; tlačítkem **🦴 Vložit kostru posudku** ji vyvoláš
      i ručně (rozepsaný text nepřepíše). Je tu i **kontrola pravopisu** (CZ):
      neznámá slova se **podtrhnou** červeně, **pravý klik** nabídne návrhy
-     oprav (žádná autokorekce). Když by slovník chyběl, ukáže se hláška.
+     oprav (žádná autokorekce). Když by slovník chyběl nebo se nenačetl
+     (např. po přenosu na jiný počítač), ukáže se hláška s tlačítkem
+     **⬇ Stáhnout český slovník** — stáhne ho z LibreOffice do
+     `~/.bpdpmanager/dictionaries/` a kontrolu rovnou zapne.
    - *Místo, datum* — místo z profilu (default Zlín), datum dnešní
 3. **Uložit & vyrobit XLSX + PDF** — data se uloží do práce (JSON),
    vyplní se XLSX šablona a (pokud je nainstalován LibreOffice)

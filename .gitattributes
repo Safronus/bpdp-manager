@@ -1,0 +1,5 @@
+# Hunspell slovníky jsou binární — git NESMÍ konvertovat konce řádků.
+# Na Windows / s core.autocrlf by se LF změnilo na CRLF a spylls by slovník
+# nenačetl („slovník se nepodařilo načíst").
+src/bpdpmanager/resources/dictionaries/*.aff binary
+src/bpdpmanager/resources/dictionaries/*.dic binary

@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-08
+
+### Added
+- **Stažení českého slovníku na klik.** Když kontrola pravopisu nejede, protože
+  slovník chybí nebo se nenačetl (typicky po přenosu na jiný počítač / Windows
+  git `autocrlf`), v editoru posudku je tlačítko **⬇ Stáhnout český slovník** —
+  stáhne ho z LibreOffice do `~/.bpdpmanager/dictionaries/` a kontrolu pravopisu
+  rovnou zapne (bez restartu). Slovník se nově hledá i v tomto uživatelském
+  adresáři (fallback k přibalenému).
+
+### Fixed
+- **`.gitattributes`:** hunspell slovníky (`*.aff`/`*.dic`) jsou označené jako
+  binární, aby je git na jiném OS nerozbil konverzí konců řádků (to byla příčina
+  hlášky „slovník se nepodařilo načíst").
+
 ## [1.5.6] - 2026-06-08
 
 ### Fixed

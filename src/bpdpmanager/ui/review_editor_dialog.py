@@ -126,6 +126,19 @@ class _GenerateWorker(QThread):
             self.failed.emit(str(exc))
 
 
+class _DictDownloadWorker(QThread):
+    """Stáhne český slovník mimo hlavní vlákno (síť neblokuje UI)."""
+
+    done = Signal(bool, str)  # (ok, error)
+
+    def run(self) -> None:
+        try:
+            spellcheck.download_dictionary()
+            self.done.emit(True, "")
+        except Exception as exc:  # noqa: BLE001
+            self.done.emit(False, str(exc))
+
+
 class ReviewEditorDialog(QDialog):
     """Editor strukturovaného posudku.
 
@@ -356,11 +369,25 @@ class ReviewEditorDialog(QDialog):
         )
         v_overall.addWidget(self.ed_overall)
         # Hláška, když kontrola pravopisu není k dispozici (chybí spylls/slovník).
+        self._spell_hint: QLabel | None = None
+        self._spell_dl_btn: QPushButton | None = None
+        self._dict_worker: _DictDownloadWorker | None = None
         if not spellcheck.is_available():
-            hint = QLabel("ⓘ Kontrola pravopisu je vypnutá — " + spellcheck.unavailable_reason())
-            hint.setStyleSheet("color:#888;font-size:11px;")
-            hint.setWordWrap(True)
-            v_overall.addWidget(hint)
+            self._spell_hint = QLabel(
+                "ⓘ Kontrola pravopisu je vypnutá — " + spellcheck.unavailable_reason()
+            )
+            self._spell_hint.setStyleSheet("color:#888;font-size:11px;")
+            self._spell_hint.setWordWrap(True)
+            v_overall.addWidget(self._spell_hint)
+            # Když je spylls, ale chybí/nejde slovník → nabídni stažení.
+            if spellcheck.can_download():
+                self._spell_dl_btn = QPushButton("⬇ Stáhnout český slovník")
+                self._spell_dl_btn.setToolTip(
+                    "Stáhne český hunspell slovník (LibreOffice) do "
+                    "~/.bpdpmanager/dictionaries/ a zapne kontrolu pravopisu."
+                )
+                self._spell_dl_btn.clicked.connect(self._download_dictionary)
+                v_overall.addWidget(self._spell_dl_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         content_layout.addWidget(box_overall)
 
         # ── Místo, datum ──────────────────────────────────────────────
@@ -419,6 +446,41 @@ class ReviewEditorDialog(QDialog):
         height = min(desired, int(avail * 0.95))
         height = max(height, self.minimumHeight())
         self.resize(self.width(), height)
+
+    # ── stažení slovníku ────────────────────────────────────────────────
+    def _download_dictionary(self) -> None:
+        if self._spell_dl_btn is None:
+            return
+        self._spell_dl_btn.setEnabled(False)
+        self._spell_dl_btn.setText("Stahuji slovník…")
+        if self._spell_hint is not None:
+            self._spell_hint.setText("ⓘ Stahuji český slovník z LibreOffice…")
+        self._dict_worker = _DictDownloadWorker()
+        self._dict_worker.done.connect(self._on_dict_downloaded)
+        self._dict_worker.start()
+
+    def _on_dict_downloaded(self, ok: bool, error: str) -> None:
+        if ok and spellcheck.is_available():
+            if self._spell_hint is not None:
+                self._spell_hint.setText("✓ Slovník stažen — kontrola pravopisu zapnuta.")
+            if self._spell_dl_btn is not None:
+                self._spell_dl_btn.hide()
+            # Zapni podtržení živě v obou editorech.
+            for ed in (self.ed_overall, self.ed_plag_just):
+                if ed is not None:
+                    ed.recheck()
+            return
+        if self._spell_dl_btn is not None:
+            self._spell_dl_btn.setEnabled(True)
+            self._spell_dl_btn.setText("⬇ Stáhnout český slovník")
+        if self._spell_hint is not None:
+            self._spell_hint.setText(
+                "ⓘ Kontrola pravopisu je vypnutá — " + spellcheck.unavailable_reason()
+            )
+        QMessageBox.warning(
+            self, "Stažení slovníku",
+            "Slovník se nepodařilo stáhnout:\n" + (error or "neznámá chyba"),
+        )
 
     # ── helpers ─────────────────────────────────────────────────────────
 
