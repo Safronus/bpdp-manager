@@ -633,8 +633,11 @@ v toolbaru. V dialogu zvolíš **cíl tisku**:
 
 - **MyQ (`myq.utb.cz`)** — odešle posudky do tiskové fronty univerzity (vyzvedneš
   je u libovolné multifunkce kartou/PINem). Zadáš přihlašovací **jméno + PIN**
-  (nikam se neukládají). Když to hlásí **chybu certifikátu**, odznač *Ověřit TLS
-  certifikát serveru* (MyQ je interní server).
+  (nikam se neukládají). MyQ posílal **neúplný řetězec certifikátu** (chyběl
+  mezičlánek GÉANT/HARICA) — ten je teď v aplikaci **přibalený**, takže ověření
+  TLS **obvykle projde samo**. Kdyby přesto selhalo, tisk se **automaticky
+  připojí i bez ověření** (MyQ je interní důvěryhodný server) a oznámí to;
+  ruční přepínač *Ověřit TLS certifikát serveru* tu zůstává jako pojistka.
 - **Systémová tiskárna** — vytiskne na **vybranou tiskárnu** nastavenou v systému
   (macOS/Linux přes CUPS). Vybereš tiskárnu z nabídky a volitelně *Oboustranně*.
 

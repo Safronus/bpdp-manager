@@ -41,6 +41,13 @@ APP_PATH = "/cs/app/"
 _USER_AGENT = "Mozilla/5.0 (BPDPManager MyQ print)"
 _DEFAULT_TIMEOUT = 30.0
 
+# Doplněk chybějícího řetězce: MyQ (myq.utb.cz) posílá jen leaf certifikát,
+# bez mezilehlého „GEANT TLS RSA 1". Tady ho (+ HARICA root) přibalíme, ať
+# Python dostaví řetězec a ověření TLS projde i bez vypínání bezpečnosti.
+_MYQ_CA_BUNDLE = (
+    Path(__file__).resolve().parent.parent / "resources" / "certs" / "myq_ca.pem"
+)
+
 # ── WSF konstanty zachycené z HAR (doladit, kdyby MyQ změnilo UI) ──────────────
 # Přihlášení (POST /cs/): formulář i jeho control ID se mezi sezeními LIŠÍ,
 # proto je nehardcodujeme — parsujeme živý formulář (viz _parse_login_form).
@@ -69,6 +76,9 @@ _PRINT_SETTINGS: dict[str, str] = {
 class MyQError(Exception):
     """Chyba při komunikaci s MyQ (síť, neočekávaná odpověď)."""
 
+    # True, když šlo o selhání ověření TLS certifikátu (→ auto-fallback bez ověření).
+    is_tls: bool = False
+
 
 class MyQAuthError(MyQError):
     """Přihlášení do MyQ se nezdařilo (špatné jméno/PIN, vypršelá session)."""
@@ -84,10 +94,17 @@ class MyQClient:
         self.verify_tls = verify_tls
         self._cookies = CookieJar()
         ctx = ssl.create_default_context()
-        if not verify_tls:
-            # Interní MyQ server může posílat neúplný řetězec / mít interní CA,
-            # kterou má jen keychain prohlížeče (ne Python). Na vědomé přání
-            # uživatele ověření vypneme (jen pro tento interní, důvěryhodný host).
+        if verify_tls:
+            # Doplň chybějící mezilehlý certifikát (server ho neposílá), aby šel
+            # řetězec ověřit. Selhání načtení nevadí — spadne se na auto-fallback.
+            try:
+                if _MYQ_CA_BUNDLE.is_file():
+                    ctx.load_verify_locations(cafile=str(_MYQ_CA_BUNDLE))
+            except (OSError, ssl.SSLError):
+                pass
+        else:
+            # Vědomé vypnutí ověření (auto-fallback / volba uživatele) — jen pro
+            # tento interní, důvěryhodný host.
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
         self._opener = urllib.request.build_opener(
@@ -119,7 +136,9 @@ class MyQClient:
         except urllib.error.HTTPError as exc:
             raise MyQError(f"MyQ odpověděl chybou HTTP {exc.code}.") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise MyQError(self._connect_error_message(exc)) from exc
+            err = MyQError(self._connect_error_message(exc))
+            err.is_tls = isinstance(getattr(exc, "reason", exc), ssl.SSLError)
+            raise err from exc
         return raw.decode("utf-8", "replace") if decode else raw
 
     @staticmethod

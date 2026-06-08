@@ -239,6 +239,48 @@ def test_verify_tls_toggle() -> None:
     assert insecure.verify_mode == ssl.CERT_NONE and not insecure.check_hostname
 
 
+def test_ca_bundle_completes_chain() -> None:
+    """Při ověřování se přibalí chybějící mezičlánek GEANT TLS RSA 1 + HARICA root."""
+    from bpdpmanager.services.myq_client import _MYQ_CA_BUNDLE
+
+    assert _MYQ_CA_BUNDLE.is_file(), "CA bundle pro myq.utb.cz musí být v resources"
+
+    def ctx(client):
+        return next(h._context for h in client._opener.handlers
+                    if hasattr(h, "_context"))
+
+    secure = ctx(MyQClient(verify_tls=True))
+    cns = {
+        dict(x for t in cert["subject"] for x in t).get("commonName")
+        for cert in secure.get_ca_certs()
+    }
+    assert "GEANT TLS RSA 1" in cns          # mezičlánek (server ho neposílá)
+    assert "HARICA TLS RSA Root CA 2021" in cns  # kořen
+
+
+def test_ssl_error_marks_is_tls() -> None:
+    """Selhání TLS se označí (is_tls) → worker pak spustí auto-fallback."""
+    import ssl
+    import urllib.error
+
+    client = MyQClient(verify_tls=True)
+    captured = {}
+    client._opener = _RaisingOpener(urllib.error.URLError(ssl.SSLError("CERT")))
+    try:
+        client._open("/")
+    except MyQError as exc:
+        captured["is_tls"] = exc.is_tls
+    assert captured["is_tls"] is True
+
+
+class _RaisingOpener:
+    def __init__(self, exc):
+        self._exc = exc
+
+    def open(self, *a, **k):
+        raise self._exc
+
+
 def test_connect_error_messages() -> None:
     import socket
     import ssl

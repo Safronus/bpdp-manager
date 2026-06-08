@@ -55,6 +55,7 @@ class _PrintWorker(QThread):
     progress = Signal(int, int, str)        # hotovo, celkem, aktuální jméno
     done = Signal(list)                     # [(ok: bool, error: str)] dle pořadí jobs
     failed = Signal(str)                    # fatální chyba (např. přihlášení)
+    tls_fallback = Signal()                 # ověření TLS selhalo → pokračuje bez něj
 
     def __init__(self, username: str, pin: str,
                  jobs: list[tuple[str, Path]], *, verify_tls: bool = True) -> None:
@@ -71,8 +72,19 @@ class _PrintWorker(QThread):
         try:
             client.login(self._username, self._pin)
         except MyQError as exc:
-            self.failed.emit(str(exc))
-            return
+            # Auto-fallback: když selhalo jen OVĚŘENÍ TLS certifikátu, zkus to
+            # ještě jednou bez ověření (interní důvěryhodný host) a dej vědět UI.
+            if self._verify_tls and getattr(exc, "is_tls", False):
+                client = MyQClient(verify_tls=False)
+                try:
+                    client.login(self._username, self._pin)
+                except MyQError as exc2:
+                    self.failed.emit(str(exc2))
+                    return
+                self.tls_fallback.emit()
+            else:
+                self.failed.emit(str(exc))
+                return
 
         results: list[tuple[bool, str]] = []
         total = len(self._jobs)
@@ -188,13 +200,15 @@ class MyQPrintDialog(QDialog):
         self.ed_pin.setMaximumWidth(120)
         cred.addWidget(self.ed_pin)
         myq_v.addLayout(cred)
-        # MyQ posílá certifikát, který Python neumí ověřit (interní CA) → vypnout.
+        # Chybějící mezičlánek řetězce MyQ je přibalený (resources/certs), takže
+        # ověření obvykle projde. Kdyby přesto selhalo, tisk se automaticky připojí
+        # i bez ověření (interní důvěryhodný host).
         self.cb_verify = QCheckBox("Ověřit TLS certifikát serveru")
         self.cb_verify.setChecked(True)
         self.cb_verify.setToolTip(
-            "Když tisk hlásí chybu certifikátu (CERTIFICATE_VERIFY_FAILED), "
-            "odznač — MyQ je interní univerzitní server, jen jeho certifikát "
-            "Python neumí ověřit. Vypnutím se na něj připojíš bez ověření."
+            "Aplikace má přibalený chybějící mezilehlý certifikát (GÉANT/HARICA), "
+            "takže ověření MyQ obvykle projde. Když by přesto selhalo, tisk se "
+            "automaticky připojí i bez ověření (MyQ je interní univerzitní server)."
         )
         myq_v.addWidget(self.cb_verify)
         outer.addWidget(self._myq_box)
@@ -415,6 +429,7 @@ class MyQPrintDialog(QDialog):
                 user, pin, worker_jobs, verify_tls=self.cb_verify.isChecked()
             )
             worker.failed.connect(self._on_failed)
+            worker.tls_fallback.connect(self._on_tls_fallback)
             self._is_system_print = False
             status = "Přihlašuji se do MyQ…"
         else:
@@ -465,6 +480,13 @@ class MyQPrintDialog(QDialog):
         self.progress.setVisible(False)
         self.status.setText("")
         QMessageBox.warning(self, "Tisk posudků — chyba přihlášení", message)
+
+    def _on_tls_fallback(self) -> None:
+        """Ověření TLS selhalo → tisk pokračuje bez ověření (interní host)."""
+        self.status.setText(
+            "⚠ Ověření TLS certifikátu MyQ selhalo — pokračuji bez ověření "
+            "(interní univerzitní server)."
+        )
 
     def _on_done(self, results: list) -> None:
         self._set_busy(False)

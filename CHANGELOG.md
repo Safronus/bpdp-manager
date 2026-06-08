@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.7] - 2026-06-08
+
+### Fixed
+- **TLS certifikát MyQ tisku.** MyQ (`myq.utb.cz`) posílal **neúplný řetězec**
+  certifikátu (chyběl mezilehlý **GÉANT TLS RSA 1** / HARICA), takže Python ho
+  neuměl ověřit (`CERTIFICATE_VERIFY_FAILED`). Chybějící mezičlánek (+ kořen
+  HARICA) je teď **přibalený** (`resources/certs/myq_ca.pem`) a doplní se do TLS
+  contextu — ověření tak **projde bez vypínání bezpečnosti**.
+- **Auto-fallback.** Kdyby ověření přesto selhalo (rotace certifikátu apod.),
+  tisk se **automaticky připojí i bez ověření** (MyQ je interní důvěryhodný
+  server) a v dialogu to oznámí. Ruční přepínač *Ověřit TLS certifikát serveru*
+  zůstává jako pojistka.
+
 ## [1.14.6] - 2026-06-08
 
 ### Changed

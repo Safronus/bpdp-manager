@@ -156,3 +156,44 @@ def test_subgroups_by_review_kind(qapp, service, tmp_path) -> None:
     assert any("Posudky oponenta" in s for s in sub_titles)
     # leafy jsou pod podskupinami (2 úrovně) a stále se vyberou
     assert {it["name"] for it in dlg._selected()} == {"Jan Novák", "Petr Svoboda"}
+
+
+def test_print_worker_auto_fallback_on_tls(qapp, monkeypatch, tmp_path) -> None:
+    """Když selže ověření TLS, worker se sám připojí znovu bez ověření."""
+    from typing import ClassVar
+
+    import bpdpmanager.services.myq_client as mc
+    from bpdpmanager.ui.myq_print_dialog import _PrintWorker
+
+    class _FakeClient:
+        instances: ClassVar[list] = []
+
+        def __init__(self, *, verify_tls: bool = True) -> None:
+            self.verify_tls = verify_tls
+            _FakeClient.instances.append(self)
+
+        def login(self, user: str, pin: str) -> None:
+            if self.verify_tls:
+                err = mc.MyQError("Selhalo ověření TLS certifikátu MyQ")
+                err.is_tls = True
+                raise err
+
+        def upload(self, pdf) -> None:
+            pass
+
+    monkeypatch.setattr(mc, "MyQClient", _FakeClient)
+
+    pdf = tmp_path / "x.pdf"
+    pdf.write_bytes(b"%PDF-1")
+    worker = _PrintWorker("user", "1234", [("Novák", pdf)], verify_tls=True)
+    fired: dict = {}
+    worker.tls_fallback.connect(lambda: fired.__setitem__("fb", True))
+    worker.done.connect(lambda r: fired.__setitem__("done", r))
+    worker.failed.connect(lambda m: fired.__setitem__("failed", m))
+
+    worker.run()  # synchronně (na hlavním vlákně)
+
+    assert fired.get("fb") is True               # došlo k fallbacku
+    assert fired.get("done") == [(True, "")]      # a tisk pak prošel
+    assert "failed" not in fired
+    assert _FakeClient.instances[-1].verify_tls is False  # 2. klient bez ověření
