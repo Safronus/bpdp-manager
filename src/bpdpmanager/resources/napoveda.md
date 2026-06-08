@@ -206,7 +206,8 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   *BTSM* = jakákoli BTSM varianta, *SWI*, *NSWI*, *NKYB*, *IRT*, *ITA*, *NUI*,
   *Jiné*) a **Typ** (BP/DP). Filtry se kombinují. U hotových prací jsou
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
-- **Vše** — všechny vedené práce
+  V titulku záložky je **počet prací v historii**.
+- **Vše** — všechny vedené práce; v titulku záložky je jejich **počet**.
 - **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí). V titulku je
   **počet oponentur aktuálního akademického roku**.
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
@@ -531,6 +532,7 @@ starších) funguje shodně.
 Samostatná záložka **💡 Návrhy témat** (za *Oponentskými posudky*) je seznam
 **vymyšlených potenciálních témat** — nekompletních nápadů, které ještě nikdo
 nevede. **Nemají studenta ani stav** a **akademický rok je tu irelevantní**.
+V titulku záložky je **počet návrhů**.
 
 U každého návrhu vyplníš **název, popis, body zadání, literaturu, obor** a
 **typ (BP/DP)**. Volitelně zaškrtni **🔒 Zarezervováno** a doplň **komu**

@@ -531,6 +531,8 @@ class MainWindow(QMainWindow):
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
         self.tab_proposals = ProposalsTab(service)
         self.tab_proposals.converted.connect(self._on_proposal_converted)
+        # Počet návrhů v titulku záložky drž aktuální i po přidání/smazání.
+        self.tab_proposals.changed.connect(self._refresh_tab_labels)
         self.tab_harmonogram = HarmonogramTab(service)
         self.tab_stats = StatsTab(service)
 
@@ -550,6 +552,9 @@ class MainWindow(QMainWindow):
             id(self.tab_current): "Aktuálně vedené práce",
             id(self.tab_future): f"Práce v dalším akademickém roce {next_year}",
             id(self.tab_opposing): "🧐 Oponované práce",
+            id(self.tab_history): "Historie",
+            id(self.tab_all): "Vše",
+            id(self.tab_proposals): "💡 Návrhy témat",
         }
         self._stag_badges: dict[int, int] = {}
 
@@ -805,6 +810,10 @@ class MainWindow(QMainWindow):
         _apply(self.tab_current, len(current), _reviews_complete_color(sup_complete))
         _apply(self.tab_future, n_future, _future_count_color(n_future))
         _apply(self.tab_opposing, len(opp_current), _reviews_complete_color(opp_complete))
+        n_history = sum(1 for t in theses if t.status in STATUSES_HISTORY)
+        _apply(self.tab_history, n_history)
+        _apply(self.tab_all, len(theses))
+        _apply(self.tab_proposals, len(self.service.list_proposals()))
 
     def _auto_select_first_in_current(self) -> None:
         """Po startu vybere první práci v Aktuální záložce.

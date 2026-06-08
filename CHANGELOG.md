@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.12.2] - 2026-06-08
+
+### Changed
+- **Počty v titulcích záložek.** Záložky **Historie**, **Vše** a **💡 Návrhy
+  témat** nově ukazují v titulku **počet** (prací, resp. návrhů) v závorce —
+  stejně jako už dřív *Aktuálně vedené* / *Budoucí* / *Oponované práce*. Počty
+  se aktualizují i po přidání/smazání.
+
 ## [1.12.1] - 2026-06-08
 
 ### Changed
