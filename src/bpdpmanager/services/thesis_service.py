@@ -84,6 +84,23 @@ class DuplicateAppendix:
     size: int
 
 
+# Přípony, které nikdy nejsou plný text práce (vždy příloha) — viz stag_api.
+_ARCHIVE_EXTS = {".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2"}
+
+
+@dataclass
+class SwappedDocs:
+    """Práce, kde je text práce a příloha prohozené (zip jako text, PDF jako
+    příloha) — kandidát na nápravu. ``*_url`` jsou identity pro přeřazení."""
+    work_id: str
+    is_opposing: bool
+    work_label: str
+    text_url: str         # nyní THESIS_TEXT, ale archiv → má být příloha
+    text_label: str
+    appendix_url: str     # nyní příloha (PDF) → má být text práce
+    appendix_label: str
+
+
 class TransitionError(ValueError):
     """Pokud se pokoušíme o nepovolený přechod mezi stavy nebo chybí povinná pole."""
 
@@ -970,6 +987,109 @@ class ThesisService:
             else:
                 self.upsert_thesis(work)
         return removed
+
+    # --- náprava prohozeného textu/přílohy (STAG „el. podoba" dle pořadí) -----
+
+    @staticmethod
+    def _is_archive(url_or_path: str) -> bool:
+        return Path(url_or_path).suffix.lower() in _ARCHIVE_EXTS
+
+    def find_swapped_documents(self) -> list[SwappedDocs]:
+        """Najde práce, kde je **text práce archiv** (zip…) a zároveň je k dispozici
+        **PDF příloha** — typický příznak, že STAG soubory přišly v jiném pořadí a
+        starší detekce je prohodila. Vrací jen **jednoznačné** páry (právě jeden
+        archiv-jako-text a právě jedno PDF mezi přílohami); nejasné případy
+        (víc kandidátů) přeskočí — ty se řeší ručně."""
+        out: list[SwappedDocs] = []
+
+        def scan(works, is_opposing: bool) -> None:
+            for w in works:
+                files = [a for a in w.attachments if a.is_file]
+                text_archives = [
+                    a for a in files
+                    if a.kind == AttachmentKind.THESIS_TEXT
+                    and self._is_archive(a.url_or_path)
+                ]
+                pdf_appendices = [
+                    a for a in files
+                    if a.kind in _DEDUP_KINDS
+                    and Path(a.url_or_path).suffix.lower() == ".pdf"
+                ]
+                # Jednoznačný prohoz: přesně jeden archiv-text a přesně jedno PDF.
+                if len(text_archives) == 1 and len(pdf_appendices) == 1:
+                    ta, pa = text_archives[0], pdf_appendices[0]
+                    out.append(SwappedDocs(
+                        work_id=w.id, is_opposing=is_opposing,
+                        work_label=self._work_label(w, is_opposing),
+                        text_url=ta.url_or_path, text_label=ta.label,
+                        appendix_url=pa.url_or_path, appendix_label=pa.label,
+                    ))
+
+        scan(self.list_theses(), False)
+        scan(self.list_opposing_theses(), True)
+        return out
+
+    def _reclassify_file_attachment(
+        self, work, att: Attachment, new_kind: AttachmentKind, *, opposing: bool
+    ) -> None:
+        """Přesune soubor přílohy do správné podsložky, přejmenuje podle nového
+        druhu a přepíše ``kind``/``label``/``url_or_path``. Nemění obsah souboru."""
+        old_abs = self._abs_attachment_path(work.id, att, opposing=opposing)
+        if old_abs is None or not old_abs.is_file():
+            return
+        surname = (work.student_last_name if opposing
+                   else self._student_surname_for_thesis(work))
+        base_id = f"opposing-{work.id}" if opposing else work.id
+        subdir = subdir_for(new_kind)
+        target_dir = thesis_documents_dir(base_id) / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+        existing = {p.name for p in target_dir.iterdir() if p.is_file()}
+        new_name = build_target_name(
+            surname, new_kind, old_abs, existing_names=existing
+        )
+        target_path = target_dir / new_name
+        shutil.move(str(old_abs), str(target_path))
+        att.kind = new_kind
+        att.label = new_name
+        att.url_or_path = f"{subdir}/{new_name}"
+        att.is_current = True
+
+    def repair_swapped_documents(
+        self, items: list[tuple[str, bool, str, str]]
+    ) -> int:
+        """Prohodí druh text práce ↔ příloha. ``items`` =
+        ``(work_id, is_opposing, text_url, appendix_url)`` — ``text_url`` je
+        archiv (stane se přílohou), ``appendix_url`` je PDF (stane se textem).
+        Soubory se zároveň přejmenují a přesunou do správné podsložky. Před
+        zápisem si volající zajistí zálohu. Vrací počet opravených prací."""
+        repaired = 0
+        for work_id, is_opposing, text_url, appendix_url in items:
+            work = (self.get_opposing_thesis(work_id) if is_opposing
+                    else self.get_thesis(work_id))
+            if work is None:
+                continue
+            archive_att = next(
+                (a for a in work.attachments if a.url_or_path == text_url), None
+            )
+            pdf_att = next(
+                (a for a in work.attachments if a.url_or_path == appendix_url), None
+            )
+            if archive_att is None or pdf_att is None:
+                continue
+            # Nejdřív PDF → text práce, pak archiv → příloha.
+            self._reclassify_file_attachment(
+                work, pdf_att, AttachmentKind.THESIS_TEXT, opposing=is_opposing
+            )
+            self._reclassify_file_attachment(
+                work, archive_att, AttachmentKind.THESIS_APPENDIX,
+                opposing=is_opposing,
+            )
+            if is_opposing:
+                self.upsert_opposing_thesis(work)
+            else:
+                self.upsert_thesis(work)
+            repaired += 1
+        return repaired
 
     def attach_document(
         self,

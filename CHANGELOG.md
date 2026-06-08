@@ -7,6 +7,25 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-06-08
+
+### Fixed
+- **Rozpoznání plného textu vs. přílohy při stahování ze STAG.** V sekci
+  „elektronická podoba" se druh už neurčuje jen **pořadím** souborů (kvůli němu
+  se archiv stažený jako první ukládal jako *Text práce* a PDF textu jako
+  *Příloha*). Nově platí, že **archiv (.zip/.rar/…) není nikdy plný text** a text
+  je **PDF** — bere se první PDF bez „příloha" v názvu; teprve když žádné není,
+  padá se zpět na pořadí.
+
+### Added
+- **Náprava prohozeného textu a přílohy.** Nové tlačítko **🔄 Aktualizace prací →
+  🔧 Náprava prohozeného textu/přílohy** najde práce (vedené i oponované), kde je
+  **archiv veden jako Text práce** a **PDF jako Příloha** — pozůstatek staršího
+  stahování. V náhledu ukáže, co se přeřadí; po potvrzení **prohodí druh** a
+  soubory **přejmenuje/přesune** do správné složky (obsah se nemění). Před
+  zápisem se vytvoří záloha. Opravují se jen **jednoznačné páry** (právě jeden
+  archiv-text a jedno PDF); nejasné případy se přeskočí pro ruční kontrolu.
+
 ## [1.10.0] - 2026-06-08
 
 ### Added

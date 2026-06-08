@@ -27,6 +27,7 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from http.cookiejar import CookieJar
+from pathlib import Path
 
 # ── Konstanty ────────────────────────────────────────────────────────────────
 
@@ -577,16 +578,52 @@ def is_defense_record_filename(name: str) -> bool:
     return False
 
 
+# Archivy (a podobné) NIKDY nejsou plný text práce — vždy příloha.
+_ARCHIVE_EXTS = {".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2"}
+_APPENDIX_NAME_RE = re.compile(r"priloh|appendix|annex", re.IGNORECASE)
+
+
+def _pick_text_index(elpodoba: list[StagFile]) -> int:
+    """Vybere ze sekce „el. podoba" index souboru, který je **plný text**.
+
+    STAG soubory v této sekci nečísluje spolehlivě podle pořadí (zip přílohy se
+    občas vrací před PDF textu), proto se neřídíme jen pozicí. Plný text je v praxi
+    **PDF**, archiv (.zip/.rar/…) jím není nikdy. Preferuje se proto první PDF,
+    jehož název neoznačuje přílohu; teprve když žádné není, padá se na pořadí.
+    """
+    def ext(f: StagFile) -> str:
+        return Path(f.filename).suffix.lower()
+
+    def is_appendix_name(f: StagFile) -> bool:
+        return bool(_APPENDIX_NAME_RE.search(f.filename))
+
+    # 1) PDF bez „příloha" v názvu — nejsilnější signál pro plný text.
+    for i, f in enumerate(elpodoba):
+        if ext(f) == ".pdf" and not is_appendix_name(f):
+            return i
+    # 2) jakýkoli ne-archiv bez „příloha" v názvu (např. .docx text).
+    for i, f in enumerate(elpodoba):
+        if ext(f) not in _ARCHIVE_EXTS and not is_appendix_name(f):
+            return i
+    # 3) jakýkoli ne-archiv.
+    for i, f in enumerate(elpodoba):
+        if ext(f) not in _ARCHIVE_EXTS:
+            return i
+    # 4) samé archivy (atypické) — ponech původní pořadí (1. = text).
+    return 0
+
+
 def _refine_sections(files: list[StagFile]) -> None:
-    """V sekci „el. podoba" je 1. soubor plný text, další jsou přílohy;
-    soubory s názvem protokolu/zápisu obhajoby přeřadí z „other" na
+    """V sekci „el. podoba" určí plný text (viz ``_pick_text_index``), zbytek jsou
+    přílohy; soubory s názvem protokolu/zápisu obhajoby přeřadí z „other" na
     „defense_record"."""
-    first_elpodoba = True
+    elpodoba = [f for f in files if f.section == "elpodoba"]
+    if elpodoba:
+        text_idx = _pick_text_index(elpodoba)
+        for i, f in enumerate(elpodoba):
+            f.section = "text" if i == text_idx else "appendix"
     for f in files:
-        if f.section == "elpodoba":
-            f.section = "text" if first_elpodoba else "appendix"
-            first_elpodoba = False
-        elif f.section == "other" and is_defense_record_filename(f.filename):
+        if f.section == "other" and is_defense_record_filename(f.filename):
             f.section = "defense_record"
 
 

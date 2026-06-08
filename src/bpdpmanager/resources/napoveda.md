@@ -772,6 +772,26 @@ okno hlásí *„✓ Žádné duplicitní přílohy nenalezeny."*.
 > **nepřipojí podruhé** — zůstane stávající. Nová **verze** přílohy vznikne jen
 > tehdy, když se její **obsah opravdu změní**.
 
+### 🔧 Náprava prohozeného textu a přílohy
+
+Toolbarové tlačítko **🔄 Aktualizace prací → 🔧 Náprava prohozeného textu/přílohy**:
+najde práce (vedené i oponované), kde je **archiv (zip) veden jako Text práce**
+a **PDF jako Příloha**. To býval pozůstatek staršího stahování ze STAG, kde se
+v sekci „elektronická podoba" druh určoval jen **pořadím** souborů — když přišel
+zip dřív než PDF, role se prohodily.
+
+Otevře se **náhled**: u každé práce je vidět, že se **PDF přeřadí na Text práce**
+a **archiv na Přílohu**. Všechno je **předzaškrtnuté**; **🔧 Opravit vybrané**
+druhy prohodí a soubory **přejmenuje a přesune** do správné podsložky
+(`text-prace/` ↔ `prilohy/`) — **obsah se nemění**. Před zápisem se vytvoří
+**záloha**. Opravují se jen **jednoznačné případy** (právě jeden archiv-text
+a právě jedno PDF); práce s víc kandidáty nebo bez PDF se **přeskočí** a je
+potřeba je opravit ručně (přes pravý klik na dokument).
+
+> **Od verze 1.11.0** se text vs. příloha při stahování rozpozná správně:
+> archiv (.zip/.rar/…) **není nikdy** plný text, text je **PDF**. Toto tlačítko
+> je hlavně na nápravu prací stažených dřív.
+
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 
 1. Zadej **příjmení studenta** (nepovinné).

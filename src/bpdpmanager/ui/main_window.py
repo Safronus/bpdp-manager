@@ -992,6 +992,12 @@ class MainWindow(QMainWindow):
             "a nabídne jejich smazání — s náhledem, co a proč."
         )
         act_dupatt.triggered.connect(self._cleanup_duplicate_appendices)
+        act_swapped = checks_menu.addAction("🔧 Náprava prohozeného textu/přílohy")
+        act_swapped.setToolTip(
+            "Najde práce, kde je archiv (zip) veden jako Text práce a PDF jako "
+            "Příloha (starší stahování ze STAG), a nabídne prohození druhu."
+        )
+        act_swapped.triggered.connect(self._repair_swapped_documents)
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
@@ -1676,6 +1682,16 @@ class MainWindow(QMainWindow):
         from .appendix_cleanup_dialog import AppendixCleanupDialog
 
         dlg = AppendixCleanupDialog(self.service, self)
+        dlg.data_changed.connect(self._refresh_all)
+        dlg.exec()
+
+    def _repair_swapped_documents(self) -> None:
+        """Najde a nabídne nápravu prohozeného textu práce a přílohy."""
+        from .swapped_docs_dialog import SwappedDocsDialog
+
+        dlg = SwappedDocsDialog(
+            self.service, self, profile_manager=self.profile_manager
+        )
         dlg.data_changed.connect(self._refresh_all)
         dlg.exec()
 
