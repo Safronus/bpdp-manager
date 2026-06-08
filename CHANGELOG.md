@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-06-08
+
+### Added
+- **Sloupec Velikost v Dokumentech.** U vedených i oponovaných prací (ve všech
+  záložkách) ukazuje seznam dokumentů velikost každého souboru (B/KB/MB/GB).
+
+### Fixed
+- **Více příloh stejného typu už se nepřepisuje.** Dvě různé přílohy stažené ze
+  STAG (např. `…_part1.zip` a `…_part2.zip`) zůstanou **obě aktuální** — dřív
+  druhá nahradila první jako „starší verzi". Verzování se u příloh (a typu
+  *Jiné*) řeší podle **názvu souboru**, takže stejný soubor se verzuje, ale
+  různé soubory koexistují. (Text práce, posudky atd. zůstávají jednoinstanční.)
+
 ## [1.8.0] - 2026-06-08
 
 ### Changed

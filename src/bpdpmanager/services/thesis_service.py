@@ -802,6 +802,29 @@ class ThesisService:
 
     # --- dokumenty k práci ---------------------------------------------------
 
+    @staticmethod
+    def _version_and_supersede(
+        attachments: list[Attachment], kind: AttachmentKind, label: str
+    ) -> int:
+        """Vrátí novou verzi a přepne stávající ``current`` na False.
+
+        U **víceinstančních** kindů (přílohy, OTHER) může být víc různých
+        souborů zároveň aktuálních — verzuje a přepíná se proto jen v rámci
+        **stejného názvu** (``label``). Jinak by druhá příloha (např.
+        ``…_part2.zip``) nahradila první (``…_part1.zip``) jako „starou verzi".
+        U jednoinstančních kindů (text práce, posudky, STAG export) se verzuje
+        proti celému kindu jako dosud.
+        """
+        multi = {AttachmentKind.THESIS_APPENDIX, AttachmentKind.OTHER}
+        if kind in multi:
+            same = [a for a in attachments if a.kind == kind and a.label == label]
+        else:
+            same = [a for a in attachments if a.kind == kind]
+        next_version = max((a.version for a in same), default=0) + 1
+        for a in same:
+            a.is_current = False
+        return next_version
+
     def attach_document(
         self,
         thesis_id: str,
@@ -835,16 +858,15 @@ class ThesisService:
         # (starší byly v rootu ``documents/{thesis_id}/``, tj. bez podadresáře).
         rel_path = f"{subdir}/{target_name}"
 
-        # Verzování: nová příloha téhož ``kind`` přepne stávající current
-        # (is_current=True) na False a stane se aktuální v rámci kindu.
-        # Version se inkrementuje od max(existing of same kind).
-        same_kind = [a for a in thesis.attachments if a.kind == kind]
-        next_version = max((a.version for a in same_kind), default=0) + 1
-        for a in same_kind:
-            a.is_current = False
+        # Verzování (viz _version_and_supersede): u příloh koexistují různé
+        # soubory; verzuje se jen proti souboru stejného názvu.
+        label_final = label or target_name
+        next_version = self._version_and_supersede(
+            thesis.attachments, kind, label_final
+        )
 
         attachment = Attachment(
-            label=label or target_name,
+            label=label_final,
             url_or_path=rel_path,
             kind=kind,
             is_file=True,
@@ -1012,14 +1034,14 @@ class ThesisService:
 
         rel_path = f"{subdir}/{target_name}"
 
-        # Verzování (stejně jako u ``attach_document``).
-        same_kind = [a for a in op.attachments if a.kind == kind]
-        next_version = max((a.version for a in same_kind), default=0) + 1
-        for a in same_kind:
-            a.is_current = False
+        # Verzování (stejně jako u ``attach_document`` — přílohy koexistují).
+        label_final = label or target_name
+        next_version = self._version_and_supersede(
+            op.attachments, kind, label_final
+        )
 
         attachment = Attachment(
-            label=label or target_name,
+            label=label_final,
             url_or_path=rel_path,
             kind=kind,
             is_file=True,

@@ -364,9 +364,13 @@ původní názvy** (které se při dřívějším stažení ztrácely), spáruje
 s lokálními přílohami a v **náhledu s checkboxy** nabídne přeřazení
 (protokoly/zápisy obhajoby předzaškrtnuté; se zálohou).
 
-- **Verzování:** nahrání dalšího souboru téhož typu vytvoří novou verzi;
-  předchozí se označí jako *superseded*. Toggle **Zobrazit starší verze**
-  je defaultně **zapnutý** (vidíš i archiv). U posudku se **XLSX i PDF**
+- **Sloupec Velikost:** u každého souboru se ukazuje jeho velikost (B / KB /
+  MB / GB).
+- **Verzování:** nahrání **stejného** souboru (téhož názvu) vytvoří novou
+  verzi a předchozí se označí jako *superseded*. **Různé soubory** stejného
+  typu ale **koexistují** — např. dvě přílohy `…_part1.zip` a `…_part2.zip`
+  zůstanou obě aktuální (jedna nenahradí druhou). Toggle **Zobrazit starší
+  verze** je defaultně **zapnutý** (vidíš i archiv). U posudku se **XLSX i PDF**
   nejnovější verze berou jako aktuální — PDF se ukáže hned, ne až po
   zapnutí starších verzí.
 - **Auto-pojmenování:** soubor se přejmenuje na

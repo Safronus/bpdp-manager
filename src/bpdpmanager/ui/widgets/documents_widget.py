@@ -29,6 +29,16 @@ from ...services.file_naming import guess_kind_from_filename
 from .._os_actions import open_path, print_path, reveal_in_file_manager
 
 
+def _human_size(num_bytes: int) -> str:
+    """Velikost souboru jako čitelný řetězec (B / KB / MB / GB / TB)."""
+    size = float(num_bytes)
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{int(size)} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
 class DocumentsWidget(QWidget):
     """Widget pro správu dokumentů a odkazů u jedné práce.
 
@@ -52,8 +62,10 @@ class DocumentsWidget(QWidget):
 
         # Strom — agregace podle typu souboru (AttachmentKind → soubory).
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(4)
-        self.tree.setHeaderLabels(["Typ / soubor", "Verze", "Zdroj", "Cesta / URL"])
+        self.tree.setColumnCount(5)
+        self.tree.setHeaderLabels(
+            ["Typ / soubor", "Verze", "Velikost", "Zdroj", "Cesta / URL"]
+        )
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
@@ -61,7 +73,8 @@ class DocumentsWidget(QWidget):
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         self.tree.itemDoubleClicked.connect(self._open_selected)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
@@ -178,6 +191,18 @@ class DocumentsWidget(QWidget):
             else self.service.document_absolute_path(self.thesis_id, att)
         )
 
+    def _size_text(self, att: Attachment) -> str:
+        """Lidsky čitelná velikost souboru (prázdné u odkazů / chybějících)."""
+        if not att.is_file:
+            return ""
+        path = self._abs_path(att)
+        try:
+            if path is None or not path.is_file():
+                return ""
+            return _human_size(path.stat().st_size)
+        except OSError:
+            return ""
+
     def _attach(self, path: Path, kind: AttachmentKind, delete_source: bool):
         if self.opposing:
             return self.service.opposing_attach_document(
@@ -248,7 +273,9 @@ class DocumentsWidget(QWidget):
             extra = ""
             if superseded_count and not show_old:
                 extra = f"  (+{superseded_count} starší verze)"
-            group_item = QTreeWidgetItem([f"{group_label}  ·  {count_visible}×{extra}", "", "", ""])
+            group_item = QTreeWidgetItem(
+                [f"{group_label}  ·  {count_visible}×{extra}", "", "", "", ""]
+            )
             gf = group_item.font(0)
             gf.setBold(True)
             group_item.setFont(0, gf)
@@ -266,15 +293,19 @@ class DocumentsWidget(QWidget):
                 leaf = QTreeWidgetItem([
                     att.label,
                     version_text,
+                    self._size_text(att) if not is_missing else "",
                     source_text,
                     att.url_or_path,
                 ])
                 leaf.setData(0, Qt.ItemDataRole.UserRole, real_idx)
+                leaf.setTextAlignment(
+                    2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+                )
                 if is_missing:
-                    for c in range(4):
+                    for c in range(5):
                         leaf.setForeground(c, red_fg)
                 elif not att.is_current:
-                    for c in range(4):
+                    for c in range(5):
                         leaf.setForeground(c, gray_fg)
                     lf = leaf.font(0)
                     lf.setItalic(True)
