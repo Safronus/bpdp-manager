@@ -93,9 +93,13 @@ def test_opposing_status_column_and_year_gating(qapp, service) -> None:
     cur_leaf = _leaf_for(tab, cur.id)
     old_leaf = _leaf_for(tab, old.id)
     assert cur_leaf is not None and old_leaf is not None
-    # Sloupec Stav (index 2) ukazuje krátký popis ze STAG kódu.
-    assert "nedokončeno" in cur_leaf.text(2)
-    assert "obhájeno" in old_leaf.text(2)
+    # Sloupec Stav (index 2) je zaoblený badge — popisek je v datech ROLE_STATUS,
+    # text buňky je prázdný (stejný styl jako v ostatních záložkách).
+    from bpdpmanager.ui.theses_tree import ROLE_STATUS
+
+    assert cur_leaf.text(2) == "" and old_leaf.text(2) == ""
+    assert cur_leaf.data(2, ROLE_STATUS)[0] == "Nedokončeno"
+    assert old_leaf.data(2, ROLE_STATUS)[0] == "Obhájeno"
     # Aktuální rok má puntík stavu posudku v názvu, starší ne.
     assert cur_leaf.text(1).startswith("🔴")
     assert not old_leaf.text(1).startswith(("🔴", "🟡", "🟢"))

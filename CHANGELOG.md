@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-06-08
+
+### Changed
+- **Oponované práce — sloupec Stav.** Stav se teď zobrazuje jako **zaoblený
+  barevný badge** ve stejném stylu jako v ostatních záložkách (dřív obyčejný
+  text).
+- **Oponované práce — pořadí sloupců.** Sloupec **Vedoucí** je přesunut až
+  **před sloupec Obor** (na konec, jako poslední údaj před oborem).
+- **Dokumenty — sloupce.** Sloupec *Zdroj* nahrazen sloupcem **Formát**
+  (přípona souboru — PDF / ZIP / …, nebo *odkaz* u URL). Sloupec *Cesta / URL*
+  přejmenován na **Cesta k souboru** a ukazuje **celou cestu od kořene**.
+  Šířky sloupců se přizpůsobují obsahu.
+- **Dokumenty — barevné kategorie.** Každý druh dokumentu má barevně odlišený
+  nadpis; **posudky vedoucího/oponenta** jsou sdruženy do nadřazené skupiny
+  **Posudky** a dělí se až v ní.
+
 ## [1.12.0] - 2026-06-08
 
 ### Changed

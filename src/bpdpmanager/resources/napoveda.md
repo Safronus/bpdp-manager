@@ -242,7 +242,9 @@ sloupec V/O** je i v záložce *Oponované práce*.
 > nezobrazí); defaultně je rozbalený **jen aktuální rok**, starší roky sbalené.
 >
 > **Oponentury — sloupec Stav a indikace dle roku.** Tabulka oponentur má
-> sloupec **Stav** (ze STAG, např. *nedokončeno / obhájeno*). Barevný puntík
+> sloupec **Stav** jako **zaoblený barevný badge** (stejný styl jako v ostatních
+> záložkách — *Obhájeno / Neobhájeno / Nedokončeno / V řešení*). Sloupec
+> **Vedoucí** je nově až **před sloupcem Obor**. Barevný puntík
 > stavu posudku a sloupec *Odesláno* se ukazují **jen u aktuálního
 > akademického roku** (u starších je to irelevantní). Známka oponenta se
 > u stažených oponentur doplní z nahraného **posudku** (PDF i Word `.doc`/
@@ -364,8 +366,12 @@ původní názvy** (které se při dřívějším stažení ztrácely), spáruje
 s lokálními přílohami a v **náhledu s checkboxy** nabídne přeřazení
 (protokoly/zápisy obhajoby předzaškrtnuté; se zálohou).
 
-- **Sloupec Velikost:** u každého souboru se ukazuje jeho velikost (B / KB /
-  MB / GB).
+- **Sloupce tabulky:** *Typ / soubor*, *Verze*, *Velikost* (B / KB / MB / GB),
+  *Formát* (přípona — PDF / ZIP / …, nebo *odkaz* u URL) a *Cesta k souboru*
+  (**celá cesta od kořene** disku). Šířky sloupců se přizpůsobí obsahu.
+- **Barevné kategorie:** každý druh dokumentu má svou barvu nadpisu; **posudky
+  vedoucího a oponenta** jsou navíc sdruženy do nadřazené skupiny **Posudky**
+  a dělí se až v ní.
 - **Verzování:** nahrání **stejného** souboru (téhož názvu) vytvoří novou
   verzi a předchozí se označí jako *superseded*. **Různé soubory** stejného
   typu ale **koexistují** — např. dvě přílohy `…_part1.zip` a `…_part2.zip`

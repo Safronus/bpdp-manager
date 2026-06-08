@@ -31,27 +31,36 @@ from ..models.enums import (
 from ..services import ThesisService
 from ._os_actions import open_path
 from .opposing_detail import OpposingDetail
-from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
+from .stag_import_dialog import (
+    STAG_STATE_LABELS,
+    STAG_STATE_SHORT,
+    STAG_STATE_TO_STATUS,
+)
 from .theses_tree import (
     ROLE_GRADES,
     ROLE_OBOR,
     ROLE_PRINTED,
     ROLE_REVIEWS,
     ROLE_SENT,
+    ROLE_STATUS,
     GradesDelegate,
     OborBadgeDelegate,
     PrintedBadgeDelegate,
     ReviewsBadgeDelegate,
     SentBadgeDelegate,
+    StatusBadgeDelegate,
 )
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
-# Sloupce stromu oponentur (Obor je poslední — stejně jako v ostatních záložkách).
-COL_GRADES = 4   # „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
-COL_REVIEWS = 5  # Posudky (V/O badge — k dispozici / chybí)
-COL_SENT = 6     # Odesláno
-COL_PRINTED = 7  # Vytištěno (jen u letošních)
-COL_OBOR = 8     # Obor (poslední)
+# Sloupce stromu oponentur. „Vedoucí" je až před „Obor" (poslední) — stejné
+# pořadí závěrečných sloupců jako v ostatních záložkách.
+COL_STATUS = 2    # Stav (zaoblený barevný badge — StatusBadgeDelegate)
+COL_GRADES = 3    # „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
+COL_REVIEWS = 4   # Posudky (V/O badge — k dispozici / chybí)
+COL_SENT = 5      # Odesláno
+COL_PRINTED = 6   # Vytištěno (jen u letošních)
+COL_SUPERVISOR = 7  # Vedoucí (před Oborem)
+COL_OBOR = 8      # Obor (poslední)
 
 # Reuse Czech locale setup from theses_tree
 _HAS_CZECH_LOCALE = False
@@ -117,8 +126,8 @@ class OpposingTab(QWidget):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(9)
         self.tree.setHeaderLabels(
-            ["Student / Skupina", "Téma", "Stav", "Vedoucí", "Známky V/O",
-             "Posudky", "Odesláno", "Vytištěno", "Obor"]
+            ["Student / Skupina", "Téma", "Stav", "Známky V/O",
+             "Posudky", "Odesláno", "Vytištěno", "Vedoucí", "Obor"]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
@@ -145,6 +154,9 @@ class OpposingTab(QWidget):
         self._obor_delegate = OborBadgeDelegate(self.tree)
         self.tree.setItemDelegateForColumn(COL_OBOR, self._obor_delegate)
         self.tree.setItemDelegateForColumn(COL_GRADES, self._grades_delegate)
+        # Stav jako zaoblený barevný badge — stejný styl jako v ostatních záložkách.
+        self._status_delegate = StatusBadgeDelegate(self.tree)
+        self.tree.setItemDelegateForColumn(COL_STATUS, self._status_delegate)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         # Kontextové menu — pravý klik na posudek → Roll-back
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -287,7 +299,10 @@ class OpposingTab(QWidget):
         if op.related_thesis_id:
             title = f"🔁 {title}"
         code = op.stag_state_code
-        stav = STAG_STATE_SHORT.get(code, code) if code else "—"
+        status = STAG_STATE_TO_STATUS.get(code) if code else None
+        # Badge se vykreslí z ROLE_STATUS; text necháme prázdný. Když stav
+        # neumíme namapovat, ukážeme aspoň krátký STAG kód.
+        stav = "" if status else (STAG_STATE_SHORT.get(code, code) if code else "—")
         if is_current:
             _, sent_bg, sent_tip = review_sent_badge(
                 state == "done", op.opponent_review_sent_at
@@ -305,10 +320,12 @@ class OpposingTab(QWidget):
         has_o = any(a.kind == AttachmentKind.OPPONENT_REVIEW for a in op.attachments)
         obor = op.student_obor or "—"
         leaf = QTreeWidgetItem(
-            [name, title, stav, op.supervisor_name or "—", grades_text,
-             "", "", "", obor]
+            [name, title, stav, grades_text,
+             "", "", "", op.supervisor_name or "—", obor]
         )
         leaf.setData(0, ROLE_ID, op.id)
+        if status is not None:
+            leaf.setData(COL_STATUS, ROLE_STATUS, (status.label, status.color))
         leaf.setData(COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
         if sent_bg:
             leaf.setData(COL_SENT, ROLE_SENT, sent_bg)

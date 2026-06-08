@@ -39,6 +39,23 @@ def _human_size(num_bytes: int) -> str:
     return f"{size:.1f} TB"
 
 
+# Barevné odlišení kategorií dokumentů (barva nadpisu skupiny).
+_KIND_COLORS: dict[AttachmentKind, str] = {
+    AttachmentKind.THESIS_TEXT: "#1565c0",        # modrá — plný text
+    AttachmentKind.THESIS_APPENDIX: "#00838f",    # tyrkysová — přílohy
+    AttachmentKind.WORK_JOURNAL: "#6d4c41",       # hnědá — deník
+    AttachmentKind.ASSIGNMENT: "#5e35b1",         # fialová — zadání
+    AttachmentKind.SUPERVISOR_REVIEW: "#c62828",  # červená — posudky
+    AttachmentKind.OPPONENT_REVIEW: "#ad1457",    # vínová — posudky
+    AttachmentKind.PRESENTATION: "#ef6c00",       # oranžová — prezentace
+    AttachmentKind.DEFENSE_RECORD: "#283593",     # indigo — průběh obhajoby
+    AttachmentKind.STAG_EXPORT: "#546e7a",        # šedomodrá — STAG export
+    AttachmentKind.OTHER: "#455a64",              # šedá — jiné
+}
+_REVIEW_KINDS = (AttachmentKind.SUPERVISOR_REVIEW, AttachmentKind.OPPONENT_REVIEW)
+_REVIEW_GROUP_COLOR = "#b71c1c"  # nadřazená skupina „Posudky"
+
+
 class DocumentsWidget(QWidget):
     """Widget pro správu dokumentů a odkazů u jedné práce.
 
@@ -64,17 +81,16 @@ class DocumentsWidget(QWidget):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(5)
         self.tree.setHeaderLabels(
-            ["Typ / soubor", "Verze", "Velikost", "Zdroj", "Cesta / URL"]
+            ["Typ / soubor", "Verze", "Velikost", "Formát", "Cesta k souboru"]
         )
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         h = self.tree.header()
-        h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        # Všechny sloupce se přizpůsobí obsahu (i celá cesta k souboru).
+        for col in range(5):
+            h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
+        h.setStretchLastSection(False)
         self.tree.itemDoubleClicked.connect(self._open_selected)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
@@ -235,6 +251,61 @@ class DocumentsWidget(QWidget):
             else self.service.prune_missing_documents(self.thesis_id)
         )
 
+    def _format_text(self, att: Attachment, is_missing: bool) -> str:
+        """Indikátor druhu souboru ve sloupci „Formát": přípona (PDF/ZIP/…),
+        nebo odkaz / chybějící soubor."""
+        if not att.is_file:
+            return "🔗 odkaz"
+        if is_missing:
+            return "⚠ chybí"
+        ext = Path(att.url_or_path).suffix.lstrip(".").upper()
+        return ext or "soubor"
+
+    def _path_text(self, att: Attachment) -> str:
+        """Celá cesta k souboru od kořene (u odkazů samotná URL)."""
+        if not att.is_file:
+            return att.url_or_path
+        path = self._abs_path(att)
+        return str(path) if path is not None else att.url_or_path
+
+    def _make_group_item(self, label: str, color: str) -> QTreeWidgetItem:
+        """Tučný barevný nadpis skupiny (kategorie dokumentů)."""
+        item = QTreeWidgetItem([label, "", "", "", ""])
+        gf = item.font(0)
+        gf.setBold(True)
+        item.setFont(0, gf)
+        item.setForeground(0, QBrush(QColor(color)))
+        return item
+
+    def _make_leaf(self, real_idx: int, att: Attachment) -> QTreeWidgetItem:
+        """Řádek jednoho dokumentu/odkazu."""
+        gray_fg = QBrush(QColor("#888"))
+        red_fg = QBrush(QColor("#c62828"))
+        version_text = f"v{att.version}" + (" ✓" if att.is_current else "")
+        # Soubor smazaný mimo aplikaci (např. ručně ve Finderu) → indikuj.
+        is_missing = att.is_file and self._is_missing(att)
+        leaf = QTreeWidgetItem([
+            att.label,
+            version_text,
+            self._size_text(att) if not is_missing else "",
+            self._format_text(att, is_missing),
+            self._path_text(att),
+        ])
+        leaf.setData(0, Qt.ItemDataRole.UserRole, real_idx)
+        leaf.setTextAlignment(
+            2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+        if is_missing:
+            for c in range(5):
+                leaf.setForeground(c, red_fg)
+        elif not att.is_current:
+            for c in range(5):
+                leaf.setForeground(c, gray_fg)
+            lf = leaf.font(0)
+            lf.setItalic(True)
+            leaf.setFont(0, lf)
+        return leaf
+
     def refresh(self) -> None:
         self.tree.clear()
         if not self.thesis_id:
@@ -252,9 +323,8 @@ class DocumentsWidget(QWidget):
         for idx, att in enumerate(thesis.attachments):
             by_kind.setdefault(att.kind, []).append((idx, att))
 
-        gray_fg = QBrush(QColor("#888"))
-        red_fg = QBrush(QColor("#c62828"))
         kind_order = list(AttachmentKind)
+        posudky_parent: QTreeWidgetItem | None = None
 
         for kind in kind_order:
             items = by_kind.get(kind)
@@ -268,50 +338,29 @@ class DocumentsWidget(QWidget):
             visible.sort(key=lambda pair: (0 if pair[1].is_current else 1, -pair[1].version))
 
             superseded_count = sum(1 for _, a in items if not a.is_current)
-            group_label = kind.label
             count_visible = len(visible)
             extra = ""
             if superseded_count and not show_old:
                 extra = f"  (+{superseded_count} starší verze)"
-            group_item = QTreeWidgetItem(
-                [f"{group_label}  ·  {count_visible}×{extra}", "", "", "", ""]
-            )
-            gf = group_item.font(0)
-            gf.setBold(True)
-            group_item.setFont(0, gf)
-            # group nemá UserRole index → není „vybíratelný" jako příloha
-            self.tree.addTopLevelItem(group_item)
+            label = f"{kind.label}  ·  {count_visible}×{extra}"
+            color = _KIND_COLORS.get(kind, "#455a64")
+
+            # Posudky (vedoucího/oponenta) sdruž do nadřazené skupiny „Posudky".
+            if kind in _REVIEW_KINDS:
+                if posudky_parent is None:
+                    posudky_parent = self._make_group_item(
+                        "Posudky", _REVIEW_GROUP_COLOR
+                    )
+                    self.tree.addTopLevelItem(posudky_parent)
+                    posudky_parent.setExpanded(True)
+                group_item = self._make_group_item(label, color)
+                posudky_parent.addChild(group_item)
+            else:
+                group_item = self._make_group_item(label, color)
+                self.tree.addTopLevelItem(group_item)
 
             for real_idx, att in visible:
-                version_text = f"v{att.version}" + (" ✓" if att.is_current else "")
-                # Soubor smazaný mimo aplikaci (např. ručně ve Finderu) → indikuj.
-                is_missing = att.is_file and self._is_missing(att)
-                source_text = (
-                    ("⚠ chybí soubor" if is_missing else "📄 soubor")
-                    if att.is_file else "🔗 odkaz"
-                )
-                leaf = QTreeWidgetItem([
-                    att.label,
-                    version_text,
-                    self._size_text(att) if not is_missing else "",
-                    source_text,
-                    att.url_or_path,
-                ])
-                leaf.setData(0, Qt.ItemDataRole.UserRole, real_idx)
-                leaf.setTextAlignment(
-                    2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-                )
-                if is_missing:
-                    for c in range(5):
-                        leaf.setForeground(c, red_fg)
-                elif not att.is_current:
-                    for c in range(5):
-                        leaf.setForeground(c, gray_fg)
-                    lf = leaf.font(0)
-                    lf.setItalic(True)
-                    leaf.setFont(0, lf)
-                group_item.addChild(leaf)
-
+                group_item.addChild(self._make_leaf(real_idx, att))
             group_item.setExpanded(True)
 
         # Spočítej chybějící napříč VŠEMI přílohami (i schovanými staršími),
