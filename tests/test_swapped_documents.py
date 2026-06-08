@@ -43,11 +43,16 @@ def test_single_pdf_is_text() -> None:
     assert _sections(files) == ["text"]
 
 
-def test_bundle_only_zip_stays_text() -> None:
-    """Jediný zip v „el. podobě" (balík text+přílohy) zůstane textem — není
-    co povýšit na text, takže k prohození zip↔pdf nedojde."""
+def test_bundle_only_zip_is_bundle() -> None:
+    """Jediný zip v „el. podobě" bez PDF textu = balík (text+přílohy)."""
     files = [_mk("Golan_DP_kompletni.zip")]
-    assert _sections(files) == ["text"]
+    assert _sections(files) == ["bundle"]
+
+
+def test_bundle_zip_with_extra_archive() -> None:
+    """Víc archivů bez PDF → první je balík, zbytek samostatné přílohy."""
+    files = [_mk("Golan_DP_kompletni.zip"), _mk("Golan_data.zip")]
+    assert _sections(files) == ["bundle", "appendix"]
 
 
 def test_pdf_always_wins_over_earlier_zip() -> None:
@@ -119,3 +124,45 @@ def test_repair_swaps_kinds_renames_and_moves(service, thesis, tmp_path):
         assert service.document_absolute_path(thesis, a).is_file()
     # idempotence — po opravě už nic
     assert service.find_swapped_documents() == []
+
+
+# ── balík (archiv jako text bez PDF) → Text práce + přílohy ──────────────────
+def test_find_bundle_flags_archive_text_without_pdf(service, thesis, tmp_path):
+    z = tmp_path / "bundle.zip"
+    z.write_bytes(b"PK" + b"X" * 3000)
+    service.attach_document(thesis, z, kind=AttachmentKind.THESIS_TEXT, label="t.zip")
+    bundles = service.find_text_bundles()
+    assert len(bundles) == 1
+    assert bundles[0].work_id == thesis
+    assert Path(bundles[0].url).suffix == ".zip"
+    # není to prohození (nemá PDF přílohu)
+    assert service.find_swapped_documents() == []
+
+
+def test_archive_text_with_pdf_is_swap_not_bundle(service, thesis, tmp_path):
+    z = tmp_path / "g.zip"
+    z.write_bytes(b"PK" + b"X" * 2000)
+    p = tmp_path / "g.pdf"
+    p.write_bytes(b"%PDF" + b"Y" * 5000)
+    service.attach_document(thesis, z, kind=AttachmentKind.THESIS_TEXT, label="t.zip")
+    service.attach_document(thesis, p, kind=AttachmentKind.THESIS_APPENDIX, label="a.pdf")
+    # archiv-text + PDF-příloha → prohození, NE balík
+    assert service.find_text_bundles() == []
+    assert len(service.find_swapped_documents()) == 1
+
+
+def test_reclassify_bundle_moves_and_renames(service, thesis, tmp_path):
+    z = tmp_path / "bundle.zip"
+    z.write_bytes(b"PK" + b"X" * 3000)
+    service.attach_document(thesis, z, kind=AttachmentKind.THESIS_TEXT, label="t.zip")
+    bd = service.find_text_bundles()[0]
+    n = service.reclassify_text_bundles([(bd.work_id, bd.is_opposing, bd.url)])
+    assert n == 1
+    atts = service.get_thesis(thesis).attachments
+    bundle = [a for a in atts if a.kind == AttachmentKind.THESIS_BUNDLE]
+    assert len(bundle) == 1
+    assert "text-a-prilohy" in bundle[0].url_or_path
+    assert service.document_absolute_path(thesis, bundle[0]).is_file()
+    # žádný text práce už nezůstal, idempotence
+    assert not [a for a in atts if a.kind == AttachmentKind.THESIS_TEXT]
+    assert service.find_text_bundles() == []

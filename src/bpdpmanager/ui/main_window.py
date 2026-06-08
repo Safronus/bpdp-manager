@@ -1001,10 +1001,11 @@ class MainWindow(QMainWindow):
             "a nabídne jejich smazání — s náhledem, co a proč."
         )
         act_dupatt.triggered.connect(self._cleanup_duplicate_appendices)
-        act_swapped = checks_menu.addAction("🔧 Náprava prohozeného textu/přílohy")
+        act_swapped = checks_menu.addAction("🔧 Náprava zařazení textu/příloh")
         act_swapped.setToolTip(
-            "Najde práce, kde je archiv (zip) veden jako Text práce a PDF jako "
-            "Příloha (starší stahování ze STAG), a nabídne prohození druhu."
+            "Najde práce, kde je archiv (zip) veden jako Text práce — buď "
+            "prohozený s PDF přílohou, nebo balík (text+přílohy v zipu) — a "
+            "nabídne nápravu."
         )
         act_swapped.triggered.connect(self._repair_swapped_documents)
         self._checks_button.setMenu(checks_menu)

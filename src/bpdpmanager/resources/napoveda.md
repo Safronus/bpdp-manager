@@ -356,8 +356,9 @@ Volný text + termíny/konzultace.
 
 ### 📎 Dokumenty
 Soubory a odkazy k práci, **agregované podle typu** (Text práce,
-Přílohy, Pracovní deník, Oficiální zadání, Posudek vedoucího, Posudek
-oponenta, Prezentace, **Soubor s průběhem obhajoby**, STAG export, Jiné).
+Přílohy, **Text práce + přílohy** (balík v jednom zipu), Pracovní deník,
+Oficiální zadání, Posudek vedoucího, Posudek oponenta, Prezentace,
+**Soubor s průběhem obhajoby**, STAG export, Jiné).
 *Soubor s průběhem obhajoby* = protokol / zápis o průběhu obhajoby (SZZ);
 u nově stahovaných ze STAG se rozpozná **podle STAG sekce** automaticky
 (STAG je tak značí přímo, takže to funguje i u obecných názvů; původní
@@ -784,24 +785,29 @@ okno hlásí *„✓ Žádné duplicitní přílohy nenalezeny."*.
 > **nepřipojí podruhé** — zůstane stávající. Nová **verze** přílohy vznikne jen
 > tehdy, když se její **obsah opravdu změní**.
 
-### 🔧 Náprava prohozeného textu a přílohy
+### 🔧 Náprava zařazení textu a příloh
 
-Toolbarové tlačítko **🔄 Aktualizace prací → 🔧 Náprava prohozeného textu/přílohy**:
-najde práce (vedené i oponované), kde je **archiv (zip) veden jako Text práce**
-a **PDF jako Příloha**. To býval pozůstatek staršího stahování ze STAG, kde se
-v sekci „elektronická podoba" druh určoval jen **pořadím** souborů — když přišel
-zip dřív než PDF, role se prohodily.
+Toolbarové tlačítko **🔄 Aktualizace prací → 🔧 Náprava zařazení textu/příloh**
+řeší dva pozůstatky staršího stahování ze STAG (kde se druh v sekci „elektronická
+podoba" určoval jen **pořadím** souborů):
 
-Otevře se **náhled**: u každé práce je vidět, že se **PDF přeřadí na Text práce**
-a **archiv na Přílohu**. Všechno je **předzaškrtnuté**; **🔧 Opravit vybrané**
-druhy prohodí a soubory **přejmenuje a přesune** do správné podsložky
-(`text-prace/` ↔ `prilohy/`) — **obsah se nemění**. Před zápisem se vytvoří
-**záloha**. Opravují se jen **jednoznačné případy** (právě jeden archiv-text
-a právě jedno PDF); práce s víc kandidáty nebo bez PDF se **přeskočí** a je
-potřeba je opravit ručně (přes pravý klik na dokument).
+- **↔ Prohození** — archiv (zip) je veden jako **Text práce** a PDF jako
+  **Příloha**. Oprava **PDF přeřadí na Text práce** a **archiv na Přílohu**
+  (`text-prace/` ↔ `prilohy/`).
+- **📦 Balík** — archiv jako **Text práce**, ke kterému **není žádné samostatné
+  PDF** (text i přílohy jsou v jednom zipu, např. *Kopas BP / Jakuba DP /
+  Jelínek BP*). Přeřadí se na novou kategorii **Text práce + přílohy**.
+
+Otevře se **náhled** s oběma druhy oprav; vše je **předzaškrtnuté**.
+**🔧 Opravit vybrané** druhy přeřadí a soubory **přejmenuje a přesune** do správné
+podsložky — **obsah se nemění**. Před zápisem se vytvoří **záloha**. Opravují se
+jen **jednoznačné případy** (prohození = právě jeden archiv-text a jedno PDF;
+balík = archiv-text bez PDF přílohy); nejasné případy (víc kandidátů) se
+**přeskočí**.
 
 > **Od verze 1.11.0** se text vs. příloha při stahování rozpozná správně:
-> archiv (.zip/.rar/…) **není nikdy** plný text, text je **PDF**. Toto tlačítko
+> archiv (.zip/.rar/…) **není nikdy** plný text, text je **PDF**; a jediný zip
+> bez PDF textu je **Text práce + přílohy** (balík). Toto tlačítko
 > je hlavně na nápravu prací stažených dřív.
 
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:

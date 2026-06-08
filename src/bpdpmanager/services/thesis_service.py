@@ -69,7 +69,12 @@ def _is_grade_source(name: str) -> bool:
 
 
 # Kindy příloh, kde může být víc různých souborů (dedup podle obsahu).
-_DEDUP_KINDS = {AttachmentKind.THESIS_APPENDIX, AttachmentKind.OTHER}
+# Balík (text+přílohy v zipu) je taky archiv → dedupuje se obsahem jako přílohy.
+_DEDUP_KINDS = {
+    AttachmentKind.THESIS_APPENDIX,
+    AttachmentKind.THESIS_BUNDLE,
+    AttachmentKind.OTHER,
+}
 
 
 @dataclass
@@ -99,6 +104,18 @@ class SwappedDocs:
     text_label: str
     appendix_url: str     # nyní příloha (PDF) → má být text práce
     appendix_label: str
+
+
+@dataclass
+class TextBundle:
+    """Práce, kde je text práce uložený jako archiv (zip) a NENÍ k němu žádné
+    samostatné PDF — jde o **balík** (text + přílohy v jednom). Kandidát na
+    přeřazení z *Text práce* na *Text práce + přílohy*."""
+    work_id: str
+    is_opposing: bool
+    work_label: str
+    url: str              # nyní THESIS_TEXT (archiv) → má být THESIS_BUNDLE
+    label: str
 
 
 class TransitionError(ValueError):
@@ -1091,6 +1108,74 @@ class ThesisService:
                 self.upsert_thesis(work)
             repaired += 1
         return repaired
+
+    def find_text_bundles(self) -> list[TextBundle]:
+        """Najde práce, kde je **text práce archiv** (zip…) a zároveň u práce
+        **NENÍ žádné PDF mezi přílohami** — jde o **balík** (text + přílohy
+        v jednom zipu), ne o prohození. Kandidáti na přeřazení z *Text práce*
+        na *Text práce + přílohy*. (Práce s archivem-textem i PDF-přílohou řeší
+        ``find_swapped_documents`` jako prohození.)"""
+        out: list[TextBundle] = []
+
+        def scan(works, is_opposing: bool) -> None:
+            for w in works:
+                files = [a for a in w.attachments if a.is_file]
+                text_archives = [
+                    a for a in files
+                    if a.kind == AttachmentKind.THESIS_TEXT
+                    and self._is_archive(a.url_or_path)
+                ]
+                pdf_appendices = [
+                    a for a in files
+                    if a.kind in _DEDUP_KINDS
+                    and Path(a.url_or_path).suffix.lower() == ".pdf"
+                ]
+                # Balík = archiv jako text BEZ jakéhokoli PDF mezi přílohami.
+                if text_archives and not pdf_appendices:
+                    for a in text_archives:
+                        out.append(TextBundle(
+                            work_id=w.id, is_opposing=is_opposing,
+                            work_label=self._work_label(w, is_opposing),
+                            url=a.url_or_path, label=a.label,
+                        ))
+
+        scan(self.list_theses(), False)
+        scan(self.list_opposing_theses(), True)
+        return out
+
+    def reclassify_text_bundles(
+        self, items: list[tuple[str, bool, str]]
+    ) -> int:
+        """Přeřadí archiv vedený jako *Text práce* na *Text práce + přílohy*.
+        ``items`` = ``(work_id, is_opposing, url)``. Soubor se přejmenuje/přesune
+        do podsložky balíku. Před zápisem si volající zajistí zálohu. Vrací
+        počet přeřazených souborů."""
+        from collections import defaultdict
+
+        by_work: dict[tuple[str, bool], set[str]] = defaultdict(set)
+        for work_id, is_opposing, url in items:
+            by_work[(work_id, is_opposing)].add(url)
+
+        changed = 0
+        for (work_id, is_opposing), urls in by_work.items():
+            work = (self.get_opposing_thesis(work_id) if is_opposing
+                    else self.get_thesis(work_id))
+            if work is None:
+                continue
+            touched = False
+            for att in list(work.attachments):
+                if att.url_or_path in urls and att.kind == AttachmentKind.THESIS_TEXT:
+                    self._reclassify_file_attachment(
+                        work, att, AttachmentKind.THESIS_BUNDLE, opposing=is_opposing
+                    )
+                    changed += 1
+                    touched = True
+            if touched:
+                if is_opposing:
+                    self.upsert_opposing_thesis(work)
+                else:
+                    self.upsert_thesis(work)
+        return changed
 
     def attach_document(
         self,

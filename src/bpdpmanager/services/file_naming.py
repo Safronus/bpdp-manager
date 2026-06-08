@@ -23,6 +23,7 @@ from ..models.enums import AttachmentKind
 KIND_TO_CODE: dict[AttachmentKind, str] = {
     AttachmentKind.THESIS_TEXT: "text-prace",
     AttachmentKind.THESIS_APPENDIX: "prilohy",
+    AttachmentKind.THESIS_BUNDLE: "text-a-prilohy",
     AttachmentKind.WORK_JOURNAL: "pracovni-denik",
     AttachmentKind.ASSIGNMENT: "zadani",
     AttachmentKind.SUPERVISOR_REVIEW: "posudek-vedouciho",
@@ -38,6 +39,7 @@ KIND_TO_CODE: dict[AttachmentKind, str] = {
 KIND_TO_SUBDIR: dict[AttachmentKind, str] = {
     AttachmentKind.THESIS_TEXT: "text",
     AttachmentKind.THESIS_APPENDIX: "prilohy",
+    AttachmentKind.THESIS_BUNDLE: "text-a-prilohy",
     AttachmentKind.WORK_JOURNAL: "denik",
     AttachmentKind.ASSIGNMENT: "zadani",
     AttachmentKind.SUPERVISOR_REVIEW: "posudky",
@@ -110,7 +112,11 @@ def _normalize_surname(surname: str | None) -> str:
 # Kindy, kde vedle sebe žije víc RŮZNÝCH souborů (přílohy, *Jiné*). U nich se
 # do názvu vkládá rozlišovací část z původního názvu, aby dvě různé přílohy
 # nevypadaly jako verze (``_v2``) téhož souboru.
-_MULTI_INSTANCE_KINDS = {AttachmentKind.THESIS_APPENDIX, AttachmentKind.OTHER}
+_MULTI_INSTANCE_KINDS = {
+    AttachmentKind.THESIS_APPENDIX,
+    AttachmentKind.THESIS_BUNDLE,
+    AttachmentKind.OTHER,
+}
 
 # Generické názvy, které nic nerozlišují (= jen opakují typ) → vynech.
 _GENERIC_APPENDIX_SLUGS = {

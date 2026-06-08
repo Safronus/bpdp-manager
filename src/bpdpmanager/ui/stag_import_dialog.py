@@ -75,6 +75,7 @@ ACTION_SKIP = "skip"
 _SECTION_TO_KIND: dict[str, AttachmentKind] = {
     "text": AttachmentKind.THESIS_TEXT,
     "appendix": AttachmentKind.THESIS_APPENDIX,
+    "bundle": AttachmentKind.THESIS_BUNDLE,
     "supervisor_review": AttachmentKind.SUPERVISOR_REVIEW,
     "opponent_review": AttachmentKind.OPPONENT_REVIEW,
     "defense_record": AttachmentKind.DEFENSE_RECORD,

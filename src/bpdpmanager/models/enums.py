@@ -33,6 +33,9 @@ class OpponentKind(str, Enum):
 class AttachmentKind(str, Enum):
     THESIS_TEXT = "thesis_text"
     THESIS_APPENDIX = "thesis_appendix"
+    # Jeden archiv (zip) obsahující text práce i přílohy pohromadě — STAG ho
+    # někdy nabízí jako jediný soubor v sekci „el. podoba" bez samostatného PDF.
+    THESIS_BUNDLE = "thesis_bundle"
     WORK_JOURNAL = "work_journal"
     ASSIGNMENT = "assignment"
     SUPERVISOR_REVIEW = "supervisor_review"
@@ -51,6 +54,7 @@ class AttachmentKind(str, Enum):
 ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
     AttachmentKind.THESIS_TEXT: "Text práce",
     AttachmentKind.THESIS_APPENDIX: "Přílohy práce",
+    AttachmentKind.THESIS_BUNDLE: "Text práce + přílohy",
     AttachmentKind.WORK_JOURNAL: "Pracovní deník",
     AttachmentKind.ASSIGNMENT: "Oficiální zadání",
     AttachmentKind.SUPERVISOR_REVIEW: "Posudek vedoucího",

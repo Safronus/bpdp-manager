@@ -583,14 +583,14 @@ _ARCHIVE_EXTS = {".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2"}
 _APPENDIX_NAME_RE = re.compile(r"priloh|appendix|annex", re.IGNORECASE)
 
 
-def _pick_text_index(elpodoba: list[StagFile]) -> int:
+def _pick_text_index(elpodoba: list[StagFile]) -> int | None:
     """Vybere ze sekce „el. podoba" index souboru, který je **plný text**.
 
     STAG soubory v této sekci nečísluje spolehlivě podle pořadí (zip přílohy se
     občas vrací před PDF textu), proto se neřídíme jen pozicí. Plný text je v praxi
     **PDF**, archiv (.zip/.rar/…) jím není nikdy. Preferuje se proto první PDF,
-    jehož název neoznačuje přílohu; teprve když žádné není, padá se na pořadí.
-    """
+    jehož název neoznačuje přílohu. Když žádný samostatný text není (jen archivy),
+    vrací ``None`` — jde o **balík** (text + přílohy v jednom zipu)."""
     def ext(f: StagFile) -> str:
         return Path(f.filename).suffix.lower()
 
@@ -609,19 +609,25 @@ def _pick_text_index(elpodoba: list[StagFile]) -> int:
     for i, f in enumerate(elpodoba):
         if ext(f) not in _ARCHIVE_EXTS:
             return i
-    # 4) samé archivy (atypické) — ponech původní pořadí (1. = text).
-    return 0
+    # 4) samé archivy → žádný samostatný text, jde o balík (řeší volající).
+    return None
 
 
 def _refine_sections(files: list[StagFile]) -> None:
     """V sekci „el. podoba" určí plný text (viz ``_pick_text_index``), zbytek jsou
-    přílohy; soubory s názvem protokolu/zápisu obhajoby přeřadí z „other" na
-    „defense_record"."""
+    přílohy. Když je v sekci jen archiv bez samostatného PDF textu, jde o **balík**
+    (text + přílohy v jednom zipu) → ``bundle``. Soubory s názvem protokolu/zápisu
+    obhajoby přeřadí z „other" na „defense_record"."""
     elpodoba = [f for f in files if f.section == "elpodoba"]
     if elpodoba:
         text_idx = _pick_text_index(elpodoba)
-        for i, f in enumerate(elpodoba):
-            f.section = "text" if i == text_idx else "appendix"
+        if text_idx is None:
+            # Samé archivy → první je balík (text+přílohy), zbytek samostatné přílohy.
+            for i, f in enumerate(elpodoba):
+                f.section = "bundle" if i == 0 else "appendix"
+        else:
+            for i, f in enumerate(elpodoba):
+                f.section = "text" if i == text_idx else "appendix"
     for f in files:
         if f.section == "other" and is_defense_record_filename(f.filename):
             f.section = "defense_record"

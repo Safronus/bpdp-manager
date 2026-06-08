@@ -43,6 +43,7 @@ def _human_size(num_bytes: int) -> str:
 _KIND_COLORS: dict[AttachmentKind, str] = {
     AttachmentKind.THESIS_TEXT: "#1565c0",        # modrá — plný text
     AttachmentKind.THESIS_APPENDIX: "#00838f",    # tyrkysová — přílohy
+    AttachmentKind.THESIS_BUNDLE: "#00695c",      # tmavě tyrkysová — text+přílohy
     AttachmentKind.WORK_JOURNAL: "#6d4c41",       # hnědá — deník
     AttachmentKind.ASSIGNMENT: "#5e35b1",         # fialová — zadání
     AttachmentKind.SUPERVISOR_REVIEW: "#c62828",  # červená — posudky

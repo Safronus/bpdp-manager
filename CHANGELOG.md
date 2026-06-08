@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-06-08
+
+### Added
+- **Nová kategorie dokumentu „Text práce + přílohy".** Když STAG nabízí v sekci
+  „elektronická podoba" jen **archiv (zip)** a žádné samostatné PDF textu (text
+  i přílohy jsou v jednom balíku), zařadí se nově jako **Text práce + přílohy**
+  — místo aby se tvářil jako *Text práce*. Při stahování/aktualizaci ze STAG se
+  tak zobrazí správně.
+- **Náprava balíků v opravném nástroji.** Tlačítko **🔄 Aktualizace prací →
+  🔧 Náprava zařazení textu/příloh** (dřív „Náprava prohozeného textu/přílohy")
+  teď řeší dvě věci: **prohození** (zip jako text + PDF jako příloha) i **balík**
+  (zip jako text bez PDF → přeřadí na *Text práce + přílohy*). Náhled, výběr,
+  záloha. Týká se prací jako Kopas BP / Jakuba DP / Jelínek BP, kde je text
+  i přílohy v jednom zipu.
+
 ## [1.12.2] - 2026-06-08
 
 ### Changed
