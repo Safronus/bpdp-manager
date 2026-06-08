@@ -167,6 +167,19 @@ def test_upload_missing_file_raises() -> None:
         c.upload("/does/not/exist.pdf")
 
 
+def test_verify_tls_toggle() -> None:
+    import ssl
+
+    def ctx(client):
+        return next(h._context for h in client._opener.handlers
+                    if hasattr(h, "_context"))
+
+    secure = ctx(MyQClient(verify_tls=True))
+    assert secure.verify_mode == ssl.CERT_REQUIRED and secure.check_hostname
+    insecure = ctx(MyQClient(verify_tls=False))
+    assert insecure.verify_mode == ssl.CERT_NONE and not insecure.check_hostname
+
+
 def test_connect_error_messages() -> None:
     import socket
     import ssl

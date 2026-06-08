@@ -610,6 +610,9 @@ V dialogu:
   a **🧐 Posudky oponenta**. Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
 - **Zadáš přihlašovací jméno a PIN do MyQ.** Údaje se **nikam neukládají** —
   použijí se jen pro toto jedno odeslání a dál se nedrží (PIN je maskovaný).
+- Když tisk hlásí **chybu certifikátu** (`CERTIFICATE_VERIFY_FAILED`), odznač
+  **Ověřit TLS certifikát serveru** — MyQ je interní univerzitní server, jen
+  jeho certifikát Python neumí ověřit.
 - **🖨 Odeslat na tisk** přihlásí a postupně nahraje vybraná PDF do tvé fronty
   (tisk **oboustranně**). Na konci se zobrazí **souhrn** (kolik odesláno, co
   případně selhalo) a dialog se **zeptá, zda odeslané označit jako vytištěné**

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -52,16 +53,17 @@ class _PrintWorker(QThread):
     failed = Signal(str)                    # fatální chyba (např. přihlášení)
 
     def __init__(self, username: str, pin: str,
-                 jobs: list[tuple[str, Path]]) -> None:
+                 jobs: list[tuple[str, Path]], *, verify_tls: bool = True) -> None:
         super().__init__()
         self._username = username
         self._pin = pin
         self._jobs = jobs
+        self._verify_tls = verify_tls
 
     def run(self) -> None:  # běží ve vlákně
         from ..services.myq_client import MyQClient, MyQError
 
-        client = MyQClient()
+        client = MyQClient(verify_tls=self._verify_tls)
         try:
             client.login(self._username, self._pin)
         except MyQError as exc:
@@ -138,6 +140,18 @@ class MyQPrintDialog(QDialog):
         self.ed_pin.setMaximumWidth(120)
         cred.addWidget(self.ed_pin)
         outer.addLayout(cred)
+
+        # TLS ověření — MyQ server někdy posílá certifikát, který Python neumí
+        # ověřit (neúplný řetězec / interní univerzitní CA). Pak je třeba ho
+        # odznačit. Default zapnuto (bezpečně).
+        self.cb_verify = QCheckBox("Ověřit TLS certifikát serveru")
+        self.cb_verify.setChecked(True)
+        self.cb_verify.setToolTip(
+            "Když tisk hlásí chybu certifikátu (CERTIFICATE_VERIFY_FAILED), "
+            "odznač — MyQ je interní univerzitní server, jen jeho certifikát "
+            "Python neumí ověřit. Vypnutím se na něj připojíš bez ověření."
+        )
+        outer.addWidget(self.cb_verify)
 
         # ── průběh ────────────────────────────────────────────────────────
         self.status = QLabel("")
@@ -323,7 +337,9 @@ class MyQPrintDialog(QDialog):
         self.status.setText("Přihlašuji se do MyQ…")
 
         worker_jobs = [(it["name"], it["pdf"]) for it in selected]
-        self._worker = _PrintWorker(user, pin, worker_jobs)
+        self._worker = _PrintWorker(
+            user, pin, worker_jobs, verify_tls=self.cb_verify.isChecked()
+        )
         self._worker.progress.connect(self._on_progress)
         self._worker.done.connect(self._on_done)
         self._worker.failed.connect(self._on_failed)

@@ -78,10 +78,19 @@ class MyQAuthError(MyQError):
 class MyQClient:
     """Drží jednu přihlášenou MyQ session (cookies + ``wsfHashId``)."""
 
-    def __init__(self, timeout: float = _DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self, timeout: float = _DEFAULT_TIMEOUT, *, verify_tls: bool = True
+    ) -> None:
         self.timeout = timeout
+        self.verify_tls = verify_tls
         self._cookies = CookieJar()
         ctx = ssl.create_default_context()
+        if not verify_tls:
+            # Interní MyQ server může posílat neúplný řetězec / mít interní CA,
+            # kterou má jen keychain prohlížeče (ne Python). Na vědomé přání
+            # uživatele ověření vypneme (jen pro tento interní, důvěryhodný host).
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
         self._opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(self._cookies),
             urllib.request.HTTPSHandler(context=ctx),
@@ -129,7 +138,12 @@ class MyQClient:
             "to znovu."
         )
         if isinstance(reason, ssl.SSLError):
-            return f"Selhalo ověření TLS certifikátu MyQ ({reason})."
+            return (
+                f"Selhalo ověření TLS certifikátu MyQ ({reason}). "
+                "MyQ server posílá certifikát, který Python neumí ověřit "
+                "(neúplný řetězec / interní univerzitní CA). V dialogu odznač "
+                "„Ověřit TLS certifikát serveru“ a zkus to znovu."
+            )
         if isinstance(reason, socket.gaierror):
             return (
                 "Název myq.utb.cz nejde přeložit (DNS). " + net_hint

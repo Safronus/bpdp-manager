@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-06-08
+
+### Added
+- **Přepínač „Ověřit TLS certifikát serveru" v tiskovém dialogu MyQ.** MyQ
+  server posílá certifikát, který Python neumí ověřit (neúplný řetězec /
+  interní univerzitní CA, kterou má jen keychain prohlížeče) → `CERTIFICATE_
+  VERIFY_FAILED`. Odznačením se na **interní, důvěryhodný** server připojíš
+  i bez ověření. Default je **zapnuto** (bezpečně). Chybová hláška na tuto
+  možnost nově odkazuje.
+
 ## [1.5.2] - 2026-06-08
 
 ### Changed
