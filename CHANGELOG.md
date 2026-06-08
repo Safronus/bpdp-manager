@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-06-08
+
+### Changed
+- **Tiskový dialog MyQ:** uvnitř skupin „K tisku" i „Již vytištěné" jsou
+  posudky nově seskupené do podskupin **🎓 Posudky vedoucího** a
+  **🧐 Posudky oponenta**.
+
 ## [1.5.0] - 2026-06-08
 
 ### Added

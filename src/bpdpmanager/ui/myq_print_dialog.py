@@ -201,31 +201,50 @@ class MyQPrintDialog(QDialog):
         items.sort(key=lambda it: it["name"].lower())
         return items
 
+    @staticmethod
+    def _make_header(text: str, *, bold: bool) -> QTreeWidgetItem:
+        item = QTreeWidgetItem([text, ""])
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
+        f = item.font(0)
+        f.setBold(bold)
+        item.setFont(0, f)
+        return item
+
+    def _make_leaf(self, it: dict, *, checked: bool) -> QTreeWidgetItem:
+        leaf = QTreeWidgetItem([it["name"], it["role"]])
+        leaf.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+        leaf.setCheckState(
+            0, Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        )
+        leaf.setData(0, _ROLE_PDF, str(it["pdf"]))
+        leaf.setData(0, _ROLE_NAME, it["name"])
+        leaf.setData(0, _ROLE_KIND, it["kind"])
+        leaf.setData(0, _ROLE_ID, it["id"])
+        return leaf
+
     def _add_group(self, title: str, items: list[dict], *, checked: bool) -> None:
-        group = QTreeWidgetItem([f"{title}  ({len(items)})", ""])
-        group.setFlags(group.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
-        f = group.font(0)
-        f.setBold(True)
-        group.setFont(0, f)
+        group = self._make_header(f"{title}  ({len(items)})", bold=True)
         self.tree.addTopLevelItem(group)
         if not items:
             empty = QTreeWidgetItem(["(žádné)", ""])
             empty.setFlags(Qt.ItemFlag.ItemIsEnabled)
             empty.setForeground(0, Qt.GlobalColor.gray)
             group.addChild(empty)
-        for it in items:
-            leaf = QTreeWidgetItem([it["name"], it["role"]])
-            leaf.setFlags(
-                Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
-            )
-            leaf.setCheckState(
-                0, Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
-            )
-            leaf.setData(0, _ROLE_PDF, str(it["pdf"]))
-            leaf.setData(0, _ROLE_NAME, it["name"])
-            leaf.setData(0, _ROLE_KIND, it["kind"])
-            leaf.setData(0, _ROLE_ID, it["id"])
-            group.addChild(leaf)
+            group.setExpanded(True)
+            return
+        # Podskupiny podle typu posudku (vedoucího / oponenta).
+        for kind, sub_title in (
+            ("supervised", "🎓 Posudky vedoucího"),
+            ("opposing", "🧐 Posudky oponenta"),
+        ):
+            sub_items = [it for it in items if it["kind"] == kind]
+            if not sub_items:
+                continue
+            sub = self._make_header(f"{sub_title}  ({len(sub_items)})", bold=False)
+            group.addChild(sub)
+            for it in sub_items:
+                sub.addChild(self._make_leaf(it, checked=checked))
+            sub.setExpanded(True)
         group.setExpanded(True)
 
     def _populate_tree(self) -> None:
@@ -241,13 +260,14 @@ class MyQPrintDialog(QDialog):
         )
 
     def _iter_leaves(self):
-        root = self.tree.invisibleRootItem()
-        for i in range(root.childCount()):
-            grp = root.child(i)
-            for j in range(grp.childCount()):
-                leaf = grp.child(j)
-                if leaf.flags() & Qt.ItemFlag.ItemIsUserCheckable:
-                    yield leaf
+        def walk(item):
+            for i in range(item.childCount()):
+                child = item.child(i)
+                if child.flags() & Qt.ItemFlag.ItemIsUserCheckable:
+                    yield child
+                yield from walk(child)
+
+        yield from walk(self.tree.invisibleRootItem())
 
     def _set_all_checked(self, checked: bool) -> None:
         state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked

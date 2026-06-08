@@ -606,7 +606,8 @@ V dialogu:
   vedených (posudek vedoucího) i letošních oponentur (posudek oponenta),
   rozdělené na **🖨 K tisku — nevytištěné** (předzaškrtnuté) a **✓ Již
   vytištěné** (samostatný seznam, nezaškrtnuté — pro případný opětovný tisk).
-  Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
+  V každé skupině jsou posudky seskupené do podskupin **🎓 Posudky vedoucího**
+  a **🧐 Posudky oponenta**. Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
 - **Zadáš přihlašovací jméno a PIN do MyQ.** Údaje se **nikam neukládají** —
   použijí se jen pro toto jedno odeslání a dál se nedrží (PIN je maskovaný).
 - **🖨 Odeslat na tisk** přihlásí a postupně nahraje vybraná PDF do tvé fronty

@@ -108,3 +108,16 @@ def test_mark_printed_persists(qapp, service, tmp_path) -> None:
 def test_empty_when_no_reviews(qapp, service) -> None:
     dlg = MyQPrintDialog(service)
     assert list(dlg._iter_leaves()) == []
+
+
+def test_subgroups_by_review_kind(qapp, service, tmp_path) -> None:
+    """Uvnitř skupiny K tisku jsou podskupiny vedoucího / oponenta."""
+    _seed(service, tmp_path)
+    dlg = MyQPrintDialog(service)
+    # první top-skupina = „K tisku — nevytištěné"
+    ktisku = dlg.tree.topLevelItem(0)
+    sub_titles = [ktisku.child(i).text(0) for i in range(ktisku.childCount())]
+    assert any("Posudky vedoucího" in s for s in sub_titles)
+    assert any("Posudky oponenta" in s for s in sub_titles)
+    # leafy jsou pod podskupinami (2 úrovně) a stále se vyberou
+    assert {it["name"] for it in dlg._selected()} == {"Jan Novák", "Petr Svoboda"}
