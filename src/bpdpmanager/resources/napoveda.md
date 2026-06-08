@@ -617,9 +617,10 @@ V dialogu:
   vytištěné** (samostatný seznam, nezaškrtnuté — pro případný opětovný tisk).
   V každé skupině jsou posudky seskupené do podskupin **🎓 Posudky vedoucího**
   a **🧐 Posudky oponenta**. Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
-- **🖨 Odeslat na tisk** postupně vytiskne vybraná PDF (do MyQ fronty, nebo na
-  systémovou tiskárnu). Na konci se zobrazí **souhrn** (kolik vytištěno, co
-  případně selhalo) a dialog se **zeptá, zda odeslané označit jako vytištěné**
+- **🖨 Odeslat na tisk** se nejdřív **zeptá na potvrzení** (kolik a kam), pak
+  postupně vytiskne vybraná PDF (do MyQ fronty, nebo na systémovou tiskárnu).
+  Na konci se zobrazí **souhrn** (znění podle cíle — *vytištěno* u tiskárny /
+  *odesláno do MyQ fronty*) a dialog se **zeptá, zda označit jako vytištěné**
   (promítne se do sloupce *Vytištěno*).
 
 > **Pozn.:** MyQ konektor komunikuje přímo s webem `myq.utb.cz`. Když UTB MyQ

@@ -122,6 +122,7 @@ class MyQPrintDialog(QDialog):
         super().__init__(parent)
         self.service = service
         self._worker: _PrintWorker | _SystemPrintWorker | None = None
+        self._is_system_print = False
         self._jobs: list[tuple[str, Path]] = []
         self.setWindowTitle("Tisk posudků")
         self.setMinimumSize(640, 600)
@@ -405,10 +406,16 @@ class MyQPrintDialog(QDialog):
                     self, "Tisk posudků", "Zadej přihlašovací jméno i PIN do MyQ."
                 )
                 return
+            # Pre-potvrzení: odeslání do MyQ fronty.
+            if not self._confirm_print(
+                len(worker_jobs), "do tiskové fronty MyQ"
+            ):
+                return
             worker = _PrintWorker(
                 user, pin, worker_jobs, verify_tls=self.cb_verify.isChecked()
             )
             worker.failed.connect(self._on_failed)
+            self._is_system_print = False
             status = "Přihlašuji se do MyQ…"
         else:
             printer = self.cmb_printer.currentData()
@@ -417,10 +424,17 @@ class MyQPrintDialog(QDialog):
                     self, "Tisk posudků", "Vyber systémovou tiskárnu."
                 )
                 return
+            printer_label = self.cmb_printer.currentText()
+            # Pre-potvrzení: fyzický tisk na zvolenou tiskárnu (spotřebuje papír).
+            if not self._confirm_print(
+                len(worker_jobs), f"na tiskárnu „{printer_label}“"
+            ):
+                return
             worker = _SystemPrintWorker(
                 worker_jobs, printer, duplex=self.cb_duplex.isChecked()
             )
-            status = "Posílám na tiskárnu…"
+            self._is_system_print = True
+            status = f"Tisknu na „{printer_label}“…"
 
         self._jobs = selected
         self._set_busy(True)
@@ -433,9 +447,18 @@ class MyQPrintDialog(QDialog):
         self._worker = worker
         worker.start()
 
+    def _confirm_print(self, count: int, target: str) -> bool:
+        """Potvrzení před tiskem (kolik a kam)."""
+        ans = QMessageBox.question(
+            self, "Potvrdit tisk",
+            f"Vytisknout {count} posudků {target}?",
+        )
+        return ans == QMessageBox.StandardButton.Yes
+
     def _on_progress(self, done: int, total: int, name: str) -> None:
         self.progress.setValue(done - 1)
-        self.status.setText(f"Odesílám {done}/{total}: {name}…")
+        verb = "Tisknu" if self._is_system_print else "Odesílám"
+        self.status.setText(f"{verb} {done}/{total}: {name}…")
 
     def _on_failed(self, message: str) -> None:
         self._set_busy(False)
@@ -452,19 +475,24 @@ class MyQPrintDialog(QDialog):
             (jobs[i]["name"], e)
             for i, (good, e) in enumerate(results) if not good
         ]
-        lines = [f"✅ Odesláno na tisk: {len(ok_jobs)}"]
+        # Znění podle cíle: systémová tiskárna = „vytištěno", MyQ = „odesláno".
+        sys_print = self._is_system_print
+        done_verb = "Vytištěno" if sys_print else "Odesláno do MyQ fronty"
+        fail_verb = "Nepodařilo se vytisknout" if sys_print else "Nepodařilo se odeslat"
+        lines = [f"✅ {done_verb}: {len(ok_jobs)}"]
         if bad:
             lines.append("")
-            lines.append(f"⚠ Nepodařilo se: {len(bad)}")
+            lines.append(f"⚠ {fail_verb}: {len(bad)}")
             lines += [f"   • {n} — {e}" for n, e in bad]
-        self.status.setText(f"Hotovo — odesláno {len(ok_jobs)} z {len(results)}.")
+        short = "vytištěno" if sys_print else "odesláno"
+        self.status.setText(f"Hotovo — {short} {len(ok_jobs)} z {len(results)}.")
         QMessageBox.information(self, "Souhrn tisku", "\n".join(lines))
 
-        # Po úspěšném odeslání nabídni označení jako „vytištěno".
+        # Po úspěšném tisku nabídni označení jako „vytištěno".
         if ok_jobs:
             ans = QMessageBox.question(
                 self, "Označit jako vytištěné?",
-                f"Označit {len(ok_jobs)} odeslaných posudků jako vytištěné?\n\n"
+                f"Označit {len(ok_jobs)} posudků jako vytištěné?\n\n"
                 "(Posudek se přesune do „Již vytištěné“. Lze kdykoli vrátit "
                 "přes pravý klik na práci v seznamu.)",
             )

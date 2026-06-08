@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-08
+
+### Changed
+- **Tisk: potvrzení a souhrn podle cíle.** Před tiskem se dialog zeptá na
+  **potvrzení** („Vytisknout N posudků …?"). Souhrn i průběh mají znění podle
+  cíle — u **systémové tiskárny** „vytištěno", u **MyQ** „odesláno do fronty".
+  Platí pro obě volby.
+
 ## [1.7.0] - 2026-06-08
 
 ### Added

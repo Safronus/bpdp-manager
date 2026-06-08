@@ -97,6 +97,41 @@ def test_printed_work_in_separate_unchecked_section(qapp, service, tmp_path) -> 
     assert dlg._selected() == []
 
 
+def test_summary_wording_depends_on_destination(qapp, service, tmp_path) -> None:
+    from unittest import mock
+
+    from PySide6.QtWidgets import QMessageBox
+
+    _seed(service, tmp_path)
+    t = next(t for t in service.list_theses())
+    dlg = MyQPrintDialog(service)
+    dlg._jobs = [{"name": "Jan Novák", "pdf": tmp_path / "pv.pdf",
+                  "kind": "supervised", "id": t.id}]
+
+    summaries = {}
+    for sysp in (False, True):
+        dlg._is_system_print = sysp
+        with mock.patch.object(QMessageBox, "information") as info, \
+             mock.patch.object(QMessageBox, "question",
+                               return_value=QMessageBox.StandardButton.No):
+            dlg._on_done([(True, "")])
+            summaries[sysp] = info.call_args[0][2]
+    assert "Vytištěno" in summaries[True]
+    assert "MyQ fronty" in summaries[False]
+
+
+def test_confirm_print_text(qapp, service) -> None:
+    from unittest import mock
+
+    from PySide6.QtWidgets import QMessageBox
+
+    dlg = MyQPrintDialog(service)
+    with mock.patch.object(QMessageBox, "question",
+                           return_value=QMessageBox.StandardButton.Yes) as q:
+        assert dlg._confirm_print(2, "na tiskárnu „X“") is True
+    assert "Vytisknout 2" in q.call_args[0][2]
+
+
 def test_mark_printed_persists(qapp, service, tmp_path) -> None:
     _seed(service, tmp_path)
     t = next(t for t in service.list_theses())
