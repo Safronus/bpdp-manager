@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.2] - 2026-06-08
+
+### Changed
+- **Záložka „Vše" — barevné roky.** Hlavičky akademických roků se barevně odlišují
+  podle období: **budoucí** (modře), **aktuální** (zeleně) a **minulé** (šedě).
+- **Záložka „Vše" — Posudky u budoucích prací.** U prací v budoucích stavech
+  (*Zájemce / Vypsané téma*) se ve sloupci **Posudky** nezobrazuje žádná hodnota
+  (je tam irelevantní).
+
 ## [1.14.1] - 2026-06-08
 
 ### Added

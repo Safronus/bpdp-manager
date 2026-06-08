@@ -6,7 +6,7 @@ import locale
 import unicodedata
 
 from PySide6.QtCore import QPoint, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QAction, QColor
+from PySide6.QtGui import QAction, QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -21,6 +21,7 @@ from ..models import Thesis
 from ..models.enums import (
     GRADE_TINTS,
     REVIEW_STATE_LABELS,
+    STATUSES_FUTURE,
     AttachmentKind,
     PlagiarismVerdict,
     ThesisStatus,
@@ -30,6 +31,11 @@ from ..models.enums import (
 )
 from ..services import ThesisService
 from ._os_actions import open_path
+
+# Barvy hlaviček akademických roků ve stromu (Budoucí / Aktuální / Minulé).
+_YEAR_FUTURE_COLOR = "#1565c0"   # modrá — budoucí rok
+_YEAR_CURRENT_COLOR = "#2e7d32"  # zelená — aktuální rok
+_YEAR_PAST_COLOR = "#9e9e9e"     # šedá — minulé roky
 
 ROLE_THESIS_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_KIND = Qt.ItemDataRole.UserRole + 2  # "year" | "type" | "thesis"
@@ -491,6 +497,10 @@ class ThesesTreeWidget(QTreeWidget):
         self._filter_predicate = lambda t: True
         # Hromadný export PDF posudků vedoucího — jen v „Aktuálně vedené práce".
         self.enable_review_export = False
+        # Barevné odlišení roků (Budoucí/Aktuální/Minulé) — jen v záložce „Vše".
+        self.color_year_groups = False
+        # U budoucích prací nezobrazovat sloupec Posudky — jen v záložce „Vše".
+        self.blank_future_reviews = False
 
         self.setColumnCount(len(self.HEADERS))
         self.setHeaderLabels(self.HEADERS)
@@ -571,6 +581,7 @@ class ThesesTreeWidget(QTreeWidget):
                 groups.setdefault(year, {"BP": [], "DP": []})
                 groups[year][thesis.type.value].append(thesis)
 
+            current_year = self.service.current_academic_year()
             for year in sorted(groups.keys(), reverse=True):
                 total = sum(len(v) for v in groups[year].values())
                 year_item = QTreeWidgetItem(
@@ -582,6 +593,15 @@ class ThesesTreeWidget(QTreeWidget):
                 font.setBold(True)
                 font.setPointSize(font.pointSize() + 1)
                 year_item.setFont(0, font)
+                # Barevné odlišení roku (Budoucí/Aktuální/Minulé) — jen ve „Vše".
+                if self.color_year_groups and year != "(bez roku)":
+                    if year == current_year:
+                        color = _YEAR_CURRENT_COLOR
+                    elif year > current_year:
+                        color = _YEAR_FUTURE_COLOR
+                    else:
+                        color = _YEAR_PAST_COLOR
+                    year_item.setForeground(0, QBrush(QColor(color)))
                 year_item.setFirstColumnSpanned(True)
                 self.addTopLevelItem(year_item)
 
@@ -735,16 +755,19 @@ class ThesesTreeWidget(QTreeWidget):
             leaf.setToolTip(self.COL_PRINTED, printed_tip)
 
         # Posudky V/O badge (zelená k dispozici / červená chybí) + tooltip.
-        leaf.setData(
-            self.COL_REVIEWS, ROLE_REVIEWS,
-            (has_supervisor_review, has_opponent_review),
-        )
-        tip_v = "✓ k dispozici" if has_supervisor_review else "chybí"
-        tip_o = "✓ k dispozici" if has_opponent_review else "chybí"
-        leaf.setToolTip(
-            self.COL_REVIEWS,
-            f"V = posudek vedoucího: {tip_v}\nO = posudek oponenta: {tip_o}",
-        )
+        # U budoucích prací (ve „Vše") je sloupec irelevantní → necháme prázdný.
+        blank_reviews = self.blank_future_reviews and thesis.status in STATUSES_FUTURE
+        if not blank_reviews:
+            leaf.setData(
+                self.COL_REVIEWS, ROLE_REVIEWS,
+                (has_supervisor_review, has_opponent_review),
+            )
+            tip_v = "✓ k dispozici" if has_supervisor_review else "chybí"
+            tip_o = "✓ k dispozici" if has_opponent_review else "chybí"
+            leaf.setToolTip(
+                self.COL_REVIEWS,
+                f"V = posudek vedoucího: {tip_v}\nO = posudek oponenta: {tip_o}",
+            )
         leaf.setTextAlignment(
             self.COL_REVIEWS, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )

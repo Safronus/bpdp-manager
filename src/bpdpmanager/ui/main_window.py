@@ -619,6 +619,10 @@ class MainWindow(QMainWindow):
                 ThesesTreeWidget.COL_PRINTED,
             ],
         )
+        # Ve „Vše" barevně odliš roky a u budoucích prací skryj sloupec Posudky.
+        self.tab_all.tree.color_year_groups = True
+        self.tab_all.tree.blank_future_reviews = True
+        self.tab_all.tree.refresh()
         self.tab_opposing = OpposingTab(service, profile_manager=pm)
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
         self.tab_proposals = ProposalsTab(service)

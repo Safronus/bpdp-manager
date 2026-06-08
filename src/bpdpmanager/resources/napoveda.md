@@ -208,6 +208,10 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
   V titulku záložky je **počet prací v historii**.
 - **Vše** — všechny vedené práce; v titulku záložky je jejich **počet**.
+  Hlavičky **akademických roků** jsou barevně odlišené podle období: **budoucí**
+  (modře), **aktuální** (zeleně), **minulé** (šedě). U prací v **budoucích
+  stavech** (*Zájemce / Vypsané téma*) je sloupec *Posudky* prázdný (je tam
+  irelevantní).
 - **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí). V titulku je
   **počet oponentur aktuálního akademického roku**.
   I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
