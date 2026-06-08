@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-08
+
+### Changed
+- **Dlouhé slovní hodnocení se v PDF rozdělí do dvou polí (jen když je nutné).**
+  Když se komentář nevejde na jednu stránku (sloučená buňka se v tisku nezalomí
+  → dřív skočil celý na další stránku nebo se ořízl), generátor **automaticky
+  rozdělí** sloučenou buňku komentáře na dva řádky a text rozdělí na hranici
+  odstavce — každá část pak teče přes stránky samostatně. Druhá buňka přebírá
+  styl té první (zalamování/font/okraje). Krátký komentář zůstává v jedné buňce.
+  Šablony se nemění.
+
 ## [1.7.2] - 2026-06-08
 
 ### Fixed

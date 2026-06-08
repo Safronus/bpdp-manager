@@ -90,7 +90,8 @@ def _cell_xml(coord: str, value: object, kept_attrs: str) -> str:
 
 
 def _set_cell_in_xml(
-    xml: str, coord: str, col: str, rownum: int, value: object
+    xml: str, coord: str, col: str, rownum: int, value: object,
+    style: str | None = None,
 ) -> str:
     # Najdi existující buňku (předpoklad: ``r`` je první atribut, jako to píše
     # Excel/openpyxl/LibreOffice). Pokrývá self-closing i plnou variantu.
@@ -102,14 +103,19 @@ def _set_cell_in_xml(
     m = pat.search(xml)
     if m:
         kept = _clean_attrs(m.group("attrs"))
+        # Když buňka nemá styl a žádaný styl je zadán (split komentáře →
+        # druhá buňka potřebuje styl té první: zalamování/font/okraje), doplň ho.
+        if style and ' s="' not in kept:
+            kept = f' s="{style}"' + kept
         return xml[: m.start()] + _cell_xml(coord, value, kept) + xml[m.end():]
-    return _insert_cell(xml, coord, col, rownum, value)
+    return _insert_cell(xml, coord, col, rownum, value, style)
 
 
 def _insert_cell(
-    xml: str, coord: str, col: str, rownum: int, value: object
+    xml: str, coord: str, col: str, rownum: int, value: object,
+    style: str | None = None,
 ) -> str:
-    new_cell = _cell_xml(coord, value, "")
+    new_cell = _cell_xml(coord, value, f' s="{style}"' if style else "")
 
     # 1) Řádek existuje (plná varianta s tělem)
     row_pat = re.compile(
@@ -171,10 +177,36 @@ def _insert_row(xml: str, rownum: int, new_cell: str) -> str:
     raise XlsxWriteError("List nemá <sheetData>.")
 
 
-def _edit_sheet_xml(sheet_xml: str, values: dict[str, object]) -> str:
+def _edit_sheet_xml(
+    sheet_xml: str, values: dict[str, object],
+    cell_styles: dict[str, str] | None = None,
+) -> str:
+    styles = cell_styles or {}
     for coord, value in values.items():
         col, rownum = _split_coord(coord)
-        sheet_xml = _set_cell_in_xml(sheet_xml, coord, col, rownum, value)
+        sheet_xml = _set_cell_in_xml(
+            sheet_xml, coord, col, rownum, value, styles.get(coord)
+        )
+    return sheet_xml
+
+
+def _replace_merges(sheet_xml: str, merge_splits: dict[str, list[str]]) -> str:
+    """Nahradí sloučenou oblast (``ref``) sadou nových (split dlouhého textu
+    do více řádků, aby PDF teklo přes stránky). Aktualizuje ``count``."""
+    added = 0
+    for old_ref, new_refs in (merge_splits or {}).items():
+        m = re.search(rf'<mergeCell\s+ref="{re.escape(old_ref)}"\s*/>', sheet_xml)
+        if not m or not new_refs:
+            continue
+        replacement = "".join(f'<mergeCell ref="{r}"/>' for r in new_refs)
+        sheet_xml = sheet_xml[: m.start()] + replacement + sheet_xml[m.end():]
+        added += len(new_refs) - 1
+    if added:
+        cm = re.search(r'<mergeCells\b[^>]*?\bcount="(\d+)"', sheet_xml)
+        if cm:
+            new_count = int(cm.group(1)) + added
+            fixed = re.sub(r'count="\d+"', f'count="{new_count}"', cm.group(0), count=1)
+            sheet_xml = sheet_xml[: cm.start()] + fixed + sheet_xml[cm.end():]
     return sheet_xml
 
 
@@ -293,6 +325,8 @@ def set_cells(
     *,
     sheet_part: str | None = None,
     row_heights: dict[int, float] | None = None,
+    merge_splits: dict[str, list[str]] | None = None,
+    cell_styles: dict[str, str] | None = None,
 ) -> None:
     """Zapíše ``values`` (souřadnice → hodnota) do kopie ``template_path``.
 
@@ -322,7 +356,10 @@ def set_cells(
         contents = {info.filename: zin.read(info.filename) for info in infos}
 
     if clean:
-        sheet_xml = _edit_sheet_xml(sheet_xml, clean)
+        sheet_xml = _edit_sheet_xml(sheet_xml, clean, cell_styles)
+    # Rozdělení sloučené buňky (dlouhý komentář → víc řádků, ať PDF teče).
+    if merge_splits:
+        sheet_xml = _replace_merges(sheet_xml, merge_splits)
     # Výška řádků s dlouhým textem (slovní hodnocení) — ať se v PDF neusekne.
     for rownum, height in (row_heights or {}).items():
         if height and height > 0:

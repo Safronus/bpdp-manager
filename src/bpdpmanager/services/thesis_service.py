@@ -2129,18 +2129,33 @@ class ThesisService:
             else:
                 values[cell] = value
 
-        # 4) Výška řádků pro dlouhé volné texty (slovní hodnocení, zdůvodnění)
-        #    — ať se v PDF (LibreOffice) neusekne kvůli pevné výšce buňky.
-        text_cells = {
-            tmpl.field_cells[k]: extras[k]
-            for k in ("overall_comment", "plagiarism_justification",
-                      "assignment_fulfilled")
-            if tmpl.field_cells.get(k) and extras.get(k)
-        }
-        row_heights = self._estimate_text_row_heights(tmpl_path, text_cells)
+        # 4) Dlouhé volné texty (slovní hodnocení, zdůvodnění): nastav výšku
+        #    řádku, a když se text nevejde na stránku, rozděl sloučenou buňku
+        #    na víc řádků (jen když je to nutné) — ať se v PDF neusekne.
+        row_heights: dict[int, float] = {}
+        merge_splits: dict[str, list[str]] = {}
+        cell_styles: dict[str, str] = {}
+        for key in ("overall_comment", "plagiarism_justification",
+                    "assignment_fulfilled"):
+            cell = tmpl.field_cells.get(key)
+            text = extras.get(key)
+            if not cell or not text:
+                continue
+            vals, splits, heights, styles = self._plan_long_text(
+                tmpl_path, cell, str(text)
+            )
+            values.pop(cell, None)  # nahradíme případně víc buňkami
+            values.update(vals)
+            merge_splits.update(splits)
+            row_heights.update(heights)
+            cell_styles.update(styles)
 
         # 5) Jeden zápis — zachová logo i veškeré formátování šablony 1:1
-        set_cells(tmpl_path, target_path, values, row_heights=row_heights)
+        set_cells(
+            tmpl_path, target_path, values,
+            row_heights=row_heights, merge_splits=merge_splits,
+            cell_styles=cell_styles,
+        )
 
         # 3) Připoj XLSX jako Attachment (auto-versioning)
         same_kind = []
@@ -2441,6 +2456,133 @@ class ThesisService:
             return heights
         except Exception:
             return {}
+        finally:
+            try:
+                wb.close()
+            except Exception:
+                pass
+
+    # Kolik řádků textu se rozumně vejde na jednu stránku posudku (heuristika).
+    _PAGE_LINES = 40
+    _LINE_PT = 15.0
+
+    @staticmethod
+    def _cell_style_index(tmpl_path: Path, coord: str) -> str | None:
+        """Přečte index stylu (``s``) buňky z XML šablony (pro kopii stylu)."""
+        import zipfile
+
+        from .xlsx_cell_writer import _resolve_active_sheet_part
+        try:
+            with zipfile.ZipFile(tmpl_path) as zf:
+                xml = zf.read(_resolve_active_sheet_part(zf)).decode("utf-8")
+            m = re.search(rf'<c\s+r="{re.escape(coord)}"[^>]*?\bs="(\d+)"', xml)
+            return m.group(1) if m else None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _split_text_into_parts(
+        text: str, chars_per_line: float, max_parts: int, page_lines: int
+    ) -> list[str]:
+        """Rozdělí text na ≤ ``max_parts`` částí na hranicích odstavců tak, aby
+        každá (kromě poslední) měla zhruba ``page_lines`` řádků."""
+        def plines(s: str) -> int:
+            return max(1, math.ceil(len(s) / chars_per_line))
+
+        parts: list[str] = []
+        cur: list[str] = []
+        cur_lines = 0
+        for para in text.split("\n"):
+            pl = plines(para)
+            if (cur and cur_lines + pl > page_lines
+                    and len(parts) < max_parts - 1):
+                parts.append("\n".join(cur))
+                cur, cur_lines = [], 0
+            cur.append(para)
+            cur_lines += pl
+        if cur:
+            parts.append("\n".join(cur))
+        return parts
+
+    def _plan_long_text(
+        self, tmpl_path: Path, cell: str, text: str
+    ) -> tuple[dict[str, str], dict[str, list[str]], dict[int, float],
+               dict[str, str]]:
+        """Naplánuje zápis dlouhého textu do (sloučené) buňky.
+
+        Krátký text → jedna buňka. Dlouhý text, který se nevejde na stránku, se
+        rozdělí přes řádky sloučené buňky (rozbití slučení + kopie stylu), aby
+        v PDF tekl přes stránky. Vrací ``(values, merge_splits, row_heights,
+        cell_styles)``.
+        """
+        single = ({cell: text}, {}, {}, {})
+        if not text:
+            return single
+        try:
+            from openpyxl.utils.cell import (
+                column_index_from_string,
+                coordinate_from_string,
+                get_column_letter,
+            )
+            wb = load_template_workbook(tmpl_path, data_only=False)
+            ws = wb.active
+        except Exception:
+            return single
+        try:
+            col_letter, row = coordinate_from_string(cell)
+            col = column_index_from_string(col_letter)
+            mc = xc = col
+            mr = xr = row
+            for rng in ws.merged_cells.ranges:
+                bmc, bmr, bxc, bxr = rng.bounds
+                if bmc <= col <= bxc and bmr <= row <= bxr:
+                    mc, mr, xc, xr = bmc, bmr, bxc, bxr
+                    break
+            total_w = 0.0
+            for ci in range(mc, xc + 1):
+                dim = ws.column_dimensions.get(get_column_letter(ci))
+                total_w += dim.width if dim and dim.width else 8.43
+            cpl = max(12.0, total_w * 0.95)
+            total_lines = sum(
+                max(1, math.ceil(len(line) / cpl)) for line in text.split("\n")
+            )
+            nrows = xr - mr + 1
+
+            if total_lines < 3:
+                return single  # krátké — výšku necháme na šabloně
+            # Vejde se na stránku (nebo nelze rozdělit) → jedna buňka + výška.
+            if total_lines <= self._PAGE_LINES or nrows < 2:
+                h = min(total_lines * self._LINE_PT + 6.0, 2000.0)
+                return {cell: text}, {}, {row: h}, {}
+
+            parts = self._split_text_into_parts(text, cpl, nrows, self._PAGE_LINES)
+            if len(parts) < 2:
+                # Jeden velký odstavec → rozdělit nešlo; aspoň vyšší buňka.
+                h = min(total_lines * self._LINE_PT + 6.0, 2000.0)
+                return {cell: text}, {}, {row: h}, {}
+
+            left = get_column_letter(mc)
+            right = get_column_letter(xc)
+            old_ref = f"{left}{mr}:{right}{xr}"
+            new_refs = [f"{left}{mr + i}:{right}{mr + i}" for i in range(nrows)]
+            style = self._cell_style_index(tmpl_path, cell)
+            values: dict[str, str] = {}
+            heights: dict[int, float] = {}
+            styles: dict[str, str] = {}
+            for i, part in enumerate(parts):
+                r = mr + i
+                coord = f"{left}{r}"
+                values[coord] = part
+                lines = sum(
+                    max(1, math.ceil(len(line) / cpl))
+                    for line in part.split("\n")
+                )
+                heights[r] = min(lines * self._LINE_PT + 6.0, 2000.0)
+                if i > 0 and style:  # druhá+ buňka potřebuje styl té první
+                    styles[coord] = style
+            return values, {old_ref: new_refs}, heights, styles
+        except Exception:
+            return single
         finally:
             try:
                 wb.close()
