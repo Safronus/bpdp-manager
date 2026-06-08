@@ -1920,25 +1920,34 @@ class ThesisService:
         q = (query or "").strip().lower()
         if not q:
             return []
-        hits: list[dict] = []
+        return [
+            h for h in self.search_index()
+            if q in f"{h['student']}\n{h['title']}\n{h['uid']}".lower()
+        ]
+
+    def search_index(self) -> list[dict]:
+        """Vrátí **všechny** práce i oponentury jako hit-dicty pro našeptávač.
+
+        Stejný tvar jako ``search_works`` + navíc ``type`` (``BP`` / ``DP``).
+        Slouží jako model pro real-time našeptávání v horním vyhledávání.
+        """
+        out: list[dict] = []
         for t in self._db.theses:
             student = self.get_student(t.student_id) if t.student_id else None
             name = student.full_name if student else ""
             uid = (student.university_id or "") if student else ""
-            if q in f"{name}\n{t.title_cs}\n{uid}".lower():
-                hits.append({
-                    "kind": "thesis", "id": t.id, "student": name or "—",
-                    "title": t.display_title, "status": t.status, "uid": uid,
-                })
+            out.append({
+                "kind": "thesis", "id": t.id, "student": name or "—",
+                "title": t.display_title, "status": t.status,
+                "type": t.type.value, "uid": uid,
+            })
         for o in self._db.opposing_theses:
-            name = o.student_full_name
-            uid = o.student_university_id or ""
-            if q in f"{name}\n{o.title_cs}\n{uid}".lower():
-                hits.append({
-                    "kind": "opposing", "id": o.id, "student": name or "—",
-                    "title": o.display_title, "status": None, "uid": uid,
-                })
-        return hits
+            out.append({
+                "kind": "opposing", "id": o.id, "student": o.student_full_name or "—",
+                "title": o.display_title, "status": None,
+                "type": o.type.value, "uid": o.student_university_id or "",
+            })
+        return out
 
     # ── výchozí (default) data — obory + šablony ─────────────────────────
 

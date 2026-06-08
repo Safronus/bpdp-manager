@@ -222,10 +222,18 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 
 ### 🔍 Vyhledávání a navigace
 Do pole nad záložkami napiš **jméno studenta**, **název práce** nebo
-**osobní číslo (Axxxxx)** a stiskni Enter. Hledá napříč vedenými pracemi
-i oponenturami. Při jediné shodě aplikace rovnou **skočí na práci**
-(přepne záložku a vybere ji), při více shodách nabídne **výběr** (práce
-v *Aktuální* jsou nahoře).
+**osobní číslo (Axxxxx)** — hledá napříč vedenými pracemi i oponenturami.
+
+**Našeptává v reálném čase:** stačí napsat **kousek** příjmení nebo názvu
+(nemusí být celé) a hned se rozbalí **seznam pasujících prací**. Každý řádek
+ukazuje, **kde práce je** a o co jde:
+`[záložka]  Vedená/Oponovaná · BP/DP · jméno studenta — název`. Výběrem řádku
+(šipky + Enter, nebo klik) aplikace rovnou **skočí na práci** (přepne záložku
+a vybere ji).
+
+Když napíšeš dotaz a dáš **Enter** bez výběru z našeptávače (nebo klikneš na
+**Najít**), platí původní chování: jedna shoda rovnou skočí, víc shod nabídne
+**výběr v menu** (práce v *Aktuální* jsou nahoře).
 
 ### 🟢🟡🔴 Stav posudku barevně
 V **Aktuální** indikuje stav posudku vedoucího **barevný puntík přímo

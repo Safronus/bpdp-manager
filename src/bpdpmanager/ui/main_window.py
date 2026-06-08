@@ -3,11 +3,12 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QCloseEvent, QColor
+from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QColor, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QComboBox,
     QCheckBox,
+    QCompleter,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -663,9 +664,21 @@ class MainWindow(QMainWindow):
         self.ed_search = QLineEdit()
         self.ed_search.setClearButtonEnabled(True)
         self.ed_search.setPlaceholderText(
-            "🔍 Najít práci: jméno studenta · název práce · ID (Axxxxx) — Enter"
+            "🔍 Najít práci: stačí kousek jména studenta · názvu · ID (Axxxxx)"
         )
         self.ed_search.returnPressed.connect(self._do_search)
+        # Real-time našeptávač — ukazuje pasující práce hned při psaní.
+        self._search_model = QStandardItemModel(self)
+        self._completer = QCompleter(self._search_model, self)
+        self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self._completer.setCompletionMode(
+            QCompleter.CompletionMode.PopupCompletion
+        )
+        self._completer.setMaxVisibleItems(14)
+        self.ed_search.setCompleter(self._completer)
+        self._completer.activated[QModelIndex].connect(self._on_search_activated)
+        self._rebuild_search_model()
         btn_search = QPushButton("Najít")
         btn_search.clicked.connect(self._do_search)
         search_row.addWidget(self.ed_search, stretch=1)
@@ -1890,6 +1903,7 @@ class MainWindow(QMainWindow):
                 widget.refresh()
         self._update_status()
         self._refresh_tab_labels()
+        self._rebuild_search_model()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt API)
         """Při zavření okna ještě flushne všechny dirty formuláře."""
@@ -1941,7 +1955,37 @@ class MainWindow(QMainWindow):
 
     # --- globální vyhledávání + navigace -------------------------------------
 
+    # --- našeptávač (real-time) ---------------------------------------------
+    def _search_label(self, h: dict) -> str:
+        """Řádek našeptávače: [záložka] Vedená/Oponovaná · BP/DP · student — název."""
+        role = "Oponovaná" if h["kind"] == "opposing" else "Vedená"
+        uid = f"  ·  {h['uid']}" if h.get("uid") else ""
+        return (
+            f"[{self._bucket_label(h)}]  {role} · {h.get('type', '')} · "
+            f"{h['student']} — {h['title']}{uid}"
+        )
+
+    def _rebuild_search_model(self) -> None:
+        """Naplní model našeptávače aktuálním seznamem prací (vedené + oponentury)."""
+        self._search_model.clear()
+        for h in self.service.search_index():
+            item = QStandardItem(self._search_label(h))
+            item.setEditable(False)
+            item.setData(h, Qt.ItemDataRole.UserRole)
+            self._search_model.appendRow(item)
+
+    def _on_search_activated(self, index: QModelIndex) -> None:
+        """Uživatel vybral práci z našeptávače → skoč na ni."""
+        hit = index.data(Qt.ItemDataRole.UserRole)
+        if isinstance(hit, dict):
+            self._navigate_hit(hit)
+            self.ed_search.clear()
+            self.ed_search.clearFocus()
+
     def _do_search(self) -> None:
+        # Když je otevřený našeptávač, Enter řeší přímo on (výběr položky).
+        if self._completer.popup().isVisible():
+            return
         query = self.ed_search.text().strip()
         if not query:
             return
@@ -1969,10 +2013,7 @@ class MainWindow(QMainWindow):
         head.setEnabled(False)
         menu.addSeparator()
         for h in hits:
-            uid = f"  ·  {h['uid']}" if h["uid"] else ""
-            act = menu.addAction(
-                f"[{self._bucket_label(h)}]  {h['student']} — {h['title']}{uid}"
-            )
+            act = menu.addAction(self._search_label(h))
             act.triggered.connect(
                 lambda _checked=False, hit=h: self._navigate_hit(hit)
             )

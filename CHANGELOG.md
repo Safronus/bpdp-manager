@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.3] - 2026-06-08
+
+### Added
+- **Real-time našeptávač v horním vyhledávání.** Stačí napsat **kousek** příjmení
+  studenta nebo názvu (i ID Axxxxx) a hned se rozbalí seznam pasujících prací.
+  Každý řádek ukazuje **[záložku] · Vedená/Oponovaná · BP/DP · jméno studenta —
+  název**; výběrem (Enter/klik) na práci rovnou skočíš. Tlačítko **Najít** /
+  Enter bez výběru fungují jako dřív (jedna shoda skočí, víc nabídne menu).
+
 ## [1.14.2] - 2026-06-08
 
 ### Changed
