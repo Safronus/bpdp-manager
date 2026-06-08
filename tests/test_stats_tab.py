@@ -42,7 +42,7 @@ def test_stats_render(qapp, service: ThesisService) -> None:
         service.upsert_thesis(t)
 
     w = StatsTab(service)
-    html = w.view.toHtml()
+    html = w.rendered_html()
     assert "Souhrn" in html
     assert "Podle stavu" in html
     assert "akademického roku" in html
@@ -53,7 +53,7 @@ def test_stats_render(qapp, service: ThesisService) -> None:
 def test_stats_empty(qapp, service: ThesisService) -> None:
     # Bez prací nesmí spadnout
     w = StatsTab(service)
-    assert "Souhrn" in w.view.toHtml()
+    assert "Souhrn" in w.rendered_html()
 
 
 def test_stats_opponent_grades_and_opposing_summary(qapp, service: ThesisService) -> None:
@@ -73,7 +73,7 @@ def test_stats_opponent_grades_and_opposing_summary(qapp, service: ThesisService
     ))
 
     w = StatsTab(service)
-    html = w.view.toHtml()
+    html = w.rendered_html()
     assert "Navržené vedoucím" in html
     assert "Navržené oponentem" in html      # známky oponenta u vedených prací
     assert "Oponentury" in html              # souhrn oponovaných prací
@@ -98,11 +98,41 @@ def test_stats_files_section(qapp, service: ThesisService, tmp_path: Path) -> No
     service.attach_document(t.id, src, kind=AttachmentKind.THESIS_TEXT)
 
     w = StatsTab(service)
-    html = w.view.toHtml()
+    html = w.rendered_html()
     assert "Soubory (přílohy)" in html
     assert "Podle druhu dokumentu" in html
     assert "Největší práce" in html
     # bez souborů sekce zmizí
     service.delete_thesis(t.id)
     w2 = StatsTab(service)
-    assert "Soubory (přílohy)" not in w2.view.toHtml()
+    assert "Soubory (přílohy)" not in w2.rendered_html()
+
+
+def test_dashboard_tiles_and_no_duplication(qapp, service: ThesisService) -> None:
+    """Sekce jsou samostatné dlaždice ve FlowLayoutu; přepočet neduplikuje."""
+    s = Student(first_name="A", last_name="B", obor="ITA-P")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2024/2025",
+                                 student_id=s.id, status=ThesisStatus.DEFENDED,
+                                 grade_supervisor="B"))
+    w = StatsTab(service)
+    assert "Souhrn" in w._kpi_banner.text()      # KPI banner přes celou šířku
+    n = w._flow.count()
+    assert n >= 4                                # několik dlaždic sekcí
+    w.refresh()
+    assert w._flow.count() == n                  # přepočet neduplikuje dlaždice
+    # FlowLayout se zalamuje — užší šířka → vyšší obsah
+    assert w._flow.heightForWidth(440) >= w._flow.heightForWidth(1400)
+
+
+def test_dashboard_reflow_uses_width(qapp, service: ThesisService) -> None:
+    s = Student(first_name="A", last_name="B")
+    service.upsert_student(s)
+    for yr in ("2024/2025", "2023/2024", "2022/2023"):
+        service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year=yr,
+                                     student_id=s.id, status=ThesisStatus.DEFENDED))
+    w = StatsTab(service)
+    # na široko se víc dlaždic vejde vedle sebe → menší výška než na úzko
+    wide = w._flow.heightForWidth(1600)
+    narrow = w._flow.heightForWidth(460)
+    assert narrow > wide

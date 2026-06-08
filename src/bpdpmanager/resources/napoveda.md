@@ -995,12 +995,14 @@ v následujících 60 dnech.
 
 ## Statistiky
 
-Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný přehled napříč
+Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný **dashboard** napříč
 budoucími, aktuálními i historickými pracemi. Přepočítá se při každém otevření
-(nebo tlačítkem *🔄 Přepočítat*). Obsahuje:
+(nebo tlačítkem *🔄 Přepočítat*). Jednotlivé části jsou **dlaždice (karty)**,
+které se **zalamují podle šířky okna** — na širokém monitoru je vidět víc karet
+vedle sebe, takže se využije i prostor do šířky. Obsahuje:
 
-- **Souhrn** — KPI karty: vedené práce, V řešení, budoucí, historie,
-  oponentury, studenti, odmítnutí zájemci.
+- **Souhrn** — KPI banner přes celou šířku: vedené práce, V řešení, budoucí,
+  historie, oponentury, studenti, odmítnutí zájemci.
 - **Kapacita vedení** — aktuálně vedených prací z maxima (15) + počet
   odmítnutých zájemců (po letech).
 - **Vývoj počtu vedených prací po letech** — sloupcový přehled (trend).

@@ -49,7 +49,7 @@ def test_finance_cap_and_opposing(qapp, service: ThesisService) -> None:
         OpposingThesis(type=ThesisType.BP, academic_year="2024/2025")
     )
     w = StatsTab(service)
-    html = w.view.toHtml()
+    html = w.rendered_html()
     assert _czk(12 * 3000) in html       # strop vedení
     assert _czk(600) in html             # jeden oponentský posudek
     assert "Kapacita vedení" in html
@@ -61,7 +61,7 @@ def test_rejected_in_stats(qapp, service: ThesisService) -> None:
         RejectedStudent(name="X", obor="ITA-P", academic_year="2025/2026")
     )
     w = StatsTab(service)
-    assert "Odmítnut" in w.view.toHtml()
+    assert "Odmítnut" in w.rendered_html()
 
 
 def test_dialog_groups_by_academic_year(qapp, service: ThesisService) -> None:

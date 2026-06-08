@@ -9,8 +9,18 @@ from __future__ import annotations
 
 from collections import Counter
 
+from PySide6.QtCore import QPoint, QRect, QSize, Qt
 from PySide6.QtGui import QPalette
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextBrowser, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..config import thesis_documents_dir
 from ..models.enums import (
@@ -47,8 +57,74 @@ def _czk(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " Kč"
 
 
+class FlowLayout(QLayout):
+    """Layout, který skládá widgety vedle sebe a zalamuje je do dalších řádků
+    podle dostupné šířky — pro dlaždicový dashboard, který využije šířku."""
+
+    def __init__(self, parent=None, spacing: int = 12) -> None:
+        super().__init__(parent)
+        self._items: list = []
+        self.setSpacing(spacing)
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def addItem(self, item) -> None:  # noqa: N802 (Qt API)
+        self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, i):  # noqa: N802 (Qt API)
+        return self._items[i] if 0 <= i < len(self._items) else None
+
+    def takeAt(self, i):  # noqa: N802 (Qt API)
+        return self._items.pop(i) if 0 <= i < len(self._items) else None
+
+    def expandingDirections(self):  # noqa: N802 (Qt API)
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt API)
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802 (Qt API)
+        return self._do_layout(QRect(0, 0, width, 0), test_only=True)
+
+    def setGeometry(self, rect) -> None:  # noqa: N802 (Qt API)
+        super().setGeometry(rect)
+        self._do_layout(rect, test_only=False)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt API)
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:  # noqa: N802 (Qt API)
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        m = self.contentsMargins()
+        return size + QSize(m.left() + m.right(), m.top() + m.bottom())
+
+    def _do_layout(self, rect, *, test_only: bool) -> int:
+        x, y = rect.x(), rect.y()
+        line_height = 0
+        spacing = self.spacing()
+        for item in self._items:
+            hint = item.sizeHint()
+            next_x = x + hint.width() + spacing
+            if next_x - spacing > rect.right() and line_height > 0:
+                x = rect.x()
+                y = y + line_height + spacing
+                next_x = x + hint.width() + spacing
+                line_height = 0
+            if not test_only:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x = next_x
+            line_height = max(line_height, hint.height())
+        return y + line_height - rect.y()
+
+
 class StatsTab(QWidget):
-    """Statistický přehled — KPI karty + rozpady podle stavu, typu, roku, oboru."""
+    """Statistický přehled — dlaždicový dashboard (KPI banner + karty sekcí)."""
+
+    _CARD_WIDTH = 430  # šířka jedné dlaždice; dlaždice se zalamují dle šířky okna
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -68,18 +144,63 @@ class StatsTab(QWidget):
         head.addWidget(btn_refresh)
         outer.addLayout(head)
 
-        self.view = QTextBrowser()
-        self.view.setOpenExternalLinks(False)
-        outer.addWidget(self.view, stretch=1)
+        # Scroll area s obsahem: nahoře KPI banner (přes celou šířku),
+        # pod ním dlaždice sekcí ve FlowLayoutu (zalamují se do šířky).
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        container = QWidget()
+        cv = QVBoxLayout(container)
+        cv.setContentsMargins(0, 0, 0, 0)
+        cv.setSpacing(12)
+        self._kpi_banner = QLabel()
+        self._kpi_banner.setTextFormat(Qt.TextFormat.RichText)
+        cv.addWidget(self._kpi_banner)
+        self._flow = FlowLayout(spacing=12)
+        cv.addLayout(self._flow)
+        cv.addStretch(1)
+        scroll.setWidget(container)
+        outer.addWidget(scroll, stretch=1)
 
         self.refresh()
 
     # --- výpočet -------------------------------------------------------------
 
+    def rendered_html(self) -> str:
+        """Spojené HTML všech dlaždic + KPI banneru (pro testy / kopírování)."""
+        parts = [self._kpi_banner.text()]
+        for i in range(self._flow.count()):
+            item = self._flow.itemAt(i)
+            w = item.widget() if item is not None else None
+            lbl = w.findChild(QLabel) if w is not None else None
+            if lbl is not None:
+                parts.append(lbl.text())
+        return "\n".join(parts)
+
+    def _make_card(self, html: str) -> QFrame:
+        """Jedna dlaždice dashboardu — rámeček s HTML obsahem sekce."""
+        card = QFrame()
+        card.setObjectName("statCard")
+        card.setStyleSheet(
+            "QFrame#statCard { "
+            f"border:1px solid {self._border}; "
+            "border-radius:10px; background: rgba(127,127,127,15); }"
+        )
+        card.setFixedWidth(self._CARD_WIDTH)
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(14, 6, 14, 12)
+        lbl = QLabel(f"<div style='font-size:13px;'>{html}</div>")
+        lbl.setWordWrap(True)
+        lbl.setTextFormat(Qt.TextFormat.RichText)
+        lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
+        lay.addWidget(lbl)
+        return card
+
     def refresh(self) -> None:
         # Barvy přizpůsob světlému/tmavému motivu (jinak je šedý text na tmavém
         # pozadí nečitelný).
-        base = self.view.palette().color(QPalette.ColorRole.Base)
+        base = self.palette().color(QPalette.ColorRole.Base)
         luminance = (base.red() * 299 + base.green() * 587 + base.blue() * 114) / 1000
         dark = luminance < 128
         self._muted = "#b8b8b8" if dark else "#555555"
@@ -88,24 +209,39 @@ class StatsTab(QWidget):
         theses = self.service.list_theses()
         opposings = self.service.list_opposing_theses()
         students = self.service.list_students()
-
-        parts: list[str] = ["<html><body style='font-size:13px;'>"]
         rejected = self.service.list_rejected_students()
-        parts.append(self._kpis(theses, opposings, students, rejected))
-        parts.append(self._capacity(theses, rejected))
-        parts.append(self._led_trend(theses))
-        parts.append(self._by_status(theses))
-        parts.append(self._by_type(theses))
-        parts.append(self._by_year(theses))
-        parts.append(self._by_obor(theses))
-        parts.append(self._defense_success(theses))
-        parts.append(self._grades(theses))
-        parts.append(self._opposing_summary(opposings))
-        parts.append(self._files(theses, opposings))
-        parts.append(self._finance(theses, opposings))
-        parts.append(self._reviews(theses, opposings))
-        parts.append("</body></html>")
-        self.view.setHtml("".join(parts))
+
+        # KPI banner přes celou šířku.
+        self._kpi_banner.setText(
+            f"<div style='font-size:13px;'>"
+            f"{self._kpis(theses, opposings, students, rejected)}</div>"
+        )
+
+        # Vyprázdni staré dlaždice.
+        while self._flow.count():
+            item = self._flow.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+
+        # Sekce → dlaždice (prázdné se přeskočí).
+        sections = [
+            self._capacity(theses, rejected),
+            self._led_trend(theses),
+            self._by_status(theses),
+            self._by_type(theses),
+            self._by_year(theses),
+            self._by_obor(theses),
+            self._defense_success(theses),
+            self._grades(theses),
+            self._opposing_summary(opposings),
+            self._files(theses, opposings),
+            self._finance(theses, opposings),
+            self._reviews(theses, opposings),
+        ]
+        for html in sections:
+            if html and html.strip():
+                self._flow.addWidget(self._make_card(html))
 
     # --- sekce ---------------------------------------------------------------
 

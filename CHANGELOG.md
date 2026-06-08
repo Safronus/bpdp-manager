@@ -7,7 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [1.14.7] - 2026-06-08
+## [1.15.0] - 2026-06-08
+
+### Changed
+- **Statistiky jako dlaždicový dashboard.** Záložka *📊 Statistiky* už není dlouhý
+  svislý seznam — jednotlivé sekce jsou teď **karty (dlaždice)**, které se
+  **zalamují podle šířky okna**, takže se využije i prostor do šířky (na širokém
+  monitoru víc karet vedle sebe). KPI *Souhrn* je banner přes celou šířku nahoře.
+  Obsah, styl i barvy zůstávají; mění se jen rozložení.
 
 ### Fixed
 - **TLS certifikát MyQ tisku.** MyQ (`myq.utb.cz`) posílal **neúplný řetězec**
