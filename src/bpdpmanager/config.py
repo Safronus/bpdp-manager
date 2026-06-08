@@ -26,7 +26,9 @@ APP_NAME = "bpdpmanager"
 #      studenta/stavu; pydantic doplní z defaultu, žádná datová migrace).
 # v13: OpposingThesis.stag_state_code (STAG kód stavu práce u oponentur;
 #      default "", bez datové migrace).
-SCHEMA_VERSION = 13
+# v14: *_review_printed_at u Thesis i OpposingThesis (indikátor „Vytištěno";
+#      default None, bez datové migrace — stará data se načtou jako None).
+SCHEMA_VERSION = 14
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

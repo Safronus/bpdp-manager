@@ -60,6 +60,9 @@ class OpposingThesis(BaseModel):
     # Kdy byl oponentský posudek odeslán sekretářce (None = neodesláno).
     opponent_review_sent_at: datetime | None = None
 
+    # Kdy byl oponentský posudek vytištěn přes MyQ (None = nevytištěno).
+    opponent_review_printed_at: datetime | None = None
+
     # Vazba na související posudek (repetent: řádný ↔ opravný pokus).
     related_thesis_id: str = ""
 

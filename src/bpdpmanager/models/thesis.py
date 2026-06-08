@@ -67,6 +67,10 @@ class Thesis(BaseModel):
     # k tomu, aby se v dialogu odesílání defaultně nenabízely už odeslané.
     supervisor_review_sent_at: datetime | None = None
 
+    # Kdy byl posudek vedoucího vytištěn přes MyQ (None = nevytištěno). Slouží
+    # k tomu, aby tiskový dialog defaultně nabízel jen dosud nevytištěné.
+    supervisor_review_printed_at: datetime | None = None
+
     # Vazba na související práci (repetent: řádný ↔ opravný pokus téhož
     # studenta). Odkazuje na id druhé práce; prázdné = bez vazby.
     related_thesis_id: str = ""

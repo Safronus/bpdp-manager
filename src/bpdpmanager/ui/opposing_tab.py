@@ -25,6 +25,7 @@ from ..models.enums import (
     REVIEW_STATE_LABELS,
     AttachmentKind,
     ThesisType,
+    review_printed_badge,
     review_sent_badge,
 )
 from ..services import ThesisService
@@ -34,10 +35,12 @@ from .stag_import_dialog import STAG_STATE_LABELS, STAG_STATE_SHORT
 from .theses_tree import (
     ROLE_GRADES,
     ROLE_OBOR,
+    ROLE_PRINTED,
     ROLE_REVIEWS,
     ROLE_SENT,
     GradesDelegate,
     OborBadgeDelegate,
+    PrintedBadgeDelegate,
     ReviewsBadgeDelegate,
     SentBadgeDelegate,
 )
@@ -47,7 +50,8 @@ ROLE_ID = Qt.ItemDataRole.UserRole + 1
 COL_GRADES = 4   # „V/O" (známka vedoucího / oponenta) — viz GradesDelegate
 COL_REVIEWS = 5  # Posudky (V/O badge — k dispozici / chybí)
 COL_SENT = 6     # Odesláno
-COL_OBOR = 7     # Obor (poslední)
+COL_PRINTED = 7  # Vytištěno (jen u letošních)
+COL_OBOR = 8     # Obor (poslední)
 
 # Reuse Czech locale setup from theses_tree
 _HAS_CZECH_LOCALE = False
@@ -111,10 +115,10 @@ class OpposingTab(QWidget):
         splitter.setChildrenCollapsible(False)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(8)
+        self.tree.setColumnCount(9)
         self.tree.setHeaderLabels(
             ["Student / Skupina", "Téma", "Stav", "Vedoucí", "Známky V/O",
-             "Posudky", "Odesláno", "Obor"]
+             "Posudky", "Odesláno", "Vytištěno", "Obor"]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
@@ -127,7 +131,7 @@ class OpposingTab(QWidget):
         h.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        for col in range(2, 8):
+        for col in range(2, 9):
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         h.setStretchLastSection(False)
         # Sloupec V/O — barevné dvojice písmen, stejně jako ve vedených pracích.
@@ -136,6 +140,8 @@ class OpposingTab(QWidget):
         self.tree.setItemDelegateForColumn(COL_REVIEWS, self._reviews_delegate)
         self._sent_delegate = SentBadgeDelegate(self.tree)
         self.tree.setItemDelegateForColumn(COL_SENT, self._sent_delegate)
+        self._printed_delegate = PrintedBadgeDelegate(self.tree)
+        self.tree.setItemDelegateForColumn(COL_PRINTED, self._printed_delegate)
         self._obor_delegate = OborBadgeDelegate(self.tree)
         self.tree.setItemDelegateForColumn(COL_OBOR, self._obor_delegate)
         self.tree.setItemDelegateForColumn(COL_GRADES, self._grades_delegate)
@@ -286,8 +292,12 @@ class OpposingTab(QWidget):
             _, sent_bg, sent_tip = review_sent_badge(
                 state == "done", op.opponent_review_sent_at
             )
+            _, printed_bg, printed_tip = review_printed_badge(
+                state == "done", op.opponent_review_printed_at
+            )
         else:
             sent_bg, sent_tip = "", ""
+            printed_bg, printed_tip = "", ""
         gs = (op.grade_supervisor or "").strip()
         go = (op.grade_opponent or "").strip()
         grades_text = "" if (gs or go) else "—"
@@ -295,12 +305,17 @@ class OpposingTab(QWidget):
         has_o = any(a.kind == AttachmentKind.OPPONENT_REVIEW for a in op.attachments)
         obor = op.student_obor or "—"
         leaf = QTreeWidgetItem(
-            [name, title, stav, op.supervisor_name or "—", grades_text, "", "", obor]
+            [name, title, stav, op.supervisor_name or "—", grades_text,
+             "", "", "", obor]
         )
         leaf.setData(0, ROLE_ID, op.id)
         leaf.setData(COL_OBOR, ROLE_OBOR, obor if obor != "—" else None)
         if sent_bg:
             leaf.setData(COL_SENT, ROLE_SENT, sent_bg)
+        if printed_bg:
+            leaf.setData(COL_PRINTED, ROLE_PRINTED, printed_bg)
+        if printed_tip:
+            leaf.setToolTip(COL_PRINTED, printed_tip)
         leaf.setData(COL_REVIEWS, ROLE_REVIEWS, (has_v, has_o))
         tip_v = "✓ k dispozici" if has_v else "chybí"
         tip_o = "✓ k dispozici" if has_o else "chybí"
@@ -493,6 +508,24 @@ class OpposingTab(QWidget):
 
             act_sent.triggered.connect(_toggle_sent)
             menu.addAction(act_sent)
+
+            # Vytištěno (přes MyQ) — relevantní jen u letošních oponentur.
+            if op.academic_year == current_year:
+                printed = bool(op.opponent_review_printed_at)
+                p_label = (
+                    "🖨 Zrušit označení vytištění posudku" if printed
+                    else "🖨 Označit posudek za vytištěný"
+                )
+                act_printed = QAction(p_label, self.tree)
+
+                def _toggle_printed(_c=False, oid=op_id, new=not printed) -> None:
+                    self.service.set_opponent_review_printed(oid, new)
+                    self.refresh()
+                    self.detail.set_opposing(self.service.get_opposing_thesis(oid))
+                    self.changed.emit()
+
+                act_printed.triggered.connect(_toggle_printed)
+                menu.addAction(act_printed)
             menu.addSeparator()
 
         act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self.tree)

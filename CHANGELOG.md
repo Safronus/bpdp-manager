@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-06-08
+
+### Added
+- **Indikátor „Vytištěno".** Nový sloupec **Vytištěno** (✓/✗, vedle „Odesláno")
+  v *Aktuálně vedené práce* a u **letošních** v *Oponované práce* (jinde skrytý
+  — pro ostatní práce není relevantní). Přepínáš ho ručně přes pravý klik na
+  práci → **🖨 Označit posudek za vytištěný** (a zpět).
+- **Tiskový dialog MyQ s tím počítá.** Posudky jsou rozdělené na **K tisku —
+  nevytištěné** (předzaškrtnuté) a **Již vytištěné** (samostatný seznam,
+  nezaškrtnuté, pro opětovný tisk). Po úspěšném odeslání se dialog **zeptá, zda
+  odeslané označit jako vytištěné**. Sloupce dialogu se přizpůsobí obsahu
+  a šířka okna se odvíjí od obsahu.
+
+### Changed
+- Schéma úložiště **v14**: `Thesis.supervisor_review_printed_at` a
+  `OpposingThesis.opponent_review_printed_at` (default `None`, bez datové
+  migrace — stará data se načtou jako nevytištěná).
+
 ## [1.4.0] - 2026-06-08
 
 ### Added

@@ -25,6 +25,7 @@ from ..models.enums import (
     PlagiarismVerdict,
     ThesisStatus,
     ThesisType,
+    review_printed_badge,
     review_sent_badge,
 )
 from ..services import ThesisService
@@ -38,6 +39,7 @@ ROLE_SENT = Qt.ItemDataRole.UserRole + 6     # barva pozadí badge „Odesláno"
 ROLE_OBOR = Qt.ItemDataRole.UserRole + 7     # název oboru (pro barevný badge) nebo None
 ROLE_STATUS = Qt.ItemDataRole.UserRole + 8   # (label, barva) stavu pro zaoblený badge
 ROLE_PLAG = Qt.ItemDataRole.UserRole + 9     # bool: kontrola plagiátorství proběhla? (None = neukazovat)
+ROLE_PRINTED = Qt.ItemDataRole.UserRole + 10  # barva pozadí badge „Vytištěno" (nebo None)
 
 
 def _contrast_text(bg_hex: str) -> str:
@@ -229,9 +231,10 @@ class SentBadgeDelegate(QStyledItemDelegate):
 
     _BADGE_H = 20
     _W = 24
+    _ROLE = ROLE_SENT
 
     def paint(self, painter, option, index) -> None:
-        bg = index.data(ROLE_SENT)
+        bg = index.data(self._ROLE)
         if not bg:
             super().paint(painter, option, index)
             return
@@ -257,6 +260,13 @@ class SentBadgeDelegate(QStyledItemDelegate):
     def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
         base = super().sizeHint(option, index)
         return QSize(self._W + 10, max(base.height(), self._BADGE_H + 6))
+
+
+class PrintedBadgeDelegate(SentBadgeDelegate):
+    """Sloupec „Vytištěno": ✓ (zelená = vytištěno) / ✗ (červená = nevytištěno)
+    — stejný styl jako „Odesláno", jen čte ``ROLE_PRINTED``."""
+
+    _ROLE = ROLE_PRINTED
 
 
 class PlagiarismBadgeDelegate(QStyledItemDelegate):
@@ -453,10 +463,11 @@ class ThesesTreeWidget(QTreeWidget):
     mark_review_sent_requested = Signal(str, bool)
     # Vyžádaná aktualizace jedné práce ze STAG (stav + soubory)
     update_from_stag_requested = Signal(str)
+    mark_review_printed_requested = Signal(str, bool)
 
     HEADERS = [
         "Student / Skupina", "Téma", "Stav", "Známky V/O",
-        "Posudky", "Plagiát posouzen", "Odesláno", "Oponent", "Obor",
+        "Posudky", "Plagiát posouzen", "Odesláno", "Vytištěno", "Oponent", "Obor",
     ]
     COL_STUDENT = 0
     COL_TITLE = 1
@@ -465,8 +476,9 @@ class ThesesTreeWidget(QTreeWidget):
     COL_REVIEWS = 4
     COL_PLAGIARISM = 5  # jen v „Aktuálně vedené" — jinde skryt
     COL_SENT = 6
-    COL_OPPONENT = 7
-    COL_OBOR = 8
+    COL_PRINTED = 7     # jen v „Aktuálně vedené" — jinde skryt
+    COL_OPPONENT = 8
+    COL_OBOR = 9
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -493,6 +505,7 @@ class ThesesTreeWidget(QTreeWidget):
         h.setSectionResizeMode(self.COL_GRADES, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_REVIEWS, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_SENT, QHeaderView.ResizeMode.ResizeToContents)
+        h.setSectionResizeMode(self.COL_PRINTED, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OPPONENT, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_OBOR, QHeaderView.ResizeMode.ResizeToContents)
         h.setSectionResizeMode(self.COL_PLAGIARISM, QHeaderView.ResizeMode.ResizeToContents)
@@ -507,6 +520,9 @@ class ThesesTreeWidget(QTreeWidget):
         # Sloupec Odesláno — obálka v zaobleném barevném badge.
         self._sent_delegate = SentBadgeDelegate(self)
         self.setItemDelegateForColumn(self.COL_SENT, self._sent_delegate)
+        # Sloupec Vytištěno — ✓/✗ badge (jen v „Aktuálně vedené", jinde skryto).
+        self._printed_delegate = PrintedBadgeDelegate(self)
+        self.setItemDelegateForColumn(self.COL_PRINTED, self._printed_delegate)
         # Sloupec Obor — barevný badge dle programu (+ 🇬🇧 u anglických).
         self._obor_delegate = OborBadgeDelegate(self)
         self.setItemDelegateForColumn(self.COL_OBOR, self._obor_delegate)
@@ -665,6 +681,11 @@ class ThesesTreeWidget(QTreeWidget):
         review_ready = thesis.supervisor_review_state == "done"
         sent_prepared = thesis.status == ThesisStatus.IN_PROGRESS and review_ready
         _, sent_bg, sent_tip = review_sent_badge(sent_prepared, sent_at)
+        # Vytištěno — relevantní u prací „V řešení" s hotovým posudkem
+        # (sloupec je viditelný jen v „Aktuálně vedené").
+        _, printed_bg, printed_tip = review_printed_badge(
+            sent_prepared, thesis.supervisor_review_printed_at
+        )
 
         # Známky vedoucí (V) / oponent (O) — kreslí je delegát (barevné dvojice
         # písmen). Když chybí obě, necháme decentní „—" jako prostý text.
@@ -681,6 +702,7 @@ class ThesesTreeWidget(QTreeWidget):
                 reviews_text,
                 "",            # Plagiát posouzen — kreslí PlagiarismBadgeDelegate
                 "",            # Odesláno — kreslí SentBadgeDelegate
+                "",            # Vytištěno — kreslí PrintedBadgeDelegate
                 opponent_name,
                 obor,
             ]
@@ -702,6 +724,10 @@ class ThesesTreeWidget(QTreeWidget):
             leaf.setData(self.COL_SENT, ROLE_SENT, sent_bg)
         if sent_tip:
             leaf.setToolTip(self.COL_SENT, sent_tip)
+        if printed_bg:
+            leaf.setData(self.COL_PRINTED, ROLE_PRINTED, printed_bg)
+        if printed_tip:
+            leaf.setToolTip(self.COL_PRINTED, printed_tip)
 
         # Posudky V/O badge (zelená k dispozici / červená chybí) + tooltip.
         leaf.setData(
@@ -930,6 +956,24 @@ class ThesesTreeWidget(QTreeWidget):
                     self.mark_review_sent_requested.emit(tid, True)
                 )
                 menu.addAction(act_sent)
+
+            # Označení posudku za vytištěný (přes MyQ) — jen tam, kde je sloupec
+            # „Vytištěno" relevantní (= viditelný; záložka Aktuálně vedené).
+            if not self.isColumnHidden(self.COL_PRINTED):
+                if thesis.supervisor_review_printed_at:
+                    act_unp = QAction("🖨 Zrušit označení vytištění posudku", self)
+                    act_unp.triggered.connect(
+                        lambda _c=False, tid=thesis_id:
+                        self.mark_review_printed_requested.emit(tid, False)
+                    )
+                    menu.addAction(act_unp)
+                else:
+                    act_p = QAction("🖨 Označit posudek za vytištěný", self)
+                    act_p.triggered.connect(
+                        lambda _c=False, tid=thesis_id:
+                        self.mark_review_printed_requested.emit(tid, True)
+                    )
+                    menu.addAction(act_p)
             menu.addSeparator()
 
         act_export = QAction("📦 Exportovat práci do ZIP…", self)

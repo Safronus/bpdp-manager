@@ -177,6 +177,7 @@ class _ThesesTab(QWidget):
         self.tree.generate_review_requested.connect(self._on_generate_review_requested)
         self.tree.export_thesis_requested.connect(self._on_export_thesis)
         self.tree.mark_review_sent_requested.connect(self._on_mark_review_sent)
+        self.tree.mark_review_printed_requested.connect(self._on_mark_review_printed)
         self.tree.update_from_stag_requested.connect(self._on_update_from_stag)
         # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
         # stejný signal a my ho zpracujeme jednou handlerem.
@@ -353,6 +354,14 @@ class _ThesesTab(QWidget):
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
         self.data_changed.emit()
 
+    def _on_mark_review_printed(self, thesis_id: str, printed: bool) -> None:
+        """Ručně přepne příznak vytištění posudku vedoucího (přes MyQ)."""
+        self.service.set_supervisor_review_printed(thesis_id, printed)
+        self.tree.refresh()
+        if self.detail.thesis and self.detail.thesis.id == thesis_id:
+            self.detail.set_thesis(self.service.get_thesis(thesis_id))
+        self.data_changed.emit()
+
     def _on_update_from_stag(self, thesis_id: str) -> None:
         """Aktualizuje JEDNU vybranou vedenou práci ze STAG (stav + soubory)."""
         from .stag_sync_dialog import ROLE_SUPERVISOR, StagSyncDialog
@@ -483,6 +492,7 @@ class MainWindow(QMainWindow):
                 ThesesTreeWidget.COL_GRADES,
                 ThesesTreeWidget.COL_REVIEWS,
                 ThesesTreeWidget.COL_SENT,
+                ThesesTreeWidget.COL_PRINTED,
                 ThesesTreeWidget.COL_PLAGIARISM,
             ],
         )
@@ -498,10 +508,12 @@ class MainWindow(QMainWindow):
             ],
             status_filter_pref_key="history_status_filter",
             enable_extra_filters=True,
-            # Hotové práce → „Posudky", „Odesláno" i „Plagiát" jsou irelevantní.
+            # Hotové práce → „Posudky", „Odesláno", „Vytištěno" i „Plagiát" jsou
+            # irelevantní.
             hidden_columns=[
                 ThesesTreeWidget.COL_REVIEWS,
                 ThesesTreeWidget.COL_SENT,
+                ThesesTreeWidget.COL_PRINTED,
                 ThesesTreeWidget.COL_PLAGIARISM,
             ],
             # V Historii nepotřebuješ panel „Přechod do stavu".
@@ -509,8 +521,11 @@ class MainWindow(QMainWindow):
         )
         self.tab_all = _ThesesTab(
             service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm,
-            # „Plagiát" je relevantní jen v Aktuálně vedených.
-            hidden_columns=[ThesesTreeWidget.COL_PLAGIARISM],
+            # „Plagiát" i „Vytištěno" jsou relevantní jen v Aktuálně vedených.
+            hidden_columns=[
+                ThesesTreeWidget.COL_PLAGIARISM,
+                ThesesTreeWidget.COL_PRINTED,
+            ],
         )
         self.tab_opposing = OpposingTab(service, profile_manager=pm)
         self.tab_opposing.send_reviews_requested.connect(self._send_opponent_reviews)
@@ -1009,7 +1024,9 @@ class MainWindow(QMainWindow):
         """Otevře dialog pro odeslání PDF posudků k tisku na MyQ."""
         from .myq_print_dialog import MyQPrintDialog
 
-        MyQPrintDialog(self.service, self).exec()
+        dlg = MyQPrintDialog(self.service, self)
+        dlg.data_changed.connect(self._refresh_all)  # po označení „vytištěno"
+        dlg.exec()
 
     def _send_supervisor_reviews(self) -> None:
         """Otevře dialog pro odeslání posudků vedoucího sekretářce."""

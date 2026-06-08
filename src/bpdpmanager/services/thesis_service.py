@@ -1239,6 +1239,22 @@ class ThesisService:
         op.opponent_review_sent_at = datetime.now() if sent else None
         self.upsert_opposing_thesis(op)
 
+    def set_supervisor_review_printed(self, thesis_id: str, printed: bool) -> None:
+        """Ručně přepne příznak vytištění posudku vedoucího (ano/ne)."""
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            return
+        thesis.supervisor_review_printed_at = datetime.now() if printed else None
+        self.upsert_thesis(thesis)
+
+    def set_opponent_review_printed(self, op_id: str, printed: bool) -> None:
+        """Ručně přepne příznak vytištění oponentského posudku (ano/ne)."""
+        op = self.get_opposing_thesis(op_id)
+        if op is None:
+            return
+        op.opponent_review_printed_at = datetime.now() if printed else None
+        self.upsert_opposing_thesis(op)
+
     def auto_link_retakes(self) -> int:
         """Automaticky propojí řádný + opravný pokus (repetent).
 

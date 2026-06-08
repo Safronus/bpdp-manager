@@ -103,7 +103,8 @@ def test_opposing_status_column_and_year_gating(qapp, service) -> None:
     from bpdpmanager.ui.opposing_tab import COL_OBOR, COL_SENT
 
     assert old_leaf.text(COL_SENT) == ""
-    assert COL_OBOR == 7  # Obor je poslední sloupec (za Posudky + Odesláno)
+    # Obor je poslední sloupec (za Posudky + Odesláno + Vytištěno).
+    assert COL_OBOR == 8
 
 
 def test_opposing_context_menu_has_write_review(qapp, service) -> None:

@@ -257,6 +257,14 @@ sekretářce* (a zpět). U **historických prací** (*Obhájeno* / *Nedokončeno
 se odeslání posudku už neřeší — sekce *Odeslání posudku* se v jejich Souhrnu
 **nezobrazuje**.
 
+Hned vedle je sloupec **Vytištěno** (✓ vytištěno / ✗ nevytištěno, stejný styl)
+— indikuje, jestli jsi posudek poslal na tisk. Je relevantní **jen u aktuálně
+vedených** prací a u **letošních oponentur** (jinde je skrytý). Označíš/zrušíš
+ho **ručně** přes pravý klik na práci → *🖨 Označit posudek za vytištěný* (a
+zpět), nebo se na to dialog **zeptá po úspěšném odeslání na tisk přes MyQ**.
+Podle tohoto příznaku pak tiskový dialog předzaškrtává, co ještě tisknout
+(viz *Tisk posudků přes MyQ*).
+
 Každý tab prací má nahoře **strom** (rok → BP/DP → práce) a dole
 **detail** vybrané práce. Po startu se automaticky otevře první práce
 v *Aktuální*.
@@ -594,15 +602,17 @@ Hotové **PDF posudky** můžeš poslat rovnou do tiskové fronty **MyQ**
 multifunkce. V toolbaru je tlačítko **🖨 Tisk posudků (MyQ)**.
 
 V dialogu:
-- **Vybereš posudky** ze dvou skupin — **🎓 Aktuálně vedené práce** (posudek
-  vedoucího) a **🧐 Aktuálně oponované práce** (posudek oponenta). Nabízejí se
-  jen práce, které **mají hotový PDF posudek**; tlačítka *Vybrat vše / Zrušit
-  vše* usnadní výběr (hodí se, když máš část už vytištěnou).
+- **Vybereš posudky.** Nabízejí se práce s **hotovým PDF posudkem** z aktuálně
+  vedených (posudek vedoucího) i letošních oponentur (posudek oponenta),
+  rozdělené na **🖨 K tisku — nevytištěné** (předzaškrtnuté) a **✓ Již
+  vytištěné** (samostatný seznam, nezaškrtnuté — pro případný opětovný tisk).
+  Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
 - **Zadáš přihlašovací jméno a PIN do MyQ.** Údaje se **nikam neukládají** —
   použijí se jen pro toto jedno odeslání a dál se nedrží (PIN je maskovaný).
 - **🖨 Odeslat na tisk** přihlásí a postupně nahraje vybraná PDF do tvé fronty
   (tisk **oboustranně**). Na konci se zobrazí **souhrn** (kolik odesláno, co
-  případně selhalo). Úlohy pak vyzvedneš u stroje (karta/PIN).
+  případně selhalo) a dialog se **zeptá, zda odeslané označit jako vytištěné**
+  (promítne se do sloupce *Vytištěno*). Úlohy pak vyzvedneš u stroje (karta/PIN).
 
 > **Pozn.:** Konektor komunikuje přímo s webem MyQ. Když UTB MyQ výrazně změní
 > své rozhraní, může být potřeba konektor upravit; v takovém případě jde tisk

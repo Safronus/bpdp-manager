@@ -71,16 +71,38 @@ def test_dialog_lists_only_works_with_pdf(qapp, service, tmp_path) -> None:
     assert len(names) == 2
 
 
-def test_select_all_and_collect_jobs(qapp, service, tmp_path) -> None:
+def test_not_printed_auto_checked(qapp, service, tmp_path) -> None:
     _seed(service, tmp_path)
     dlg = MyQPrintDialog(service)
-    assert dlg._selected_jobs() == []          # default nic nezaškrtnuto
+    # Default: nevytištěné posudky jsou předzaškrtnuté.
+    names = {it["name"] for it in dlg._selected()}
+    assert names == {"Jan Novák", "Petr Svoboda"}
+    assert all(it["pdf"].suffix == ".pdf" for it in dlg._selected())
+
+
+def test_printed_work_in_separate_unchecked_section(qapp, service, tmp_path) -> None:
+    _seed(service, tmp_path)
+    # Označ oponovanou jako vytištěnou → musí být ve výběru NEzaškrtnutá.
+    year = service.current_academic_year()
+    op = next(o for o in service.list_opposing_theses()
+              if o.academic_year == year)
+    service.set_opponent_review_printed(op.id, True)
+
+    dlg = MyQPrintDialog(service)
+    names = {it["name"] for it in dlg._selected()}
+    assert names == {"Jan Novák"}              # Petr (vytištěný) NEzaškrtnut
     dlg._set_all_checked(True)
-    jobs = dlg._selected_jobs()
-    assert {n for n, _p in jobs} == {"Jan Novák", "Petr Svoboda"}
-    assert all(Path(p).suffix == ".pdf" for _n, p in jobs)
+    assert {it["name"] for it in dlg._selected()} == {"Jan Novák", "Petr Svoboda"}
     dlg._set_all_checked(False)
-    assert dlg._selected_jobs() == []
+    assert dlg._selected() == []
+
+
+def test_mark_printed_persists(qapp, service, tmp_path) -> None:
+    _seed(service, tmp_path)
+    t = next(t for t in service.list_theses())
+    dlg = MyQPrintDialog(service)
+    dlg._mark_printed([{"kind": "supervised", "id": t.id, "name": "Jan Novák"}])
+    assert service.get_thesis(t.id).supervisor_review_printed_at is not None
 
 
 def test_empty_when_no_reviews(qapp, service) -> None:

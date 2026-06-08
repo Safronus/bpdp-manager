@@ -210,6 +210,19 @@ def review_sent_badge(prepared: bool, sent_at) -> tuple[str, str, str]:
     return "✉", UNSENT_BG, "Posudek zatím NEODESLÁN sekretářce"
 
 
+def review_printed_badge(prepared: bool, printed_at) -> tuple[str, str, str]:
+    """Indikace vytištění posudku jako ✓/✗ + barva pozadí buňky.
+
+    Vrací ``(text, background_color, tooltip)``. Když posudek ještě není hotový
+    (není co tisknout), vrátí prázdný text i barvu.
+    """
+    if not prepared:
+        return "", "", ""
+    if printed_at:
+        return "🖨", SENT_BG, f"Posudek vytištěn {printed_at.strftime('%d.%m.%Y')}"
+    return "🖨", UNSENT_BG, "Posudek zatím NEVYTIŠTĚN"
+
+
 # ── Tab buckety (status-driven, bez ohledu na rok) ──────────────────────────
 #
 # Status-driven filtrace pro hlavní záložky. Rok se používá jen pro
