@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.6] - 2026-06-08
+
+### Fixed
+- **Přihlášení do MyQ — prefix „*" u stavových hodnot.** WSF dekóduje řetězec
+  ve `wsfState` bez prefixu `*` jako **ID controlu** (ne jako text), takže
+  jméno/PIN bez něj byly serverem brány jako prázdné. Hodnoty se nově posílají
+  jako `*<jméno>` / `*<PIN>` (zjištěno z dekodéru `ControlStateCoder` v JS
+  frameworku MyQ). Tím je pure-HTTP login bez závislosti na prohlížeči funkční.
+
 ## [1.5.5] - 2026-06-08
 
 ### Fixed

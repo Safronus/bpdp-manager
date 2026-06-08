@@ -268,11 +268,14 @@ class MyQClient:
 
         # wsfState: jméno + PIN do jejich controlů + označení aktivní záložky
         # (bez toho server hodnoty nečte — login stránka má 2 záložky).
+        # POZOR: WSF dekóduje řetězcové stavové hodnoty tak, že řetězec BEZ
+        # prefixu „*" považuje za ID controlu (getCtrlById), zatímco „*text"
+        # je literál „text". Hodnoty jména/PINu proto MUSÍ mít prefix „*".
         ctrls: dict[str, dict] = {"C1": {"_focusedCtrl": pin_ctrl or user_ctrl}}
         if user_ctrl:
-            ctrls[user_ctrl] = {"modified": True, "value": username}
+            ctrls[user_ctrl] = {"modified": True, "value": "*" + username}
         if pin_ctrl:
-            ctrls[pin_ctrl] = {"modified": True, "value": pin}
+            ctrls[pin_ctrl] = {"modified": True, "value": "*" + pin}
         if form["tab_ctrl"]:
             ctrls[form["tab_ctrl"]] = {"selIDs": [_LOGIN_FORM_CLASS]}
         wsf = {

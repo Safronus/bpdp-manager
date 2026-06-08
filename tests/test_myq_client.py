@@ -92,9 +92,10 @@ def test_login_posts_onlogin_and_credentials_not_stored() -> None:
     wsf = json.loads(up.unquote_plus(fields["wsfState"]))
     assert wsf["method"] == "onLogin"
     assert wsf["object"] == "C3"  # id formuláře z živé stránky
-    # credentials v ctrlsState správných controlů + označení aktivní záložky
-    assert wsf["ctrlsState"]["C8"]["value"] == "zacek"
-    assert wsf["ctrlsState"]["C9"]["value"] == "123456"
+    # credentials v ctrlsState — řetězcové hodnoty MUSÍ mít prefix „*"
+    # (WSF jinak bere řetězec jako ID controlu, ne jako literál).
+    assert wsf["ctrlsState"]["C8"]["value"] == "*zacek"
+    assert wsf["ctrlsState"]["C9"]["value"] == "*123456"
     assert wsf["ctrlsState"]["C12"]["selIDs"] == ["Web_Login_FormLogin"]
 
     # po přihlášení se vezme wsfHashId z app stránky
