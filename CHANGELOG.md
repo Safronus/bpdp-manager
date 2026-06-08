@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-06-08
+
+### Added
+- **Hromadné odebrání dokumentů.** V záložce *Dokumenty* lze označit více
+  souborů/odkazů (Ctrl/Shift) a pravým klikem je **🗑 Odebrat vybrané** naráz
+  (s jedním dotazem, zda smazat i soubory ze složky). Hromadný **export do
+  složky** a **odeslání mailem** už fungovaly dřív.
+
+### Fixed
+- **Šířky sloupců v Dokumentech.** Poslední sloupec **Cesta k souboru** se teď
+  roztáhne do zbývající šířky — za ním už nezůstává prázdné („černé") místo.
+  Ostatní sloupce se dál přizpůsobují obsahu.
+
 ## [1.14.0] - 2026-06-08
 
 ### Added

@@ -63,3 +63,43 @@ def test_opposing_mode_routes_to_opposing_service(qapp, service: ThesisService) 
     # absolutní cesta míří do documents/opposing-{id}/
     abs_path = w._abs_path(op.attachments[0])
     assert abs_path is not None and f"opposing-{op.id}" in str(abs_path)
+
+
+def test_bulk_remove_and_column_stretch(qapp, service: ThesisService, tmp_path) -> None:
+    """Hromadné odebrání více vybraných souborů + poslední sloupec se roztáhne."""
+    from unittest import mock
+
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QHeaderView, QMessageBox
+
+    t = Thesis(type=ThesisType.BP, academic_year="2025/2026")
+    service.upsert_thesis(t)
+    for name in ("a.zip", "b.zip", "c.zip"):
+        p = tmp_path / name
+        p.write_bytes(name.encode() * 50)
+        service.attach_document(t.id, p, kind=AttachmentKind.THESIS_APPENDIX, label=name)
+
+    w = DocumentsWidget(service)
+    w.set_thesis_id(t.id)
+
+    # poslední sloupec (cesta) se roztahuje, ať za ním není prázdné místo
+    assert w.tree.header().sectionResizeMode(4) == QHeaderView.ResizeMode.Stretch
+
+    leaves: list = []
+
+    def walk(item):
+        for i in range(item.childCount()):
+            walk(item.child(i))
+        if isinstance(item.data(0, Qt.ItemDataRole.UserRole), int):
+            leaves.append(item)
+
+    walk(w.tree.invisibleRootItem())
+    for it in leaves:
+        it.setSelected(True)
+    assert w._selected_indices() == [0, 1, 2]
+
+    with mock.patch.object(
+        QMessageBox, "question", return_value=QMessageBox.StandardButton.No
+    ):
+        w._remove_many_selected()
+    assert [a for a in service.get_thesis(t.id).attachments if a.is_file] == []

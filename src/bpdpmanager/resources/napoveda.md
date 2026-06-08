@@ -404,8 +404,9 @@ s lokálními přílohami a v **náhledu s checkboxy** nabídne přeřazení
     fallback přes .eml.
 
   > **Více souborů najednou:** označ více souborů (Cmd/Ctrl/Shift klik) a přes
-  > pravý klik je můžeš **hromadně exportovat** do zvolené složky nebo
-  > **odeslat jedním e-mailem** (všechny jako přílohy).
+  > pravý klik je můžeš **hromadně exportovat** do zvolené složky,
+  > **odeslat jedním e-mailem** (všechny jako přílohy) nebo **🗑 hromadně
+  > odebrat** (s jedním dotazem, zda smazat i soubory ze složky).
 - **Chybějící soubory:** když soubor smažeš ručně mimo aplikaci (např.
   ve Finderu), aplikace se nerozbije — záznam zůstane, ale zobrazí se
   červeně s *⚠ chybí soubor*. Tlačítko **🧹 Odklidit chybějící** odebere

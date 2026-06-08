@@ -88,10 +88,12 @@ class DocumentsWidget(QWidget):
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         h = self.tree.header()
-        # Všechny sloupce se přizpůsobí obsahu (i celá cesta k souboru).
-        for col in range(5):
+        # První sloupce se přizpůsobí obsahu; poslední (cesta k souboru) zabere
+        # zbývající šířku, ať za ním nezůstává prázdné místo.
+        for col in range(4):
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
-        h.setStretchLastSection(False)
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        h.setStretchLastSection(True)
         self.tree.itemDoubleClicked.connect(self._open_selected)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
@@ -546,6 +548,46 @@ class DocumentsWidget(QWidget):
                     out.append(att)
         return out
 
+    def _selected_indices(self) -> list[int]:
+        """Indexy všech vybraných dokumentů (soubory i odkazy), bez skupin."""
+        work = self._get_work()
+        if work is None:
+            return []
+        idxs = set()
+        for it in self.tree.selectedItems():
+            idx = it.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(idx, int) and 0 <= idx < len(work.attachments):
+                idxs.add(idx)
+        return sorted(idxs)
+
+    def _remove_many_selected(self) -> None:
+        """Hromadně odebere vybrané dokumenty (volitelně i smaže soubory)."""
+        if not self.thesis_id:
+            return
+        work = self._get_work()
+        if work is None:
+            return
+        idxs = self._selected_indices()
+        if not idxs:
+            return
+        n_files = sum(1 for i in idxs if work.attachments[i].is_file)
+        confirm = QMessageBox.question(
+            self, "Odebrat dokumenty",
+            f"Odebrat {len(idxs)} vybraných dokumentů ze seznamu?"
+            + (f"\n\nSouběžně smazat i {n_files} souborů ze složky?" if n_files else ""),
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.No
+            | QMessageBox.StandardButton.Cancel,
+        )
+        if confirm == QMessageBox.StandardButton.Cancel:
+            return
+        delete_file = confirm == QMessageBox.StandardButton.Yes
+        # Mazání odzadu — nižší indexy zůstávají platné.
+        for i in sorted(idxs, reverse=True):
+            self._remove(i, delete_file)
+        self.refresh()
+        self.changed.emit()
+
     def _on_context_menu(self, pos) -> None:
         item = self.tree.itemAt(pos)
         # Jen nad konkrétní přílohou (leaf má UserRole index), ne nad skupinou.
@@ -566,6 +608,7 @@ class DocumentsWidget(QWidget):
         act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
         act_copy = act_export = act_email = None
         act_export_many = act_email_many = None
+        n_sel = len(self._selected_indices())
         if multi:
             menu.addSeparator()
             act_export_many = menu.addAction(f"💾 Exportovat vybrané ({len(sel_files)})…")
@@ -579,7 +622,12 @@ class DocumentsWidget(QWidget):
             act_export = menu.addAction("💾 Exportovat na disk…")
             act_email = menu.addAction("✉ Odeslat mailem…")
         menu.addSeparator()
-        act_remove = menu.addAction("Odebrat")
+        act_remove_many = None
+        if n_sel > 1:
+            act_remove_many = menu.addAction(f"🗑 Odebrat vybrané ({n_sel})…")
+            act_remove = None
+        else:
+            act_remove = menu.addAction("Odebrat")
         chosen = menu.exec(self.tree.viewport().mapToGlobal(pos))
         if chosen is None:
             return
@@ -589,6 +637,8 @@ class DocumentsWidget(QWidget):
             self._reveal_selected()
         elif chosen == act_remove:
             self._remove_selected()
+        elif chosen == act_remove_many:
+            self._remove_many_selected()
         elif chosen == act_copy:
             self._copy_file_to_clipboard(att)
         elif chosen == act_export:
