@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-06-08
+
+### Changed
+- **Rozlišitelné názvy příloh.** Dvě **různé** přílohy téže práce už nedostanou
+  matoucí názvy `…_prilohy_datum.zip` a `…_prilohy_datum_v2.zip` (jako by šlo
+  o verze jednoho souboru). Do názvu se nově vloží **rozlišovací část z původního
+  názvu** (`…_prilohy_datum_zdrojove-kody.zip`, `…_prilohy_datum_dataset.zip`).
+  Týká se **příloh** a *Jiné*; text práce a posudky beze změny. Generický původní
+  název (např. `prilohy.zip`) se chová jako dřív (kolize → `_v2`).
+
+### Fixed
+- **Pojistka proti prohození textu a přílohy při stahování.** Doplněny testy a
+  potvrzeno, že v sekci „el. podoba" je plný text **vždy PDF** a archiv (zip…)
+  vždy příloha (ani když STAG vrátí zip jako první). Jediný zip-balík (text +
+  přílohy pohromadě) zůstává textem — není co povýšit, takže k prohození
+  zip↔PDF nedojde. (Navazuje na opravu detekce z 1.11.0.)
+
 ## [1.11.0] - 2026-06-08
 
 ### Fixed

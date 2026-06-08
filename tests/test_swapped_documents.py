@@ -43,6 +43,19 @@ def test_single_pdf_is_text() -> None:
     assert _sections(files) == ["text"]
 
 
+def test_bundle_only_zip_stays_text() -> None:
+    """Jediný zip v „el. podobě" (balík text+přílohy) zůstane textem — není
+    co povýšit na text, takže k prohození zip↔pdf nedojde."""
+    files = [_mk("Golan_DP_kompletni.zip")]
+    assert _sections(files) == ["text"]
+
+
+def test_pdf_always_wins_over_earlier_zip() -> None:
+    """I když zip přijde první, text práce je vždy PDF (žádné zip=text+pdf=příloha)."""
+    files = [_mk("a_priloha.zip"), _mk("b_priloha.zip"), _mk("Golan_DP.pdf")]
+    assert _sections(files) == ["appendix", "appendix", "text"]
+
+
 # ── náprava existujících prohozených prací ──────────────────────────────────
 @pytest.fixture
 def service(tmp_path: Path) -> ThesisService:

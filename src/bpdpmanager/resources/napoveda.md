@@ -374,7 +374,10 @@ s lokálními přílohami a v **náhledu s checkboxy** nabídne přeřazení
   nejnovější verze berou jako aktuální — PDF se ukáže hned, ne až po
   zapnutí starších verzí.
 - **Auto-pojmenování:** soubor se přejmenuje na
-  `{Příjmení}_{typ}_{YYYY-MM-DD}[_vN].{ext}` a roztřídí do podsložky.
+  `{Příjmení}_{typ}_{YYYY-MM-DD}[_rozlišení][_vN].{ext}` a roztřídí do podsložky.
+  U **příloh** (a *Jiné*) se do názvu vloží **rozlišovací část z původního názvu**
+  (`…_prilohy_2026-06-08_zdrojove-kody.zip` vs. `…_prilohy_2026-06-08_dataset.zip`),
+  aby dvě **různé** přílohy nevypadaly jako verze (`_v2`) téhož souboru.
 - **Auto-detekce typu** z původního názvu při nahrání.
 - **🗑 Smazat originál po nahrání** (default zapnuto) — odstraní zdroj
   z Downloads, kopie zůstává v `documents/`.
@@ -697,8 +700,9 @@ nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
 >   **zůstane tvá stávající hodnota** (nic se nepřepíše prázdnem).
 > - **Stav práce se NEmění** — u existující práce zůstává tvůj aktuální stav
 >   (z dialogu se bere jen u nově zakládaných).
-> - **Přílohy** se připojí; stejnojmenný soubor dostane verzi `_vN`
->   (nepřepisuje), posudky se archivují.
+> - **Přílohy** se připojí; dvě **různé** přílohy dostanou rozlišitelné názvy
+>   (podle původního názvu, ne `_v2`), **shodný obsah** se nepřidá podruhé
+>   a posudky se archivují.
 > - Před importem se vytvoří záloha `before-stag-import` a celý import jde
 >   **vrátit** tlačítkem *„↩ Vrátit celý import zpět"*.
 

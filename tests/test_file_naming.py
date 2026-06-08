@@ -38,6 +38,58 @@ def test_kind_mappings_cover_all_attachment_kinds() -> None:
 def test_subdir_for_returns_string() -> None:
     assert subdir_for(AttachmentKind.SUPERVISOR_REVIEW) == "posudky"
     assert subdir_for(AttachmentKind.OPPONENT_REVIEW) == "posudky"
+
+
+def test_appendix_names_distinguish_by_original_name(tmp_path: Path) -> None:
+    """Dvě RŮZNÉ přílohy dostanou rozlišitelné názvy (ne _v2)."""
+    src = tmp_path / "tmp.zip"
+    src.write_bytes(b"x")
+    existing: set[str] = set()
+    n1 = build_target_name(
+        "Novák", AttachmentKind.THESIS_APPENDIX, src,
+        existing_names=existing, orig_name="zdrojove_kody.zip",
+        file_date_override=date(2026, 6, 8),
+    )
+    existing.add(n1)
+    n2 = build_target_name(
+        "Novák", AttachmentKind.THESIS_APPENDIX, src,
+        existing_names=existing, orig_name="dataset.zip",
+        file_date_override=date(2026, 6, 8),
+    )
+    assert n1 == "Novák_prilohy_2026-06-08_zdrojove_kody.zip"
+    assert n2 == "Novák_prilohy_2026-06-08_dataset.zip"
+    assert "_v2" not in n2
+
+
+def test_appendix_generic_name_falls_back_to_v2(tmp_path: Path) -> None:
+    """Generický původní název (=typ) nerozlišuje → kolize řeší _v2."""
+    src = tmp_path / "tmp.zip"
+    src.write_bytes(b"x")
+    existing: set[str] = set()
+    n1 = build_target_name(
+        "Novák", AttachmentKind.THESIS_APPENDIX, src,
+        existing_names=existing, orig_name="prilohy.zip",
+        file_date_override=date(2026, 6, 8),
+    )
+    existing.add(n1)
+    n2 = build_target_name(
+        "Novák", AttachmentKind.THESIS_APPENDIX, src,
+        existing_names=existing, orig_name="prilohy.zip",
+        file_date_override=date(2026, 6, 8),
+    )
+    assert n1 == "Novák_prilohy_2026-06-08.zip"
+    assert n2 == "Novák_prilohy_2026-06-08_v2.zip"
+
+
+def test_text_name_ignores_original_name(tmp_path: Path) -> None:
+    """Text práce (jednoinstanční) se původním názvem nerozlišuje."""
+    src = tmp_path / "tmp.pdf"
+    src.write_bytes(b"x")
+    n = build_target_name(
+        "Novák", AttachmentKind.THESIS_TEXT, src,
+        orig_name="cokoliv.pdf", file_date_override=date(2026, 6, 8),
+    )
+    assert n == "Novák_text-prace_2026-06-08.pdf"
     assert subdir_for(AttachmentKind.THESIS_TEXT) == "text"
     assert subdir_for(AttachmentKind.THESIS_APPENDIX) == "prilohy"
     assert subdir_for(AttachmentKind.WORK_JOURNAL) == "denik"
@@ -195,7 +247,9 @@ def test_attach_document_without_student_uses_fallback(
     src = _touch(tmp_path / "x.pdf", mtime=_mtime_for_date(date(2026, 1, 1)))
 
     att = service.attach_document(thesis.id, src, kind=AttachmentKind.OTHER)
-    assert att.url_or_path == "ostatni/Bez-prijmeni_jine_2026-01-01.pdf"
+    # U *Jiné* (víceinstanční) se do názvu vloží rozlišovací část z původního
+    # názvu souboru, aby dva různé soubory nevypadaly jako verze.
+    assert att.url_or_path == "ostatni/Bez-prijmeni_jine_2026-01-01_x.pdf"
 
 
 def test_attach_document_collision_creates_v2(

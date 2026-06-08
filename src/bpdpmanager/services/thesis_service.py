@@ -1045,7 +1045,8 @@ class ThesisService:
         target_dir.mkdir(parents=True, exist_ok=True)
         existing = {p.name for p in target_dir.iterdir() if p.is_file()}
         new_name = build_target_name(
-            surname, new_kind, old_abs, existing_names=existing
+            surname, new_kind, old_abs, existing_names=existing,
+            orig_name=att.label,
         )
         target_path = target_dir / new_name
         shutil.move(str(old_abs), str(target_path))
@@ -1132,7 +1133,10 @@ class ThesisService:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         existing = {p.name for p in target_dir.iterdir() if p.is_file()}
-        target_name = build_target_name(surname, kind, source_path, existing_names=existing)
+        target_name = build_target_name(
+            surname, kind, source_path, existing_names=existing,
+            orig_name=label or source_path.name,
+        )
         target_path = target_dir / target_name
         shutil.copy2(source_path, target_path)
 
@@ -1325,7 +1329,10 @@ class ThesisService:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         existing = {p.name for p in target_dir.iterdir() if p.is_file()}
-        target_name = build_target_name(surname, kind, source_path, existing_names=existing)
+        target_name = build_target_name(
+            surname, kind, source_path, existing_names=existing,
+            orig_name=label or source_path.name,
+        )
         target_path = target_dir / target_name
         shutil.copy2(source_path, target_path)
 

@@ -107,14 +107,44 @@ def _normalize_surname(surname: str | None) -> str:
     return cleaned or "Bez-prijmeni"
 
 
+# Kindy, kde vedle sebe žije víc RŮZNÝCH souborů (přílohy, *Jiné*). U nich se
+# do názvu vkládá rozlišovací část z původního názvu, aby dvě různé přílohy
+# nevypadaly jako verze (``_v2``) téhož souboru.
+_MULTI_INSTANCE_KINDS = {AttachmentKind.THESIS_APPENDIX, AttachmentKind.OTHER}
+
+# Generické názvy, které nic nerozlišují (= jen opakují typ) → vynech.
+_GENERIC_APPENDIX_SLUGS = {
+    "priloha", "prilohy", "prilohy-prace", "priloha-prace",
+    "appendix", "appendices", "annex", "jine", "other",
+}
+
+
+def _distinguishing_slug(orig_name: str | None, code: str) -> str:
+    """Z původního názvu souboru udělá krátkou FS-safe rozlišovací část.
+
+    Vrací prázdno, když název nic nepřináší (chybí, je generický „prilohy",
+    nebo se rovná typovému kódu) — pak se spadne na ``_vN`` jako dřív.
+    """
+    if not orig_name:
+        return ""
+    slug = sanitize_for_fs(Path(orig_name).stem)[:48].strip("._-")
+    if not slug:
+        return ""
+    low = slug.lower()
+    if low == code or low in _GENERIC_APPENDIX_SLUGS:
+        return ""
+    return slug
+
+
 def build_target_name(
     surname: str | None,
     kind: AttachmentKind,
     source_path: Path,
     existing_names: set[str] | None = None,
     file_date_override: date | None = None,
+    orig_name: str | None = None,
 ) -> str:
-    """Sestaví cílový název souboru podle schématu ``{Příjmení}_{typ}_{YYYY-MM-DD}[_vN].{ext}``.
+    """Sestaví cílový název souboru podle schématu ``{Příjmení}_{typ}_{YYYY-MM-DD}[_slug][_vN].{ext}``.
 
     Args:
         surname: Příjmení studenta. Diakritika se zachová, FS-nebezpečné
@@ -125,6 +155,9 @@ def build_target_name(
             navrhované jméno koliduje, přidá se ``_v2``, ``_v3``, …
         file_date_override: Použij toto datum místo mtime souboru (pro
             plagiátorské PDF apod., kde mtime nedává smysl).
+        orig_name: Původní název souboru (např. ze STAG). U **příloh** a *Jiné*
+            se z něj odvodí rozlišovací část názvu, takže dvě různé přílohy
+            (``zdrojaky.zip`` a ``dataset.zip``) nevypadají jako ``_v2`` téže.
 
     Returns:
         Název souboru (bez cesty), připravený k uložení.
@@ -138,6 +171,10 @@ def build_target_name(
     suffix = source_path.suffix.lower()  # ``.pdf`` → ``.pdf``, ``.PDF`` → ``.pdf``
 
     base = f"{norm_surname}_{code}_{d.isoformat()}"
+    if kind in _MULTI_INSTANCE_KINDS:
+        slug = _distinguishing_slug(orig_name, code)
+        if slug:
+            base = f"{base}_{slug}"
     candidate = f"{base}{suffix}"
     if candidate not in existing_names:
         return candidate
