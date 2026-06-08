@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
@@ -64,6 +66,22 @@ _GRADE_SOURCE_SUFFIXES = (".pdf", ".docx", ".doc")
 def _is_grade_source(name: str) -> bool:
     """True, pokud jde o soubor posudku, ze kterého lze zkusit vyčíst známku."""
     return name.lower().endswith(_GRADE_SOURCE_SUFFIXES)
+
+
+# Kindy příloh, kde může být víc různých souborů (dedup podle obsahu).
+_DEDUP_KINDS = {AttachmentKind.THESIS_APPENDIX, AttachmentKind.OTHER}
+
+
+@dataclass
+class DuplicateAppendix:
+    """Jedna duplicitní příloha (stejný obsah jako ``keep_label``) k smazání."""
+    work_id: str
+    is_opposing: bool
+    work_label: str       # student + typ práce (pro UI)
+    keep_label: str       # soubor, který zůstane
+    del_label: str        # duplicitní soubor ke smazání
+    del_url: str          # url_or_path (identita pro smazání)
+    size: int
 
 
 class TransitionError(ValueError):
@@ -815,8 +833,7 @@ class ThesisService:
         U jednoinstančních kindů (text práce, posudky, STAG export) se verzuje
         proti celému kindu jako dosud.
         """
-        multi = {AttachmentKind.THESIS_APPENDIX, AttachmentKind.OTHER}
-        if kind in multi:
+        if kind in _DEDUP_KINDS:
             same = [a for a in attachments if a.kind == kind and a.label == label]
         else:
             same = [a for a in attachments if a.kind == kind]
@@ -824,6 +841,135 @@ class ThesisService:
         for a in same:
             a.is_current = False
         return next_version
+
+    @staticmethod
+    def _file_sha256(path: Path) -> str | None:
+        try:
+            h = hashlib.sha256()
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 20), b""):
+                    h.update(chunk)
+            return h.hexdigest()
+        except OSError:
+            return None
+
+    def _abs_attachment_path(
+        self, work_id: str, att: Attachment, *, opposing: bool
+    ) -> Path | None:
+        return (
+            self.opposing_document_absolute_path(work_id, att) if opposing
+            else self.document_absolute_path(work_id, att)
+        )
+
+    def _find_identical_attachment(
+        self, work_id: str, attachments: list[Attachment],
+        source_path: Path, *, opposing: bool, kind: AttachmentKind,
+    ) -> Attachment | None:
+        """Najde už přiloženou přílohu se **shodným obsahem** (velikost + hash),
+        aby se stejný soubor nepřidával duplicitně. Hashuje jen při shodě velikosti."""
+        try:
+            size = source_path.stat().st_size
+        except OSError:
+            return None
+        src_hash: str | None = None
+        for a in attachments:
+            if not a.is_file or a.kind != kind:
+                continue
+            p = self._abs_attachment_path(work_id, a, opposing=opposing)
+            if p is None or not p.is_file() or p.stat().st_size != size:
+                continue
+            if src_hash is None:
+                src_hash = self._file_sha256(source_path)
+                if src_hash is None:
+                    return None
+            if self._file_sha256(p) == src_hash:
+                return a
+        return None
+
+    def _work_label(self, work, is_opposing: bool) -> str:
+        if is_opposing:
+            name = work.student_full_name or "(neuvedený student)"
+            return f"{name} · {work.type.value} (oponent)"
+        student = self.get_student(work.student_id) if work.student_id else None
+        name = student.full_name if student else (work.display_title or "—")
+        return f"{name} · {work.type.value}"
+
+    def find_duplicate_appendices(self) -> list[DuplicateAppendix]:
+        """Najde přílohy (a *Jiné*) se **shodným obsahem** v rámci jedné práce
+        — kandidáty na úklid. Posudky/text práce se neřeší."""
+        out: list[DuplicateAppendix] = []
+
+        def scan(works, is_opposing: bool) -> None:
+            for w in works:
+                groups: dict[tuple, list[Attachment]] = {}
+                for a in w.attachments:
+                    if not a.is_file or a.kind not in _DEDUP_KINDS:
+                        continue
+                    p = self._abs_attachment_path(w.id, a, opposing=is_opposing)
+                    if p is None or not p.is_file():
+                        continue
+                    h = self._file_sha256(p)
+                    if h is None:
+                        continue
+                    groups.setdefault((p.stat().st_size, h), []).append(a)
+                for (size, _h), group in groups.items():
+                    if len(group) < 2:
+                        continue
+                    ordered = sorted(
+                        group, key=lambda a: (0 if a.is_current else 1, -a.version)
+                    )
+                    keep = ordered[0]
+                    for dup in ordered[1:]:
+                        out.append(DuplicateAppendix(
+                            work_id=w.id, is_opposing=is_opposing,
+                            work_label=self._work_label(w, is_opposing),
+                            keep_label=keep.label, del_label=dup.label,
+                            del_url=dup.url_or_path, size=size,
+                        ))
+
+        scan(self.list_theses(), False)
+        scan(self.list_opposing_theses(), True)
+        return out
+
+    def delete_appendix_duplicates(
+        self, items: list[tuple[str, bool, str]]
+    ) -> int:
+        """Smaže duplicitní přílohy (soubor + evidence). ``items`` =
+        ``(work_id, is_opposing, del_url)``. Zbylé přílohy práce se označí jako
+        aktuální (žádná omylem „archivovaná"). Vrací počet smazaných."""
+        from collections import defaultdict
+
+        by_work: dict[tuple[str, bool], set[str]] = defaultdict(set)
+        for work_id, is_opposing, del_url in items:
+            by_work[(work_id, is_opposing)].add(del_url)
+
+        removed = 0
+        for (work_id, is_opposing), urls in by_work.items():
+            work = (self.get_opposing_thesis(work_id) if is_opposing
+                    else self.get_thesis(work_id))
+            if work is None:
+                continue
+            kept: list[Attachment] = []
+            for a in work.attachments:
+                if a.is_file and a.url_or_path in urls:
+                    p = self._abs_attachment_path(work_id, a, opposing=is_opposing)
+                    try:
+                        if p and p.is_file():
+                            p.unlink()
+                    except OSError:
+                        pass
+                    removed += 1
+                else:
+                    kept.append(a)
+            work.attachments = kept
+            for a in work.attachments:
+                if a.kind in _DEDUP_KINDS:
+                    a.is_current = True
+            if is_opposing:
+                self.upsert_opposing_thesis(work)
+            else:
+                self.upsert_thesis(work)
+        return removed
 
     def attach_document(
         self,
@@ -842,6 +988,23 @@ class ThesisService:
         thesis = self.get_thesis(thesis_id)
         if thesis is None:
             raise ValueError(f"Práce {thesis_id} neexistuje.")
+
+        # Příloha (a Jiné) se stejným OBSAHEM už existuje → nepřidávej duplikát
+        # (typicky opětovné stažení téhož souboru ze STAG).
+        if kind in _DEDUP_KINDS:
+            dup = self._find_identical_attachment(
+                thesis_id, thesis.attachments, source_path,
+                opposing=False, kind=kind,
+            )
+            if dup is not None:
+                dup.is_current = True
+                self.upsert_thesis(thesis)
+                if delete_source:
+                    try:
+                        source_path.unlink()
+                    except OSError:
+                        pass
+                return dup
 
         surname = self._student_surname_for_thesis(thesis)
         subdir = subdir_for(kind)
@@ -1021,6 +1184,20 @@ class ThesisService:
         op = self.get_opposing_thesis(op_id)
         if op is None:
             raise ValueError(f"Oponentský posudek {op_id} neexistuje.")
+
+        if kind in _DEDUP_KINDS:
+            dup = self._find_identical_attachment(
+                op_id, op.attachments, source_path, opposing=True, kind=kind,
+            )
+            if dup is not None:
+                dup.is_current = True
+                self.upsert_opposing_thesis(op)
+                if delete_source:
+                    try:
+                        source_path.unlink()
+                    except OSError:
+                        pass
+                return dup
 
         surname = op.student_last_name or None
         subdir = subdir_for(kind)

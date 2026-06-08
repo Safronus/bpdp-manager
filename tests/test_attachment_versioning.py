@@ -49,7 +49,8 @@ def test_two_different_appendices_both_current(service, thesis, tmp_path) -> Non
     assert all(a.is_current for a in apps)  # obě zůstávají aktuální
 
 
-def test_reupload_same_appendix_versions_only_it(service, thesis, tmp_path) -> None:
+def test_reattach_identical_appendix_is_deduped(service, thesis, tmp_path) -> None:
+    """Opětovné stažení téhož souboru (shodný obsah) se NEpřidá podruhé."""
     f1 = tmp_path / "p1.zip"
     f1.write_bytes(b"a" * 100)
     f2 = tmp_path / "p2.zip"
@@ -58,7 +59,28 @@ def test_reupload_same_appendix_versions_only_it(service, thesis, tmp_path) -> N
                             label="part1.zip")
     service.attach_document(thesis, f2, kind=AttachmentKind.THESIS_APPENDIX,
                             label="part2.zip")
-    # znovu nahraj part1 → nová verze JEN u part1
+    # opětovné stažení part1 pod JINÝM cílovým názvem, ale shodný obsah → dedup
+    f1b = tmp_path / "p1_again.zip"
+    f1b.write_bytes(b"a" * 100)
+    service.attach_document(thesis, f1b, kind=AttachmentKind.THESIS_APPENDIX,
+                            label="part1_2026-06-08.zip")
+    apps = _apps(service, thesis)
+    assert len(apps) == 2                                # žádný duplikát nepřibyl
+    assert all(a.is_current for a in apps)
+
+
+def test_reupload_changed_appendix_versions_only_it(service, thesis, tmp_path) -> None:
+    """Nový OBSAH pod stejným názvem → nová verze jen té přílohy."""
+    f1 = tmp_path / "p1.zip"
+    f1.write_bytes(b"a" * 100)
+    f2 = tmp_path / "p2.zip"
+    f2.write_bytes(b"b" * 200)
+    service.attach_document(thesis, f1, kind=AttachmentKind.THESIS_APPENDIX,
+                            label="part1.zip")
+    service.attach_document(thesis, f2, kind=AttachmentKind.THESIS_APPENDIX,
+                            label="part2.zip")
+    # part1 se ZMĚNIL (jiný obsah, stejný název) → nová verze JEN u part1
+    f1.write_bytes(b"a" * 100 + b"CHANGED")
     service.attach_document(thesis, f1, kind=AttachmentKind.THESIS_APPENDIX,
                             label="part1.zip")
     apps = _apps(service, thesis)

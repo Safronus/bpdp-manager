@@ -749,6 +749,29 @@ srozumitelně i u ostatních způsobů stahování). Zvlášť se vypíšou prá
 > progres **„⏳ připojuji k STAG…"** — není to zamrznutí, jen čekání na server.
 > Při krátkém výpadku se stažení **jednou zopakuje**.
 
+### 🧹 Úklid duplicitních příloh
+
+Toolbarové tlačítko **🔄 Aktualizace prací → 🧹 Úklid duplicitních příloh**:
+projde **vedené i oponované** práce a najde **přílohy** (druh *Příloha práce*
+a *Jiné*), které mají **shodný obsah** jako jiná příloha téže práce — typicky
+když se tentýž soubor stáhl ze STAG **dvakrát** (např. 6. a 8. 6.) a uložil se
+pod různými cílovými názvy. Shoda se pozná podle **velikosti a obsahu**
+(kontrolní součet), ne podle názvu, takže odhalí i duplikáty s odlišným
+pojmenováním. **Text práce ani posudky se nikdy neřeší** — u nich může být
+stejný obsah legitimní.
+
+Otevře se **náhled**: pro každou práci je vypsáno, **které soubory se smažou**
+a **která kopie zůstane**, včetně velikosti. Vše ke smazání je **předzaškrtnuté**
+(můžeš odškrtnout); tlačítky *Vybrat vše / Zrušit vše* hromadně. **🗑 Smazat
+vybrané** odstraní vybrané přílohy (soubor i evidenci), ponechá vždy jednu
+kopii a zbylé přílohy práce označí jako **aktuální**. Když nic shodného není,
+okno hlásí *„✓ Žádné duplicitní přílohy nenalezeny."*.
+
+> **Prevence.** Od verze 1.10.0 se duplicitní příloha **nevytvoří znovu**:
+> když stahuješ přílohu (nebo *Jiné*), jejíž obsah už u práce je, soubor se
+> **nepřipojí podruhé** — zůstane stávající. Nová **verze** přílohy vznikne jen
+> tehdy, když se její **obsah opravdu změní**.
+
 Nebo klasicky přes **🌐 Stáhnout ze STAG**:
 
 1. Zadej **příjmení studenta** (nepovinné).

@@ -986,6 +986,12 @@ class MainWindow(QMainWindow):
         act_consist.triggered.connect(self._check_stag_consistency)
         act_defense = checks_menu.addAction("🗂 Přeřadit průběh obhajoby")
         act_defense.triggered.connect(self._reclassify_defense_records)
+        act_dupatt = checks_menu.addAction("🧹 Úklid duplicitních příloh")
+        act_dupatt.setToolTip(
+            "Najde přílohy se shodným obsahem (duplikáty z opětovného stažení) "
+            "a nabídne jejich smazání — s náhledem, co a proč."
+        )
+        act_dupatt.triggered.connect(self._cleanup_duplicate_appendices)
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
@@ -1664,6 +1670,14 @@ class MainWindow(QMainWindow):
         self._refresh_all()
         self._focus_thesis(thesis_id)
         QMessageBox.information(self, "Import hotov", done_msg)
+
+    def _cleanup_duplicate_appendices(self) -> None:
+        """Najde a nabídne smazání duplicitních příloh (shodný obsah)."""
+        from .appendix_cleanup_dialog import AppendixCleanupDialog
+
+        dlg = AppendixCleanupDialog(self.service, self)
+        dlg.data_changed.connect(self._refresh_all)
+        dlg.exec()
 
     def _check_stag_consistency(self) -> None:
         """Kontrola: které soubory STAG nabízí a v DB chybí (+ dostažení)."""

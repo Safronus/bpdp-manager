@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-06-08
+
+### Added
+- **Úklid duplicitních příloh.** Nové tlačítko **🔄 Aktualizace prací → 🧹 Úklid
+  duplicitních příloh** projde vedené i oponované práce a najde **přílohy**
+  (druh *Příloha práce* a *Jiné*) se **shodným obsahem** — typicky tentýž soubor
+  stažený ze STAG dvakrát pod různými názvy. Shoda se pozná podle **velikosti
+  a kontrolního součtu**, ne podle názvu. Náhled ukáže, **co a proč** se smaže
+  (vždy zůstane jedna kopie); smazání je předzaškrtnuté a potvrzuje se ručně.
+  **Text práce ani posudky se neřeší.**
+
+### Changed
+- **Prevence duplicitních příloh při stahování.** Když připojuješ přílohu (nebo
+  *Jiné*), jejíž **obsah** už u práce existuje, soubor se **nepřipojí podruhé** —
+  zůstane stávající kopie. Nová **verze** přílohy vznikne jen při **změně
+  obsahu**. Tím se odstraňuje vedlejší efekt verzování podle názvu z 1.9.0, kdy
+  opětovné stažení pod jiným cílovým názvem vytvořilo duplikát.
+
 ## [1.9.0] - 2026-06-08
 
 ### Added
