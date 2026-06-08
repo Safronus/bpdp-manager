@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.5.5] - 2026-06-08
+
+### Fixed
+- **Přihlášení do MyQ — správné odeslání formuláře.** Login stránka má dvě
+  záložky (přihlášení / reset PINu); server čte hodnoty, jen když je ve
+  `wsfState` označená **aktivní záložka** (`CtrlMenu.selIDs`). Konektor nově
+  posílá výběr záložky, jméno dává jen do `wsfState` (jeho pole je `data-nopost`)
+  a jako pojmenovaná pole posílá pouze **PIN** a **jazyk** (combobox). Dřív
+  server hlásil „jméno i PIN nesmí být prázdné".
+
 ## [1.5.4] - 2026-06-08
 
 ### Fixed

@@ -28,8 +28,13 @@ _LOGIN_PAGE = (
     '<input type="hidden" name="wsfHashId" '
     'value="abc123abc123abc123abc123abc12300" id="wsfHashId"/>'
     '<script>g_app(0,{"requestID":0,"instanceID":"wsfLOGIN1"});</script>'
+    '<div id="C12" class="wsfBtnTabs wsfCtrl Wsf_Ctrls_Menu_CtrlMenu"></div>'
     '<div id="C3" class="wsfCtrl Wsf_Forms_CtrlForm Web_Login_FormLogin">'
-    '<input name="domain" type="text" id="C7input" value="utb"/>'
+    '<select name="C6" id="C6" class="wsfCtrl Wsf_Forms_CtrlComboBox">'
+    '<option value="&quot;en&quot;">English</option>'
+    '<option value="&quot;cs&quot;" selected="selected">Čeština</option>'
+    "</select>"
+    '<input name="domain" type="text" id="C7input" value=""/>'
     '<input name="user" type="text" id="C8input" value=""/>'
     '<input name="pwd" type="password" id="C9input" value=""/>'
     "</div></form></body></html>"
@@ -80,16 +85,17 @@ def test_login_posts_onlogin_and_credentials_not_stored() -> None:
         kv.split("=", 1) for kv in post["data"].decode().split("&")
     )
     assert "wsfState" in fields and "wsfHashId" in fields
-    # pojmenovaná pole formuláře: user/pwd přepsaná, domain ve svém defaultu
-    assert up.unquote_plus(fields["user"]) == "zacek"
+    # PIN se posílá jako pojmenované pole, jazyk taky; jméno NE (jen ve wsfState)
     assert up.unquote_plus(fields["pwd"]) == "123456"
-    assert up.unquote_plus(fields["domain"]) == "utb"
+    assert up.unquote_plus(fields["C6"]) == '"cs"'  # combobox jazyk
+    assert "user" not in fields and "domain" not in fields
     wsf = json.loads(up.unquote_plus(fields["wsfState"]))
     assert wsf["method"] == "onLogin"
     assert wsf["object"] == "C3"  # id formuláře z živé stránky
-    # credentials i v ctrlsState správných controlů (C8 = user, C9 = pwd)
+    # credentials v ctrlsState správných controlů + označení aktivní záložky
     assert wsf["ctrlsState"]["C8"]["value"] == "zacek"
     assert wsf["ctrlsState"]["C9"]["value"] == "123456"
+    assert wsf["ctrlsState"]["C12"]["selIDs"] == ["Web_Login_FormLogin"]
 
     # po přihlášení se vezme wsfHashId z app stránky
     assert c._hash_id == "ffff1111ffff1111ffff1111ffff1111"
@@ -105,8 +111,8 @@ def test_parse_login_form() -> None:
     assert form["user"] == ("user", "C8")
     assert form["pin"] == ("pwd", "C9")
     assert form["form_ctrl"] == "C3"
-    assert form["fields"]["domain"] == "utb"
-    assert "wsfState" not in form["fields"]  # plní se zvlášť
+    assert form["tab_ctrl"] == "C12"          # záložkové menu (login/PIN reset)
+    assert form["combo"] == ("C6", '"cs"')    # jazyk, vybraná čeština
 
 
 def test_login_already_logged_in_skips_post() -> None:

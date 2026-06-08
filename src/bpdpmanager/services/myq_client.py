@@ -30,6 +30,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from html import unescape
 from http.cookiejar import CookieJar
 from pathlib import Path
 
@@ -182,12 +183,16 @@ class MyQClient:
     def _parse_login_form(html: str) -> dict:
         """Rozparsuje živý přihlašovací formulář MyQ.
 
-        Vrací: ``fields`` (název → výchozí hodnota všech <input> krom wsfState),
-        ``user`` (name, control_id) pole jména, ``pin`` (name, control_id) pole
-        hesla/PINu, ``form_ctrl`` id formuláře. Control ID i názvy čteme z živé
-        stránky, protože se mezi sezeními liší.
+        Login stránka má **dvě záložky** (přihlášení / reset PINu) ovládané
+        ``CtrlMenu`` — server čte hodnoty, jen když je ve ``wsfState`` aktivní
+        záložka označená (``tab_ctrl.selIDs``). Jméno se posílá **jen** ve
+        ``wsfState`` (jeho input je ``data-nopost``), zatímco PIN (``pwd``)
+        a jazyk (``combo``) se posílají i jako pojmenovaná pole. Control ID
+        čteme z živé stránky — mezi sezeními se liší.
+
+        Vrací: ``user``/``pin`` (name, control_id), ``form_ctrl`` id formuláře,
+        ``tab_ctrl`` id záložkového menu, ``combo`` (name, hodnota) jazyka.
         """
-        fields: dict[str, str] = {}
         user_field: tuple[str, str] | None = None
         pin_field: tuple[str, str] | None = None
         for m in re.finditer(r"<input\b[^>]*>", html):
@@ -196,18 +201,14 @@ class MyQClient:
             if not name_m:
                 continue
             name = name_m.group(1)
-            if name == "wsfState":
-                continue  # plníme zvlášť (JSON stav)
-            value = (re.search(r'value="([^"]*)"', tag) or (None, ""))[1]
             typ = (re.search(r'type="([^"]*)"', tag) or (None, "text"))[1]
             idv = (re.search(r'id="([^"]*)"', tag) or (None, ""))[1]
             ctrl = idv[:-5] if idv.endswith("input") else ""
-            fields[name] = value
             if typ == "password" and pin_field is None:
                 pin_field = (name, ctrl)
             elif typ == "text" and name == "user":
                 user_field = (name, ctrl)
-        # fallback: jméno = první textové pole, které není „domain"/heslo
+        # fallback: jméno = první textové pole, které není „domain"
         if user_field is None:
             for m in re.finditer(r"<input\b[^>]*>", html):
                 tag = m.group(0)
@@ -221,11 +222,23 @@ class MyQClient:
         form_m = re.search(
             r'id="(C\d+)"[^>]*\b' + re.escape(_LOGIN_FORM_CLASS), html
         )
+        tab_m = re.search(r'id="(C\d+)"[^>]*\bwsfBtnTabs\b', html)
+        combo: tuple[str, str] | None = None
+        combo_m = re.search(
+            r'<select\b[^>]*\bname="(C\d+)"[^>]*CtrlComboBox[^>]*>(.*?)</select>',
+            html, re.S,
+        )
+        if combo_m:
+            opt = re.search(r'<option\s+value="([^"]*)"[^>]*\bselected',
+                            combo_m.group(2))
+            if opt:
+                combo = (combo_m.group(1), unescape(opt.group(1)))
         return {
-            "fields": fields,
             "user": user_field,
             "pin": pin_field,
             "form_ctrl": form_m.group(1) if form_m else _LOGIN_OBJECT_FALLBACK,
+            "tab_ctrl": tab_m.group(1) if tab_m else None,
+            "combo": combo,
         }
 
     # ── veřejné API ───────────────────────────────────────────────────────
@@ -250,28 +263,34 @@ class MyQClient:
                 "(změna stránky?). Zkus to znovu, případně se přihlas ručně "
                 "přes web."
             )
-        user_name, user_ctrl = form["user"]
+        _user_name, user_ctrl = form["user"]
         pin_name, pin_ctrl = form["pin"]
 
-        # Stav formuláře: vyplníme jen jméno + PIN do jejich controlů.
-        ctrls: dict[str, dict] = {"C1": {"_focusedCtrl": pin_ctrl}}
+        # wsfState: jméno + PIN do jejich controlů + označení aktivní záložky
+        # (bez toho server hodnoty nečte — login stránka má 2 záložky).
+        ctrls: dict[str, dict] = {"C1": {"_focusedCtrl": pin_ctrl or user_ctrl}}
         if user_ctrl:
             ctrls[user_ctrl] = {"modified": True, "value": username}
         if pin_ctrl:
             ctrls[pin_ctrl] = {"modified": True, "value": pin}
+        if form["tab_ctrl"]:
+            ctrls[form["tab_ctrl"]] = {"selIDs": [_LOGIN_FORM_CLASS]}
         wsf = {
             "async": True, "hash": {}, "object": form["form_ctrl"],
             "method": "onLogin", "params": {}, "ctrlsState": ctrls,
             "deletedServerCtrls": [], "requestID": 0, "instanceID": instance,
         }
 
-        # POST: wsfState + wsfHashId + pojmenovaná pole formuláře
-        # (user/pwd přepsaná, ostatní — domain apod. — ve svém defaultu).
-        post_fields = dict(form["fields"])
-        post_fields[user_name] = username
-        post_fields[pin_name] = pin
-        post_fields["wsfState"] = json.dumps(wsf, ensure_ascii=False)
-        post_fields["wsfHashId"] = hash_id
+        # POST: wsfState + wsfHashId + PIN (pojmenované pole) + jazyk (combo).
+        # Jméno se NEposílá jako pojmenované pole (jeho input je data-nopost) —
+        # jde jen přes wsfState. Ostatní text-inputy (domain…) také ne.
+        post_fields = {
+            "wsfState": json.dumps(wsf, ensure_ascii=False),
+            "wsfHashId": hash_id,
+            pin_name: pin,
+        }
+        if form["combo"]:
+            post_fields[form["combo"][0]] = form["combo"][1]
         self._post_form(LOGIN_PATH, post_fields)
 
         # Ověření: dashboard musí ukazovat odhlášení (= jsme přihlášení).
