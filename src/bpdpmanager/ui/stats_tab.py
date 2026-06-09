@@ -99,10 +99,17 @@ class StatsTab(QWidget):
         cv = QVBoxLayout(container)
         cv.setContentsMargins(0, 0, 0, 0)
         cv.setSpacing(12)
-        self._kpi_banner = QLabel()
+        self._kpi_banner = QLabel()   # nadpis „Souhrn" (drží text pro testy)
         self._kpi_banner.setTextFormat(Qt.TextFormat.RichText)
         self._kpi_banner.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         cv.addWidget(self._kpi_banner, alignment=Qt.AlignmentFlag.AlignHCenter)
+        # KPI „pilulky" jako skutečné widgety — zaoblené rohy přes stylesheet
+        # (HTML <div border-radius> Qt rich-text neumí; badge známek je kreslený).
+        self._kpi_cards = QWidget()
+        self._kpi_cards_lay = QHBoxLayout(self._kpi_cards)
+        self._kpi_cards_lay.setContentsMargins(0, 0, 0, 0)
+        self._kpi_cards_lay.setSpacing(10)
+        cv.addWidget(self._kpi_cards, alignment=Qt.AlignmentFlag.AlignHCenter)
         # Stav interaktivních karet (přepínače).
         self._trend_mode = "led"   # "led" = vedené, "opp" = oponované
         # Řádky karet (každý řádek = QHBoxLayout s kartami stejné výšky).
@@ -247,11 +254,14 @@ class StatsTab(QWidget):
         students = self.service.list_students()
         rejected = self.service.list_rejected_students()
 
-        # KPI souhrn — vycentrovaný banner nahoře (ne karta).
-        self._kpi_banner.setText(
-            f"<div style='font-size:13px;'>"
-            f"{self._kpis(theses, opposings, students, rejected)}</div>"
-        )
+        # KPI souhrn — nadpis + řada zaoblených pilulek (vycentrováno nahoře).
+        self._kpi_banner.setText(self._h("Souhrn"))
+        while self._kpi_cards_lay.count():
+            it = self._kpi_cards_lay.takeAt(0)
+            if it.widget() is not None:
+                it.widget().deleteLater()
+        for label, n, color in self._kpi_data(theses, opposings, students, rejected):
+            self._kpi_cards_lay.addWidget(self._kpi_pill(n, label, color))
 
         while self._rows.count():
             item = self._rows.takeAt(0)
@@ -618,11 +628,11 @@ class StatsTab(QWidget):
     def _h(title: str) -> str:
         return f'<h3 style="color:#ffa726;margin:16px 0 6px 0;">{title}</h3>'
 
-    def _kpis(self, theses, opposings, students, rejected) -> str:
+    def _kpi_data(self, theses, opposings, students, rejected) -> list[tuple[str, int, str]]:
         cur = sum(1 for t in theses if t.status in STATUSES_CURRENT)
         fut = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         hist = sum(1 for t in theses if t.status in STATUSES_HISTORY)
-        cards = [
+        return [
             ("Vedené práce", len(theses), "#1565c0"),
             ("V řešení", cur, "#00897b"),
             ("Budoucí", fut, "#7cb342"),
@@ -631,16 +641,21 @@ class StatsTab(QWidget):
             ("Studenti", len(students), "#546e7a"),
             ("Odmítnutí", len(rejected), "#b71c1c"),
         ]
-        cells = ""
-        for label, n, color in cards:
-            cells += (
-                "<td style='padding:6px;'>"
-                f"<div style='background:{color};color:white;border-radius:8px;"
-                "padding:10px 14px;text-align:center;min-width:90px;'>"
-                f"<div style='font-size:22px;font-weight:bold;'>{n}</div>"
-                f"<div style='font-size:11px;opacity:0.9;'>{label}</div></div></td>"
-            )
-        return self._h("Souhrn") + f"<table><tr>{cells}</tr></table>"
+
+    def _kpi_pill(self, n: int, label: str, color: str) -> QLabel:
+        """Zaoblená „pilulka" KPI (číslo + popisek) — rohy přes stylesheet."""
+        lbl = QLabel(
+            "<div style='text-align:center;line-height:115%;'>"
+            f"<span style='font-size:22px;font-weight:bold;'>{n}</span><br>"
+            f"<span style='font-size:11px;'>{label}</span></div>"
+        )
+        lbl.setTextFormat(Qt.TextFormat.RichText)
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl.setStyleSheet(
+            f"QLabel {{ background:{color}; color:white; border-radius:10px; "
+            "padding:8px 14px; min-width:80px; }"
+        )
+        return lbl
 
     def _capacity(self, theses, rejected) -> str:
         active = sum(1 for t in theses if t.status in STATUSES_CURRENT)

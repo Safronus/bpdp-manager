@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.10] - 2026-06-09
+
+### Changed
+- **Statistiky — Souhrn:** jednotlivé KPI bloky (počty) jsou nově skutečné
+  **zaoblené pilulky** (stejný styl jako badge známek v seznamu prací). Dřív
+  to byly přes HTML pravoúhlé obdélníky — Qt rich-text `border-radius`
+  nerenderuje, proto jsou teď kreslené jako widgety se stylesheetem.
+
 ## [1.16.9] - 2026-06-09
 
 ### Added
