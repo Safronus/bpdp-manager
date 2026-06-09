@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.3] - 2026-06-08
+
+### Removed
+- **Úklid mrtvého kódu ve Statistikách.** Po přechodu na grafový dashboard se
+  odstranily nepoužité HTML generátory sekcí (`_led_trend`, `_by_status`,
+  `_by_type`, `_by_year`, `_by_obor`, `_defense_success`, `_grades`,
+  `_grade_table`, `_opposing_summary`, `_reviews`) a osiřelá konstanta
+  `_GRADE_COLORS` — `stats_tab.py` je o ~216 řádků kratší. Bez změny chování.
+
 ## [1.16.2] - 2026-06-08
 
 ### Changed

@@ -53,10 +53,6 @@ def _human_size(num_bytes: int) -> str:
         size /= 1024
     return f"{size:.1f} GB"
 
-_GRADE_COLORS = {
-    "A": "#2e7d32", "B": "#43a047", "C": "#fb8c00",
-    "D": "#f57c00", "E": "#e65100", "F": "#c62828", "FX": "#c62828",
-}
 
 # Kapacita a odměny (FAI UTB konvence — lze upravit).
 _MAX_LED_THESES = 15          # max počet vedených prací
@@ -653,19 +649,6 @@ class StatsTab(QWidget):
             )
         return out
 
-    def _led_trend(self, theses) -> str:
-        if not theses:
-            return ""
-        by_year: Counter[str] = Counter(t.academic_year or "(bez roku)" for t in theses)
-        years = sorted(by_year)  # chronologicky
-        peak = max(by_year.values())
-        rows = ""
-        for y in years:
-            rows += self._bar(y, by_year[y], peak, "#1565c0")
-        return self._h("Vývoj počtu vedených prací po letech") + (
-            f"<table style='width:100%;'>{rows}</table>"
-        )
-
     def _finance(self, theses, opposings) -> str:
         years: dict[str, dict] = {}
         for t in theses:
@@ -718,183 +701,6 @@ class StatsTab(QWidget):
             f"značí překročení stropu), oponentský posudek {_czk(_FEE_OPPOSING)}.</p>"
             f"<table>{header}{rows}</table>"
         )
-
-    def _by_status(self, theses) -> str:
-        total = len(theses)
-        if not total:
-            return ""
-        counts = Counter(t.status for t in theses)
-        rows = ""
-        for st in ThesisStatus:
-            n = counts.get(st, 0)
-            if n:
-                rows += self._bar(st.label, n, total, st.color)
-        return self._h("Podle stavu") + f"<table style='width:100%;'>{rows}</table>"
-
-    def _by_type(self, theses) -> str:
-        total = len(theses)
-        if not total:
-            return ""
-        counts = Counter(t.type.value for t in theses)
-        rows = (
-            self._bar("Bakalářské (BP)", counts.get("BP", 0), total, "#1565c0")
-            + self._bar("Diplomové (DP)", counts.get("DP", 0), total, "#6a1b9a")
-        )
-        return self._h("Bakalářské vs diplomové") + f"<table style='width:100%;'>{rows}</table>"
-
-    def _by_year(self, theses) -> str:
-        if not theses:
-            return ""
-        years: dict[str, dict] = {}
-        for t in theses:
-            y = t.academic_year or "(bez roku)"
-            d = years.setdefault(y, {"n": 0, "def": 0, "prog": 0, "canc": 0, "bp": 0, "dp": 0})
-            d["n"] += 1
-            d["bp" if t.type.value == "BP" else "dp"] += 1
-            if t.status == ThesisStatus.DEFENDED:
-                d["def"] += 1
-            elif t.status == ThesisStatus.IN_PROGRESS:
-                d["prog"] += 1
-            elif t.status == ThesisStatus.CANCELLED:
-                d["canc"] += 1
-        header = (
-            "<tr style='color:" + self._muted + ";text-align:left;'>"
-            "<th style='padding:2px 14px 2px 0;'>Rok</th>"
-            "<th style='padding:2px 14px 2px 0;'>Celkem</th>"
-            "<th style='padding:2px 14px 2px 0;'>BP</th>"
-            "<th style='padding:2px 14px 2px 0;'>DP</th>"
-            "<th style='padding:2px 14px 2px 0;'>V řešení</th>"
-            "<th style='padding:2px 14px 2px 0;'>Obhájeno</th>"
-            "<th style='padding:2px 0;'>Nedokončeno</th></tr>"
-        )
-        rows = ""
-        for y in sorted(years, reverse=True):
-            d = years[y]
-            rows += (
-                f"<tr><td style='padding:2px 14px 2px 0;'><b>{y}</b></td>"
-                f"<td style='padding:2px 14px 2px 0;'>{d['n']}</td>"
-                f"<td style='padding:2px 14px 2px 0;'>{d['bp']}</td>"
-                f"<td style='padding:2px 14px 2px 0;'>{d['dp']}</td>"
-                f"<td style='padding:2px 14px 2px 0;'>{d['prog']}</td>"
-                f"<td style='padding:2px 14px 2px 0;color:#2e7d32;'>{d['def']}</td>"
-                f"<td style='padding:2px 0;color:#c62828;'>{d['canc']}</td></tr>"
-            )
-        return self._h("Podle akademického roku") + f"<table>{header}{rows}</table>"
-
-    def _by_obor(self, theses) -> str:
-        if not theses:
-            return ""
-        counts: Counter[str] = Counter()
-        for t in theses:
-            student = self.service.get_student(t.student_id) if t.student_id else None
-            obor = (student.obor if student else "") or "(bez oboru)"
-            counts[obor] += 1
-        total = len(theses)
-        rows = ""
-        for obor, n in counts.most_common():
-            rows += self._bar(obor, n, total, "#3949ab")
-        return self._h("Podle oboru") + f"<table style='width:100%;'>{rows}</table>"
-
-    def _defense_success(self, theses) -> str:
-        defended = sum(1 for t in theses if t.status == ThesisStatus.DEFENDED)
-        failed = sum(1 for t in theses if t.status == ThesisStatus.FAILED)
-        cancelled = sum(1 for t in theses if t.status == ThesisStatus.CANCELLED)
-        finished = defended + failed + cancelled
-        if not finished:
-            return ""
-        rate = defended / finished * 100.0
-        rows = (
-            self._bar("Obhájeno", defended, finished, "#2e7d32")
-            + self._bar("Neobhájeno", failed, finished, "#c62828")
-            + self._bar("Nedokončeno", cancelled, finished, "#9e9e9e")
-        )
-        retakes = sum(1 for t in theses if t.related_thesis_id) // 2
-        retake_line = (
-            f"<p>🔁 Opravné pokusy (repetenti): <b>{retakes}</b></p>" if retakes else ""
-        )
-        return (
-            self._h("Úspěšnost obhajob (z dokončených)")
-            + f"<p>Úspěšnost: <b style='color:#2e7d32;'>{rate:.0f}%</b> "
-            f"({defended} z {finished})</p>"
-            f"<table style='width:100%;'>{rows}</table>"
-            f"{retake_line}"
-        )
-
-    def _grade_table(self, counts: Counter) -> str:
-        """Tabulka rozpadu známek (A–FX) z čítače."""
-        total = sum(counts.values())
-        if not total:
-            return ""
-        rows = ""
-        for g in ["A", "B", "C", "D", "E", "F", "FX"]:
-            n = counts.get(g, 0)
-            if n:
-                rows += self._bar(g, n, total, _GRADE_COLORS.get(g, self._muted))
-        return f"<table style='width:100%;'>{rows}</table>"
-
-    def _grades(self, theses) -> str:
-        sup: Counter[str] = Counter()
-        opp: Counter[str] = Counter()
-        for t in theses:
-            if t.status != ThesisStatus.DEFENDED:
-                continue
-            gs = (t.grade_supervisor or "").strip().upper()
-            if gs:
-                sup[gs] += 1
-            go = (t.grade_opponent or "").strip().upper()
-            if go:
-                opp[go] += 1
-        if not sup and not opp:
-            return ""
-        out = self._h("Známky obhájených vedených prací")
-        if sup:
-            out += (
-                "<p style='margin:6px 0 2px 0;'><b>Navržené vedoucím</b></p>"
-                + self._grade_table(sup)
-            )
-        if opp:
-            out += (
-                "<p style='margin:8px 0 2px 0;'><b>Navržené oponentem</b></p>"
-                + self._grade_table(opp)
-            )
-        return out
-
-    def _opposing_summary(self, opposings) -> str:
-        """Souhrn oponentur — počet, typ, rok, mnou navržené známky."""
-        if not opposings:
-            return ""
-        total = len(opposings)
-        by_type: Counter[str] = Counter(o.type.value for o in opposings)
-        by_year: Counter[str] = Counter(
-            o.academic_year or "(bez roku)" for o in opposings
-        )
-        grades: Counter[str] = Counter()
-        for o in opposings:
-            g = (o.grade_opponent or "").strip().upper()
-            if g:
-                grades[g] += 1
-
-        type_rows = (
-            self._bar("Bakalářské (BP)", by_type.get("BP", 0), total, "#1565c0")
-            + self._bar("Diplomové (DP)", by_type.get("DP", 0), total, "#6a1b9a")
-        )
-        year_rows = "".join(
-            f"<tr><td style='padding:2px 14px 2px 0;'><b>{y}</b></td>"
-            f"<td style='padding:2px 0;'>{by_year[y]}</td></tr>"
-            for y in sorted(by_year, reverse=True)
-        )
-        out = (
-            self._h("Oponentury")
-            + f"<p>Celkem oponentských posudků: <b>{total}</b></p>"
-            + f"<table style='width:100%;'>{type_rows}</table>"
-            + f"<table style='margin-top:6px;'>{year_rows}</table>"
-        )
-        if grades:
-            out += (
-                "<p style='margin:8px 0 2px 0;'><b>Mnou navržené známky "
-                "(oponent)</b></p>" + self._grade_table(grades)
-            )
-        return out
 
     def _size_bar(self, label: str, size_bytes: int, total_bytes: int,
                   color: str) -> str:
@@ -986,26 +792,4 @@ class StatsTab(QWidget):
             + "<p style='margin:8px 0 2px 0;'><b>Největší práce</b></p>"
             + f"<table style='width:100%;'>{work_rows}</table>"
             + more
-        )
-
-    def _reviews(self, theses, opposings) -> str:
-        in_progress = [t for t in theses if t.status == ThesisStatus.IN_PROGRESS]
-        sup_done = sum(1 for t in in_progress if t.supervisor_review_state == "done")
-        sup_draft = sum(1 for t in in_progress if t.supervisor_review_state == "draft")
-        sup_none = sum(1 for t in in_progress if t.supervisor_review_state == "none")
-        sup_sent = sum(1 for t in theses if t.supervisor_review_sent_at)
-        opp_done = sum(1 for o in opposings if o.opponent_review_state == "done")
-        opp_none = sum(1 for o in opposings if o.opponent_review_state == "none")
-        opp_sent = sum(1 for o in opposings if o.opponent_review_sent_at)
-        return (
-            self._h("Posudky")
-            + "<p><b>Posudky vedoucího (práce V řešení):</b> "
-            f"<span style='color:#2e7d32;'>hotových {sup_done}</span> · "
-            f"<span style='color:#f9a825;'>rozpracovaných {sup_draft}</span> · "
-            f"<span style='color:#c62828;'>chybí {sup_none}</span> · "
-            f"📨 odesláno sekretářce {sup_sent}</p>"
-            "<p><b>Oponentské posudky:</b> "
-            f"<span style='color:#2e7d32;'>hotových {opp_done}</span> · "
-            f"<span style='color:#c62828;'>chybí {opp_none}</span> · "
-            f"📨 odesláno {opp_sent}</p>"
         )
