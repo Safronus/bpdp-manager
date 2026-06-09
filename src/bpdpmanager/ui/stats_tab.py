@@ -8,6 +8,7 @@ zobrazení / obnovení.
 from __future__ import annotations
 
 from collections import Counter
+from typing import ClassVar
 
 from PySide6.QtCharts import (
     QBarCategoryAxis,
@@ -15,12 +16,11 @@ from PySide6.QtCharts import (
     QBarSet,
     QChart,
     QChartView,
-    QHorizontalBarSeries,
     QPieSeries,
     QValueAxis,
 )
 from PySide6.QtCore import QMargins, Qt
-from PySide6.QtGui import QColor, QPainter, QPalette
+from PySide6.QtGui import QColor, QFont, QPainter, QPalette
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -145,18 +145,29 @@ class StatsTab(QWidget):
         lay.addStretch(1)
         return card
 
-    def _chart_view(self, chart: QChart | None = None, min_h: int = 190) -> QChartView:
+    def _chart_view(self, chart: QChart | None = None, min_h: int = 150) -> QChartView:
         view = QChartView(chart) if chart is not None else QChartView()
         view.setRenderHint(QPainter.RenderHint.Antialiasing)
         view.setMinimumHeight(min_h)
+        view.setMaximumHeight(220)
         view.setStyleSheet("background:transparent; border:none;")
         return view
 
+    def _apply_axis_font(self, *axes) -> None:
+        """Malý font popisků os, ať grafy nejsou „gigantické"."""
+        f = QFont()
+        f.setPointSize(8)
+        for ax in axes:
+            ax.setLabelsFont(f)
+            ax.setLabelsColor(QColor(self._muted))
+
     @staticmethod
     def _header_label(title: str) -> QLabel:
-        return QLabel(
-            f"<span style='color:#ffa726;font-weight:bold;font-size:14px;'>{title}</span>"
+        lbl = QLabel(
+            f"<span style='color:#ffa726;font-weight:bold;font-size:13px;'>{title}</span>"
         )
+        lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        return lbl
 
     def _chart_card(self, title: str, chart: QChart, center_text: str = "",
                     *, center_small: bool = False) -> QFrame:
@@ -249,17 +260,17 @@ class StatsTab(QWidget):
             self._chart_by_status(theses),
             self._chart_success(theses),
         ])
-        # Řádek 2 — obory (BP/DP + graf oboru + kapacita) přes celou šířku.
-        self._add_row([self._card_obory(theses, rejected)])
-        # Řádek 3 — rok (přepínač) + známky (4 sloupce).
+        # Řádek 2 — obory+typ+kapacita, podle roku (přepínač), známky (přepínač).
         self._add_row([
+            self._card_obory(theses, rejected),
             self._card_year(theses),
-            self._chart_grades(theses, opposings),
-        ], stretches=[2, 3])
-        # Radky 4-6 - soubory / odmeny / posudky pres celou sirku.
-        self._add_row([self._make_card(self._files(theses, opposings))])
-        self._add_row([self._make_card(self._finance(theses, opposings))])
-        self._add_row([self._make_card(self._reviews(theses, opposings))])
+            self._card_grades(theses, opposings),
+        ])
+        # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
+        self._add_row([
+            self._make_card(self._files(theses, opposings)),
+            self._make_card(self._finance(theses, opposings)),
+        ])
 
     # --- grafy / interaktivní karty ------------------------------------------
 
@@ -316,21 +327,21 @@ class StatsTab(QWidget):
             chart.addSeries(series)
             ax = QBarCategoryAxis()
             ax.append(years)
-            ax.setLabelsColor(QColor(self._muted))
             ax.setLabelsAngle(-45)          # šikmé popisky osy X (čitelnější)
             ax.setGridLineVisible(False)
             chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
             series.attachAxis(ax)
             ay = QValueAxis()
             ay.setLabelFormat("%d")
-            ay.setLabelsColor(QColor(self._muted))
             ay.setGridLineColor(QColor(self._border))
             top = max(by_year.values())
             ay.setRange(0, top + 1)
             ay.setTickCount(min(top + 2, 6))
             chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
             series.attachAxis(ay)
+            self._apply_axis_font(ax, ay)
         self._style_chart(chart)
+        chart.setMargins(QMargins(0, 0, 4, 0))   # rezerva, ať poslední popisek není uťatý
         self._trend_view.setChart(chart)
 
     def _chart_by_status(self, theses) -> QFrame | None:
@@ -399,36 +410,39 @@ class StatsTab(QWidget):
         top_lbl.setTextFormat(Qt.TextFormat.RichText)
         top_lbl.setWordWrap(True)
         lay.addWidget(top_lbl)
-        # Obory — vodorovný sloupcový graf (uprostřed).
+        # Obory — svislý sloupcový graf (popisky oborů na ose X, šikmo).
         counts: Counter[str] = Counter()
         for t in theses:
             student = self.service.get_student(t.student_id) if t.student_id else None
             counts[(student.obor if student else "") or "(bez oboru)"] += 1
         cats = [o for o, _ in counts.most_common()]
         bset = QBarSet("")
-        for o in reversed(cats):           # největší nahoře
+        for o in cats:
             bset.append(counts[o])
         bset.setColor(QColor("#3949ab"))
         bset.setLabelColor(QColor(self._fg))
-        series = QHorizontalBarSeries()
+        series = QBarSeries()
         series.append(bset)
         series.setLabelsVisible(True)
         chart = QChart()
         chart.addSeries(series)
         ax = QBarCategoryAxis()
-        ax.append(list(reversed(cats)))
-        ax.setLabelsColor(QColor(self._muted))
+        ax.append(cats)
+        ax.setLabelsAngle(-45)
         ax.setGridLineVisible(False)
-        chart.addAxis(ax, Qt.AlignmentFlag.AlignLeft)
+        chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
         series.attachAxis(ax)
-        avx = QValueAxis()
-        avx.setLabelFormat("%d")
-        avx.setLabelsColor(QColor(self._muted))
-        avx.setGridLineColor(QColor(self._border))
-        chart.addAxis(avx, Qt.AlignmentFlag.AlignBottom)
-        series.attachAxis(avx)
+        avy = QValueAxis()
+        avy.setLabelFormat("%d")
+        avy.setGridLineColor(QColor(self._border))
+        top = max(counts.values())
+        avy.setRange(0, top + 1)
+        avy.setTickCount(min(top + 2, 6))
+        chart.addAxis(avy, Qt.AlignmentFlag.AlignLeft)
+        series.attachAxis(avy)
+        self._apply_axis_font(ax, avy)
         self._style_chart(chart)
-        lay.addWidget(self._chart_view(chart, min_h=max(140, len(cats) * 24)), stretch=1)
+        lay.addWidget(self._chart_view(chart), stretch=1)
         # Kapacita vedení — přes celou šířku karty dole.
         cap = QLabel(f"<div style='font-size:13px;'>{self._capacity(theses, rejected)}</div>")
         cap.setTextFormat(Qt.TextFormat.RichText)
@@ -442,33 +456,29 @@ class StatsTab(QWidget):
         years: dict[str, dict] = {}
         for t in theses:
             y = t.academic_year or "(bez roku)"
-            d = years.setdefault(
-                y, {"n": 0, "bp": 0, "dp": 0, "prog": 0, "def": 0, "fail": 0, "canc": 0}
-            )
+            d = years.setdefault(y, {"n": 0, "bp": 0, "dp": 0, "st": Counter()})
             d["n"] += 1
             d["bp" if t.type.value == "BP" else "dp"] += 1
-            st = t.status
-            if st == ThesisStatus.DEFENDED:
-                d["def"] += 1
-            elif st == ThesisStatus.IN_PROGRESS:
-                d["prog"] += 1
-            elif st == ThesisStatus.FAILED:
-                d["fail"] += 1
-            elif st == ThesisStatus.CANCELLED:
-                d["canc"] += 1
+            d["st"][t.status] += 1
         self._year_data = years
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        hdr = QHBoxLayout()
-        hdr.addWidget(self._header_label("Podle akademického roku"))
-        hdr.addStretch()
+        lay.addWidget(self._header_label("Podle akademického roku"))
+        combo_row = QHBoxLayout()
+        combo_row.addStretch()
         self._year_combo = QComboBox()
         for y in sorted(years, reverse=True):
             self._year_combo.addItem(y)
+        # Předvol aktuální akademický rok, je-li v datech.
+        current = self.service.current_academic_year()
+        idx = self._year_combo.findText(current)
+        if idx >= 0:
+            self._year_combo.setCurrentIndex(idx)
         self._year_combo.currentTextChanged.connect(self._render_year)
-        hdr.addWidget(self._year_combo)
-        lay.addLayout(hdr)
+        combo_row.addWidget(self._year_combo)
+        combo_row.addStretch()
+        lay.addLayout(combo_row)
         self._year_detail = QLabel()
         self._year_detail.setTextFormat(Qt.TextFormat.RichText)
         self._year_detail.setWordWrap(True)
@@ -483,11 +493,12 @@ class StatsTab(QWidget):
         d = self._year_data.get(year)
         if not d:
             return
-        rows = (
-            self._bar("V řešení", d["prog"], d["n"], "#00897b")
-            + self._bar("Obhájeno", d["def"], d["n"], "#2e7d32")
-            + self._bar("Neobhájeno", d["fail"], d["n"], "#c62828")
-            + self._bar("Nedokončeno", d["canc"], d["n"], "#9e9e9e")
+        # Zobraz jen stavy, které v daném roce reálně jsou (budoucí rok → vypsaná
+        # témata apod.; historický rok → bez „V řešení").
+        rows = "".join(
+            self._bar(status.label, d["st"][status], d["n"], status.color)
+            for status in ThesisStatus
+            if d["st"].get(status, 0)
         )
         self._year_detail.setText(
             "<div style='font-size:13px;'>"
@@ -496,8 +507,9 @@ class StatsTab(QWidget):
             f"<table style='width:100%;'>{rows}</table></div>"
         )
 
-    def _chart_grades(self, theses, opposings) -> QFrame | None:
-        grades = ["A", "B", "C", "D", "E", "F"]
+    _GRADES: ClassVar[list[str]] = ["A", "B", "C", "D", "E", "F"]
+
+    def _card_grades(self, theses, opposings) -> QFrame | None:
         led_me: Counter = Counter()
         led_opp: Counter = Counter()
         opp_me: Counter = Counter()
@@ -507,54 +519,74 @@ class StatsTab(QWidget):
                 continue
             gs = (t.grade_supervisor or "").strip().upper()
             go = (t.grade_opponent or "").strip().upper()
-            if gs in grades:
+            if gs in self._GRADES:
                 led_me[gs] += 1
-            if go in grades:
+            if go in self._GRADES:
                 led_opp[go] += 1
         for o in opposings:
             go = (o.grade_opponent or "").strip().upper()
             gs = (o.grade_supervisor or "").strip().upper()
-            if go in grades:
+            if go in self._GRADES:
                 opp_me[go] += 1
-            if gs in grades:
+            if gs in self._GRADES:
                 opp_sup[gs] += 1
-        if not (led_me or led_opp or opp_me or opp_sup):
-            return None
-        series = QBarSeries()
-        sets = [
-            ("Vedu · já", led_me, "#1565c0"),
-            ("Vedu · oponent", led_opp, "#00897b"),
-            ("Oponuji · já", opp_me, "#8e24aa"),
-            ("Vedoucí (mé oponentury)", opp_sup, "#ef6c00"),
+        # 4 pohledy přepínatelné comboboxem.
+        self._grade_views = [
+            ("Vedu já", led_me, "#1565c0"),
+            ("Jsem oponent", opp_me, "#8e24aa"),
+            ("Oponent mých vedených", led_opp, "#00897b"),
+            ("Vedoucí mých oponovaných", opp_sup, "#ef6c00"),
         ]
-        for name, counter, color in sets:
-            bset = QBarSet(name)
-            for g in grades:
-                bset.append(counter.get(g, 0))
-            bset.setColor(QColor(color))
-            series.append(bset)
+        if not any(c for _n, c, _col in self._grade_views):
+            return None
+        card = self._card_frame()
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(14, 8, 14, 12)
+        lay.addWidget(self._header_label("Známky"))
+        combo_row = QHBoxLayout()
+        combo_row.addStretch()
+        self._grade_combo = QComboBox()
+        for name, _c, _col in self._grade_views:
+            self._grade_combo.addItem(name)
+        self._grade_combo.currentIndexChanged.connect(self._render_grades)
+        combo_row.addWidget(self._grade_combo)
+        combo_row.addStretch()
+        lay.addLayout(combo_row)
+        self._grade_view = self._chart_view()
+        lay.addWidget(self._grade_view, stretch=1)
+        self._render_grades(0)
+        return card
+
+    def _render_grades(self, index: int) -> None:
+        if not (0 <= index < len(self._grade_views)):
+            return
+        _name, counter, color = self._grade_views[index]
+        bset = QBarSet("")
+        for g in self._GRADES:
+            bset.append(counter.get(g, 0))
+        bset.setColor(QColor(color))
+        bset.setLabelColor(QColor(self._fg))
+        series = QBarSeries()
+        series.append(bset)
+        series.setLabelsVisible(True)
         chart = QChart()
         chart.addSeries(series)
         ax = QBarCategoryAxis()
-        ax.append(grades)
-        ax.setLabelsColor(QColor(self._muted))
+        ax.append(self._GRADES)
         ax.setGridLineVisible(False)
         chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
         series.attachAxis(ax)
         ay = QValueAxis()
         ay.setLabelFormat("%d")
-        ay.setLabelsColor(QColor(self._muted))
         ay.setGridLineColor(QColor(self._border))
-        mx = max(
-            (counter.get(g, 0) for _n, counter, _c in sets for g in grades),
-            default=1,
-        )
+        mx = max((counter.get(g, 0) for g in self._GRADES), default=1)
         ay.setRange(0, mx + 1)
         ay.setTickCount(min(mx + 2, 6))
         chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
         series.attachAxis(ay)
-        self._style_chart(chart, legend=True)
-        return self._chart_card("Známky (vedené i oponované práce)", chart)
+        self._apply_axis_font(ax, ay)
+        self._style_chart(chart)
+        self._grade_view.setChart(chart)
 
     # --- sekce ---------------------------------------------------------------
 

@@ -7,6 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.2] - 2026-06-08
+
+### Changed
+- **Statistiky — další ladění dashboardu:**
+  - **Menší grafy** (nejsou „gigantické") a **menší/šikmé popisky os** (poslední
+    rok u *Vývoje* už není uťatý).
+  - **Obory** mají teď **svislý** sloupcový graf — popisky oborů jsou čitelné
+    (dřív se na ose ukazovalo jen „…"). Karta je nižší.
+  - **Titulky karet vycentrované.**
+  - **Podle akademického roku**: automaticky se předvolí **aktuální** rok a
+    ukazují se **jen relevantní stavy** daného roku (budoucí → vypsaná témata
+    apod., historický → bez „V řešení").
+  - **Obory · typ · kapacita**, **Podle roku** a **Známky** jsou vedle sebe.
+  - **Známky** jsou kompaktní karta s **přepínačem 4 pohledů**: *Vedu já /
+    Jsem oponent / Oponent mých vedených / Vedoucí mých oponovaných*.
+  - **Soubory** a **Odměny** jsou vedle sebe; karta **Posudky** odstraněna
+    (stav posudků je jinde v GUI).
+
 ## [1.16.1] - 2026-06-08
 
 ### Changed
