@@ -12,14 +12,10 @@ from collections import Counter
 from typing import ClassVar
 
 from PySide6.QtCharts import (
-    QBarCategoryAxis,
-    QBarSeries,
-    QBarSet,
     QChart,
     QChartView,
     QLegend,
     QPieSeries,
-    QValueAxis,
 )
 from PySide6.QtCore import QMargins, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette
@@ -69,16 +65,47 @@ def _czk(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " Kč"
 
 
-class _OborBars(QWidget):
-    """Svislé sloupce se zaoblenými rohy (počty prací podle oboru) + číslo nad
-    každým sloupcem. QtCharts zaoblené sloupce neumí, kreslíme je ručně."""
+def _lerp_hex(a: str, b: str, t: float) -> str:
+    """Lineární přechod mezi dvěma hex barvami (t v 0..1)."""
+    t = max(0.0, min(1.0, t))
+    ca, cb = QColor(a), QColor(b)
+    r = round(ca.red() + (cb.red() - ca.red()) * t)
+    g = round(ca.green() + (cb.green() - ca.green()) * t)
+    bl = round(ca.blue() + (cb.blue() - ca.blue()) * t)
+    return f"#{r:02x}{g:02x}{bl:02x}"
 
-    def __init__(self, items: list[tuple[str, int, str]], fg: str, parent=None) -> None:
+
+def _capacity_gradient(count: int, cap: int = _MAX_LED_THESES) -> str:
+    """Barva sloupce dle kapacity: ``cap`` = žlutá, pod ní zelená (čím méně,
+    tím tmavší), nad ní červená (čím více, tím tmavší)."""
+    if count == cap:
+        return "#fbc02d"                                   # žlutá na stropu
+    if count < cap:
+        # count→0 tmavá zelená, count→cap světlá zelená
+        return _lerp_hex("#1b5e20", "#a5d6a7", count / cap)
+    # count > cap: těsně nad → světlá červená, hodně nad → tmavá červená
+    return _lerp_hex("#ef9a9a", "#b71c1c", min((count - cap) / cap, 1.0))
+
+
+class _OborBars(QWidget):
+    """Svislé sloupce se zaoblenými rohy + číslo nad každým sloupcem (počty na
+    sloupci). Bez osy Y a mřížky. QtCharts zaoblené sloupce neumí — kreslíme
+    ručně. Když ``show_labels``, kreslí i popisek pod sloupcem (např. rok)."""
+
+    def __init__(self, items: list[tuple[str, int, str]], fg: str, *,
+                 show_labels: bool = False, muted: str | None = None,
+                 parent=None) -> None:
         super().__init__(parent)
         self._items = items            # [(label, count, color)]
         self._fg = fg
-        self.setMinimumHeight(140)
+        self._muted = muted or fg
+        self._show_labels = show_labels
+        self.setMinimumHeight(150 if show_labels else 140)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def set_items(self, items: list[tuple[str, int, str]]) -> None:
+        self._items = items
+        self.update()
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt API)
         if not self._items:
@@ -89,18 +116,22 @@ class _OborBars(QWidget):
         n = len(self._items)
         maxv = max(c for _l, c, _col in self._items) or 1
         top_pad = 18                       # místo na číslo nad sloupcem
-        base_y = area.bottom() - 2.0
-        avail = max(1.0, area.height() - top_pad)
+        bottom_pad = 17 if self._show_labels else 0
+        base_y = area.bottom() - 2.0 - bottom_pad
+        avail = max(1.0, area.height() - top_pad - bottom_pad)
         gap = 12.0
         bw = min(56.0, (area.width() - gap * (n - 1)) / n)
         group_w = bw * n + gap * (n - 1)
         x = area.left() + (area.width() - group_w) / 2.0
-        font = QFont()
-        font.setPointSize(9)
-        font.setBold(True)
-        painter.setFont(font)
-        align = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
-        for label, count, col in self._items:  # noqa: B007 (label nepoužit při kresbě)
+        num_font = QFont()
+        num_font.setPointSize(9)
+        num_font.setBold(True)
+        lbl_font = QFont()
+        lbl_font.setPointSize(10)
+        lbl_font.setBold(True)
+        align_num = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
+        align_lbl = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
+        for label, count, col in self._items:
             h = (count / maxv) * avail
             h = max(h, 3.0) if count else 0.0
             y = base_y - h
@@ -108,10 +139,18 @@ class _OborBars(QWidget):
             r = min(7.0, bw / 2.0)
             path.addRoundedRect(QRectF(x, y, bw, h), r, r)
             painter.fillPath(path, QColor(col))
+            painter.setFont(num_font)
             painter.setPen(QColor(self._fg))
             painter.drawText(
-                QRectF(x - gap / 2, y - top_pad, bw + gap, top_pad), align, str(count)
+                QRectF(x - gap / 2, y - top_pad, bw + gap, top_pad), align_num, str(count)
             )
+            if self._show_labels:
+                painter.setFont(lbl_font)
+                painter.setPen(QColor(self._muted))
+                painter.drawText(
+                    QRectF(x - gap / 2, base_y + 2, bw + gap, bottom_pad),
+                    align_lbl, str(label),
+                )
             x += bw + gap
         painter.end()
 
@@ -210,14 +249,6 @@ class StatsTab(QWidget):
         view.setMaximumHeight(220)
         view.setStyleSheet("background:transparent; border:none;")
         return view
-
-    def _apply_axis_font(self, *axes) -> None:
-        """Malý font popisků os, ať grafy nejsou „gigantické"."""
-        f = QFont()
-        f.setPointSize(8)
-        for ax in axes:
-            ax.setLabelsFont(f)
-            ax.setLabelsColor(QColor(self._muted))
 
     @staticmethod
     def _header_label(title: str) -> QLabel:
@@ -353,8 +384,10 @@ class StatsTab(QWidget):
         lay.addWidget(
             self._header_with_control("Vývoj počtu prací po letech", self._trend_combo)
         )
-        self._trend_view = self._chart_view()
-        lay.addWidget(self._trend_view, stretch=1)
+        # Kreslené zaoblené sloupce s rokem pod sloupcem (bez osy Y a mřížky);
+        # barva sloupce = kapacitní gradient (zelená < 15 < červená, 15 žlutá).
+        self._trend_bars = _OborBars([], self._fg, show_labels=True, muted=self._muted)
+        lay.addWidget(self._trend_bars, stretch=1)
         self._render_trend()
         return card
 
@@ -367,43 +400,11 @@ class StatsTab(QWidget):
         by_year: Counter[str] = Counter(
             (getattr(x, "academic_year", None) or "(bez roku)") for x in data
         )
-        chart = QChart()
-        if by_year:
-            years = sorted(by_year)
-            bset = QBarSet("")
-            for y in years:
-                bset.append(by_year[y])
-            color = "#1565c0" if self._trend_mode == "led" else "#5e35b1"
-            bset.setColor(QColor(color))
-            bset.setLabelColor(QColor(self._fg))
-            series = QBarSeries()
-            series.append(bset)
-            series.setLabelsVisible(True)
-            chart.addSeries(series)
-            ax = QBarCategoryAxis()
-            ax.append([self._short_year(y) for y in years])  # „17/18" místo „2017/2018"
-            ax.setLabelsAngle(0)            # vodorovné popisky (řádek 2 je dost široký)
-            ax.setGridLineVisible(False)
-            chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
-            series.attachAxis(ax)
-            ay = QValueAxis()
-            ay.setLabelFormat("%d")
-            ay.setGridLineColor(QColor(self._border))
-            top = max(by_year.values())
-            ay.setRange(0, top + 1)
-            ay.setTickCount(min(top + 2, 6))
-            chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
-            series.attachAxis(ay)
-            self._apply_axis_font(ax, ay)
-            # Popisky roků o něco větší a tučné — jsou hlavní orientace v grafu.
-            xf = QFont()
-            xf.setPointSize(10)
-            xf.setBold(True)
-            ax.setLabelsFont(xf)
-            ax.setLabelsColor(QColor(self._fg))
-        self._style_chart(chart)
-        chart.setMargins(QMargins(0, 0, 4, 0))   # rezerva, ať poslední popisek není uťatý
-        self._trend_view.setChart(chart)
+        items = [
+            (self._short_year(y), by_year[y], _capacity_gradient(by_year[y]))
+            for y in sorted(by_year)
+        ]
+        self._trend_bars.set_items(items)
 
     @staticmethod
     def _obor_group(raw: str) -> str:

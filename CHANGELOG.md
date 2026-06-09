@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.12] - 2026-06-09
+
+### Changed
+- **Statistiky — graf „Vývoj počtu prací po letech":** překreslen jako zaoblené
+  sloupce s rokem pod sloupcem a počtem nad ním, **bez osy Y a mřížky**. Barva
+  sloupce je **kapacitní gradient** — pod 15 zeleně (čím méně, tím tmavší
+  zelená), přesně **15 žlutě**, nad 15 červeně (čím více, tím tmavší červená).
+- Sloupcové grafy ve Statistikách už nemají **osu Y ani vodorovné linie**
+  (počty jsou na/nad sloupci).
+
+### Removed
+- Mrtvý kód po přechodu na kreslené sloupce: `_apply_axis_font` a QtCharts
+  importy sloupcových grafů (`QBarSeries`, `QBarSet`, `QBarCategoryAxis`,
+  `QValueAxis`).
+
 ## [1.16.11] - 2026-06-09
 
 ### Changed

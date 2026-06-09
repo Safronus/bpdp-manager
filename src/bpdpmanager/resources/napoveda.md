@@ -1024,7 +1024,10 @@ První řádek:
 Druhý řádek:
 
 - **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
-  přibývají), přepínač *Vedené / Oponované* vpravo nahoře.
+  přibývají), přepínač *Vedené / Oponované* vpravo nahoře. Rok je pod sloupcem,
+  počet nad ním (bez osy Y a mřížky). Barva sloupce je **kapacitní gradient**:
+  pod 15 zeleně (čím méně, tím tmavší), **15 žlutě**, nad 15 červeně (čím více,
+  tím tmavší).
 
 Třetí řádek:
 

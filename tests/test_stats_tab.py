@@ -139,8 +139,9 @@ def test_dashboard_has_charts(qapp, service: ThesisService) -> None:
                                  student_id=s.id, status=ThesisStatus.FAILED))
     w = StatsTab(service)
     charts = w.findChildren(QChartView)
-    assert len(charts) >= 3                       # vývoj + koláč roku + koláč známek
-    assert w.findChildren(_OborBars)              # obory jako kreslené sloupce (BP/DP)
+    assert len(charts) >= 2                        # koláč roku + koláč známek
+    # Kreslené sloupce: obory BP + DP + vývoj po letech.
+    assert len(w.findChildren(_OborBars)) >= 3
     html = w.rendered_html()
     assert "Vývoj počtu" in html and "akademického roku" in html and "Úspěšnost" in html
     assert "Obory" in html                        # panel oborů
