@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-06-09
+
+### Added
+- **Kontextová akce „🖨 Tisk posudku" nad vybranými pracemi.** Pravým klikem na
+  vybrané práce v *Aktuálně vedené práce* (posudek vedoucího) nebo *Oponované
+  práce* (posudek oponenta) se otevře dialog **Tisk posudků jen se zvolenými
+  pracemi**. Funguje pro jednu i více vybraných prací (multi-select); práce bez
+  hotového PDF posudku se přeskočí. Dialog `MyQPrintDialog` dostal volitelné
+  zúžení `only_thesis_ids` / `only_opposing_ids`.
+
 ## [1.16.19] - 2026-06-09
 
 ### Changed

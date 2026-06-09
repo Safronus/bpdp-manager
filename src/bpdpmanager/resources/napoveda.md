@@ -654,6 +654,12 @@ V dialogu:
   *odesláno do MyQ fronty*) a dialog se **zeptá, zda označit jako vytištěné**
   (promítne se do sloupce *Vytištěno*).
 
+> **Tip — tisk jen vybraných prací.** Pravým klikem na **vybrané práce**
+> (v *Aktuálně vedené práce* nebo v *Oponentury*) zvolíš **🖨 Tisk posudku** —
+> otevře tentýž dialog, ale **jen se zvolenými pracemi** (posudek vedoucího
+> u vedených, posudek oponenta u oponovaných). Funguje i pro jednu práci i pro
+> více vybraných najednou; práce bez hotového PDF posudku se přeskočí.
+
 > **Pozn.:** MyQ konektor komunikuje přímo s webem `myq.utb.cz`. Když UTB MyQ
 > výrazně změní rozhraní, lze tisk vždy provést i ručně přes web (posudky si
 > připravíš přes **📄 Export PDF mých posudků**), nebo použít systémovou
@@ -1108,6 +1114,10 @@ synchronizací.
   nabízí **jen tuto hromadnou akci** — ostatní položky (aktualizace ze STAG,
   napsat/generovat posudek, otevřít posudek, Roll-back…) se vztahují k jedné
   práci, takže se zobrazí jen při výběru **jediné** práce.
+- **🖨 Tisk posudku…** — pravý klik na práci (v *Aktuálně vedené práce* i
+  *Oponované práce*). Otevře dialog **Tisk posudků** **jen s vybranými pracemi**
+  (posudek vedoucího u vedených, oponenta u oponovaných). Funguje pro jednu
+  i pro **více vybraných** prací; práce **bez hotového PDF posudku** se přeskočí.
 - **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
   do ZIP* nejdřív ukáže **výběr „co zahrnout"**: náhled dat práce (ta se
   exportují vždy), navázané entity (**student / oponent / obor**) a **soubory

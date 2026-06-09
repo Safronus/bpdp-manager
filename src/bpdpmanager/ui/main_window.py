@@ -199,6 +199,7 @@ class _ThesesTab(QWidget):
         self.tree.mark_reviews_sent_requested.connect(self._on_mark_reviews_sent)
         self.tree.mark_reviews_printed_requested.connect(self._on_mark_reviews_printed)
         self.tree.rollback_many_requested.connect(self._on_rollback_many)
+        self.tree.print_reviews_requested.connect(self._on_print_reviews)
         # Detail panel má vlastní tlačítko „📝 Napsat posudek…" — pošle
         # stejný signal a my ho zpracujeme jednou handlerem.
         self.detail.generate_review_requested.connect(self._on_generate_review_requested)
@@ -499,6 +500,32 @@ class _ThesesTab(QWidget):
             if self.detail.thesis is not None:
                 self.detail.set_thesis(self.service.get_thesis(self.detail.thesis.id))
             self.data_changed.emit()
+
+    def _on_print_reviews(self, ids: list) -> None:
+        """Otevře „Tisk posudků" jen s vybranými vedenými pracemi (posudek vedoucího)."""
+        from .myq_print_dialog import MyQPrintDialog
+
+        have = [
+            i for i in ids
+            if i and self.service.get_thesis(i) is not None
+            and self.service.current_supervisor_review_pdf(self.service.get_thesis(i))
+            is not None
+        ]
+        if not have:
+            QMessageBox.information(
+                self, "Tisk posudku",
+                "Vybrané práce nemají PDF posudku vedoucího k tisku.",
+            )
+            return
+        dlg = MyQPrintDialog(self.service, self, only_thesis_ids=have)
+        dlg.data_changed.connect(self._after_print_reviews)
+        dlg.exec()
+
+    def _after_print_reviews(self) -> None:
+        self.tree.refresh()
+        if self.detail.thesis is not None:
+            self.detail.set_thesis(self.service.get_thesis(self.detail.thesis.id))
+        self.data_changed.emit()
 
     def _on_mark_reviews_printed(self, ids: list, printed: bool) -> None:
         """Hromadně přepne příznak vytištění posudku vedoucího u vybraných prací."""

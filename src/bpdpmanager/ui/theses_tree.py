@@ -475,6 +475,7 @@ class ThesesTreeWidget(QTreeWidget):
     mark_reviews_sent_requested = Signal(list, bool)
     mark_reviews_printed_requested = Signal(list, bool)
     rollback_many_requested = Signal(list)
+    print_reviews_requested = Signal(list)   # tisk posudků jen pro vybrané práce
 
     HEADERS = [
         "Student / Skupina", "Téma", "Stav", "Známky V/O",
@@ -903,6 +904,23 @@ class ThesesTreeWidget(QTreeWidget):
                 lambda _checked=False: self._export_my_review_pdfs()
             )
             menu.addAction(act_export_pdf)
+            # Tisk mých posudků (vedoucího) jen pro vybrané práce — napojení na
+            # dialog „Tisk posudků" se zúženým výběrem.
+            act_print = QAction(
+                f"🖨 Tisk posudku ({len(selected_theses)})…", self
+            )
+            act_print.setToolTip(
+                "Otevře tisk posudků jen s vybranými pracemi (posudek vedoucího). "
+                "Práce bez PDF posudku se přeskočí."
+            )
+            print_ids = [
+                it.data(0, ROLE_THESIS_ID) for it in selected_theses
+                if it.data(0, ROLE_THESIS_ID)
+            ]
+            act_print.triggered.connect(
+                lambda _checked=False, v=print_ids: self.print_reviews_requested.emit(v)
+            )
+            menu.addAction(act_print)
             menu.addSeparator()
 
         # Při výběru více prací nabídni hromadné akce nad vybranými.

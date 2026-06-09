@@ -71,6 +71,27 @@ def test_dialog_lists_only_works_with_pdf(qapp, service, tmp_path) -> None:
     assert len(names) == 2
 
 
+def test_subset_only_thesis_ids(qapp, service, tmp_path) -> None:
+    """only_thesis_ids → jen vybraná vedená práce, oponované se vynechají."""
+    _seed(service, tmp_path)
+    t1 = next(t for t in service.list_theses()
+              if service.current_supervisor_review_pdf(t) is not None)
+    dlg = MyQPrintDialog(service, only_thesis_ids=[t1.id])
+    names = [leaf.data(0, _ROLE_NAME) for leaf in dlg._iter_leaves()]
+    assert names == ["Jan Novák"]
+    assert "Petr Svoboda" not in names   # oponovaná vynechána
+
+
+def test_subset_only_opposing_ids(qapp, service, tmp_path) -> None:
+    """only_opposing_ids → jen vybraná oponovaná práce, vedené se vynechají."""
+    _seed(service, tmp_path)
+    op = service.list_opposing_theses()[0]
+    dlg = MyQPrintDialog(service, only_opposing_ids=[op.id])
+    names = [leaf.data(0, _ROLE_NAME) for leaf in dlg._iter_leaves()]
+    assert names == ["Petr Svoboda"]
+    assert "Jan Novák" not in names      # vedená vynechána
+
+
 def test_not_printed_auto_checked(qapp, service, tmp_path) -> None:
     _seed(service, tmp_path)
     dlg = MyQPrintDialog(service)

@@ -136,12 +136,14 @@ def test_supervised_menu_single_vs_multi(qapp, tmp_path) -> None:
     single = _labels(tree._build_context_menu(l1))
     assert len(single) > 1
     assert any("Export PDF" in x for x in single)
+    assert any("Tisk posudku" in x for x in single)   # nová akce (vedoucí)
     assert any("Roll-back" in x for x in single)
 
     leaf(t2.id).setSelected(True)
     multi = _labels(tree._build_context_menu(l1))
     # Multi-select: hromadný export + hromadné akce nad vybranými.
     assert any("Export PDF" in x for x in multi)
+    assert any("Tisk posudku" in x for x in multi)
     assert any("Aktualizace 2 prací ze STAG" in x for x in multi)
     assert any("Otevřít texty prací" in x for x in multi)
     assert any("Označit posudky za odeslané" in x for x in multi)
@@ -187,8 +189,9 @@ def test_supervised_menu_multi_empty_without_export(qapp, tmp_path) -> None:
         it.setSelected(True)
     labels = _labels(tree._build_context_menu(leaves[0]))
     # Bez exportu (mimo „Aktuálně vedené") nabízí multi-select hromadné akce,
-    # ale NE export PDF posudků.
+    # ale NE export PDF posudků ani tisk posudku.
     assert not any("Export PDF" in x for x in labels)
+    assert not any("Tisk posudku" in x for x in labels)
     assert any("Aktualizace 2 prací ze STAG" in x for x in labels)
     assert any("Roll-back" in x and "2 prací" in x for x in labels)
 
@@ -234,11 +237,13 @@ def test_opposing_menu_single_vs_multi(qapp, tmp_path) -> None:
     single = _labels(tab._build_context_menu(found[0].data(0, ROLE_ID)))
     assert len(single) > 1
     assert any("Export PDF" in x for x in single)
+    assert any("Tisk posudku" in x for x in single)   # nová akce (oponent)
 
     for it in found:
         it.setSelected(True)
     multi = _labels(tab._build_context_menu(found[0].data(0, ROLE_ID)))
     assert any("Export PDF" in x for x in multi)
+    assert any("Tisk posudku" in x for x in multi)
     assert any("Aktualizace 2 prací ze STAG" in x for x in multi)
     assert any("Roll-back" in x and "2 prací" in x for x in multi)
 

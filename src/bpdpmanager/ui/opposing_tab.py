@@ -399,6 +399,27 @@ class OpposingTab(QWidget):
             jobs.append((name, pdf))
         export_my_review_pdfs(self, jobs)
 
+    def _print_reviews(self, ids: list) -> None:
+        """Otevře „Tisk posudků" jen s vybranými oponovanými pracemi."""
+        from .myq_print_dialog import MyQPrintDialog
+
+        have = [
+            i for i in ids
+            if i and self.service.get_opposing_thesis(i) is not None
+            and self.service.current_opponent_review_pdf(
+                self.service.get_opposing_thesis(i)
+            ) is not None
+        ]
+        if not have:
+            QMessageBox.information(
+                self, "Tisk posudku",
+                "Vybrané práce nemají PDF oponentského posudku k tisku.",
+            )
+            return
+        dlg = MyQPrintDialog(self.service, self, only_opposing_ids=have)
+        dlg.data_changed.connect(lambda: (self.refresh(), self.changed.emit()))
+        dlg.exec()
+
     def _build_context_menu(self, op_id: str) -> QMenu | None:
         """Sestaví kontextové menu pro daný posudek (bez ``exec`` — testovatelné)."""
         # Import zde, ne na vrcholu (kruhový import s main_window)
@@ -422,6 +443,19 @@ class OpposingTab(QWidget):
             lambda _checked=False: self._export_my_review_pdfs()
         )
         menu.addAction(act_export_pdf)
+        # Tisk mých (oponentských) posudků jen pro vybrané práce.
+        act_print = QAction(
+            f"🖨 Tisk posudku ({len(selected_ops)})…", self.tree
+        )
+        act_print.setToolTip(
+            "Otevře tisk posudků jen s vybranými pracemi (posudek oponenta). "
+            "Práce bez PDF posudku se přeskočí."
+        )
+        print_ids = [it.data(0, ROLE_ID) for it in selected_ops if it.data(0, ROLE_ID)]
+        act_print.triggered.connect(
+            lambda _c=False, v=print_ids: self._print_reviews(v)
+        )
+        menu.addAction(act_print)
         menu.addSeparator()
 
         # Při výběru více prací nabídni hromadné akce nad vybranými.

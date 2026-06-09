@@ -130,9 +130,22 @@ class MyQPrintDialog(QDialog):
 
     data_changed = Signal()  # po označení prací jako vytištěné
 
-    def __init__(self, service: ThesisService, parent=None) -> None:
+    def __init__(self, service: ThesisService, parent=None, *,
+                 only_thesis_ids: list[str] | None = None,
+                 only_opposing_ids: list[str] | None = None) -> None:
         super().__init__(parent)
         self.service = service
+        # Volitelné zúžení jen na vybrané práce (kontextová akce „Tisk posudku").
+        # Když je aktivní, ukážou se jen vyjmenované práce daného druhu.
+        self._only_thesis_ids = (
+            set(only_thesis_ids) if only_thesis_ids is not None else None
+        )
+        self._only_opposing_ids = (
+            set(only_opposing_ids) if only_opposing_ids is not None else None
+        )
+        self._subset = (
+            self._only_thesis_ids is not None or self._only_opposing_ids is not None
+        )
         self._worker: _PrintWorker | _SystemPrintWorker | None = None
         self._is_system_print = False
         self._jobs: list[tuple[str, Path]] = []
@@ -259,8 +272,13 @@ class MyQPrintDialog(QDialog):
     # ── sběr tisknutelných posudků ────────────────────────────────────────
     def _printable_supervised(self) -> list[dict]:
         out: list[dict] = []
+        if self._subset and self._only_thesis_ids is None:
+            return out          # filtr aktivní, ale jen na oponované
         for t in self.service.list_theses():
-            if t.status not in STATUSES_CURRENT:
+            if self._only_thesis_ids is not None:
+                if t.id not in self._only_thesis_ids:
+                    continue
+            elif t.status not in STATUSES_CURRENT:
                 continue
             pdf = self.service.current_supervisor_review_pdf(t)
             if pdf is None:
@@ -278,9 +296,14 @@ class MyQPrintDialog(QDialog):
 
     def _printable_opposing(self) -> list[dict]:
         out: list[dict] = []
+        if self._subset and self._only_opposing_ids is None:
+            return out          # filtr aktivní, ale jen na vedené
         year = self.service.current_academic_year()
         for op in self.service.list_opposing_theses():
-            if op.academic_year != year:
+            if self._only_opposing_ids is not None:
+                if op.id not in self._only_opposing_ids:
+                    continue
+            elif op.academic_year != year:
                 continue
             pdf = self.service.current_opponent_review_pdf(op)
             if pdf is None:
