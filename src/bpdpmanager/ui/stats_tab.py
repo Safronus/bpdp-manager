@@ -11,13 +11,7 @@ import re
 from collections import Counter
 from typing import ClassVar
 
-from PySide6.QtCharts import (
-    QChart,
-    QChartView,
-    QLegend,
-    QPieSeries,
-)
-from PySide6.QtCore import QMargins, QRectF, Qt
+from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette
 from PySide6.QtWidgets import (
     QComboBox,
@@ -284,14 +278,6 @@ class StatsTab(QWidget):
             lay.addStretch(1)
         return card
 
-    def _chart_view(self, chart: QChart | None = None, min_h: int = 150) -> QChartView:
-        view = QChartView(chart) if chart is not None else QChartView()
-        view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        view.setMinimumHeight(min_h)
-        view.setMaximumHeight(220)
-        view.setStyleSheet("background:transparent; border:none;")
-        return view
-
     @staticmethod
     def _header_label(title: str) -> QLabel:
         lbl = QLabel(
@@ -324,21 +310,6 @@ class StatsTab(QWidget):
         """„2017/2018" → „17/18" (kratší popisek osy); jinak beze změny."""
         m = re.fullmatch(r"(\d{4})/(\d{4})", year)
         return f"{m.group(1)[2:]}/{m.group(2)[2:]}" if m else year
-
-    def _style_chart(self, chart: QChart, *, legend: bool = False) -> None:
-        chart.setBackgroundVisible(False)
-        chart.setMargins(QMargins(0, 0, 0, 0))
-        chart.setBackgroundRoundness(0)
-        chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
-        leg = chart.legend()
-        leg.setVisible(legend)
-        if legend:
-            leg.setAlignment(Qt.AlignmentFlag.AlignBottom)
-            leg.setLabelColor(QColor(self._fg))
-            leg.setMarkerShape(QLegend.MarkerShape.MarkerShapeCircle)
-            lf = QFont()
-            lf.setPointSize(8)
-            leg.setFont(lf)   # menší písmo → krátké kódy oborů se nezalomí na „I…"
 
     def _add_row(self, cards: list, stretches: list | None = None) -> None:
         """Přidá řádek karet (stejná výška, vyplní šířku)."""
@@ -461,13 +432,18 @@ class StatsTab(QWidget):
         legend = ""
         if self._trend_mode == "cmp":
             years = sorted(set(led_by) | set(opp_by))
+            # Vedené barví kapacitní gradient (zeleně < 15 < červeně), oponované
+            # mají pevnou fialovou — ať jdou série rozlišit.
             groups = [
                 (self._short_year(y),
-                 [(led_by.get(y, 0), _TREND_LED), (opp_by.get(y, 0), _TREND_OPP)])
+                 [(led_by.get(y, 0), _capacity_gradient(led_by.get(y, 0))),
+                  (opp_by.get(y, 0), _TREND_OPP)])
                 for y in years
             ]
             legend = (
-                f"<span style='color:{_TREND_LED};font-size:14px;'>●</span> Vedené"
+                "<span style='color:#2e7d32;font-size:14px;'>●</span>"
+                "<span style='color:#fbc02d;font-size:14px;'>●</span>"
+                "<span style='color:#c62828;font-size:14px;'>●</span> Vedené (dle kapacity)"
                 "&nbsp;&nbsp;&nbsp;&nbsp;"
                 f"<span style='color:{_TREND_OPP};font-size:14px;'>●</span> Oponované"
             )
@@ -621,21 +597,19 @@ class StatsTab(QWidget):
         lay.addWidget(
             self._header_with_control("Podle akademického roku", self._year_combo)
         )
-        # Data a koláč vedle sebe, vycentrované doprostřed karty (přepíná se
-        # s comboboxem; legenda netřeba — popis je v datech vlevo).
+        # Data vlevo, sloupce stavů vpravo (barvy stavů sedí s ● v datech).
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         self._year_detail = QLabel()
         self._year_detail.setTextFormat(Qt.TextFormat.RichText)
         self._year_detail.setWordWrap(False)   # ať se „Celkem … DP" nezalamuje
         self._year_detail.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        self._year_pie = self._chart_view()
-        self._year_pie.setMinimumWidth(170)
-        self._year_pie.setMaximumWidth(210)
+        self._year_bars = _OborBars([], self._fg, muted=self._muted)
+        self._year_bars.setMinimumWidth(180)
         body.addStretch(1)
         body.addWidget(self._year_detail, 0, Qt.AlignmentFlag.AlignVCenter)
         body.addSpacing(18)
-        body.addWidget(self._year_pie, 0, Qt.AlignmentFlag.AlignVCenter)
+        body.addWidget(self._year_bars, 1)
         body.addStretch(1)
         lay.addLayout(body, stretch=1)
         if self._year_combo.count():
@@ -691,21 +665,13 @@ class StatsTab(QWidget):
             f"&nbsp;·&nbsp; DP <b>{d['dp']}</b></p>"
             f"<table>{rows}</table>{success_line}</div>"
         )
-        # Koláč stavů pro vybraný výběr (barvy stavů, bez legendy).
-        series = QPieSeries()
-        series.setHoleSize(0.40)
-        for status in ThesisStatus:
-            n = d["st"].get(status, 0)
-            if not n:
-                continue
-            sl = series.append(status.label, n)
-            sl.setColor(QColor(status.color))
-            sl.setLabelVisible(False)
-            sl.setBorderColor(QColor(self._border))
-        chart = QChart()
-        chart.addSeries(series)
-        self._style_chart(chart, legend=False)
-        self._year_pie.setChart(chart)
+        # Sloupce stavů pro vybraný výběr (barvy stavů; popis je v datech vlevo).
+        groups = [
+            (status.label, [(d["st"][status], status.color)])
+            for status in ThesisStatus
+            if d["st"].get(status, 0)
+        ]
+        self._year_bars.set_groups(groups)
 
     _GRADES: ClassVar[list[str]] = ["A", "B", "C", "D", "E", "F"]
     _ALL_YEARS = "Všechny roky"   # výchozí volba v kartě „Podle akademického roku"
@@ -748,10 +714,10 @@ class StatsTab(QWidget):
             self._grade_combo.addItem(name)
         self._grade_combo.currentIndexChanged.connect(self._render_grades)
         lay.addWidget(self._header_with_control("Známky", self._grade_combo))
-        # Koláč známek A-F obarvený stejně jako známky v tabulce prací
-        # (GRADE_TINTS: zelená A → červená F). Popis přes legendu, ne v dílcích.
-        self._grade_pie = self._chart_view()
-        lay.addWidget(self._grade_pie, stretch=1)
+        # Sloupce známek A-F obarvené stejně jako známky v tabulce prací
+        # (GRADE_TINTS: zelená A → červená F), písmeno pod sloupcem.
+        self._grade_bars = _OborBars([], self._fg, show_labels=True, muted=self._muted)
+        lay.addWidget(self._grade_bars, stretch=1)
         self._render_grades(0)
         return card
 
@@ -759,20 +725,12 @@ class StatsTab(QWidget):
         if not (0 <= index < len(self._grade_views)):
             return
         _name, counter, _color = self._grade_views[index]
-        chart = QChart()
-        if sum(counter.values()):
-            series = QPieSeries()
-            for g in self._GRADES:
-                n = counter.get(g, 0)
-                if not n:
-                    continue
-                sl = series.append(f"{g}  ({n})", n)   # text jde do legendy
-                sl.setColor(QColor(GRADE_TINTS.get(g, self._muted)))
-                sl.setLabelVisible(False)              # ne do dílců, jen legenda
-                sl.setBorderColor(QColor(self._border))
-            chart.addSeries(series)
-        self._style_chart(chart, legend=True)
-        self._grade_pie.setChart(chart)
+        groups = [
+            (g, [(counter[g], GRADE_TINTS.get(g, self._muted))])
+            for g in self._GRADES
+            if counter.get(g, 0)
+        ]
+        self._grade_bars.set_groups(groups)
 
     # --- sekce ---------------------------------------------------------------
 

@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.15] - 2026-06-09
+
+### Changed
+- **Statistiky — „Podle akademického roku" a „Známky" jako sloupcové grafy:**
+  koláče/donut nahrazeny **zaoblenými sloupci** ve stejném stylu jako ostatní
+  grafy (stavy obarvené barvou stavu; známky A–F barvou známky s písmenem pod
+  sloupcem).
+- **Statistiky — režim „Porovnání":** sloupce **vedené** jsou nově obarvené
+  **kapacitním gradientem** (zeleně < 15 < červeně, 15 žlutě) i v porovnání;
+  oponované zůstávají fialové, legenda to rozlišuje.
+
+### Removed
+- Závislost na **QtCharts** ve Statistikách úplně odstraněna (všechny grafy jsou
+  teď kreslené sloupce) — smazán mrtvý kód `_chart_view`, `_style_chart` a
+  všechny QtCharts importy.
+
 ## [1.16.14] - 2026-06-09
 
 ### Changed

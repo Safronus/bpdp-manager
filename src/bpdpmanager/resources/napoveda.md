@@ -1009,10 +1009,11 @@ První řádek:
 
 - **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
   přibývají), rok je pod sloupcem, počet nad ním (bez osy Y a mřížky). Přepínač
-  vpravo nahoře: **Porovnání** (výchozí) ukáže pro každý rok **vedené (modře)**
-  a **oponované (fialově)** vedle sebe (s legendou); **Vedené** / **Oponované**
-  samostatně obarví sloupce **kapacitním gradientem** — pod 15 zeleně (čím méně,
-  tím tmavší), **15 žlutě**, nad 15 červeně (čím více, tím tmavší). Čísla nad
+  vpravo nahoře: **Porovnání** (výchozí) ukáže pro každý rok **vedené** a
+  **oponované (fialově)** vedle sebe (s legendou); i tady mají **vedené**
+  **kapacitní gradient**. V režimech **Vedené** / **Oponované** samostatně jsou
+  sloupce obarvené **kapacitním gradientem** — pod 15 zeleně (čím méně, tím
+  tmavší), **15 žlutě**, nad 15 červeně (čím více, tím tmavší). Čísla nad
   sloupci jsou výrazně větší.
 
 Druhý řádek:
@@ -1026,11 +1027,12 @@ Druhý řádek:
   nemíchají (`NSWI` ≠ `SWI`, `BTSM-M` ≠ `BTSM-T`).
 - **Podle akademického roku** — přepínač roku vpravo nahoře (výchozí *Všechny
   roky*); vlevo rozpad stavů (jen ty, které v daném výběru dávají smysl) +
-  *Úspěšnost obhajob*, vpravo **koláč stavů**, který se mění s přepínačem.
+  *Úspěšnost obhajob*, vpravo **sloupce stavů** (barvy stavů sedí s ● v datech),
+  které se mění s přepínačem.
 - **Známky** — přepínač 4 pohledů vpravo nahoře (*Vedu já* / *Jsem oponent* /
-  *Oponent mých vedených* / *Vedoucí mých oponovaných*); **koláč známek A–F**
-  obarvený stejně jako známky v tabulce prací (zelená A → červená F)
-  s legendou.
+  *Oponent mých vedených* / *Vedoucí mých oponovaných*); **sloupce známek A–F**
+  obarvené stejně jako známky v tabulce prací (zelená A → červená F), písmeno
+  pod sloupcem.
 
 Třetí řádek:
 

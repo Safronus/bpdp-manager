@@ -124,9 +124,7 @@ def test_dashboard_rows_and_no_duplication(qapp, service: ThesisService) -> None
 
 
 def test_dashboard_has_charts(qapp, service: ThesisService) -> None:
-    """Grafy se vykreslí — vývoj + koláče (QtCharts) a obory (kreslené sloupce)."""
-    from PySide6.QtCharts import QChartView
-
+    """Všechny grafy jsou kreslené zaoblené sloupce (_OborBars), bez QtCharts."""
     from bpdpmanager.ui.stats_tab import _OborBars
 
     s = Student(first_name="A", last_name="B", obor="ITA-P")
@@ -138,10 +136,8 @@ def test_dashboard_has_charts(qapp, service: ThesisService) -> None:
     service.upsert_thesis(Thesis(type=ThesisType.DP, academic_year="2024/2025",
                                  student_id=s.id, status=ThesisStatus.FAILED))
     w = StatsTab(service)
-    charts = w.findChildren(QChartView)
-    assert len(charts) >= 2                        # koláč roku + koláč známek
-    # Kreslené sloupce: obory BP + DP + vývoj po letech.
-    assert len(w.findChildren(_OborBars)) >= 3
+    # Kreslené sloupce: obory BP + DP + vývoj + podle roku + známky.
+    assert len(w.findChildren(_OborBars)) >= 5
     html = w.rendered_html()
     assert "Vývoj počtu" in html and "akademického roku" in html and "Úspěšnost" in html
     assert "Obory" in html                        # panel oborů
