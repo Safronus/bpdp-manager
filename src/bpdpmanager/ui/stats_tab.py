@@ -7,10 +7,12 @@ zobrazení / obnovení.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from typing import ClassVar
 
 from PySide6.QtCharts import (
+    QAbstractBarSeries,
     QBarCategoryAxis,
     QBarSeries,
     QBarSet,
@@ -125,20 +127,24 @@ class StatsTab(QWidget):
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         return card
 
-    def _make_card(self, html: str) -> QFrame | None:
-        """Karta s HTML obsahem (tabulka / seznam)."""
+    def _make_card(self, html: str, *, center: bool = False) -> QFrame | None:
+        """Karta s HTML obsahem (tabulka / seznam). ``center`` = obsah na střed."""
         if not html or not html.strip():
             return None
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        lbl = QLabel(f"<div style='font-size:13px;'>{html}</div>")
+        align = "center" if center else "left"
+        lbl = QLabel(f"<div style='font-size:13px;text-align:{align};'>{html}</div>")
         lbl.setWordWrap(True)
         lbl.setTextFormat(Qt.TextFormat.RichText)
         lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
-        lay.addWidget(lbl)
-        lay.addStretch(1)
+        lbl.setAlignment(
+            Qt.AlignmentFlag.AlignCenter if center else Qt.AlignmentFlag.AlignTop
+        )
+        lay.addWidget(lbl, stretch=1 if center else 0)
+        if not center:
+            lay.addStretch(1)
         return card
 
     def _chart_view(self, chart: QChart | None = None, min_h: int = 150) -> QChartView:
@@ -164,6 +170,25 @@ class StatsTab(QWidget):
         )
         lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         return lbl
+
+    def _header_with_control(self, title: str, control: QWidget | None = None) -> QWidget:
+        """Hlavička karty: vycentrovaný titulek + ovládací prvek v pravém horním rohu."""
+        w = QWidget()
+        grid = QGridLayout(w)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.addWidget(self._header_label(title), 0, 0)
+        if control is not None:
+            grid.addWidget(
+                control, 0, 0,
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            )
+        return w
+
+    @staticmethod
+    def _short_year(year: str) -> str:
+        """„2017/2018" → „17/18" (kratší popisek osy); jinak beze změny."""
+        m = re.fullmatch(r"(\d{4})/(\d{4})", year)
+        return f"{m.group(1)[2:]}/{m.group(2)[2:]}" if m else year
 
     def _chart_card(self, title: str, chart: QChart, center_text: str = "",
                     *, center_small: bool = False) -> QFrame:
@@ -265,7 +290,7 @@ class StatsTab(QWidget):
         # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
         self._add_row([
             self._make_card(self._files(theses, opposings)),
-            self._make_card(self._finance(theses, opposings)),
+            self._make_card(self._finance(theses, opposings), center=True),
         ])
 
     # --- grafy / interaktivní karty ------------------------------------------
@@ -278,9 +303,6 @@ class StatsTab(QWidget):
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        top = QHBoxLayout()
-        top.addWidget(self._header_label("Vývoj počtu prací po letech"))
-        top.addStretch()
         self._btn_led = QPushButton("Vedené")
         self._btn_opp = QPushButton("Oponované")
         for b in (self._btn_led, self._btn_opp):
@@ -291,9 +313,13 @@ class StatsTab(QWidget):
         self._btn_opp.setChecked(self._trend_mode == "opp")
         self._btn_led.clicked.connect(lambda: self._set_trend("led"))
         self._btn_opp.clicked.connect(lambda: self._set_trend("opp"))
-        top.addWidget(self._btn_led)
-        top.addWidget(self._btn_opp)
-        lay.addLayout(top)
+        ctrl = QWidget()
+        cl = QHBoxLayout(ctrl)
+        cl.setContentsMargins(0, 0, 0, 0)
+        cl.setSpacing(4)
+        cl.addWidget(self._btn_led)
+        cl.addWidget(self._btn_opp)
+        lay.addWidget(self._header_with_control("Vývoj počtu prací po letech", ctrl))
         self._trend_view = self._chart_view()
         lay.addWidget(self._trend_view, stretch=1)
         self._render_trend()
@@ -322,7 +348,7 @@ class StatsTab(QWidget):
             series.setLabelsVisible(True)
             chart.addSeries(series)
             ax = QBarCategoryAxis()
-            ax.append(years)
+            ax.append([self._short_year(y) for y in years])  # „17/18" místo „2017/2018"
             ax.setLabelsAngle(-45)          # šikmé popisky osy X (čitelnější)
             ax.setGridLineVisible(False)
             chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
@@ -406,20 +432,29 @@ class StatsTab(QWidget):
         top_lbl.setTextFormat(Qt.TextFormat.RichText)
         top_lbl.setWordWrap(True)
         lay.addWidget(top_lbl)
-        # Obory — svislý sloupcový graf (popisky oborů na ose X, šikmo).
+        # Obory — svislý sloupcový graf. Jen TOP 10 + „ostatní" (dlouhý ocas
+        # jedniček nic neříká a popisky by se nevešly).
         counts: Counter[str] = Counter()
         for t in theses:
             student = self.service.get_student(t.student_id) if t.student_id else None
             counts[(student.obor if student else "") or "(bez oboru)"] += 1
-        cats = [o for o, _ in counts.most_common()]
+        ordered = counts.most_common()
+        top_n = 10
+        if len(ordered) > top_n:
+            cats = [o for o, _n in ordered[:top_n]] + ["ostatní"]
+            vals = [n for _o, n in ordered[:top_n]] + [sum(n for _o, n in ordered[top_n:])]
+        else:
+            cats = [o for o, _n in ordered]
+            vals = [n for _o, n in ordered]
         bset = QBarSet("")
-        for o in cats:
-            bset.append(counts[o])
+        for v in vals:
+            bset.append(v)
         bset.setColor(QColor("#3949ab"))
         bset.setLabelColor(QColor(self._fg))
         series = QBarSeries()
         series.append(bset)
         series.setLabelsVisible(True)
+        series.setLabelsPosition(QAbstractBarSeries.LabelsPosition.LabelsOutsideEnd)
         chart = QChart()
         chart.addSeries(series)
         ax = QBarCategoryAxis()
@@ -431,9 +466,9 @@ class StatsTab(QWidget):
         avy = QValueAxis()
         avy.setLabelFormat("%d")
         avy.setGridLineColor(QColor(self._border))
-        top = max(counts.values())
-        avy.setRange(0, top + 1)
-        avy.setTickCount(min(top + 2, 6))
+        top = max(vals)
+        avy.setRange(0, top + max(1, round(top * 0.15)))   # rezerva nad sloupce pro čísla
+        avy.setTickCount(6)
         chart.addAxis(avy, Qt.AlignmentFlag.AlignLeft)
         series.attachAxis(avy)
         self._apply_axis_font(ax, avy)
@@ -460,9 +495,6 @@ class StatsTab(QWidget):
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        lay.addWidget(self._header_label("Podle akademického roku"))
-        combo_row = QHBoxLayout()
-        combo_row.addStretch()
         self._year_combo = QComboBox()
         for y in sorted(years, reverse=True):
             self._year_combo.addItem(y)
@@ -472,15 +504,14 @@ class StatsTab(QWidget):
         if idx >= 0:
             self._year_combo.setCurrentIndex(idx)
         self._year_combo.currentTextChanged.connect(self._render_year)
-        combo_row.addWidget(self._year_combo)
-        combo_row.addStretch()
-        lay.addLayout(combo_row)
+        lay.addWidget(
+            self._header_with_control("Podle akademického roku", self._year_combo)
+        )
         self._year_detail = QLabel()
         self._year_detail.setTextFormat(Qt.TextFormat.RichText)
         self._year_detail.setWordWrap(True)
-        self._year_detail.setAlignment(Qt.AlignmentFlag.AlignTop)
-        lay.addWidget(self._year_detail)
-        lay.addStretch(1)
+        self._year_detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self._year_detail, stretch=1)
         if self._year_combo.count():
             self._render_year(self._year_combo.currentText())
         return card
@@ -489,18 +520,25 @@ class StatsTab(QWidget):
         d = self._year_data.get(year)
         if not d:
             return
-        # Zobraz jen stavy, které v daném roce reálně jsou (budoucí rok → vypsaná
-        # témata apod.; historický rok → bez „V řešení").
-        rows = "".join(
-            self._bar(status.label, d["st"][status], d["n"], status.color)
-            for status in ThesisStatus
-            if d["st"].get(status, 0)
-        )
+        # Jen stavy, které v daném roce reálně jsou (budoucí rok → vypsaná témata
+        # apod.; historický rok → bez „V řešení"). Kompaktní, vycentrované.
+        rows = ""
+        for status in ThesisStatus:
+            n = d["st"].get(status, 0)
+            if not n:
+                continue
+            pct = n / d["n"] * 100.0
+            rows += (
+                f"<tr><td style='padding:1px 6px 1px 0;color:{status.color};'>●</td>"
+                f"<td style='padding:1px 12px 1px 0;'>{status.label}</td>"
+                f"<td style='padding:1px 0;'><b>{n}</b> "
+                f"<span style='color:{self._muted};'>({pct:.0f}%)</span></td></tr>"
+            )
         self._year_detail.setText(
             "<div style='font-size:13px;'>"
-            f"<p>Celkem: <b>{d['n']}</b> &nbsp;·&nbsp; BP: <b>{d['bp']}</b> "
-            f"&nbsp;·&nbsp; DP: <b>{d['dp']}</b></p>"
-            f"<table style='width:100%;'>{rows}</table></div>"
+            f"<p>Celkem <b>{d['n']}</b> &nbsp;·&nbsp; BP <b>{d['bp']}</b> "
+            f"&nbsp;·&nbsp; DP <b>{d['dp']}</b></p>"
+            f"<table align='center'>{rows}</table></div>"
         )
 
     _GRADES: ClassVar[list[str]] = ["A", "B", "C", "D", "E", "F"]
@@ -538,16 +576,11 @@ class StatsTab(QWidget):
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        lay.addWidget(self._header_label("Známky"))
-        combo_row = QHBoxLayout()
-        combo_row.addStretch()
         self._grade_combo = QComboBox()
         for name, _c, _col in self._grade_views:
             self._grade_combo.addItem(name)
         self._grade_combo.currentIndexChanged.connect(self._render_grades)
-        combo_row.addWidget(self._grade_combo)
-        combo_row.addStretch()
-        lay.addLayout(combo_row)
+        lay.addWidget(self._header_with_control("Známky", self._grade_combo))
         self._grade_view = self._chart_view()
         lay.addWidget(self._grade_view, stretch=1)
         self._render_grades(0)

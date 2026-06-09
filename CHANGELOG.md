@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.4] - 2026-06-08
+
+### Changed
+- **Statistiky — čitelnost a layout:**
+  - **Vývoj po letech**: roky na ose X zkráceny na **„YY/YY"** (17/18…) — čitelné,
+    už se neořezávají.
+  - **Obory**: jen **TOP 10** + „ostatní" (méně sloupců → čitelné kódy) a **čísla
+    nad sloupci** (ne uvnitř).
+  - **Přepínače** (rok, známky, vedené/oponované) jsou teď v **pravém horním
+    rohu** karty vedle vycentrovaného titulku.
+  - **Obsah karet *Odměny* a *Podle akademického roku*** je **vycentrovaný**;
+    rok je navíc kompaktní seznam s barevnými tečkami stavů.
+
 ## [1.16.3] - 2026-06-08
 
 ### Removed
