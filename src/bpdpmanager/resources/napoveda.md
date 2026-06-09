@@ -997,34 +997,38 @@ v následujících 60 dnech.
 
 Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný **dashboard** napříč
 budoucími, aktuálními i historickými pracemi. Přepočítá se při každém otevření
-(nebo tlačítkem *🔄 Přepočítat*). Části jsou **karty zarovnané do mřížky**
-(v rámci řádku stejně vysoké, různé řádky různě vysoké) a část z nich jsou
-**reálné grafy** (vývoj po letech sloupcově, podle stavu donut, úspěšnost
-obhajob gauge). Obsahuje:
+(nebo tlačítkem *🔄 Přepočítat*). Nahoře je **KPI banner**, pod ním **6 panelů**
+(reálné grafy QtCharts + tabulky) ve třech řádcích:
 
 - **Souhrn** — KPI banner přes celou šířku: vedené práce, V řešení, budoucí,
   historie, oponentury, studenti, odmítnutí zájemci.
-- **Kapacita vedení** — aktuálně vedených prací z maxima (15) + počet
-  odmítnutých zájemců (po letech).
-- **Vývoj počtu vedených prací po letech** — sloupcový přehled (trend).
-- **Podle stavu** — kolik prací je v jednotlivých stavech (barevné pruhy).
-- **Bakalářské vs diplomové** — poměr BP/DP.
-- **Podle akademického roku** — tabulka rok → celkem / BP / DP / V řešení /
-  obhájeno / nedokončeno.
-- **Podle oboru** — rozložení prací mezi obory.
-- **Úspěšnost obhajob** — z dokončených prací (obhájeno vs nedokončeno) + %.
-- **Známky obhájených vedených prací** — rozložení navržených známek
-  **vedoucího** i **oponenta** (A–F).
-- **Oponentury** — souhrn oponovaných prací: počet, rozpad BP/DP, po letech
-  a **mnou navržené známky** (jako oponent).
+
+První řádek:
+
+- **Obory · typ prací · kapacita** — nahoře svislý sloupcový graf prací podle
+  oboru (TOP 10 + *ostatní*); dole vlevo počty **BP/DP**, vpravo **kapacita
+  vedení** (aktuálně vedených z maxima 15 + odmítnutí zájemci po letech).
+- **Podle akademického roku** — přepínač roku vpravo nahoře (výchozí *Všechny
+  roky*); vlevo rozpad stavů (jen ty, které v daném výběru dávají smysl) +
+  *Úspěšnost obhajob*, vpravo **koláč stavů**, který se mění s přepínačem.
+- **Známky** — přepínač 4 pohledů vpravo nahoře (*Vedu já* / *Jsem oponent* /
+  *Oponent mých vedených* / *Vedoucí mých oponovaných*); **koláč známek A–F**
+  obarvený stejně jako známky v tabulce prací (zelená A → červená F)
+  s legendou.
+
+Druhý řádek:
+
+- **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
+  přibývají), přepínač *Vedené / Oponované* vpravo nahoře.
+
+Třetí řádek:
+
 - **Soubory (přílohy)** — kolik máš celkem souborů a kolik zabírají, rozpad
   **podle druhu dokumentu** (text práce / přílohy / posudky / …) a **největší
   práce** podle objemu (top 10). Počítá se z reálných souborů na disku
   (vč. starších verzí).
 - **Odměny (orientačně)** — per rok: odměna za vedení (3 000 Kč/obhájenou
   práci, max 12/rok) a oponentury (600 Kč/posudek) + celkový součet.
-- **Posudky** — hotové / rozpracované / chybí (vedoucí), hotové / chybí
-  (oponentské) a kolik jich bylo odesláno sekretářce.
 
 > **Odmítnutí zájemci** se evidují v toolbaru **🚫 Odmítnutí** (jméno, obor,
 > akademický rok) — souvisí s kapacitou vedení a promítají se do statistik.

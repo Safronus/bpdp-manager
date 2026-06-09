@@ -7,6 +7,27 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.8] - 2026-06-09
+
+### Changed
+- **Statistiky — doladění panelů:**
+  - **Podle akademického roku:** data (rozpad stavů) a **koláč** jsou nově
+    vedle sebe **vycentrované** doprostřed panelu (dřív se rozlézaly do rohů);
+    řádek „Celkem · BP · DP" se nezalamuje.
+  - **Známky:** koláč má teď **legendu** (A–F s barvou a počtem) místo popisků
+    natěsno v dílcích.
+  - **Vývoj počtu prací po letech:** popisky osy X **vodorovně, větší a tučně**
+    (řádek je přes celou šířku, je na ně místo).
+  - **Obory · typ prací · kapacita:** graf nahoře přes celou šíři, dole dvě
+    poloviny — vlevo **počty BP/DP**, vpravo **kapacita vedení**, obě na střed.
+  - **Odměny:** tabulka vyplní **šířku i výšku** panelu (zarovnání na střed
+    zachováno).
+  - Přepínače (comboboxy) u panelů *Podle roku* a *Známky* jsou nově spolehlivě
+    **na řádku titulku** v pravém horním rohu.
+
+### Removed
+- Mrtvý kód po úpravách: `_bar` (vodorovné HTML pruhy BP/DP).
+
 ## [1.16.7] - 2026-06-08
 
 ### Changed

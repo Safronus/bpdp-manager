@@ -19,7 +19,6 @@ from PySide6.QtCharts import (
     QChart,
     QChartView,
     QPieSeries,
-    QPieSlice,
     QValueAxis,
 )
 from PySide6.QtCore import QMargins, Qt
@@ -27,7 +26,6 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPalette
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -174,16 +172,22 @@ class StatsTab(QWidget):
         return lbl
 
     def _header_with_control(self, title: str, control: QWidget | None = None) -> QWidget:
-        """Hlavička karty: vycentrovaný titulek + ovládací prvek v pravém horním rohu."""
+        """Hlavička karty: vycentrovaný titulek + ovládací prvek vpravo v rohu,
+        oba na jednom řádku."""
         w = QWidget()
-        grid = QGridLayout(w)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.addWidget(self._header_label(title), 0, 0)
-        if control is not None:
-            grid.addWidget(
-                control, 0, 0,
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-            )
+        hb = QHBoxLayout(w)
+        hb.setContentsMargins(0, 0, 0, 0)
+        title_lbl = self._header_label(title)
+        if control is None:
+            hb.addWidget(title_lbl)
+            return w
+        # Levá mezera o šířce comboboxu vyváží jeho pravou pozici → titulek je
+        # vycentrovaný v celé šířce a combo sedí v pravém horním rohu.
+        hb.addSpacing(max(control.sizeHint().width(), 1))
+        hb.addStretch(1)
+        hb.addWidget(title_lbl)
+        hb.addStretch(1)
+        hb.addWidget(control, 0, Qt.AlignmentFlag.AlignVCenter)
         return w
 
     @staticmethod
@@ -315,7 +319,7 @@ class StatsTab(QWidget):
             chart.addSeries(series)
             ax = QBarCategoryAxis()
             ax.append([self._short_year(y) for y in years])  # „17/18" místo „2017/2018"
-            ax.setLabelsAngle(-45)          # šikmé popisky osy X (čitelnější)
+            ax.setLabelsAngle(0)            # vodorovné popisky (řádek 2 je dost široký)
             ax.setGridLineVisible(False)
             chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
             series.attachAxis(ax)
@@ -328,6 +332,12 @@ class StatsTab(QWidget):
             chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
             series.attachAxis(ay)
             self._apply_axis_font(ax, ay)
+            # Popisky roků o něco větší a tučné — jsou hlavní orientace v grafu.
+            xf = QFont()
+            xf.setPointSize(10)
+            xf.setBold(True)
+            ax.setLabelsFont(xf)
+            ax.setLabelsColor(QColor(self._fg))
         self._style_chart(chart)
         chart.setMargins(QMargins(0, 0, 4, 0))   # rezerva, ať poslední popisek není uťatý
         self._trend_view.setChart(chart)
@@ -341,17 +351,8 @@ class StatsTab(QWidget):
         lay.setContentsMargins(14, 8, 14, 12)
         lay.setSpacing(6)
         lay.addWidget(self._header_label("Obory · typ prací · kapacita"))
-        # BP/DP — dva nízké pruhy nahoře.
         bp = sum(1 for t in theses if t.type.value == "BP")
         dp = total - bp
-        bp_html = (
-            self._bar("Bakalářské (BP)", bp, total, "#1565c0")
-            + self._bar("Diplomové (DP)", dp, total, "#6a1b9a")
-        )
-        top_lbl = QLabel(f"<table style='width:100%;font-size:13px;'>{bp_html}</table>")
-        top_lbl.setTextFormat(Qt.TextFormat.RichText)
-        top_lbl.setWordWrap(True)
-        lay.addWidget(top_lbl)
         # Obory — svislý sloupcový graf. Jen TOP 10 + „ostatní" (dlouhý ocas
         # jedniček nic neříká a popisky by se nevešly).
         counts: Counter[str] = Counter()
@@ -393,12 +394,34 @@ class StatsTab(QWidget):
         series.attachAxis(avy)
         self._apply_axis_font(ax, avy)
         self._style_chart(chart)
+        # Nahoře graf přes celou šíři karty.
         lay.addWidget(self._chart_view(chart), stretch=1)
-        # Kapacita vedení — přes celou šířku karty dole.
-        cap = QLabel(f"<div style='font-size:13px;'>{self._capacity(theses, rejected)}</div>")
-        cap.setTextFormat(Qt.TextFormat.RichText)
-        cap.setWordWrap(True)
-        lay.addWidget(cap)
+        # Dole dvě poloviny: vlevo počty BP/DP, vpravo kapacita — každá na střed.
+        bp_pct = bp / total * 100.0
+        dp_pct = dp / total * 100.0
+        type_html = (
+            self._h("Typ prací")
+            + f"<p>Bakalářské (BP): <b>{bp}</b> "
+            f"<span style='color:{self._muted};'>({bp_pct:.0f}%)</span><br>"
+            f"Diplomové (DP): <b>{dp}</b> "
+            f"<span style='color:{self._muted};'>({dp_pct:.0f}%)</span></p>"
+        )
+        bottom = QHBoxLayout()
+        bottom.setContentsMargins(0, 0, 0, 0)
+        left = QLabel(f"<div style='font-size:13px;text-align:center;'>{type_html}</div>")
+        left.setTextFormat(Qt.TextFormat.RichText)
+        left.setWordWrap(True)
+        left.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        right = QLabel(
+            f"<div style='font-size:13px;text-align:center;'>"
+            f"{self._capacity(theses, rejected)}</div>"
+        )
+        right.setTextFormat(Qt.TextFormat.RichText)
+        right.setWordWrap(True)
+        right.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bottom.addWidget(left, 1)
+        bottom.addWidget(right, 1)
+        lay.addLayout(bottom)
         return card
 
     def _card_year(self, theses) -> QFrame | None:
@@ -423,16 +446,22 @@ class StatsTab(QWidget):
         lay.addWidget(
             self._header_with_control("Podle akademického roku", self._year_combo)
         )
-        # Vlevo data, vpravo koláč (přepíná se s comboboxem; legenda netřeba).
+        # Data a koláč vedle sebe, vycentrované doprostřed karty (přepíná se
+        # s comboboxem; legenda netřeba — popis je v datech vlevo).
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         self._year_detail = QLabel()
         self._year_detail.setTextFormat(Qt.TextFormat.RichText)
-        self._year_detail.setWordWrap(True)
+        self._year_detail.setWordWrap(False)   # ať se „Celkem … DP" nezalamuje
         self._year_detail.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        body.addWidget(self._year_detail, stretch=3)
         self._year_pie = self._chart_view()
-        body.addWidget(self._year_pie, stretch=2)
+        self._year_pie.setMinimumWidth(170)
+        self._year_pie.setMaximumWidth(210)
+        body.addStretch(1)
+        body.addWidget(self._year_detail, 0, Qt.AlignmentFlag.AlignVCenter)
+        body.addSpacing(18)
+        body.addWidget(self._year_pie, 0, Qt.AlignmentFlag.AlignVCenter)
+        body.addStretch(1)
         lay.addLayout(body, stretch=1)
         if self._year_combo.count():
             self._render_year(self._year_combo.currentText())
@@ -545,7 +574,7 @@ class StatsTab(QWidget):
         self._grade_combo.currentIndexChanged.connect(self._render_grades)
         lay.addWidget(self._header_with_control("Známky", self._grade_combo))
         # Koláč známek A-F obarvený stejně jako známky v tabulce prací
-        # (GRADE_TINTS: zelená A → červená F). Bez legendy — popisky jsou na dílcích.
+        # (GRADE_TINTS: zelená A → červená F). Popis přes legendu, ne v dílcích.
         self._grade_pie = self._chart_view()
         lay.addWidget(self._grade_pie, stretch=1)
         self._render_grades(0)
@@ -562,32 +591,15 @@ class StatsTab(QWidget):
                 n = counter.get(g, 0)
                 if not n:
                     continue
-                sl = series.append(f"{g}  {n}", n)
+                sl = series.append(f"{g}  ({n})", n)   # text jde do legendy
                 sl.setColor(QColor(GRADE_TINTS.get(g, self._muted)))
-                sl.setLabelVisible(True)
-                sl.setLabelColor(QColor("#212121"))   # tmavý text na světlých tintách
-                sl.setLabelPosition(QPieSlice.LabelPosition.LabelInsideHorizontal)
+                sl.setLabelVisible(False)              # ne do dílců, jen legenda
                 sl.setBorderColor(QColor(self._border))
             chart.addSeries(series)
-        self._style_chart(chart, legend=False)
+        self._style_chart(chart, legend=True)
         self._grade_pie.setChart(chart)
 
     # --- sekce ---------------------------------------------------------------
-
-    def _bar(self, label: str, count: int, total: int, color: str) -> str:
-        """Jeden řádek s vodorovným pruhem (podíl z ``total``)."""
-        pct = (count / total * 100.0) if total else 0.0
-        width = max(2, round(pct)) if count else 0
-        return (
-            "<tr>"
-            f"<td style='padding:2px 10px 2px 0;white-space:nowrap;'>{label}</td>"
-            "<td style='width:100%;padding:2px 0;'>"
-            f"<div style='background:{color};height:14px;width:{width}%;"
-            "border-radius:3px;display:inline-block;min-width:2px;'></div></td>"
-            f"<td style='padding:2px 0 2px 10px;white-space:nowrap;color:{self._muted};'>"
-            f"<b>{count}</b> ({pct:.0f}%)</td>"
-            "</tr>"
-        )
 
     @staticmethod
     def _h(title: str) -> str:
@@ -683,11 +695,13 @@ class StatsTab(QWidget):
             f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_opp)}</b></td>"
             f"<td style='padding:4px 0;'><b>{_czk(tot_sup + tot_opp)}</b></td></tr>"
         )
+        # width='100%' + cellpadding → tabulka vyplní šířku i výšku panelu.
         return self._h("Odměny (orientačně)") + (
             f"<p style='color:{self._muted};font-size:11px;'>Vedení {_czk(_FEE_THESIS)}/práci "
             f"(jen <b>obhájené</b>, max {_THESIS_FEE_CAP_PER_YEAR}/rok — symbol ⚠ "
             f"značí překročení stropu), oponentský posudek {_czk(_FEE_OPPOSING)}.</p>"
-            f"<table>{header}{rows}</table>"
+            f"<table width='100%' cellpadding='6' cellspacing='0' "
+            f"style='font-size:14px;'>{header}{rows}</table>"
         )
 
     def _size_bar(self, label: str, size_bytes: int, total_bytes: int,
