@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.18] - 2026-06-09
+
+### Changed
+- **Statistiky — panel „Soubory" převeden do grafického stylu:** místo textových
+  pruhů jsou teď nahoře **souhrn** (počet · velikost · počet prací), „Podle
+  druhu dokumentu" jako **dva zaoblené sloupcové grafy** (vlevo počet, vpravo
+  velikost) se sdílenou dot-legendou druhů, a dole **slim žebříček TOP 5
+  největších prací**.
+
+### Removed
+- Mrtvý kód po převodu Souborů na grafy: `_files` (HTML), `_size_bar`,
+  `_make_card`.
+
 ## [1.16.17] - 2026-06-09
 
 ### Changed

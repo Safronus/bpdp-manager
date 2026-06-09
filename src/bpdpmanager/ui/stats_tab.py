@@ -48,11 +48,29 @@ def _human_size(num_bytes: int) -> str:
     return f"{size:.1f} GB"
 
 
+def _size_short(num_bytes: int) -> str:
+    """Kompaktní velikost pro popisek nad sloupcem: 9 GB→„9G", 714 MB→„714M"."""
+    if num_bytes >= 1024**3:
+        v = num_bytes / 1024**3
+        return (f"{v:.1f}" if v < 10 else f"{v:.0f}") + "G"
+    if num_bytes >= 1024**2:
+        return f"{num_bytes / 1024**2:.0f}M"
+    if num_bytes >= 1024:
+        return f"{num_bytes / 1024:.0f}k"
+    return f"{num_bytes}B"
+
+
 # Kapacita a odměny (FAI UTB konvence — lze upravit).
 _MAX_LED_THESES = 15          # max počet vedených prací
 _FEE_THESIS = 3000            # Kč za vedenou (obhájenou) práci
 _THESIS_FEE_CAP_PER_YEAR = 12  # max počet honorovaných vedení za rok
 _FEE_OPPOSING = 600           # Kč za oponentský posudek
+
+# Barvy druhů dokumentů v grafu Souborů (pevná paleta, přiřazená dle pořadí).
+_FILE_KIND_COLORS = [
+    "#3949ab", "#00897b", "#8e24aa", "#ef6c00",
+    "#c62828", "#00838f", "#7cb342", "#5e35b1",
+]
 
 
 def _czk(amount: int) -> str:
@@ -269,22 +287,6 @@ class StatsTab(QWidget):
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         return card
 
-    def _make_card(self, html: str) -> QFrame | None:
-        """Karta s HTML obsahem (tabulka / seznam), obsah nahoře vlevo."""
-        if not html or not html.strip():
-            return None
-        card = self._card_frame()
-        lay = QVBoxLayout(card)
-        lay.setContentsMargins(14, 8, 14, 12)
-        lbl = QLabel(f"<div style='font-size:13px;text-align:left;'>{html}</div>")
-        lbl.setWordWrap(True)
-        lbl.setTextFormat(Qt.TextFormat.RichText)
-        lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
-        lay.addWidget(lbl)
-        lay.addStretch(1)
-        return card
-
     @staticmethod
     def _header_label(title: str) -> QLabel:
         lbl = QLabel(
@@ -384,9 +386,9 @@ class StatsTab(QWidget):
             self._card_year(theses),
             self._card_grades(theses, opposings),
         ], stretches=[2, 1, 1])
-        # Řádek 3 — soubory a odměny (dva grafy) vedle sebe.
+        # Řádek 3 — soubory a odměny (oba jako grafy) vedle sebe.
         self._add_row([
-            self._make_card(self._files(theses, opposings)),
+            self._card_files(theses, opposings),
             self._card_finance(theses, opposings),
         ])
 
@@ -870,24 +872,10 @@ class StatsTab(QWidget):
         lay.addLayout(cols, stretch=1)
         return card
 
-    def _size_bar(self, label: str, size_bytes: int, total_bytes: int,
-                  color: str) -> str:
-        """Pruh úměrný velikosti; vpravo lidsky čitelná velikost."""
-        pct = (size_bytes / total_bytes * 100.0) if total_bytes else 0.0
-        width = max(2, round(pct)) if size_bytes else 0
-        return (
-            "<tr>"
-            f"<td style='padding:2px 10px 2px 0;white-space:nowrap;'>{label}</td>"
-            "<td style='width:100%;padding:2px 0;'>"
-            f"<div style='background:{color};height:14px;width:{width}%;"
-            "border-radius:3px;display:inline-block;min-width:2px;'></div></td>"
-            f"<td style='padding:2px 0 2px 10px;white-space:nowrap;"
-            f"color:{self._muted};'>{_human_size(size_bytes)}</td>"
-            "</tr>"
-        )
-
-    def _files(self, theses, opposings) -> str:
-        """Počty a velikost příloh — celkem, podle druhu dokumentu a podle prací."""
+    def _scan_files(self, theses, opposings):
+        """Projde reálné soubory: vrací (by_kind, per_work, total_count,
+        total_bytes). ``by_kind``: kind→[count, bytes]; ``per_work``: [(label,
+        count, bytes)]."""
         by_kind: dict = {}                 # kind -> [count, bytes]
         per_work: list = []                # (label, count, bytes)
         total_count = 0
@@ -927,37 +915,99 @@ class StatsTab(QWidget):
             name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
             scan(o.attachments, f"opposing-{o.id}",
                  f"{name} — {o.title_cs or '(bez názvu)'} ({o.type.value}, oponentura)")
+        return by_kind, per_work, total_count, total_bytes
 
+    def _card_files(self, theses, opposings) -> QFrame | None:
+        """Soubory: souhrn + dva grafy (počet a velikost podle druhu) + slim
+        žebříček největších prací."""
+        by_kind, per_work, total_count, total_bytes = self._scan_files(theses, opposings)
         if not total_count:
-            return ""
-
-        denom = total_bytes or 1
-        kind_rows = "".join(
-            self._size_bar(f"{kind.label}  ({c}×)", b, denom, "#3949ab")
+            return None
+        kinds = [
+            (kind, c, b)
             for kind, (c, b) in sorted(
                 by_kind.items(), key=lambda kv: kv[1][1], reverse=True
             )
+        ]
+        colors = {
+            kind: _FILE_KIND_COLORS[i % len(_FILE_KIND_COLORS)]
+            for i, (kind, _c, _b) in enumerate(kinds)
+        }
+        count_groups = [(k.label, [(c, colors[k])]) for k, c, _b in kinds]
+        size_groups = [(k.label, [(b, colors[k])]) for k, _c, b in kinds]
+
+        card = self._card_frame()
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(14, 8, 14, 12)
+        lay.setSpacing(6)
+        lay.addWidget(self._header_label("Soubory (přílohy)"))
+        summary = QLabel(
+            "<div style='font-size:13px;text-align:center;'>Celkem "
+            f"<b>{total_count}</b> souborů · <b>{_human_size(total_bytes)}</b> · napříč "
+            f"<b>{len(per_work)}</b> pracemi "
+            f"<span style='color:{self._muted};'>(vč. starších verzí)</span></div>"
         )
-        top = sorted(per_work, key=lambda w: w[2], reverse=True)[:10]
-        work_rows = "".join(
-            self._size_bar(f"{lbl}  ({c}×)", b, denom, "#00897b")
-            for lbl, c, b in top
+        summary.setTextFormat(Qt.TextFormat.RichText)
+        summary.setWordWrap(True)
+        summary.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(summary)
+        subtitle = QLabel(
+            f"<span style='color:{self._muted};font-size:12px;'>Podle druhu dokumentu</span>"
+        )
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(subtitle)
+        cols = QHBoxLayout()
+        cols.setContentsMargins(0, 0, 0, 0)
+        for cap_text, groups, vfmt, npt in (
+            ("Počet souborů", count_groups, str, 14),
+            ("Velikost", size_groups, _size_short, 13),
+        ):
+            col = QVBoxLayout()
+            col.setContentsMargins(0, 0, 0, 0)
+            col.setSpacing(2)
+            cap = QLabel(
+                f"<span style='color:{self._muted};font-size:12px;'>{cap_text}</span>"
+            )
+            cap.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            col.addWidget(cap)
+            col.addWidget(
+                _OborBars(groups, self._fg, muted=self._muted, value_fmt=vfmt, num_pt=npt),
+                stretch=1,
+            )
+            holder = QWidget()
+            holder.setLayout(col)
+            cols.addWidget(holder, 1)
+        lay.addLayout(cols, stretch=1)
+        # Sdílená dot-legenda druhů (názvy jsou dlouhé → legenda, ne pod sloupci).
+        legend = " &nbsp; ".join(
+            f"<span style='color:{colors[k]};font-size:14px;'>●</span> {k.label}"
+            for k, _c, _b in kinds
+        )
+        leg = QLabel(f"<div style='font-size:11px;text-align:center;'>{legend}</div>")
+        leg.setTextFormat(Qt.TextFormat.RichText)
+        leg.setWordWrap(True)
+        leg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(leg)
+        # Slim žebříček největších prací (TOP 5).
+        top = sorted(per_work, key=lambda w: w[2], reverse=True)[:5]
+        rows = "".join(
+            f"<tr><td style='padding:1px 8px 1px 0;color:{self._muted};'>{i}.</td>"
+            f"<td style='padding:1px 10px 1px 0;'>{lbl}</td>"
+            f"<td style='padding:1px 0;color:{self._muted};white-space:nowrap;'>"
+            f"{_human_size(b)}</td></tr>"
+            for i, (lbl, c, b) in enumerate(top, 1)
         )
         more = (
-            f"<p style='color:{self._muted};font-size:11px;'>"
-            f"(zobrazeno 10 největších z {len(per_work)} prací se soubory)</p>"
-            if len(per_work) > 10 else ""
+            f" <span style='color:{self._muted};'>(z {len(per_work)} prací se soubory)</span>"
+            if len(per_work) > 5 else ""
         )
-
-        return (
-            self._h("Soubory (přílohy)")
-            + f"<p>Celkem <b>{total_count}</b> souborů · "
-            f"<b>{_human_size(total_bytes)}</b> "
-            f"napříč <b>{len(per_work)}</b> pracemi "
-            f"<span style='color:{self._muted};'>(včetně starších verzí)</span>.</p>"
-            + "<p style='margin:6px 0 2px 0;'><b>Podle druhu dokumentu</b></p>"
-            + f"<table style='width:100%;'>{kind_rows}</table>"
-            + "<p style='margin:8px 0 2px 0;'><b>Největší práce</b></p>"
-            + f"<table style='width:100%;'>{work_rows}</table>"
-            + more
+        zebr = QLabel(
+            "<div style='font-size:11px;'>"
+            f"<p style='margin:6px 0 2px 0;'><b>Největší práce</b>{more}</p>"
+            f"<table>{rows}</table></div>"
         )
+        zebr.setTextFormat(Qt.TextFormat.RichText)
+        zebr.setWordWrap(True)
+        zebr.setAlignment(Qt.AlignmentFlag.AlignTop)
+        lay.addWidget(zebr)
+        return card

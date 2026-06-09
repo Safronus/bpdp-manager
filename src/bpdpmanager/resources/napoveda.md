@@ -1036,10 +1036,10 @@ Druhý řádek:
 
 Třetí řádek:
 
-- **Soubory (přílohy)** — kolik máš celkem souborů a kolik zabírají, rozpad
-  **podle druhu dokumentu** (text práce / přílohy / posudky / …) a **největší
-  práce** podle objemu (top 10). Počítá se z reálných souborů na disku
-  (vč. starších verzí).
+- **Soubory (přílohy)** — nahoře souhrn (počet souborů · velikost · počet
+  prací), pak **dva sloupcové grafy „Podle druhu dokumentu"** (vlevo počet,
+  vpravo velikost; barvy druhů v legendě) a dole **žebříček TOP 5 největších
+  prací**. Počítá se z reálných souborů na disku (vč. starších verzí).
 - **Odměny (orientačně)** — dva sloupcové grafy po letech: vlevo **odměna za
   vedení** (3 000 Kč/obhájenou, max 12/rok), vpravo **odměna za oponentury**
   (600 Kč/posudek). Čísla nad sloupci jsou v **tisících Kč**, v titulku grafu
