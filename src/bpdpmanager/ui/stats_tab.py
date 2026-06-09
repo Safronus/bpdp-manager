@@ -59,6 +59,15 @@ def _czk(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " Kč"
 
 
+def _money_k(amount: int) -> str:
+    """Částka v tisících Kč pro popisek nad sloupcem: 36000→„36k", 7200→„7,2k"."""
+    if not amount:
+        return "0"
+    if amount % 1000 == 0:
+        return f"{amount // 1000}k"
+    return f"{amount / 1000:.1f}".replace(".", ",") + "k"
+
+
 def _lerp_hex(a: str, b: str, t: float) -> str:
     """Lineární přechod mezi dvěma hex barvami (t v 0..1)."""
     t = max(0.0, min(1.0, t))
@@ -94,12 +103,14 @@ class _OborBars(QWidget):
 
     def __init__(self, groups: list[tuple[str, list[tuple[int, str]]]], fg: str, *,
                  show_labels: bool = False, muted: str | None = None,
-                 parent=None) -> None:
+                 value_fmt=None, num_pt: int = 18, parent=None) -> None:
         super().__init__(parent)
         self._groups = groups          # [(label, [(count, color), ...])]
         self._fg = fg
         self._muted = muted or fg
         self._show_labels = show_labels
+        self._value_fmt = value_fmt or str   # text čísla nad sloupcem
+        self._num_pt = num_pt
         self.setMinimumHeight(150 if show_labels else 140)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -135,7 +146,7 @@ class _OborBars(QWidget):
         total_w = sum(group_width(b) for _l, b in self._groups) + (ng - 1) * inter
         x = area.left() + (area.width() - total_w) / 2.0
         num_font = QFont()
-        num_font.setPointSize(18)          # čísla nad sloupci výrazně větší
+        num_font.setPointSize(self._num_pt)   # čísla nad sloupci výrazně větší
         num_font.setBold(True)
         lbl_font = QFont()
         lbl_font.setPointSize(10)
@@ -157,7 +168,7 @@ class _OborBars(QWidget):
                 painter.setPen(QColor(self._fg))
                 painter.drawText(
                     QRectF(bx - intra / 2, y - top_pad, bw + intra, top_pad),
-                    align_num, str(count),
+                    align_num, self._value_fmt(count),
                 )
                 bx += bw + intra
             if self._show_labels:
@@ -258,24 +269,20 @@ class StatsTab(QWidget):
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         return card
 
-    def _make_card(self, html: str, *, center: bool = False) -> QFrame | None:
-        """Karta s HTML obsahem (tabulka / seznam). ``center`` = obsah na střed."""
+    def _make_card(self, html: str) -> QFrame | None:
+        """Karta s HTML obsahem (tabulka / seznam), obsah nahoře vlevo."""
         if not html or not html.strip():
             return None
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        align = "center" if center else "left"
-        lbl = QLabel(f"<div style='font-size:13px;text-align:{align};'>{html}</div>")
+        lbl = QLabel(f"<div style='font-size:13px;text-align:left;'>{html}</div>")
         lbl.setWordWrap(True)
         lbl.setTextFormat(Qt.TextFormat.RichText)
         lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        lbl.setAlignment(
-            Qt.AlignmentFlag.AlignCenter if center else Qt.AlignmentFlag.AlignTop
-        )
-        lay.addWidget(lbl, stretch=1 if center else 0)
-        if not center:
-            lay.addStretch(1)
+        lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
+        lay.addWidget(lbl)
+        lay.addStretch(1)
         return card
 
     @staticmethod
@@ -377,10 +384,10 @@ class StatsTab(QWidget):
             self._card_year(theses),
             self._card_grades(theses, opposings),
         ], stretches=[2, 1, 1])
-        # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
+        # Řádek 3 — soubory a odměny (dva grafy) vedle sebe.
         self._add_row([
             self._make_card(self._files(theses, opposings)),
-            self._make_card(self._finance(theses, opposings), center=True),
+            self._card_finance(theses, opposings),
         ])
 
     # --- grafy / interaktivní karty ------------------------------------------
@@ -788,7 +795,9 @@ class StatsTab(QWidget):
         )
         return active_html, future_html
 
-    def _finance(self, theses, opposings) -> str:
+    def _card_finance(self, theses, opposings) -> QFrame | None:
+        """Odměny jako dva sloupcové grafy: vlevo odměna za vedení po letech,
+        vpravo odměna za oponentury po letech (čísla nad sloupci v tisících Kč)."""
         years: dict[str, dict] = {}
         for t in theses:
             y = t.academic_year or "(bez roku)"
@@ -799,52 +808,59 @@ class StatsTab(QWidget):
             y = op.academic_year or "(bez roku)"
             years.setdefault(y, {"def": 0, "opp": 0})["opp"] += 1
         if not years:
-            return ""
-
-        # text-align:left přímo na <th> — Qt rich-text jinak <th> centruje a
-        # titulky pak „plavou" mezi sloupci místo nad nimi.
-        th = "<th style='padding:2px 14px 2px 0;text-align:left;color:" + self._muted + ";'>"
-        header = (
-            "<tr>"
-            f"{th}Rok</th>"
-            f"{th}Obhájené</th>"
-            f"{th}Odměna vedení</th>"
-            f"{th}Oponentury</th>"
-            f"{th}Odměna oponentur</th>"
-            "<th style='padding:2px 0;text-align:left;color:" + self._muted + ";'>Celkem</th></tr>"
-        )
-        rows = ""
-        tot_sup = tot_opp = 0
-        for y in sorted(years, reverse=True):
+            return None
+        sup_groups: list = []
+        opp_groups: list = []
+        sup_total = opp_total = 0
+        for y in sorted(years):    # vzestupně — roky tu přibývají zleva
             d = years[y]
             sup_fee = min(d["def"], _THESIS_FEE_CAP_PER_YEAR) * _FEE_THESIS
             opp_fee = d["opp"] * _FEE_OPPOSING
-            tot_sup += sup_fee
-            tot_opp += opp_fee
-            capped = " ⚠" if d["def"] > _THESIS_FEE_CAP_PER_YEAR else ""
-            rows += (
-                f"<tr><td style='padding:2px 14px 2px 0;'><b>{y}</b></td>"
-                f"<td style='padding:2px 14px 2px 0;'>{d['def']}{capped}</td>"
-                f"<td style='padding:2px 14px 2px 0;'>{_czk(sup_fee)}</td>"
-                f"<td style='padding:2px 14px 2px 0;'>{d['opp']}</td>"
-                f"<td style='padding:2px 14px 2px 0;'>{_czk(opp_fee)}</td>"
-                f"<td style='padding:2px 0;'><b>{_czk(sup_fee + opp_fee)}</b></td></tr>"
+            sup_total += sup_fee
+            opp_total += opp_fee
+            sy = self._short_year(y)
+            sup_groups.append((sy, [(sup_fee, "#1565c0")]))   # vedení modře
+            opp_groups.append((sy, [(opp_fee, "#5e35b1")]))   # oponentury fialově
+        card = self._card_frame()
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(14, 8, 14, 12)
+        lay.setSpacing(6)
+        lay.addWidget(self._header_label("Odměny (orientačně)"))
+        note = QLabel(
+            f"<div style='font-size:11px;color:{self._muted};text-align:center;'>"
+            f"Vedení {_czk(_FEE_THESIS)}/obhájenou (max {_THESIS_FEE_CAP_PER_YEAR}/rok), "
+            f"oponentský posudek {_czk(_FEE_OPPOSING)}. Čísla nad sloupci v tisících Kč.</div>"
+        )
+        note.setTextFormat(Qt.TextFormat.RichText)
+        note.setWordWrap(True)
+        note.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(note)
+        cols = QHBoxLayout()
+        cols.setContentsMargins(0, 0, 0, 0)
+        for cap_text, groups in (
+            (f"Odměna za vedení · celkem {_czk(sup_total)}", sup_groups),
+            (f"Odměna za oponentury · celkem {_czk(opp_total)}", opp_groups),
+        ):
+            col = QVBoxLayout()
+            col.setContentsMargins(0, 0, 0, 0)
+            col.setSpacing(2)
+            cap = QLabel(
+                f"<span style='color:{self._muted};font-size:12px;'>{cap_text}</span>"
             )
-        rows += (
-            "<tr style='border-top:1px solid " + self._border + ";'>"
-            "<td style='padding:4px 14px 2px 0;'><b>Celkem</b></td>"
-            f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_sup)}</b></td>"
-            f"<td></td><td style='padding:4px 14px 2px 0;'><b>{_czk(tot_opp)}</b></td>"
-            f"<td style='padding:4px 0;'><b>{_czk(tot_sup + tot_opp)}</b></td></tr>"
-        )
-        # width='100%' + cellpadding → tabulka vyplní šířku i výšku panelu.
-        return self._h("Odměny (orientačně)") + (
-            f"<p style='color:{self._muted};font-size:11px;'>Vedení {_czk(_FEE_THESIS)}/práci "
-            f"(jen <b>obhájené</b>, max {_THESIS_FEE_CAP_PER_YEAR}/rok — symbol ⚠ "
-            f"značí překročení stropu), oponentský posudek {_czk(_FEE_OPPOSING)}.</p>"
-            f"<table width='100%' cellpadding='6' cellspacing='0' "
-            f"style='font-size:14px;'>{header}{rows}</table>"
-        )
+            cap.setTextFormat(Qt.TextFormat.RichText)
+            cap.setWordWrap(True)
+            cap.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            col.addWidget(cap)
+            col.addWidget(
+                _OborBars(groups, self._fg, show_labels=True, muted=self._muted,
+                          value_fmt=_money_k, num_pt=13),
+                stretch=1,
+            )
+            holder = QWidget()
+            holder.setLayout(col)
+            cols.addWidget(holder, 1)
+        lay.addLayout(cols, stretch=1)
+        return card
 
     def _size_bar(self, label: str, size_bytes: int, total_bytes: int,
                   color: str) -> str:

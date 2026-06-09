@@ -7,7 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [1.16.15] - 2026-06-09
+## [1.16.16] - 2026-06-09
+
+### Changed
+- **Statistiky — panel „Odměny" jako dva sloupcové grafy:** tabulka nahrazena
+  dvěma **zaoblenými sloupcovými grafy** ve stylu ostatních — vlevo **odměna za
+  vedení po letech** (modře), vpravo **odměna za oponentury po letech**
+  (fialově). Čísla nad sloupci jsou v **tisících Kč** (např. „36k", „7,2k"),
+  v titulku každého grafu je celkový součet.
+
+### Removed
+- Mrtvý kód po převodu Odměn na grafy: `_finance` (HTML tabulka) a větev
+  `center` v `_make_card`.
 
 ### Changed
 - **Statistiky — „Podle akademického roku" a „Známky" jako sloupcové grafy:**

@@ -1040,8 +1040,10 @@ Třetí řádek:
   **podle druhu dokumentu** (text práce / přílohy / posudky / …) a **největší
   práce** podle objemu (top 10). Počítá se z reálných souborů na disku
   (vč. starších verzí).
-- **Odměny (orientačně)** — per rok: odměna za vedení (3 000 Kč/obhájenou
-  práci, max 12/rok) a oponentury (600 Kč/posudek) + celkový součet.
+- **Odměny (orientačně)** — dva sloupcové grafy po letech: vlevo **odměna za
+  vedení** (3 000 Kč/obhájenou, max 12/rok), vpravo **odměna za oponentury**
+  (600 Kč/posudek). Čísla nad sloupci jsou v **tisících Kč**, v titulku grafu
+  celkový součet.
 
 > **Odmítnutí zájemci** se evidují v toolbaru **🚫 Odmítnutí** (jméno, obor,
 > akademický rok) — souvisí s kapacitou vedení a promítají se do statistik.
