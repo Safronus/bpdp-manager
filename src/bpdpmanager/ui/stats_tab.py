@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 
 from ..config import thesis_documents_dir
 from ..models.enums import (
+    GRADE_TINTS,
     STATUSES_CURRENT,
     STATUSES_FUTURE,
     STATUSES_HISTORY,
@@ -552,42 +553,48 @@ class StatsTab(QWidget):
             self._grade_combo.addItem(name)
         self._grade_combo.currentIndexChanged.connect(self._render_grades)
         lay.addWidget(self._header_with_control("Známky", self._grade_combo))
-        self._grade_view = self._chart_view()
-        lay.addWidget(self._grade_view, stretch=1)
+        # Vodorovné pruhy A-F obarvené stejně jako známky v tabulce prací
+        # (GRADE_TINTS: zelená A → červená F). QtCharts QBarSet umí jen jednu
+        # barvu pro celou sadu, proto HTML pruhy.
+        self._grade_detail = QLabel()
+        self._grade_detail.setTextFormat(Qt.TextFormat.RichText)
+        self._grade_detail.setWordWrap(True)
+        self._grade_detail.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        lay.addWidget(self._grade_detail, stretch=1)
         self._render_grades(0)
         return card
 
     def _render_grades(self, index: int) -> None:
         if not (0 <= index < len(self._grade_views)):
             return
-        _name, counter, color = self._grade_views[index]
-        bset = QBarSet("")
+        _name, counter, _color = self._grade_views[index]
+        total = sum(counter.values())
+        if not total:
+            self._grade_detail.setText(
+                f"<div style='font-size:13px;color:{self._muted};'>"
+                "Žádné známky v této kategorii.</div>"
+            )
+            return
+        mx = max(counter.values())
+        rows = ""
         for g in self._GRADES:
-            bset.append(counter.get(g, 0))
-        bset.setColor(QColor(color))
-        bset.setLabelColor(QColor(self._fg))
-        series = QBarSeries()
-        series.append(bset)
-        series.setLabelsVisible(True)
-        series.setLabelsPosition(QAbstractBarSeries.LabelsPosition.LabelsOutsideEnd)
-        chart = QChart()
-        chart.addSeries(series)
-        ax = QBarCategoryAxis()
-        ax.append(self._GRADES)
-        ax.setGridLineVisible(False)
-        chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
-        series.attachAxis(ax)
-        ay = QValueAxis()
-        ay.setLabelFormat("%d")
-        ay.setGridLineColor(QColor(self._border))
-        mx = max((counter.get(g, 0) for g in self._GRADES), default=1)
-        ay.setRange(0, mx + max(1, round(mx * 0.15)))   # rezerva pro čísla nad sloupci
-        ay.setTickCount(6)
-        chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
-        series.attachAxis(ay)
-        self._apply_axis_font(ax, ay)
-        self._style_chart(chart)
-        self._grade_view.setChart(chart)
+            n = counter.get(g, 0)
+            if not n:
+                continue
+            width = max(6, round(n / mx * 150))   # px délka úměrná počtu
+            pct = n / total * 100.0
+            rows += (
+                "<tr>"
+                f"<td style='padding:2px 10px 2px 0;'><b>{g}</b></td>"
+                "<td style='padding:2px 0;'>"
+                "<table cellspacing='0' cellpadding='0'><tr>"
+                f"<td width='{width}' bgcolor='{GRADE_TINTS.get(g, self._muted)}'"
+                " style='height:13px;'>&nbsp;</td></tr></table></td>"
+                f"<td style='padding:2px 0 2px 10px;color:{self._muted};"
+                f"white-space:nowrap;'><b style='color:{self._fg};'>{n}</b> "
+                f"({pct:.0f}%)</td></tr>"
+            )
+        self._grade_detail.setText(f"<table style='font-size:13px;'>{rows}</table>")
 
     # --- sekce ---------------------------------------------------------------
 

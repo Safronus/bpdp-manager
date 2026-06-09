@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.6] - 2026-06-08
+
+### Changed
+- **Statistiky — panel Známky:** sloupce jsou teď **barevně odstupňované podle
+  známky** stejně jako ve sloupci *V/O* v tabulce prací (zelená A → červená F,
+  `GRADE_TINTS`) a délka pruhu odpovídá počtu. Přepínač pohledu je v **pravém
+  horním rohu** vedle titulku (jednotně s ostatními kartami).
+
 ## [1.16.5] - 2026-06-08
 
 ### Changed
