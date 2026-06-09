@@ -9,15 +9,25 @@ from __future__ import annotations
 
 from collections import Counter
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt
-from PySide6.QtGui import QPalette
+from PySide6.QtCharts import (
+    QBarCategoryAxis,
+    QBarSeries,
+    QBarSet,
+    QChart,
+    QChartView,
+    QPieSeries,
+    QValueAxis,
+)
+from PySide6.QtCore import QMargins, Qt
+from PySide6.QtGui import QColor, QPainter, QPalette
 from PySide6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
-    QLayout,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -57,74 +67,9 @@ def _czk(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " Kč"
 
 
-class FlowLayout(QLayout):
-    """Layout, který skládá widgety vedle sebe a zalamuje je do dalších řádků
-    podle dostupné šířky — pro dlaždicový dashboard, který využije šířku."""
-
-    def __init__(self, parent=None, spacing: int = 12) -> None:
-        super().__init__(parent)
-        self._items: list = []
-        self.setSpacing(spacing)
-        self.setContentsMargins(0, 0, 0, 0)
-
-    def addItem(self, item) -> None:  # noqa: N802 (Qt API)
-        self._items.append(item)
-
-    def count(self) -> int:
-        return len(self._items)
-
-    def itemAt(self, i):  # noqa: N802 (Qt API)
-        return self._items[i] if 0 <= i < len(self._items) else None
-
-    def takeAt(self, i):  # noqa: N802 (Qt API)
-        return self._items.pop(i) if 0 <= i < len(self._items) else None
-
-    def expandingDirections(self):  # noqa: N802 (Qt API)
-        return Qt.Orientation(0)
-
-    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt API)
-        return True
-
-    def heightForWidth(self, width: int) -> int:  # noqa: N802 (Qt API)
-        return self._do_layout(QRect(0, 0, width, 0), test_only=True)
-
-    def setGeometry(self, rect) -> None:  # noqa: N802 (Qt API)
-        super().setGeometry(rect)
-        self._do_layout(rect, test_only=False)
-
-    def sizeHint(self) -> QSize:  # noqa: N802 (Qt API)
-        return self.minimumSize()
-
-    def minimumSize(self) -> QSize:  # noqa: N802 (Qt API)
-        size = QSize()
-        for item in self._items:
-            size = size.expandedTo(item.minimumSize())
-        m = self.contentsMargins()
-        return size + QSize(m.left() + m.right(), m.top() + m.bottom())
-
-    def _do_layout(self, rect, *, test_only: bool) -> int:
-        x, y = rect.x(), rect.y()
-        line_height = 0
-        spacing = self.spacing()
-        for item in self._items:
-            hint = item.sizeHint()
-            next_x = x + hint.width() + spacing
-            if next_x - spacing > rect.right() and line_height > 0:
-                x = rect.x()
-                y = y + line_height + spacing
-                next_x = x + hint.width() + spacing
-                line_height = 0
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), hint))
-            x = next_x
-            line_height = max(line_height, hint.height())
-        return y + line_height - rect.y()
-
-
 class StatsTab(QWidget):
-    """Statistický přehled — dlaždicový dashboard (KPI banner + karty sekcí)."""
-
-    _CARD_WIDTH = 430  # šířka jedné dlaždice; dlaždice se zalamují dle šířky okna
+    """Statistický přehled — dashboard: KPI banner + grid karet (grafy/tabulky),
+    v rámci řádku sjednocené, různé řádky různě vysoké."""
 
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
@@ -144,8 +89,6 @@ class StatsTab(QWidget):
         head.addWidget(btn_refresh)
         outer.addLayout(head)
 
-        # Scroll area s obsahem: nahoře KPI banner (přes celou šířku),
-        # pod ním dlaždice sekcí ve FlowLayoutu (zalamují se do šířky).
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -156,29 +99,21 @@ class StatsTab(QWidget):
         self._kpi_banner = QLabel()
         self._kpi_banner.setTextFormat(Qt.TextFormat.RichText)
         cv.addWidget(self._kpi_banner)
-        self._flow = FlowLayout(spacing=12)
-        cv.addLayout(self._flow)
+        # Řádky karet (každý řádek = QHBoxLayout s kartami stejné výšky).
+        self._rows = QVBoxLayout()
+        self._rows.setContentsMargins(0, 0, 0, 0)
+        self._rows.setSpacing(12)
+        cv.addLayout(self._rows)
         cv.addStretch(1)
         scroll.setWidget(container)
         outer.addWidget(scroll, stretch=1)
 
         self.refresh()
 
-    # --- výpočet -------------------------------------------------------------
+    # --- karty / grid --------------------------------------------------------
 
-    def rendered_html(self) -> str:
-        """Spojené HTML všech dlaždic + KPI banneru (pro testy / kopírování)."""
-        parts = [self._kpi_banner.text()]
-        for i in range(self._flow.count()):
-            item = self._flow.itemAt(i)
-            w = item.widget() if item is not None else None
-            lbl = w.findChild(QLabel) if w is not None else None
-            if lbl is not None:
-                parts.append(lbl.text())
-        return "\n".join(parts)
-
-    def _make_card(self, html: str) -> QFrame:
-        """Jedna dlaždice dashboardu — rámeček s HTML obsahem sekce."""
+    def _card_frame(self) -> QFrame:
+        """Prázdný rámeček karty (border, zaoblení, jemné pozadí)."""
         card = QFrame()
         card.setObjectName("statCard")
         card.setStyleSheet(
@@ -186,25 +121,95 @@ class StatsTab(QWidget):
             f"border:1px solid {self._border}; "
             "border-radius:10px; background: rgba(127,127,127,15); }"
         )
-        card.setFixedWidth(self._CARD_WIDTH)
+        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        return card
+
+    def _make_card(self, html: str) -> QFrame | None:
+        """Karta s HTML obsahem (tabulka / seznam)."""
+        if not html or not html.strip():
+            return None
+        card = self._card_frame()
         lay = QVBoxLayout(card)
-        lay.setContentsMargins(14, 6, 14, 12)
+        lay.setContentsMargins(14, 8, 14, 12)
         lbl = QLabel(f"<div style='font-size:13px;'>{html}</div>")
         lbl.setWordWrap(True)
         lbl.setTextFormat(Qt.TextFormat.RichText)
         lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
         lay.addWidget(lbl)
+        lay.addStretch(1)
         return card
 
+    def _chart_card(self, title: str, chart: QChart, center_text: str = "") -> QFrame:
+        """Karta s grafem (nadpis + QChartView, volitelně text uprostřed donutu)."""
+        card = self._card_frame()
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(14, 8, 14, 12)
+        header = QLabel(
+            f"<span style='color:#ffa726;font-weight:bold;font-size:14px;'>{title}</span>"
+        )
+        lay.addWidget(header)
+        view = QChartView(chart)
+        view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        view.setMinimumHeight(190)
+        view.setStyleSheet("background:transparent; border:none;")
+        if center_text:
+            holder = QWidget()
+            grid = QGridLayout(holder)
+            grid.setContentsMargins(0, 0, 0, 0)
+            grid.addWidget(view, 0, 0)
+            center = QLabel(center_text)
+            center.setStyleSheet(
+                f"font-size:30px;font-weight:bold;color:{self._fg};background:transparent;"
+            )
+            grid.addWidget(center, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+            lay.addWidget(holder, stretch=1)
+        else:
+            lay.addWidget(view, stretch=1)
+        return card
+
+    def _style_chart(self, chart: QChart, *, legend: bool = False) -> None:
+        chart.setBackgroundVisible(False)
+        chart.setMargins(QMargins(0, 0, 0, 0))
+        chart.setBackgroundRoundness(0)
+        chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+        leg = chart.legend()
+        leg.setVisible(legend)
+        if legend:
+            leg.setAlignment(Qt.AlignmentFlag.AlignBottom)
+            leg.setLabelColor(QColor(self._fg))
+
+    def _add_row(self, cards: list, stretches: list | None = None) -> None:
+        """Přidá řádek karet (stejná výška, vyplní šířku)."""
+        cards = [c for c in cards if c is not None]
+        if not cards:
+            return
+        row = QWidget()
+        hb = QHBoxLayout(row)
+        hb.setContentsMargins(0, 0, 0, 0)
+        hb.setSpacing(12)
+        for i, card in enumerate(cards):
+            hb.addWidget(card, stretches[i] if stretches else 1)
+        self._rows.addWidget(row)
+
+    def rendered_html(self) -> str:
+        """Spojený text všech karet (nadpisy + HTML) — pro testy / kopírování."""
+        parts = [self._kpi_banner.text()]
+        for lbl in self.findChildren(QLabel):
+            if lbl is not self._kpi_banner and lbl.text():
+                parts.append(lbl.text())
+        return "\n".join(parts)
+
+    # --- výpočet -------------------------------------------------------------
+
     def refresh(self) -> None:
-        # Barvy přizpůsob světlému/tmavému motivu (jinak je šedý text na tmavém
-        # pozadí nečitelný).
+        # Barvy přizpůsob světlému/tmavému motivu.
         base = self.palette().color(QPalette.ColorRole.Base)
         luminance = (base.red() * 299 + base.green() * 587 + base.blue() * 114) / 1000
         dark = luminance < 128
         self._muted = "#b8b8b8" if dark else "#555555"
         self._border = "#666666" if dark else "#cccccc"
+        self._fg = "#e6e6e6" if dark else "#333333"
 
         theses = self.service.list_theses()
         opposings = self.service.list_opposing_theses()
@@ -217,31 +222,116 @@ class StatsTab(QWidget):
             f"{self._kpis(theses, opposings, students, rejected)}</div>"
         )
 
-        # Vyprázdni staré dlaždice.
-        while self._flow.count():
-            item = self._flow.takeAt(0)
+        # Vyprázdni staré řádky.
+        while self._rows.count():
+            item = self._rows.takeAt(0)
             w = item.widget()
             if w is not None:
                 w.deleteLater()
 
-        # Sekce → dlaždice (prázdné se přeskočí).
-        sections = [
-            self._capacity(theses, rejected),
-            self._led_trend(theses),
-            self._by_status(theses),
-            self._by_type(theses),
-            self._by_year(theses),
-            self._by_obor(theses),
-            self._defense_success(theses),
-            self._grades(theses),
-            self._opposing_summary(opposings),
-            self._files(theses, opposings),
-            self._finance(theses, opposings),
-            self._reviews(theses, opposings),
-        ]
-        for html in sections:
-            if html and html.strip():
-                self._flow.addWidget(self._make_card(html))
+        # Řádek 1 — grafy (pilot): vývoj po letech, podle stavu, úspěšnost.
+        self._add_row([
+            self._chart_year_trend(theses),
+            self._chart_by_status(theses),
+            self._chart_success(theses),
+        ])
+        # Řádek 2 — menší tabulkové karty.
+        self._add_row([
+            self._make_card(self._capacity(theses, rejected)),
+            self._make_card(self._by_type(theses)),
+            self._make_card(self._grades(theses)),
+        ])
+        # Řádek 3 — velké tabulky.
+        self._add_row([
+            self._make_card(self._by_year(theses)),
+            self._make_card(self._by_obor(theses)),
+        ], stretches=[3, 2])
+        # Řádek 4 — oponentury / soubory / odměny.
+        self._add_row([
+            self._make_card(self._opposing_summary(opposings)),
+            self._make_card(self._files(theses, opposings)),
+            self._make_card(self._finance(theses, opposings)),
+        ])
+        # Řádek 5 — posudky.
+        self._add_row([self._make_card(self._reviews(theses, opposings))])
+
+    # --- grafy (pilot) -------------------------------------------------------
+
+    def _chart_year_trend(self, theses) -> QFrame | None:
+        if not theses:
+            return None
+        by_year: Counter[str] = Counter(t.academic_year or "(bez roku)" for t in theses)
+        years = sorted(by_year)
+        bset = QBarSet("")
+        for y in years:
+            bset.append(by_year[y])
+        bset.setColor(QColor("#1565c0"))
+        bset.setBorderColor(QColor("#1565c0"))
+        bset.setLabelColor(QColor(self._fg))
+        series = QBarSeries()
+        series.append(bset)
+        series.setLabelsVisible(True)
+        chart = QChart()
+        chart.addSeries(series)
+        ax = QBarCategoryAxis()
+        ax.append(years)
+        ax.setLabelsColor(QColor(self._muted))
+        ax.setGridLineVisible(False)
+        chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
+        series.attachAxis(ax)
+        ay = QValueAxis()
+        ay.setLabelFormat("%d")
+        ay.setLabelsColor(QColor(self._muted))
+        ay.setGridLineColor(QColor(self._border))
+        top = max(by_year.values())
+        ay.setRange(0, top + 1)
+        ay.setTickCount(min(top + 2, 6))
+        chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
+        series.attachAxis(ay)
+        self._style_chart(chart)
+        return self._chart_card("Vývoj počtu vedených prací po letech", chart)
+
+    def _chart_by_status(self, theses) -> QFrame | None:
+        if not theses:
+            return None
+        counts: Counter = Counter(t.status for t in theses)
+        series = QPieSeries()
+        series.setHoleSize(0.45)
+        for status in ThesisStatus:
+            n = counts.get(status, 0)
+            if not n:
+                continue
+            sl = series.append(f"{status.label}  {n}", n)
+            sl.setColor(QColor(status.color))
+            sl.setLabelVisible(False)
+            sl.setBorderColor(QColor(self._border))
+        chart = QChart()
+        chart.addSeries(series)
+        self._style_chart(chart, legend=True)
+        return self._chart_card("Podle stavu", chart)
+
+    def _chart_success(self, theses) -> QFrame | None:
+        finished = [t for t in theses if t.status in STATUSES_HISTORY]
+        if not finished:
+            return None
+        defended = sum(1 for t in finished if t.status == ThesisStatus.DEFENDED)
+        rest = len(finished) - defended
+        pct = defended / len(finished) * 100.0
+        series = QPieSeries()
+        series.setHoleSize(0.62)
+        a = series.append("Obhájeno", defended)
+        a.setColor(QColor("#2e7d32"))
+        a.setLabelVisible(False)
+        a.setBorderColor(QColor(self._border))
+        if rest:
+            b = series.append("Neúspěch / nedokončeno", rest)
+            b.setColor(QColor("#c62828"))
+            b.setLabelVisible(False)
+            b.setBorderColor(QColor(self._border))
+        chart = QChart()
+        chart.addSeries(series)
+        self._style_chart(chart, legend=True)
+        return self._chart_card("Úspěšnost obhajob", chart, center_text=f"{pct:.0f}%")
 
     # --- sekce ---------------------------------------------------------------
 

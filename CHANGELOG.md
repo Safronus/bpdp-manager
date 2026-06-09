@@ -7,7 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [1.15.0] - 2026-06-08
+## [1.16.0] - 2026-06-08
+
+### Changed
+- **Statistiky — grafový dashboard (1. fáze).** Karty se teď rovnají do **mřížky
+  s řádky stejné výšky** (v rámci řádku sjednocené, různé řádky různě vysoké) —
+  konec „co pes, jiná ves". První řada jsou **reálné grafy** (QtCharts):
+  **Vývoj počtu po letech** (sloupcový), **Podle stavu** (donut s legendou) a
+  **Úspěšnost obhajob** (gauge-donut s procentem uprostřed). Zbylé karty zatím
+  tabulkové — postupně se převedou na grafy.
 
 ### Changed
 - **Statistiky jako dlaždicový dashboard.** Záložka *📊 Statistiky* už není dlouhý

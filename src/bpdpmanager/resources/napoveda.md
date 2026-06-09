@@ -997,9 +997,10 @@ v následujících 60 dnech.
 
 Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný **dashboard** napříč
 budoucími, aktuálními i historickými pracemi. Přepočítá se při každém otevření
-(nebo tlačítkem *🔄 Přepočítat*). Jednotlivé části jsou **dlaždice (karty)**,
-které se **zalamují podle šířky okna** — na širokém monitoru je vidět víc karet
-vedle sebe, takže se využije i prostor do šířky. Obsahuje:
+(nebo tlačítkem *🔄 Přepočítat*). Části jsou **karty zarovnané do mřížky**
+(v rámci řádku stejně vysoké, různé řádky různě vysoké) a část z nich jsou
+**reálné grafy** (vývoj po letech sloupcově, podle stavu donut, úspěšnost
+obhajob gauge). Obsahuje:
 
 - **Souhrn** — KPI banner přes celou šířku: vedené práce, V řešení, budoucí,
   historie, oponentury, studenti, odmítnutí zájemci.

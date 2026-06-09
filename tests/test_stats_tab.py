@@ -108,8 +108,8 @@ def test_stats_files_section(qapp, service: ThesisService, tmp_path: Path) -> No
     assert "Soubory (přílohy)" not in w2.rendered_html()
 
 
-def test_dashboard_tiles_and_no_duplication(qapp, service: ThesisService) -> None:
-    """Sekce jsou samostatné dlaždice ve FlowLayoutu; přepočet neduplikuje."""
+def test_dashboard_rows_and_no_duplication(qapp, service: ThesisService) -> None:
+    """Sekce jsou v řádcích karet; přepočet neduplikuje řádky."""
     s = Student(first_name="A", last_name="B", obor="ITA-P")
     service.upsert_student(s)
     service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2024/2025",
@@ -117,22 +117,25 @@ def test_dashboard_tiles_and_no_duplication(qapp, service: ThesisService) -> Non
                                  grade_supervisor="B"))
     w = StatsTab(service)
     assert "Souhrn" in w._kpi_banner.text()      # KPI banner přes celou šířku
-    n = w._flow.count()
-    assert n >= 4                                # několik dlaždic sekcí
+    n = w._rows.count()
+    assert n >= 3                                # několik řádků sekcí
     w.refresh()
-    assert w._flow.count() == n                  # přepočet neduplikuje dlaždice
-    # FlowLayout se zalamuje — užší šířka → vyšší obsah
-    assert w._flow.heightForWidth(440) >= w._flow.heightForWidth(1400)
+    assert w._rows.count() == n                  # přepočet neduplikuje řádky
 
 
-def test_dashboard_reflow_uses_width(qapp, service: ThesisService) -> None:
+def test_dashboard_has_charts(qapp, service: ThesisService) -> None:
+    """Pilotní grafy (QtCharts) se vykreslí — sloupce, donut stavu, gauge úspěšnosti."""
+    from PySide6.QtCharts import QChartView
+
     s = Student(first_name="A", last_name="B")
     service.upsert_student(s)
     for yr in ("2024/2025", "2023/2024", "2022/2023"):
         service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year=yr,
                                      student_id=s.id, status=ThesisStatus.DEFENDED))
+    service.upsert_thesis(Thesis(type=ThesisType.DP, academic_year="2024/2025",
+                                 student_id=s.id, status=ThesisStatus.FAILED))
     w = StatsTab(service)
-    # na široko se víc dlaždic vejde vedle sebe → menší výška než na úzko
-    wide = w._flow.heightForWidth(1600)
-    narrow = w._flow.heightForWidth(460)
-    assert narrow > wide
+    charts = w.findChildren(QChartView)
+    assert len(charts) >= 3                       # vývoj + stav + úspěšnost
+    html = w.rendered_html()
+    assert "Vývoj počtu" in html and "Podle stavu" in html and "Úspěšnost" in html
