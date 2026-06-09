@@ -604,20 +604,28 @@ class StatsTab(QWidget):
         lay.addWidget(
             self._header_with_control("Podle akademického roku", self._year_combo)
         )
-        # Data vlevo, sloupce stavů vpravo (barvy stavů sedí s ● v datech).
-        body = QHBoxLayout()
-        body.setContentsMargins(0, 0, 0, 0)
+        # Dvě poloviny: vlevo data na střed levé poloviny, vpravo graf na střed
+        # pravé poloviny (barvy stavů sedí s ● v datech).
         self._year_detail = QLabel()
         self._year_detail.setTextFormat(Qt.TextFormat.RichText)
         self._year_detail.setWordWrap(False)   # ať se „Celkem … DP" nezalamuje
         self._year_detail.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         self._year_bars = _OborBars([], self._fg, muted=self._muted)
         self._year_bars.setMinimumWidth(180)
-        body.addStretch(1)
-        body.addWidget(self._year_detail, 0, Qt.AlignmentFlag.AlignVCenter)
-        body.addSpacing(18)
-        body.addWidget(self._year_bars, 1)
-        body.addStretch(1)
+        left_w = QWidget()
+        left_l = QHBoxLayout(left_w)
+        left_l.setContentsMargins(0, 0, 0, 0)
+        left_l.addStretch(1)
+        left_l.addWidget(self._year_detail, 0, Qt.AlignmentFlag.AlignVCenter)
+        left_l.addStretch(1)
+        right_w = QWidget()
+        right_l = QHBoxLayout(right_w)
+        right_l.setContentsMargins(0, 0, 0, 0)
+        right_l.addWidget(self._year_bars)
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.addWidget(left_w, 1)
+        body.addWidget(right_w, 1)
         lay.addLayout(body, stretch=1)
         if self._year_combo.count():
             self._render_year(self._year_combo.currentText())

@@ -7,6 +7,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.17] - 2026-06-09
+
+### Changed
+- **Statistiky — „Podle akademického roku":** panel rozdělen na dvě poloviny —
+  data (tabulka stavů) jsou vycentrovaná v **levé polovině**, graf v **pravé**.
+
 ## [1.16.16] - 2026-06-09
 
 ### Changed
