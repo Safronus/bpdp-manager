@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.13] - 2026-06-09
+
+### Changed
+- **Statistiky — Kapacita vedení nahoru:** přesunuta z prvního panelu **nad
+  panely, vpravo vedle Souhrnu** (jako karta). Počet **odmítnutých** z ní
+  vypadl — ti jsou v Souhrnu.
+- **Statistiky — první panel přeorganizován na 3 sloupce:** vlevo graf **BP**,
+  uprostřed graf **DP**, vpravo nahoře **Typ prací** a dole **Forma studia**
+  (vše na střed). Titulek panelu je nově „Obory · typ · forma prací".
+- **Statistiky — „Vývoj počtu prací po letech":** překreslen jako zaoblené
+  sloupce (jako v prvním panelu) a přibyl **výchozí režim „Porovnání"** —
+  vedené (modře) a oponované (fialově) vedle sebe pro každý rok, s legendou.
+  Samostatné režimy *Vedené* / *Oponované* zůstávají s kapacitním gradientem.
+
 ## [1.16.12] - 2026-06-09
 
 ### Changed

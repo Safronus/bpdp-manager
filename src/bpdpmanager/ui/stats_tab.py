@@ -87,42 +87,59 @@ def _capacity_gradient(count: int, cap: int = _MAX_LED_THESES) -> str:
     return _lerp_hex("#ef9a9a", "#b71c1c", min((count - cap) / cap, 1.0))
 
 
-class _OborBars(QWidget):
-    """Svislé sloupce se zaoblenými rohy + číslo nad každým sloupcem (počty na
-    sloupci). Bez osy Y a mřížky. QtCharts zaoblené sloupce neumí — kreslíme
-    ručně. Když ``show_labels``, kreslí i popisek pod sloupcem (např. rok)."""
+_TREND_LED = "#1565c0"   # vedené (modrá) — režim porovnání
+_TREND_OPP = "#5e35b1"   # oponované (fialová) — režim porovnání
 
-    def __init__(self, items: list[tuple[str, int, str]], fg: str, *,
+
+class _OborBars(QWidget):
+    """Svislé sloupce se zaoblenými rohy + číslo nad sloupcem (počty na sloupci),
+    bez osy Y a mřížky. Skupiny: ``[(label, [(count, color), ...]), ...]`` —
+    víc sloupců ve skupině se kreslí vedle sebe (režim porovnání). Když
+    ``show_labels``, kreslí popisek pod skupinou (např. rok). QtCharts zaoblené
+    sloupce neumí, kreslíme ručně."""
+
+    def __init__(self, groups: list[tuple[str, list[tuple[int, str]]]], fg: str, *,
                  show_labels: bool = False, muted: str | None = None,
                  parent=None) -> None:
         super().__init__(parent)
-        self._items = items            # [(label, count, color)]
+        self._groups = groups          # [(label, [(count, color), ...])]
         self._fg = fg
         self._muted = muted or fg
         self._show_labels = show_labels
         self.setMinimumHeight(150 if show_labels else 140)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    def set_items(self, items: list[tuple[str, int, str]]) -> None:
-        self._items = items
+    def set_groups(self, groups: list[tuple[str, list[tuple[int, str]]]]) -> None:
+        self._groups = groups
         self.update()
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt API)
-        if not self._items:
+        if not self._groups:
+            return
+        all_counts = [c for _lbl, bars in self._groups for c, _col in bars]
+        if not all_counts:
             return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         area = self.rect().adjusted(2, 2, -2, -2)
-        n = len(self._items)
-        maxv = max(c for _l, c, _col in self._items) or 1
+        maxv = max(all_counts) or 1
         top_pad = 18                       # místo na číslo nad sloupcem
         bottom_pad = 17 if self._show_labels else 0
         base_y = area.bottom() - 2.0 - bottom_pad
         avail = max(1.0, area.height() - top_pad - bottom_pad)
-        gap = 12.0
-        bw = min(56.0, (area.width() - gap * (n - 1)) / n)
-        group_w = bw * n + gap * (n - 1)
-        x = area.left() + (area.width() - group_w) / 2.0
+        ng = len(self._groups)
+        inter = 14.0                       # mezera mezi skupinami
+        intra = 3.0                        # mezera mezi sloupci uvnitř skupiny
+        total_bars = sum(len(b) for _l, b in self._groups)
+        intra_gaps = sum(max(0, len(b) - 1) for _l, b in self._groups) * intra
+        bw = (area.width() - (ng - 1) * inter - intra_gaps) / max(1, total_bars)
+        bw = min(56.0, bw)
+
+        def group_width(bars):
+            return len(bars) * bw + (len(bars) - 1) * intra
+
+        total_w = sum(group_width(b) for _l, b in self._groups) + (ng - 1) * inter
+        x = area.left() + (area.width() - total_w) / 2.0
         num_font = QFont()
         num_font.setPointSize(9)
         num_font.setBold(True)
@@ -131,27 +148,31 @@ class _OborBars(QWidget):
         lbl_font.setBold(True)
         align_num = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
         align_lbl = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
-        for label, count, col in self._items:
-            h = (count / maxv) * avail
-            h = max(h, 3.0) if count else 0.0
-            y = base_y - h
-            path = QPainterPath()
-            r = min(7.0, bw / 2.0)
-            path.addRoundedRect(QRectF(x, y, bw, h), r, r)
-            painter.fillPath(path, QColor(col))
-            painter.setFont(num_font)
-            painter.setPen(QColor(self._fg))
-            painter.drawText(
-                QRectF(x - gap / 2, y - top_pad, bw + gap, top_pad), align_num, str(count)
-            )
+        for label, bars in self._groups:
+            gw = group_width(bars)
+            bx = x
+            for count, col in bars:
+                h = (count / maxv) * avail
+                h = max(h, 3.0) if count else 0.0
+                y = base_y - h
+                path = QPainterPath()
+                r = min(7.0, bw / 2.0)
+                path.addRoundedRect(QRectF(bx, y, bw, h), r, r)
+                painter.fillPath(path, QColor(col))
+                painter.setFont(num_font)
+                painter.setPen(QColor(self._fg))
+                painter.drawText(
+                    QRectF(bx - intra / 2, y - top_pad, bw + intra, top_pad),
+                    align_num, str(count),
+                )
+                bx += bw + intra
             if self._show_labels:
                 painter.setFont(lbl_font)
                 painter.setPen(QColor(self._muted))
                 painter.drawText(
-                    QRectF(x - gap / 2, base_y + 2, bw + gap, bottom_pad),
-                    align_lbl, str(label),
+                    QRectF(x, base_y + 2, gw, bottom_pad), align_lbl, str(label)
                 )
-            x += bw + gap
+            x += gw + inter
         painter.end()
 
 
@@ -184,19 +205,34 @@ class StatsTab(QWidget):
         cv = QVBoxLayout(container)
         cv.setContentsMargins(0, 0, 0, 0)
         cv.setSpacing(12)
+        # Horní pruh: vlevo Souhrn (nadpis + pilulky), vpravo Kapacita vedení.
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(0, 0, 0, 0)
+        top_bar.setSpacing(12)
+        souhrn = QVBoxLayout()
+        souhrn.setContentsMargins(0, 0, 0, 0)
         self._kpi_banner = QLabel()   # nadpis „Souhrn" (drží text pro testy)
         self._kpi_banner.setTextFormat(Qt.TextFormat.RichText)
         self._kpi_banner.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        cv.addWidget(self._kpi_banner, alignment=Qt.AlignmentFlag.AlignHCenter)
+        souhrn.addWidget(self._kpi_banner, alignment=Qt.AlignmentFlag.AlignHCenter)
         # KPI „pilulky" jako skutečné widgety — zaoblené rohy přes stylesheet
         # (HTML <div border-radius> Qt rich-text neumí; badge známek je kreslený).
         self._kpi_cards = QWidget()
         self._kpi_cards_lay = QHBoxLayout(self._kpi_cards)
         self._kpi_cards_lay.setContentsMargins(0, 0, 0, 0)
         self._kpi_cards_lay.setSpacing(10)
-        cv.addWidget(self._kpi_cards, alignment=Qt.AlignmentFlag.AlignHCenter)
+        souhrn.addWidget(self._kpi_cards, alignment=Qt.AlignmentFlag.AlignHCenter)
+        top_bar.addLayout(souhrn, stretch=1)
+        # Kapacita vedení vpravo nahoře (mimo panely; bez odmítnutých — ti jsou
+        # v Souhrnu).
+        self._capacity_lbl = QLabel()
+        self._capacity_lbl.setTextFormat(Qt.TextFormat.RichText)
+        self._capacity_lbl.setWordWrap(True)
+        self._capacity_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        top_bar.addWidget(self._capacity_lbl, alignment=Qt.AlignmentFlag.AlignVCenter)
+        cv.addLayout(top_bar)
         # Stav interaktivních karet (přepínače).
-        self._trend_mode = "led"   # "led" = vedené, "opp" = oponované
+        self._trend_mode = "cmp"   # "cmp" = porovnání (výchozí), "led", "opp"
         # Řádky karet (každý řádek = QHBoxLayout s kartami stejné výšky).
         self._rows = QVBoxLayout()
         self._rows.setContentsMargins(0, 0, 0, 0)
@@ -344,18 +380,27 @@ class StatsTab(QWidget):
         for label, n, color in self._kpi_data(theses, opposings, students, rejected):
             self._kpi_cards_lay.addWidget(self._kpi_pill(n, label, color))
 
+        # Kapacita vedení vpravo nahoře (karta vedle Souhrnu).
+        self._capacity_lbl.setText(
+            f"<div style='font-size:13px;text-align:center;'>{self._capacity(theses)}</div>"
+        )
+        self._capacity_lbl.setStyleSheet(
+            f"QLabel {{ border:1px solid {self._border}; border-radius:10px; "
+            "background:rgba(127,127,127,15); padding:8px 16px; }"
+        )
+
         while self._rows.count():
             item = self._rows.takeAt(0)
             w = item.widget()
             if w is not None:
                 w.deleteLater()
 
-        # Řádek 1 — obory, podle roku (data + koláč dle přepínání), známky.
+        # Řádek 1 — obory·typ·forma, podle roku, známky.
         self._add_row([
-            self._card_obory(theses, rejected),
+            self._card_obory(theses),
             self._card_year(theses),
             self._card_grades(theses, opposings),
-        ])
+        ], stretches=[2, 1, 1])
         # Řádek 2 — vývoj počtu po letech přes celou šířku (roky tu přibývají).
         self._add_row([self._card_trend(theses, opposings)])
         # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
@@ -375,19 +420,26 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         self._trend_combo = QComboBox()
-        self._trend_combo.addItem("Vedené")      # index 0
-        self._trend_combo.addItem("Oponované")   # index 1
-        self._trend_combo.setCurrentIndex(0 if self._trend_mode == "led" else 1)
+        self._trend_combo.addItem("Porovnání")   # 0 = porovnání (výchozí)
+        self._trend_combo.addItem("Vedené")      # 1
+        self._trend_combo.addItem("Oponované")   # 2
+        modes = ["cmp", "led", "opp"]
+        self._trend_combo.setCurrentIndex(modes.index(self._trend_mode))
         self._trend_combo.currentIndexChanged.connect(
-            lambda i: self._set_trend("led" if i == 0 else "opp")
+            lambda i: self._set_trend(modes[i])
         )
         lay.addWidget(
             self._header_with_control("Vývoj počtu prací po letech", self._trend_combo)
         )
-        # Kreslené zaoblené sloupce s rokem pod sloupcem (bez osy Y a mřížky);
-        # barva sloupce = kapacitní gradient (zelená < 15 < červená, 15 žlutá).
+        # Kreslené zaoblené sloupce s rokem pod sloupcem (bez osy Y a mřížky).
+        # Vedené/Oponované samostatně = kapacitní gradient; Porovnání = dva
+        # sloupce na rok vedle sebe (vedené modře, oponované fialově) + legenda.
         self._trend_bars = _OborBars([], self._fg, show_labels=True, muted=self._muted)
         lay.addWidget(self._trend_bars, stretch=1)
+        self._trend_legend = QLabel()
+        self._trend_legend.setTextFormat(Qt.TextFormat.RichText)
+        self._trend_legend.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(self._trend_legend)
         self._render_trend()
         return card
 
@@ -396,15 +448,36 @@ class StatsTab(QWidget):
         self._render_trend()
 
     def _render_trend(self) -> None:
-        data = self._trend_theses if self._trend_mode == "led" else self._trend_opposings
-        by_year: Counter[str] = Counter(
-            (getattr(x, "academic_year", None) or "(bez roku)") for x in data
+        led_by: Counter[str] = Counter(
+            (getattr(x, "academic_year", None) or "(bez roku)") for x in self._trend_theses
         )
-        items = [
-            (self._short_year(y), by_year[y], _capacity_gradient(by_year[y]))
-            for y in sorted(by_year)
-        ]
-        self._trend_bars.set_items(items)
+        opp_by: Counter[str] = Counter(
+            (getattr(x, "academic_year", None) or "(bez roku)")
+            for x in self._trend_opposings
+        )
+        legend = ""
+        if self._trend_mode == "cmp":
+            years = sorted(set(led_by) | set(opp_by))
+            groups = [
+                (self._short_year(y),
+                 [(led_by.get(y, 0), _TREND_LED), (opp_by.get(y, 0), _TREND_OPP)])
+                for y in years
+            ]
+            legend = (
+                f"<span style='color:{_TREND_LED};font-size:14px;'>●</span> Vedené"
+                "&nbsp;&nbsp;&nbsp;&nbsp;"
+                f"<span style='color:{_TREND_OPP};font-size:14px;'>●</span> Oponované"
+            )
+        else:
+            by = led_by if self._trend_mode == "led" else opp_by
+            groups = [
+                (self._short_year(y), [(by[y], _capacity_gradient(by[y]))])
+                for y in sorted(by)
+            ]
+        self._trend_bars.set_groups(groups)
+        self._trend_legend.setText(
+            f"<div style='font-size:11px;text-align:center;'>{legend}</div>"
+        )
 
     @staticmethod
     def _obor_group(raw: str) -> str:
@@ -428,11 +501,12 @@ class StatsTab(QWidget):
         if len(ordered) > top_n:
             ordered = [*ordered[:top_n], ("ostatní", sum(n for _o, n in ordered[top_n:]))]
         data = [(o, n, obor_color(o)) for o, n in ordered]
+        groups = [(o, [(n, col)]) for o, n, col in data]
         holder = QWidget()
         v = QVBoxLayout(holder)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(4)
-        v.addWidget(_OborBars(data, self._fg), stretch=1)
+        v.addWidget(_OborBars(groups, self._fg), stretch=1)
         if data:
             legend = " &nbsp; ".join(
                 f"<span style='color:{col};font-size:14px;'>●</span> {o}"
@@ -447,7 +521,7 @@ class StatsTab(QWidget):
         v.addWidget(leg)
         return holder
 
-    def _card_obory(self, theses, rejected) -> QFrame | None:
+    def _card_obory(self, theses) -> QFrame | None:
         if not theses:
             return None
         total = len(theses)
@@ -455,7 +529,7 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         lay.setSpacing(6)
-        lay.addWidget(self._header_label("Obory · typ prací · kapacita"))
+        lay.addWidget(self._header_label("Obory · typ · forma prací"))
         bp_items = [t for t in theses if t.type.value == "BP"]
         dp_items = [t for t in theses if t.type.value == "DP"]
         bp = len(bp_items)
@@ -464,11 +538,12 @@ class StatsTab(QWidget):
         for t in theses:
             student = self.service.get_student(t.student_id) if t.student_id else None
             forms[(student.form.value if student and student.form else None)] += 1
-        # Nahoře dva grafy vedle sebe (na střed v polovinách): BP vlevo, DP vpravo.
-        # Obory tu NEsjednocujeme přes prefix N — NSWI (DP) je jiný obor než SWI
-        # (BP), jen forma -P/-K a jazyk -EN se odřízne; specializace -M/-T zůstává.
-        top_row = QHBoxLayout()
-        top_row.setContentsMargins(0, 0, 0, 0)
+        # Panel ve 3 sloupcích: vlevo graf BP, uprostřed graf DP, vpravo nahoře
+        # „Typ prací" a dole „Forma studia". Obory NEsjednocujeme přes prefix N —
+        # NSWI (DP) je jiný obor než SWI (BP); odřízne se jen forma -P/-K a jazyk
+        # -EN, specializace -M/-T zůstává.
+        cols = QHBoxLayout()
+        cols.setContentsMargins(0, 0, 0, 0)
         for caption, items in (("Bakalářské (BP)", bp_items), ("Diplomové (DP)", dp_items)):
             col = QVBoxLayout()
             col.setContentsMargins(0, 0, 0, 0)
@@ -481,9 +556,8 @@ class StatsTab(QWidget):
             col.addWidget(self._obor_block(items), stretch=1)
             holder = QWidget()
             holder.setLayout(col)
-            top_row.addWidget(holder, 1)
-        lay.addLayout(top_row, stretch=1)
-        # Dole tři části (na střed): počty BP/DP · forma studia · kapacita.
+            cols.addWidget(holder, 1)
+        # Třetí sloupec: nahoře Typ prací, dole Forma studia (oba na střed).
         bp_pct = bp / total * 100.0
         dp_pct = dp / total * 100.0
         type_html = (
@@ -508,15 +582,18 @@ class StatsTab(QWidget):
                 f"<span style='color:{self._muted};'>({unkn / total * 100:.0f}%)</span>"
             )
         form_html = self._h("Forma studia") + f"<p>{form_rows}</p>"
-        bottom = QHBoxLayout()
-        bottom.setContentsMargins(0, 0, 0, 0)
-        for html in (type_html, form_html, self._capacity(theses, rejected)):
+        third = QVBoxLayout()
+        third.setContentsMargins(0, 0, 0, 0)
+        for html in (type_html, form_html):
             lbl = QLabel(f"<div style='font-size:13px;text-align:center;'>{html}</div>")
             lbl.setTextFormat(Qt.TextFormat.RichText)
             lbl.setWordWrap(True)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            bottom.addWidget(lbl, 1)
-        lay.addLayout(bottom)
+            third.addWidget(lbl, 1)
+        third_holder = QWidget()
+        third_holder.setLayout(third)
+        cols.addWidget(third_holder, 1)
+        lay.addLayout(cols, stretch=1)
         return card
 
     def _card_year(self, theses) -> QFrame | None:
@@ -729,12 +806,13 @@ class StatsTab(QWidget):
         )
         return lbl
 
-    def _capacity(self, theses, rejected) -> str:
+    def _capacity(self, theses) -> str:
         active = sum(1 for t in theses if t.status in STATUSES_CURRENT)
         future = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         color = "#2e7d32" if active < _MAX_LED_THESES else "#c62828"
         fcolor = "#2e7d32" if future < _MAX_LED_THESES else "#c62828"
-        out = (
+        # Odmítnutí zájemci jsou v Souhrnu, tady už ne.
+        return (
             self._h("Kapacita vedení")
             + f"<p>Aktuálně vedených prací (V řešení): "
             f"<b style='color:{color};'>{active}</b> z max. {_MAX_LED_THESES} "
@@ -742,16 +820,6 @@ class StatsTab(QWidget):
             + f"<p>Budoucí (vypsaná / rezervovaná témata): "
             f"<b style='color:{fcolor};'>{future}</b> z {_MAX_LED_THESES}.</p>"
         )
-        if rejected:
-            by_year: Counter[str] = Counter(r.academic_year or "(bez roku)" for r in rejected)
-            items = " · ".join(
-                f"{y}: {n}" for y, n in sorted(by_year.items(), reverse=True)
-            )
-            out += (
-                f"<p>Odmítnutí zájemci: <b>{len(rejected)}</b> "
-                f"<span style='color:{self._muted};'>({items})</span></p>"
-            )
-        return out
 
     def _finance(self, theses, opposings) -> str:
         years: dict[str, dict] = {}

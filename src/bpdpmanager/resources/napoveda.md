@@ -1000,19 +1000,20 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
 (nebo tlačítkem *🔄 Přepočítat*). Nahoře je **KPI banner**, pod ním **6 panelů**
 (reálné grafy QtCharts + tabulky) ve třech řádcích:
 
-- **Souhrn** — KPI banner přes celou šířku: vedené práce, V řešení, budoucí,
-  historie, oponentury, studenti, odmítnutí zájemci.
+- **Souhrn** — KPI pilulky: vedené práce, V řešení, budoucí, historie,
+  oponentury, studenti, odmítnutí zájemci. Vpravo vedle Souhrnu je karta
+  **Kapacita vedení** — aktuálně vedených i **budoucích** (vypsaná/rezervovaná
+  témata) z maxima 15.
 
 První řádek:
 
-- **Obory · typ prací · kapacita** — nahoře **dva grafy vedle sebe**: vlevo
-  obory **bakalářských (BP)** prací, vpravo **diplomových (DP)**. Sloupce mají
-  **zaoblené rohy** a **barvu oboru**, pod grafem je legenda barevných puntíků.
-  Z oboru se odřízne jen forma (*-P/-K*) a jazyk (*-EN*) — prefix *N* (DP) i
-  specializace (*-M/-T*) zůstávají, takže BP a DP obory se nemíchají (`NSWI` ≠
-  `SWI`, `BTSM-M` ≠ `BTSM-T`). Dole tři části: počty **BP/DP**, **forma studia**
-  (prezenční / kombinovaná) a **kapacita vedení** — aktuálně vedených i
-  **budoucích** (vypsaná/rezervovaná témata) z maxima 15 + odmítnutí zájemci.
+- **Obory · typ · forma prací** — tři sloupce: vlevo graf oborů
+  **bakalářských (BP)** prací, uprostřed **diplomových (DP)**, vpravo nahoře
+  **Typ prací** (BP/DP) a dole **Forma studia** (prezenční / kombinovaná).
+  Sloupce grafů mají **zaoblené rohy** a **barvu oboru**, pod grafem je legenda
+  barevných puntíků. Z oboru se odřízne jen forma (*-P/-K*) a jazyk (*-EN*) —
+  prefix *N* (DP) i specializace (*-M/-T*) zůstávají, takže BP a DP obory se
+  nemíchají (`NSWI` ≠ `SWI`, `BTSM-M` ≠ `BTSM-T`).
 - **Podle akademického roku** — přepínač roku vpravo nahoře (výchozí *Všechny
   roky*); vlevo rozpad stavů (jen ty, které v daném výběru dávají smysl) +
   *Úspěšnost obhajob*, vpravo **koláč stavů**, který se mění s přepínačem.
@@ -1024,10 +1025,11 @@ První řádek:
 Druhý řádek:
 
 - **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
-  přibývají), přepínač *Vedené / Oponované* vpravo nahoře. Rok je pod sloupcem,
-  počet nad ním (bez osy Y a mřížky). Barva sloupce je **kapacitní gradient**:
-  pod 15 zeleně (čím méně, tím tmavší), **15 žlutě**, nad 15 červeně (čím více,
-  tím tmavší).
+  přibývají), rok je pod sloupcem, počet nad ním (bez osy Y a mřížky). Přepínač
+  vpravo nahoře: **Porovnání** (výchozí) ukáže pro každý rok **vedené (modře)**
+  a **oponované (fialově)** vedle sebe (s legendou); **Vedené** / **Oponované**
+  samostatně obarví sloupce **kapacitním gradientem** — pod 15 zeleně (čím méně,
+  tím tmavší), **15 žlutě**, nad 15 červeně (čím více, tím tmavší).
 
 Třetí řádek:
 
