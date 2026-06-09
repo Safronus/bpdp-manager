@@ -162,6 +162,23 @@ GRADE_TINTS: dict[str, str] = {
     "FX": "#e53935",  # sytá červená (nejvýraznější)
 }
 
+# Barvy disciplín (sjednocené obory jako v Šablonách — discipline_from_app_code:
+# odřízne formu -P/-K, jazyk -EN i prefix N). Použité v grafu oborů ve Statistikách.
+OBOR_COLORS: dict[str, str] = {
+    "SWI": "#1565c0",   # modrá — softwarové inženýrství
+    "KYB": "#6a1b9a",   # fialová — kybernetická bezpečnost
+    "UI": "#00897b",    # tyrkysová — učitelství informatiky
+    "ITA": "#ef6c00",   # oranžová — IT v administrativě
+    "BTSM": "#c62828",  # červená — bezpečnostní technologie
+}
+_OBOR_FALLBACK = "#607d8b"   # šedomodrá pro neznámé / „(bez oboru)"
+
+
+def obor_color(code: str) -> str:
+    """Barva pro disciplínu (sjednocený obor); neznámé → fallback."""
+    return OBOR_COLORS.get((code or "").strip().upper(), _OBOR_FALLBACK)
+
+
 # Stav posudku (vedoucího / oponenta) → barva pro odlišení v seznamech.
 # "done" = vyrobený soubor (zelená), "draft" = jen uložená data (oranžová),
 # "none" = nic (červená). Světlé odstíny pro podbarvení buňky (text čitelný).

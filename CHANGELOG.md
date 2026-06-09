@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.9] - 2026-06-09
+
+### Added
+- **Statistiky — panel „Obory · typ prací · kapacita":**
+  - Sloupce grafu jsou nově **obarvené barvou oboru** (s legendou) — barvy
+    `OBOR_COLORS` (SWI modrá, KYB fialová, UI tyrkysová, ITA oranžová, BTSM
+    červená).
+  - Obory se **sjednocují stejně jako v Šablonách** (`discipline_from_app_code`:
+    forma *-P/-K*, jazyk *-EN* i prefix *N* se ignorují → `NKYB-P` i `NKYB-K`
+    spadnou pod *KYB*).
+  - Dole **třetí část — forma studia** (prezenční / kombinovaná) vedle počtů
+    BP/DP a kapacity.
+
 ## [1.16.8] - 2026-06-09
 
 ### Changed

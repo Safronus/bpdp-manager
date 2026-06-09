@@ -41,9 +41,12 @@ from ..models.enums import (
     STATUSES_CURRENT,
     STATUSES_FUTURE,
     STATUSES_HISTORY,
+    StudyForm,
     ThesisStatus,
+    obor_color,
 )
 from ..services import ThesisService
+from ..services.default_data import discipline_from_app_code
 
 
 def _human_size(num_bytes: int) -> str:
@@ -353,50 +356,52 @@ class StatsTab(QWidget):
         lay.addWidget(self._header_label("Obory · typ prací · kapacita"))
         bp = sum(1 for t in theses if t.type.value == "BP")
         dp = total - bp
-        # Obory — svislý sloupcový graf. Jen TOP 10 + „ostatní" (dlouhý ocas
-        # jedniček nic neříká a popisky by se nevešly).
+        # Obory sjednocené jako v Šablonách (ITA/SWI/KYB/UI/BTSM — forma -P/-K,
+        # jazyk -EN i prefix N se ignorují). Zároveň počty podle formy studia.
         counts: Counter[str] = Counter()
+        forms: Counter[str | None] = Counter()
         for t in theses:
             student = self.service.get_student(t.student_id) if t.student_id else None
-            counts[(student.obor if student else "") or "(bez oboru)"] += 1
+            raw = (student.obor if student else "") or ""
+            disc = discipline_from_app_code(raw) if raw else ""
+            counts[disc or "(bez oboru)"] += 1
+            forms[(student.form.value if student and student.form else None)] += 1
         ordered = counts.most_common()
         top_n = 10
         if len(ordered) > top_n:
-            cats = [o for o, _n in ordered[:top_n]] + ["ostatní"]
-            vals = [n for _o, n in ordered[:top_n]] + [sum(n for _o, n in ordered[top_n:])]
-        else:
-            cats = [o for o, _n in ordered]
-            vals = [n for _o, n in ordered]
-        bset = QBarSet("")
-        for v in vals:
-            bset.append(v)
-        bset.setColor(QColor("#3949ab"))
-        bset.setLabelColor(QColor(self._fg))
+            ordered = [*ordered[:top_n], ("ostatní", sum(n for _o, n in ordered[top_n:]))]
+        # Každý obor = vlastní QBarSet → vlastní barva + položka v legendě
+        # (svislé sloupce, QBarSet umí jen jednu barvu na set).
         series = QBarSeries()
-        series.append(bset)
+        for obor, n in ordered:
+            bset = QBarSet(obor)
+            bset.append(n)
+            bset.setColor(QColor(obor_color(obor)))
+            bset.setLabelColor(QColor(self._fg))
+            series.append(bset)
         series.setLabelsVisible(True)
         series.setLabelsPosition(QAbstractBarSeries.LabelsPosition.LabelsOutsideEnd)
         chart = QChart()
         chart.addSeries(series)
         ax = QBarCategoryAxis()
-        ax.append(cats)
-        ax.setLabelsAngle(-45)
+        ax.append([""])    # jediná kategorie — obory rozlišuje barva + legenda
         ax.setGridLineVisible(False)
         chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
         series.attachAxis(ax)
         avy = QValueAxis()
         avy.setLabelFormat("%d")
         avy.setGridLineColor(QColor(self._border))
-        top = max(vals)
+        top = max(n for _o, n in ordered)
         avy.setRange(0, top + max(1, round(top * 0.15)))   # rezerva nad sloupce pro čísla
         avy.setTickCount(6)
+        avy.setLabelsVisible(False)   # počty jsou nad sloupci → osa Y je nadbytečná
         chart.addAxis(avy, Qt.AlignmentFlag.AlignLeft)
         series.attachAxis(avy)
         self._apply_axis_font(ax, avy)
-        self._style_chart(chart)
+        self._style_chart(chart, legend=True)
         # Nahoře graf přes celou šíři karty.
         lay.addWidget(self._chart_view(chart), stretch=1)
-        # Dole dvě poloviny: vlevo počty BP/DP, vpravo kapacita — každá na střed.
+        # Dole tři části (na střed): počty BP/DP · forma studia · kapacita.
         bp_pct = bp / total * 100.0
         dp_pct = dp / total * 100.0
         type_html = (
@@ -406,21 +411,29 @@ class StatsTab(QWidget):
             f"Diplomové (DP): <b>{dp}</b> "
             f"<span style='color:{self._muted};'>({dp_pct:.0f}%)</span></p>"
         )
+        pres = forms.get(StudyForm.PRESENTIAL.value, 0)
+        comb = forms.get(StudyForm.COMBINED.value, 0)
+        unkn = forms.get(None, 0)
+        form_rows = (
+            f"{StudyForm.PRESENTIAL.label}: <b>{pres}</b> "
+            f"<span style='color:{self._muted};'>({pres / total * 100:.0f}%)</span><br>"
+            f"{StudyForm.COMBINED.label}: <b>{comb}</b> "
+            f"<span style='color:{self._muted};'>({comb / total * 100:.0f}%)</span>"
+        )
+        if unkn:
+            form_rows += (
+                f"<br>Neuvedeno: <b>{unkn}</b> "
+                f"<span style='color:{self._muted};'>({unkn / total * 100:.0f}%)</span>"
+            )
+        form_html = self._h("Forma studia") + f"<p>{form_rows}</p>"
         bottom = QHBoxLayout()
         bottom.setContentsMargins(0, 0, 0, 0)
-        left = QLabel(f"<div style='font-size:13px;text-align:center;'>{type_html}</div>")
-        left.setTextFormat(Qt.TextFormat.RichText)
-        left.setWordWrap(True)
-        left.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        right = QLabel(
-            f"<div style='font-size:13px;text-align:center;'>"
-            f"{self._capacity(theses, rejected)}</div>"
-        )
-        right.setTextFormat(Qt.TextFormat.RichText)
-        right.setWordWrap(True)
-        right.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bottom.addWidget(left, 1)
-        bottom.addWidget(right, 1)
+        for html in (type_html, form_html, self._capacity(theses, rejected)):
+            lbl = QLabel(f"<div style='font-size:13px;text-align:center;'>{html}</div>")
+            lbl.setTextFormat(Qt.TextFormat.RichText)
+            lbl.setWordWrap(True)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            bottom.addWidget(lbl, 1)
         lay.addLayout(bottom)
         return card
 

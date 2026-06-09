@@ -1006,7 +1006,10 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
 První řádek:
 
 - **Obory · typ prací · kapacita** — nahoře svislý sloupcový graf prací podle
-  oboru (TOP 10 + *ostatní*); dole vlevo počty **BP/DP**, vpravo **kapacita
+  **oboru**, každý sloupec **barvou oboru** (s legendou). Obory jsou
+  **sjednocené stejně jako v Šablonách** (SWI/KYB/UI/ITA/BTSM — forma *-P/-K*,
+  jazyk *-EN* i prefix *N* navazujícího studia se ignorují). Dole tři části:
+  počty **BP/DP**, **forma studia** (prezenční / kombinovaná) a **kapacita
   vedení** (aktuálně vedených z maxima 15 + odmítnutí zájemci po letech).
 - **Podle akademického roku** — přepínač roku vpravo nahoře (výchozí *Všechny
   roky*); vlevo rozpad stavů (jen ty, které v daném výběru dávají smysl) +
