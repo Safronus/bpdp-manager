@@ -162,21 +162,36 @@ GRADE_TINTS: dict[str, str] = {
     "FX": "#e53935",  # sytá červená (nejvýraznější)
 }
 
-# Barvy disciplín (sjednocené obory jako v Šablonách — discipline_from_app_code:
-# odřízne formu -P/-K, jazyk -EN i prefix N). Použité v grafu oborů ve Statistikách.
+# Barvy oborů v grafu Statistik. Klíčem je obor zbavený jen formy (-P/-K) a
+# jazyka (-EN) — prefix N (navazující/DP) i specializace (-M/-T) zůstávají, BP a
+# DP obory se tedy nemíchají. Když není přesná shoda, hledá se rodina (NSWI→SWI,
+# BTSM-M→BTSM).
 OBOR_COLORS: dict[str, str] = {
-    "SWI": "#1565c0",   # modrá — softwarové inženýrství
-    "KYB": "#6a1b9a",   # fialová — kybernetická bezpečnost
-    "UI": "#00897b",    # tyrkysová — učitelství informatiky
-    "ITA": "#ef6c00",   # oranžová — IT v administrativě
-    "BTSM": "#c62828",  # červená — bezpečnostní technologie
+    # Bakalářské programy
+    "SWI": "#1565c0",     # modrá — softwarové inženýrství
+    "IRT": "#00897b",     # tyrkysová
+    "ITA": "#ef6c00",     # oranžová — IT v administrativě
+    "BTSM": "#c62828",    # červená — bezpečnostní technologie
+    # Navazující (DP) programy a specializace
+    "NSWI": "#1565c0",    # modrá (rodina SWI)
+    "NKYB": "#6a1b9a",    # fialová — kybernetická bezpečnost
+    "IT": "#3949ab",      # indigo
+    "PKS": "#00838f",     # azurová
+    "BTSM-M": "#e53935",  # červená — bezpečnostní technologie, management
+    "BTSM-T": "#ad1457",  # vínová — bezpečnostní technologie, technologie
+    "UI": "#7cb342",      # zelená — učitelství informatiky
 }
 _OBOR_FALLBACK = "#607d8b"   # šedomodrá pro neznámé / „(bez oboru)"
 
 
 def obor_color(code: str) -> str:
-    """Barva pro disciplínu (sjednocený obor); neznámé → fallback."""
-    return OBOR_COLORS.get((code or "").strip().upper(), _OBOR_FALLBACK)
+    """Barva oboru; nejdřív přesná shoda, pak rodina (NSWI→SWI, BTSM-M→BTSM)."""
+    c = (code or "").strip().upper()
+    if c in OBOR_COLORS:
+        return OBOR_COLORS[c]
+    base = c[1:] if c.startswith("N") and len(c) >= 3 else c   # NSWI → SWI
+    base = base.split("-", 1)[0]                                # BTSM-M → BTSM
+    return OBOR_COLORS.get(base, _OBOR_FALLBACK)
 
 
 # Stav posudku (vedoucího / oponenta) → barva pro odlišení v seznamech.

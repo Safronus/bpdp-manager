@@ -12,17 +12,17 @@ from collections import Counter
 from typing import ClassVar
 
 from PySide6.QtCharts import (
-    QAbstractBarSeries,
     QBarCategoryAxis,
     QBarSeries,
     QBarSet,
     QChart,
     QChartView,
+    QLegend,
     QPieSeries,
     QValueAxis,
 )
-from PySide6.QtCore import QMargins, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPalette
+from PySide6.QtCore import QMargins, QRectF, Qt
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -46,7 +46,6 @@ from ..models.enums import (
     obor_color,
 )
 from ..services import ThesisService
-from ..services.default_data import discipline_from_app_code
 
 
 def _human_size(num_bytes: int) -> str:
@@ -68,6 +67,53 @@ _FEE_OPPOSING = 600           # Kč za oponentský posudek
 
 def _czk(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " Kč"
+
+
+class _OborBars(QWidget):
+    """Svislé sloupce se zaoblenými rohy (počty prací podle oboru) + číslo nad
+    každým sloupcem. QtCharts zaoblené sloupce neumí, kreslíme je ručně."""
+
+    def __init__(self, items: list[tuple[str, int, str]], fg: str, parent=None) -> None:
+        super().__init__(parent)
+        self._items = items            # [(label, count, color)]
+        self._fg = fg
+        self.setMinimumHeight(140)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        if not self._items:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        area = self.rect().adjusted(2, 2, -2, -2)
+        n = len(self._items)
+        maxv = max(c for _l, c, _col in self._items) or 1
+        top_pad = 18                       # místo na číslo nad sloupcem
+        base_y = area.bottom() - 2.0
+        avail = max(1.0, area.height() - top_pad)
+        gap = 12.0
+        bw = min(56.0, (area.width() - gap * (n - 1)) / n)
+        group_w = bw * n + gap * (n - 1)
+        x = area.left() + (area.width() - group_w) / 2.0
+        font = QFont()
+        font.setPointSize(9)
+        font.setBold(True)
+        painter.setFont(font)
+        align = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
+        for label, count, col in self._items:  # noqa: B007 (label nepoužit při kresbě)
+            h = (count / maxv) * avail
+            h = max(h, 3.0) if count else 0.0
+            y = base_y - h
+            path = QPainterPath()
+            r = min(7.0, bw / 2.0)
+            path.addRoundedRect(QRectF(x, y, bw, h), r, r)
+            painter.fillPath(path, QColor(col))
+            painter.setPen(QColor(self._fg))
+            painter.drawText(
+                QRectF(x - gap / 2, y - top_pad, bw + gap, top_pad), align, str(count)
+            )
+            x += bw + gap
+        painter.end()
 
 
 class StatsTab(QWidget):
@@ -216,6 +262,10 @@ class StatsTab(QWidget):
         if legend:
             leg.setAlignment(Qt.AlignmentFlag.AlignBottom)
             leg.setLabelColor(QColor(self._fg))
+            leg.setMarkerShape(QLegend.MarkerShape.MarkerShapeCircle)
+            lf = QFont()
+            lf.setPointSize(8)
+            leg.setFont(lf)   # menší písmo → krátké kódy oborů se nezalomí na „I…"
 
     def _add_row(self, cards: list, stretches: list | None = None) -> None:
         """Přidá řádek karet (stejná výška, vyplní šířku)."""
@@ -355,6 +405,47 @@ class StatsTab(QWidget):
         chart.setMargins(QMargins(0, 0, 4, 0))   # rezerva, ať poslední popisek není uťatý
         self._trend_view.setChart(chart)
 
+    @staticmethod
+    def _obor_group(raw: str) -> str:
+        """Obor zbavený jen formy (-P/-K) a jazyka (-EN); zbytek (prefix N,
+        specializace -M/-T) zůstává. ``NSWI-P`` → ``NSWI``, ``BTSM-M-P`` →
+        ``BTSM-M``, ``SWI-K`` → ``SWI``."""
+        c = (raw or "").strip().upper()
+        c = re.sub(r"-EN\b", "", c)
+        c = re.sub(r"-[PK]\b", "", c)
+        return c.strip(" -") or "(bez oboru)"
+
+    def _obor_block(self, items) -> QWidget:
+        """Sloupce počtů prací podle oboru (zaoblené, barva = barva oboru) +
+        legenda pod grafem jako barevné puntíky (nezalomí se / neuřízne)."""
+        counts: Counter[str] = Counter()
+        for t in items:
+            student = self.service.get_student(t.student_id) if t.student_id else None
+            counts[self._obor_group((student.obor if student else "") or "")] += 1
+        ordered = counts.most_common()
+        top_n = 8
+        if len(ordered) > top_n:
+            ordered = [*ordered[:top_n], ("ostatní", sum(n for _o, n in ordered[top_n:]))]
+        data = [(o, n, obor_color(o)) for o, n in ordered]
+        holder = QWidget()
+        v = QVBoxLayout(holder)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(4)
+        v.addWidget(_OborBars(data, self._fg), stretch=1)
+        if data:
+            legend = " &nbsp; ".join(
+                f"<span style='color:{col};font-size:14px;'>●</span> {o}"
+                for o, _n, col in data
+            )
+        else:
+            legend = f"<span style='color:{self._muted};'>— žádné —</span>"
+        leg = QLabel(f"<div style='font-size:11px;text-align:center;'>{legend}</div>")
+        leg.setTextFormat(Qt.TextFormat.RichText)
+        leg.setWordWrap(True)
+        leg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        v.addWidget(leg)
+        return holder
+
     def _card_obory(self, theses, rejected) -> QFrame | None:
         if not theses:
             return None
@@ -364,53 +455,33 @@ class StatsTab(QWidget):
         lay.setContentsMargins(14, 8, 14, 12)
         lay.setSpacing(6)
         lay.addWidget(self._header_label("Obory · typ prací · kapacita"))
-        bp = sum(1 for t in theses if t.type.value == "BP")
-        dp = total - bp
-        # Obory sjednocené jako v Šablonách (ITA/SWI/KYB/UI/BTSM — forma -P/-K,
-        # jazyk -EN i prefix N se ignorují). Zároveň počty podle formy studia.
-        counts: Counter[str] = Counter()
+        bp_items = [t for t in theses if t.type.value == "BP"]
+        dp_items = [t for t in theses if t.type.value == "DP"]
+        bp = len(bp_items)
+        dp = len(dp_items)
         forms: Counter[str | None] = Counter()
         for t in theses:
             student = self.service.get_student(t.student_id) if t.student_id else None
-            raw = (student.obor if student else "") or ""
-            disc = discipline_from_app_code(raw) if raw else ""
-            counts[disc or "(bez oboru)"] += 1
             forms[(student.form.value if student and student.form else None)] += 1
-        ordered = counts.most_common()
-        top_n = 10
-        if len(ordered) > top_n:
-            ordered = [*ordered[:top_n], ("ostatní", sum(n for _o, n in ordered[top_n:]))]
-        # Každý obor = vlastní QBarSet → vlastní barva + položka v legendě
-        # (svislé sloupce, QBarSet umí jen jednu barvu na set).
-        series = QBarSeries()
-        for obor, n in ordered:
-            bset = QBarSet(obor)
-            bset.append(n)
-            bset.setColor(QColor(obor_color(obor)))
-            bset.setLabelColor(QColor(self._fg))
-            series.append(bset)
-        series.setLabelsVisible(True)
-        series.setLabelsPosition(QAbstractBarSeries.LabelsPosition.LabelsOutsideEnd)
-        chart = QChart()
-        chart.addSeries(series)
-        ax = QBarCategoryAxis()
-        ax.append([""])    # jediná kategorie — obory rozlišuje barva + legenda
-        ax.setGridLineVisible(False)
-        chart.addAxis(ax, Qt.AlignmentFlag.AlignBottom)
-        series.attachAxis(ax)
-        avy = QValueAxis()
-        avy.setLabelFormat("%d")
-        avy.setGridLineColor(QColor(self._border))
-        top = max(n for _o, n in ordered)
-        avy.setRange(0, top + max(1, round(top * 0.15)))   # rezerva nad sloupce pro čísla
-        avy.setTickCount(6)
-        avy.setLabelsVisible(False)   # počty jsou nad sloupci → osa Y je nadbytečná
-        chart.addAxis(avy, Qt.AlignmentFlag.AlignLeft)
-        series.attachAxis(avy)
-        self._apply_axis_font(ax, avy)
-        self._style_chart(chart, legend=True)
-        # Nahoře graf přes celou šíři karty.
-        lay.addWidget(self._chart_view(chart), stretch=1)
+        # Nahoře dva grafy vedle sebe (na střed v polovinách): BP vlevo, DP vpravo.
+        # Obory tu NEsjednocujeme přes prefix N — NSWI (DP) je jiný obor než SWI
+        # (BP), jen forma -P/-K a jazyk -EN se odřízne; specializace -M/-T zůstává.
+        top_row = QHBoxLayout()
+        top_row.setContentsMargins(0, 0, 0, 0)
+        for caption, items in (("Bakalářské (BP)", bp_items), ("Diplomové (DP)", dp_items)):
+            col = QVBoxLayout()
+            col.setContentsMargins(0, 0, 0, 0)
+            col.setSpacing(2)
+            cap = QLabel(
+                f"<span style='color:{self._muted};font-size:12px;'>{caption}</span>"
+            )
+            cap.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            col.addWidget(cap)
+            col.addWidget(self._obor_block(items), stretch=1)
+            holder = QWidget()
+            holder.setLayout(col)
+            top_row.addWidget(holder, 1)
+        lay.addLayout(top_row, stretch=1)
         # Dole tři části (na střed): počty BP/DP · forma studia · kapacita.
         bp_pct = bp / total * 100.0
         dp_pct = dp / total * 100.0
@@ -659,12 +730,16 @@ class StatsTab(QWidget):
 
     def _capacity(self, theses, rejected) -> str:
         active = sum(1 for t in theses if t.status in STATUSES_CURRENT)
+        future = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         color = "#2e7d32" if active < _MAX_LED_THESES else "#c62828"
+        fcolor = "#2e7d32" if future < _MAX_LED_THESES else "#c62828"
         out = (
             self._h("Kapacita vedení")
             + f"<p>Aktuálně vedených prací (V řešení): "
             f"<b style='color:{color};'>{active}</b> z max. {_MAX_LED_THESES} "
             f"(volných {max(0, _MAX_LED_THESES - active)}).</p>"
+            + f"<p>Budoucí (vypsaná / rezervovaná témata): "
+            f"<b style='color:{fcolor};'>{future}</b> z {_MAX_LED_THESES}.</p>"
         )
         if rejected:
             by_year: Counter[str] = Counter(r.academic_year or "(bez roku)" for r in rejected)
@@ -690,14 +765,17 @@ class StatsTab(QWidget):
         if not years:
             return ""
 
+        # text-align:left přímo na <th> — Qt rich-text jinak <th> centruje a
+        # titulky pak „plavou" mezi sloupci místo nad nimi.
+        th = "<th style='padding:2px 14px 2px 0;text-align:left;color:" + self._muted + ";'>"
         header = (
-            "<tr style='color:" + self._muted + ";text-align:left;'>"
-            "<th style='padding:2px 14px 2px 0;'>Rok</th>"
-            "<th style='padding:2px 14px 2px 0;'>Obhájené</th>"
-            "<th style='padding:2px 14px 2px 0;'>Odměna vedení</th>"
-            "<th style='padding:2px 14px 2px 0;'>Oponentury</th>"
-            "<th style='padding:2px 14px 2px 0;'>Odměna oponentur</th>"
-            "<th style='padding:2px 0;'>Celkem</th></tr>"
+            "<tr>"
+            f"{th}Rok</th>"
+            f"{th}Obhájené</th>"
+            f"{th}Odměna vedení</th>"
+            f"{th}Oponentury</th>"
+            f"{th}Odměna oponentur</th>"
+            "<th style='padding:2px 0;text-align:left;color:" + self._muted + ";'>Celkem</th></tr>"
         )
         rows = ""
         tot_sup = tot_opp = 0

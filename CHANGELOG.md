@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.11] - 2026-06-09
+
+### Changed
+- **Statistiky — panel „Obory · typ prací · kapacita":**
+  - Graf oborů **rozdělen na dva** vedle sebe: vlevo **BP**, vpravo **DP**.
+  - Obory se už **nesjednocují přes prefix N** — z kódu se odřízne jen forma
+    (*-P/-K*) a jazyk (*-EN*); prefix *N* (DP) i specializace (*-M/-T*)
+    zůstávají, takže `NSWI` ≠ `SWI` a `BTSM-M` ≠ `BTSM-T`.
+  - Sloupce mají **zaoblené rohy** (kreslené ručně — QtCharts to neumí) a
+    **barvu oboru**; legenda pod grafem je řada **barevných puntíků** (místo
+    vestavěné, která se v úzkém panelu ořezávala na „I…").
+  - **Kapacita vedení** ukazuje navíc **budoucí** počet (vypsaná/rezervovaná
+    témata) z maxima 15.
+- **Statistiky — panel „Odměny":** titulky sloupců tabulky se zarovnaly **nad
+  své sloupce** (Qt rich-text `<th>` centroval → „plavaly" mezi sloupci).
+
 ## [1.16.10] - 2026-06-09
 
 ### Changed
