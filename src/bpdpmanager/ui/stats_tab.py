@@ -190,29 +190,13 @@ class StatsTab(QWidget):
         m = re.fullmatch(r"(\d{4})/(\d{4})", year)
         return f"{m.group(1)[2:]}/{m.group(2)[2:]}" if m else year
 
-    def _chart_card(self, title: str, chart: QChart, center_text: str = "",
-                    *, center_small: bool = False) -> QFrame:
-        """Karta s grafem (nadpis + QChartView, volitelně text uprostřed donutu)."""
+    def _chart_card(self, title: str, chart: QChart) -> QFrame:
+        """Karta s grafem (vycentrovaný nadpis + QChartView)."""
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         lay.addWidget(self._header_label(title))
-        view = self._chart_view(chart)
-        if center_text:
-            size = 18 if center_small else 30
-            holder = QWidget()
-            grid = QGridLayout(holder)
-            grid.setContentsMargins(0, 0, 0, 0)
-            grid.addWidget(view, 0, 0)
-            center = QLabel(center_text)
-            center.setStyleSheet(
-                f"font-size:{size}px;font-weight:bold;color:{self._fg};"
-                "background:transparent;"
-            )
-            grid.addWidget(center, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-            lay.addWidget(holder, stretch=1)
-        else:
-            lay.addWidget(view, stretch=1)
+        lay.addWidget(self._chart_view(chart), stretch=1)
         return card
 
     def _style_chart(self, chart: QChart, *, legend: bool = False) -> None:
@@ -275,16 +259,15 @@ class StatsTab(QWidget):
             if w is not None:
                 w.deleteLater()
 
-        # Řádek 1 — grafy: vývoj (přepínač vedené/oponované), stav, úspěšnost.
+        # Řádek 1 — vývoj (přepínač), podle stavu, podle roku (vč. úspěšnosti).
         self._add_row([
             self._card_trend(theses, opposings),
             self._chart_by_status(theses),
-            self._chart_success(theses),
+            self._card_year(theses),
         ])
-        # Řádek 2 — obory+typ+kapacita, podle roku (přepínač), známky (přepínač).
+        # Řádek 2 — obory+typ+kapacita a známky (dvě širší karty).
         self._add_row([
             self._card_obory(theses, rejected),
-            self._card_year(theses),
             self._card_grades(theses, opposings),
         ])
         # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
@@ -303,23 +286,16 @@ class StatsTab(QWidget):
         card = self._card_frame()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
-        self._btn_led = QPushButton("Vedené")
-        self._btn_opp = QPushButton("Oponované")
-        for b in (self._btn_led, self._btn_opp):
-            b.setCheckable(True)
-            b.setAutoExclusive(True)
-            b.setMaximumHeight(24)
-        self._btn_led.setChecked(self._trend_mode == "led")
-        self._btn_opp.setChecked(self._trend_mode == "opp")
-        self._btn_led.clicked.connect(lambda: self._set_trend("led"))
-        self._btn_opp.clicked.connect(lambda: self._set_trend("opp"))
-        ctrl = QWidget()
-        cl = QHBoxLayout(ctrl)
-        cl.setContentsMargins(0, 0, 0, 0)
-        cl.setSpacing(4)
-        cl.addWidget(self._btn_led)
-        cl.addWidget(self._btn_opp)
-        lay.addWidget(self._header_with_control("Vývoj počtu prací po letech", ctrl))
+        self._trend_combo = QComboBox()
+        self._trend_combo.addItem("Vedené")      # index 0
+        self._trend_combo.addItem("Oponované")   # index 1
+        self._trend_combo.setCurrentIndex(0 if self._trend_mode == "led" else 1)
+        self._trend_combo.currentIndexChanged.connect(
+            lambda i: self._set_trend("led" if i == 0 else "opp")
+        )
+        lay.addWidget(
+            self._header_with_control("Vývoj počtu prací po letech", self._trend_combo)
+        )
         self._trend_view = self._chart_view()
         lay.addWidget(self._trend_view, stretch=1)
         self._render_trend()
@@ -384,33 +360,6 @@ class StatsTab(QWidget):
         chart.addSeries(series)
         self._style_chart(chart, legend=True)
         return self._chart_card("Podle stavu", chart)
-
-    def _chart_success(self, theses) -> QFrame | None:
-        defended = sum(1 for t in theses if t.status == ThesisStatus.DEFENDED)
-        failed = sum(1 for t in theses if t.status == ThesisStatus.FAILED)
-        cancelled = sum(1 for t in theses if t.status == ThesisStatus.CANCELLED)
-        finished = defended + failed + cancelled
-        if not finished:
-            return None
-        pct = defended / finished * 100.0
-        series = QPieSeries()
-        series.setHoleSize(0.62)
-        for label, val, color in (
-            ("Obhájeno", defended, "#2e7d32"),
-            ("Neobhájeno", failed, "#c62828"),
-            ("Nedokončeno", cancelled, "#9e9e9e"),
-        ):
-            if val:
-                sl = series.append(f"{label}  {val}", val)
-                sl.setColor(QColor(color))
-                sl.setLabelVisible(False)
-                sl.setBorderColor(QColor(self._border))
-        chart = QChart()
-        chart.addSeries(series)
-        self._style_chart(chart, legend=True)
-        return self._chart_card(
-            "Úspěšnost obhajob", chart, center_text=f"{pct:.0f}%", center_small=True
-        )
 
     def _card_obory(self, theses, rejected) -> QFrame | None:
         if not theses:
@@ -496,13 +445,9 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         self._year_combo = QComboBox()
+        self._year_combo.addItem(self._ALL_YEARS)   # výchozí: souhrn přes všechny roky
         for y in sorted(years, reverse=True):
             self._year_combo.addItem(y)
-        # Předvol aktuální akademický rok, je-li v datech.
-        current = self.service.current_academic_year()
-        idx = self._year_combo.findText(current)
-        if idx >= 0:
-            self._year_combo.setCurrentIndex(idx)
         self._year_combo.currentTextChanged.connect(self._render_year)
         lay.addWidget(
             self._header_with_control("Podle akademického roku", self._year_combo)
@@ -516,11 +461,23 @@ class StatsTab(QWidget):
             self._render_year(self._year_combo.currentText())
         return card
 
-    def _render_year(self, year: str) -> None:
-        d = self._year_data.get(year)
-        if not d:
+    def _render_year(self, sel: str) -> None:
+        if sel == self._ALL_YEARS:
+            # Souhrn přes všechny roky (sloučí stavy).
+            st: Counter = Counter()
+            for dd in self._year_data.values():
+                st.update(dd["st"])
+            d = {
+                "n": sum(dd["n"] for dd in self._year_data.values()),
+                "bp": sum(dd["bp"] for dd in self._year_data.values()),
+                "dp": sum(dd["dp"] for dd in self._year_data.values()),
+                "st": st,
+            }
+        else:
+            d = self._year_data.get(sel)
+        if not d or not d["n"]:
             return
-        # Jen stavy, které v daném roce reálně jsou (budoucí rok → vypsaná témata
+        # Jen stavy, které v daném výběru reálně jsou (budoucí → vypsaná témata
         # apod.; historický rok → bez „V řešení"). Kompaktní, vycentrované.
         rows = ""
         for status in ThesisStatus:
@@ -534,14 +491,28 @@ class StatsTab(QWidget):
                 f"<td style='padding:1px 0;'><b>{n}</b> "
                 f"<span style='color:{self._muted};'>({pct:.0f}%)</span></td></tr>"
             )
+        # Úspěšnost obhajob (z dokončených) — dříve samostatná dlaždice.
+        defended = d["st"].get(ThesisStatus.DEFENDED, 0)
+        failed = d["st"].get(ThesisStatus.FAILED, 0)
+        cancelled = d["st"].get(ThesisStatus.CANCELLED, 0)
+        finished = defended + failed + cancelled
+        success_line = ""
+        if finished:
+            rate = defended / finished * 100.0
+            success_line = (
+                f"<p style='margin-top:6px;'>Úspěšnost obhajob: "
+                f"<b style='color:#2e7d32;'>{rate:.0f}%</b> "
+                f"<span style='color:{self._muted};'>({defended} z {finished})</span></p>"
+            )
         self._year_detail.setText(
             "<div style='font-size:13px;'>"
             f"<p>Celkem <b>{d['n']}</b> &nbsp;·&nbsp; BP <b>{d['bp']}</b> "
             f"&nbsp;·&nbsp; DP <b>{d['dp']}</b></p>"
-            f"<table align='center'>{rows}</table></div>"
+            f"<table align='center'>{rows}</table>{success_line}</div>"
         )
 
     _GRADES: ClassVar[list[str]] = ["A", "B", "C", "D", "E", "F"]
+    _ALL_YEARS = "Všechny roky"   # výchozí volba v kartě „Podle akademického roku"
 
     def _card_grades(self, theses, opposings) -> QFrame | None:
         led_me: Counter = Counter()
@@ -598,6 +569,7 @@ class StatsTab(QWidget):
         series = QBarSeries()
         series.append(bset)
         series.setLabelsVisible(True)
+        series.setLabelsPosition(QAbstractBarSeries.LabelsPosition.LabelsOutsideEnd)
         chart = QChart()
         chart.addSeries(series)
         ax = QBarCategoryAxis()
@@ -609,8 +581,8 @@ class StatsTab(QWidget):
         ay.setLabelFormat("%d")
         ay.setGridLineColor(QColor(self._border))
         mx = max((counter.get(g, 0) for g in self._GRADES), default=1)
-        ay.setRange(0, mx + 1)
-        ay.setTickCount(min(mx + 2, 6))
+        ay.setRange(0, mx + max(1, round(mx * 0.15)))   # rezerva pro čísla nad sloupci
+        ay.setTickCount(6)
         chart.addAxis(ay, Qt.AlignmentFlag.AlignLeft)
         series.attachAxis(ay)
         self._apply_axis_font(ax, ay)

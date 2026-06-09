@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.5] - 2026-06-08
+
+### Changed
+- **Statistiky — kompaktnější dashboard:**
+  - **Známky**: čísla **nad sloupci** (ne uvnitř).
+  - **Vývoj počtu po letech**: přepínač *Vedené/Oponované* je teď **combobox**
+    v pravém horním rohu (stejný styl jako rok).
+  - **Úspěšnost obhajob** jako samostatná dlaždice **zrušena** a začleněna do
+    **Podle akademického roku** (výchozí volba **„Všechny roky"**, s řádkem
+    *Úspěšnost obhajob: X %*). Tato karta je teď **třetí v první řadě**.
+  - Díky tomu jsou ve druhé řadě jen **Obory · typ · kapacita** a **Známky** —
+    obě **širší**.
+
+### Removed
+- Mrtvý kód po sloučení: metoda `_chart_success` a nevyužité větve `_chart_card`.
+
 ## [1.16.4] - 2026-06-08
 
 ### Changed
