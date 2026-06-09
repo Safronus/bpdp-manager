@@ -44,7 +44,6 @@ def test_stats_render(qapp, service: ThesisService) -> None:
     w = StatsTab(service)
     html = w.rendered_html()
     assert "Souhrn" in html
-    assert "Podle stavu" in html
     assert "akademického roku" in html
     assert "Úspěšnost" in html  # má obhájeno + nedokončeno
     assert "Známky" in html     # má obhájenou se známkou
@@ -125,18 +124,19 @@ def test_dashboard_rows_and_no_duplication(qapp, service: ThesisService) -> None
 
 
 def test_dashboard_has_charts(qapp, service: ThesisService) -> None:
-    """Pilotní grafy (QtCharts) se vykreslí — sloupce, donut stavu, gauge úspěšnosti."""
+    """Grafy (QtCharts) se vykreslí — vývoj, obory, koláč roku, koláč známek."""
     from PySide6.QtCharts import QChartView
 
-    s = Student(first_name="A", last_name="B")
+    s = Student(first_name="A", last_name="B", obor="ITA-P")
     service.upsert_student(s)
     for yr in ("2024/2025", "2023/2024", "2022/2023"):
         service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year=yr,
-                                     student_id=s.id, status=ThesisStatus.DEFENDED))
+                                     student_id=s.id, status=ThesisStatus.DEFENDED,
+                                     grade_supervisor="B"))
     service.upsert_thesis(Thesis(type=ThesisType.DP, academic_year="2024/2025",
                                  student_id=s.id, status=ThesisStatus.FAILED))
     w = StatsTab(service)
     charts = w.findChildren(QChartView)
-    assert len(charts) >= 3                       # vývoj + stav + úspěšnost
+    assert len(charts) >= 4                       # vývoj + obory + koláč roku + koláč známek
     html = w.rendered_html()
-    assert "Vývoj počtu" in html and "Podle stavu" in html and "Úspěšnost" in html
+    assert "Vývoj počtu" in html and "akademického roku" in html and "Úspěšnost" in html

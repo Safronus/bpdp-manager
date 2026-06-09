@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.7] - 2026-06-08
+
+### Changed
+- **Statistiky — reorganizace dashboardu (6 panelů):**
+  - **Podle akademického roku** má teď vedle dat **koláčový graf** stavů, který se
+    mění s přepínačem roku (bez legendy — popis je v datech vlevo).
+  - **Podle stavu** jako samostatný panel **zrušen** (jeho koláč je teď v *Podle
+    roku*).
+  - **Vývoj počtu prací po letech** je **přes celou druhou řadu** (roky mají
+    místo); prohozen s **Obory · typ · kapacita**, který je nově první v 1. řadě.
+  - **Známky** jsou třetí v 1. řadě jako **koláčový graf** barevně dle známky
+    (`GRADE_TINTS`, A zelená → F červená) — místo vodorovných pruhů.
+
+### Removed
+- Mrtvý kód po reorganizaci: `_chart_by_status`, `_chart_card`.
+
 ## [1.16.6] - 2026-06-08
 
 ### Changed

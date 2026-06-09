@@ -19,6 +19,7 @@ from PySide6.QtCharts import (
     QChart,
     QChartView,
     QPieSeries,
+    QPieSlice,
     QValueAxis,
 )
 from PySide6.QtCore import QMargins, Qt
@@ -191,15 +192,6 @@ class StatsTab(QWidget):
         m = re.fullmatch(r"(\d{4})/(\d{4})", year)
         return f"{m.group(1)[2:]}/{m.group(2)[2:]}" if m else year
 
-    def _chart_card(self, title: str, chart: QChart) -> QFrame:
-        """Karta s grafem (vycentrovaný nadpis + QChartView)."""
-        card = self._card_frame()
-        lay = QVBoxLayout(card)
-        lay.setContentsMargins(14, 8, 14, 12)
-        lay.addWidget(self._header_label(title))
-        lay.addWidget(self._chart_view(chart), stretch=1)
-        return card
-
     def _style_chart(self, chart: QChart, *, legend: bool = False) -> None:
         chart.setBackgroundVisible(False)
         chart.setMargins(QMargins(0, 0, 0, 0))
@@ -260,17 +252,14 @@ class StatsTab(QWidget):
             if w is not None:
                 w.deleteLater()
 
-        # Řádek 1 — vývoj (přepínač), podle stavu, podle roku (vč. úspěšnosti).
-        self._add_row([
-            self._card_trend(theses, opposings),
-            self._chart_by_status(theses),
-            self._card_year(theses),
-        ])
-        # Řádek 2 — obory+typ+kapacita a známky (dvě širší karty).
+        # Řádek 1 — obory, podle roku (data + koláč dle přepínání), známky.
         self._add_row([
             self._card_obory(theses, rejected),
+            self._card_year(theses),
             self._card_grades(theses, opposings),
         ])
+        # Řádek 2 — vývoj počtu po letech přes celou šířku (roky tu přibývají).
+        self._add_row([self._card_trend(theses, opposings)])
         # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
         self._add_row([
             self._make_card(self._files(theses, opposings)),
@@ -342,25 +331,6 @@ class StatsTab(QWidget):
         self._style_chart(chart)
         chart.setMargins(QMargins(0, 0, 4, 0))   # rezerva, ať poslední popisek není uťatý
         self._trend_view.setChart(chart)
-
-    def _chart_by_status(self, theses) -> QFrame | None:
-        if not theses:
-            return None
-        counts: Counter = Counter(t.status for t in theses)
-        series = QPieSeries()
-        series.setHoleSize(0.45)
-        for status in ThesisStatus:
-            n = counts.get(status, 0)
-            if not n:
-                continue
-            sl = series.append(f"{status.label}  {n}", n)
-            sl.setColor(QColor(status.color))
-            sl.setLabelVisible(False)
-            sl.setBorderColor(QColor(self._border))
-        chart = QChart()
-        chart.addSeries(series)
-        self._style_chart(chart, legend=True)
-        return self._chart_card("Podle stavu", chart)
 
     def _card_obory(self, theses, rejected) -> QFrame | None:
         if not theses:
@@ -453,11 +423,17 @@ class StatsTab(QWidget):
         lay.addWidget(
             self._header_with_control("Podle akademického roku", self._year_combo)
         )
+        # Vlevo data, vpravo koláč (přepíná se s comboboxem; legenda netřeba).
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
         self._year_detail = QLabel()
         self._year_detail.setTextFormat(Qt.TextFormat.RichText)
         self._year_detail.setWordWrap(True)
-        self._year_detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lay.addWidget(self._year_detail, stretch=1)
+        self._year_detail.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        body.addWidget(self._year_detail, stretch=3)
+        self._year_pie = self._chart_view()
+        body.addWidget(self._year_pie, stretch=2)
+        lay.addLayout(body, stretch=1)
         if self._year_combo.count():
             self._render_year(self._year_combo.currentText())
         return card
@@ -509,8 +485,23 @@ class StatsTab(QWidget):
             "<div style='font-size:13px;'>"
             f"<p>Celkem <b>{d['n']}</b> &nbsp;·&nbsp; BP <b>{d['bp']}</b> "
             f"&nbsp;·&nbsp; DP <b>{d['dp']}</b></p>"
-            f"<table align='center'>{rows}</table>{success_line}</div>"
+            f"<table>{rows}</table>{success_line}</div>"
         )
+        # Koláč stavů pro vybraný výběr (barvy stavů, bez legendy).
+        series = QPieSeries()
+        series.setHoleSize(0.40)
+        for status in ThesisStatus:
+            n = d["st"].get(status, 0)
+            if not n:
+                continue
+            sl = series.append(status.label, n)
+            sl.setColor(QColor(status.color))
+            sl.setLabelVisible(False)
+            sl.setBorderColor(QColor(self._border))
+        chart = QChart()
+        chart.addSeries(series)
+        self._style_chart(chart, legend=False)
+        self._year_pie.setChart(chart)
 
     _GRADES: ClassVar[list[str]] = ["A", "B", "C", "D", "E", "F"]
     _ALL_YEARS = "Všechny roky"   # výchozí volba v kartě „Podle akademického roku"
@@ -553,14 +544,10 @@ class StatsTab(QWidget):
             self._grade_combo.addItem(name)
         self._grade_combo.currentIndexChanged.connect(self._render_grades)
         lay.addWidget(self._header_with_control("Známky", self._grade_combo))
-        # Vodorovné pruhy A-F obarvené stejně jako známky v tabulce prací
-        # (GRADE_TINTS: zelená A → červená F). QtCharts QBarSet umí jen jednu
-        # barvu pro celou sadu, proto HTML pruhy.
-        self._grade_detail = QLabel()
-        self._grade_detail.setTextFormat(Qt.TextFormat.RichText)
-        self._grade_detail.setWordWrap(True)
-        self._grade_detail.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        lay.addWidget(self._grade_detail, stretch=1)
+        # Koláč známek A-F obarvený stejně jako známky v tabulce prací
+        # (GRADE_TINTS: zelená A → červená F). Bez legendy — popisky jsou na dílcích.
+        self._grade_pie = self._chart_view()
+        lay.addWidget(self._grade_pie, stretch=1)
         self._render_grades(0)
         return card
 
@@ -568,33 +555,22 @@ class StatsTab(QWidget):
         if not (0 <= index < len(self._grade_views)):
             return
         _name, counter, _color = self._grade_views[index]
-        total = sum(counter.values())
-        if not total:
-            self._grade_detail.setText(
-                f"<div style='font-size:13px;color:{self._muted};'>"
-                "Žádné známky v této kategorii.</div>"
-            )
-            return
-        mx = max(counter.values())
-        rows = ""
-        for g in self._GRADES:
-            n = counter.get(g, 0)
-            if not n:
-                continue
-            width = max(6, round(n / mx * 150))   # px délka úměrná počtu
-            pct = n / total * 100.0
-            rows += (
-                "<tr>"
-                f"<td style='padding:2px 10px 2px 0;'><b>{g}</b></td>"
-                "<td style='padding:2px 0;'>"
-                "<table cellspacing='0' cellpadding='0'><tr>"
-                f"<td width='{width}' bgcolor='{GRADE_TINTS.get(g, self._muted)}'"
-                " style='height:13px;'>&nbsp;</td></tr></table></td>"
-                f"<td style='padding:2px 0 2px 10px;color:{self._muted};"
-                f"white-space:nowrap;'><b style='color:{self._fg};'>{n}</b> "
-                f"({pct:.0f}%)</td></tr>"
-            )
-        self._grade_detail.setText(f"<table style='font-size:13px;'>{rows}</table>")
+        chart = QChart()
+        if sum(counter.values()):
+            series = QPieSeries()
+            for g in self._GRADES:
+                n = counter.get(g, 0)
+                if not n:
+                    continue
+                sl = series.append(f"{g}  {n}", n)
+                sl.setColor(QColor(GRADE_TINTS.get(g, self._muted)))
+                sl.setLabelVisible(True)
+                sl.setLabelColor(QColor("#212121"))   # tmavý text na světlých tintách
+                sl.setLabelPosition(QPieSlice.LabelPosition.LabelInsideHorizontal)
+                sl.setBorderColor(QColor(self._border))
+            chart.addSeries(series)
+        self._style_chart(chart, legend=False)
+        self._grade_pie.setChart(chart)
 
     # --- sekce ---------------------------------------------------------------
 
