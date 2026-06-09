@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.19] - 2026-06-09
+
+### Changed
+- **Statistiky — „Soubory / Největší práce" ve dvou sloupcích:** žebříček je teď
+  **TOP 10** rozdělený na dva sloupce — 1.–5. vycentrované v levé polovině,
+  6.–10. v pravé.
+
 ## [1.16.18] - 2026-06-09
 
 ### Changed

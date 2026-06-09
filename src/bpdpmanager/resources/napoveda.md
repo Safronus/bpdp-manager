@@ -1038,8 +1038,9 @@ Třetí řádek:
 
 - **Soubory (přílohy)** — nahoře souhrn (počet souborů · velikost · počet
   prací), pak **dva sloupcové grafy „Podle druhu dokumentu"** (vlevo počet,
-  vpravo velikost; barvy druhů v legendě) a dole **žebříček TOP 5 největších
-  prací**. Počítá se z reálných souborů na disku (vč. starších verzí).
+  vpravo velikost; barvy druhů v legendě) a dole **žebříček TOP 10 největších
+  prací** ve dvou sloupcích (1.–5. vlevo, 6.–10. vpravo). Počítá se z reálných
+  souborů na disku (vč. starších verzí).
 - **Odměny (orientačně)** — dva sloupcové grafy po letech: vlevo **odměna za
   vedení** (3 000 Kč/obhájenou, max 12/rok), vpravo **odměna za oponentury**
   (600 Kč/posudek). Čísla nad sloupci jsou v **tisících Kč**, v titulku grafu

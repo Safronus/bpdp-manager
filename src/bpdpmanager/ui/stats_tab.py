@@ -988,26 +988,43 @@ class StatsTab(QWidget):
         leg.setWordWrap(True)
         leg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         lay.addWidget(leg)
-        # Slim žebříček největších prací (TOP 5).
-        top = sorted(per_work, key=lambda w: w[2], reverse=True)[:5]
-        rows = "".join(
-            f"<tr><td style='padding:1px 8px 1px 0;color:{self._muted};'>{i}.</td>"
-            f"<td style='padding:1px 10px 1px 0;'>{lbl}</td>"
-            f"<td style='padding:1px 0;color:{self._muted};white-space:nowrap;'>"
-            f"{_human_size(b)}</td></tr>"
-            for i, (lbl, c, b) in enumerate(top, 1)
-        )
+        # Zebricek nejvetsich praci - TOP 10 ve dvou sloupcich: 1. az 5. vlevo,
+        # 6. az 10. vpravo, kazdy vycentrovany ve sve polovine panelu.
+        ranked = sorted(per_work, key=lambda w: w[2], reverse=True)[:10]
         more = (
             f" <span style='color:{self._muted};'>(z {len(per_work)} prací se soubory)</span>"
-            if len(per_work) > 5 else ""
+            if len(per_work) > 10 else ""
         )
-        zebr = QLabel(
-            "<div style='font-size:11px;'>"
-            f"<p style='margin:6px 0 2px 0;'><b>Největší práce</b>{more}</p>"
-            f"<table>{rows}</table></div>"
+        title = QLabel(
+            f"<div style='font-size:11px;'><b>Největší práce</b>{more}</div>"
         )
-        zebr.setTextFormat(Qt.TextFormat.RichText)
-        zebr.setWordWrap(True)
-        zebr.setAlignment(Qt.AlignmentFlag.AlignTop)
-        lay.addWidget(zebr)
+        title.setTextFormat(Qt.TextFormat.RichText)
+        title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(title)
+
+        def _rank_rows(items, start):
+            return "".join(
+                f"<tr><td style='padding:1px 8px 1px 0;color:{self._muted};'>{i}.</td>"
+                f"<td style='padding:1px 10px 1px 0;'>{lbl}</td>"
+                f"<td style='padding:1px 0;color:{self._muted};white-space:nowrap;'>"
+                f"{_human_size(b)}</td></tr>"
+                for i, (lbl, _c, b) in enumerate(items, start)
+            )
+
+        zebr_cols = QHBoxLayout()
+        zebr_cols.setContentsMargins(0, 0, 0, 0)
+        for items, start in ((ranked[:5], 1), (ranked[5:10], 6)):
+            rows = _rank_rows(items, start)
+            lbl = QLabel(f"<div style='font-size:11px;'><table>{rows}</table></div>")
+            lbl.setTextFormat(Qt.TextFormat.RichText)
+            lbl.setWordWrap(False)
+            wrap = QHBoxLayout()
+            wrap.setContentsMargins(0, 0, 0, 0)
+            wrap.addStretch(1)
+            wrap.addWidget(lbl)
+            wrap.addStretch(1)
+            holder = QWidget()
+            holder.setLayout(wrap)
+            zebr_cols.addWidget(holder, 1)
+        lay.addLayout(zebr_cols)
         return card
