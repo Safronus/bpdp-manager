@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.14] - 2026-06-09
+
+### Changed
+- **Statistiky — čísla nad sloupci** ve všech grafech jsou výrazně **větší**
+  (zhruba 2×).
+- **Statistiky — prohozeny řádky:** graf **Vývoj počtu prací po letech** je teď
+  v **prvním řádku** (přes celou šířku), panely *Obory · typ · forma* / *Podle
+  roku* / *Známky* ve **druhém**.
+- **Statistiky — Kapacita vedení** je teď jen **text vedle Souhrnu** (bez karty
+  i titulku, který „rozbíjel" vzhled): vlevo *Aktuálně vedených*, vpravo
+  *Budoucí*.
+
 ## [1.16.13] - 2026-06-09
 
 ### Changed

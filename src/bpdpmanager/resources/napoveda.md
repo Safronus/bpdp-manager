@@ -1001,11 +1001,21 @@ budoucími, aktuálními i historickými pracemi. Přepočítá se při každém
 (reálné grafy QtCharts + tabulky) ve třech řádcích:
 
 - **Souhrn** — KPI pilulky: vedené práce, V řešení, budoucí, historie,
-  oponentury, studenti, odmítnutí zájemci. Vpravo vedle Souhrnu je karta
-  **Kapacita vedení** — aktuálně vedených i **budoucích** (vypsaná/rezervovaná
-  témata) z maxima 15.
+  oponentury, studenti, odmítnutí zájemci. Po stranách Souhrnu je **kapacita
+  vedení** jako text (bez karty): vlevo *Aktuálně vedených* (V řešení) z maxima
+  15, vpravo *Budoucí* (vypsaná/rezervovaná témata) z 15.
 
 První řádek:
+
+- **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
+  přibývají), rok je pod sloupcem, počet nad ním (bez osy Y a mřížky). Přepínač
+  vpravo nahoře: **Porovnání** (výchozí) ukáže pro každý rok **vedené (modře)**
+  a **oponované (fialově)** vedle sebe (s legendou); **Vedené** / **Oponované**
+  samostatně obarví sloupce **kapacitním gradientem** — pod 15 zeleně (čím méně,
+  tím tmavší), **15 žlutě**, nad 15 červeně (čím více, tím tmavší). Čísla nad
+  sloupci jsou výrazně větší.
+
+Druhý řádek:
 
 - **Obory · typ · forma prací** — tři sloupce: vlevo graf oborů
   **bakalářských (BP)** prací, uprostřed **diplomových (DP)**, vpravo nahoře
@@ -1021,15 +1031,6 @@ První řádek:
   *Oponent mých vedených* / *Vedoucí mých oponovaných*); **koláč známek A–F**
   obarvený stejně jako známky v tabulce prací (zelená A → červená F)
   s legendou.
-
-Druhý řádek:
-
-- **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
-  přibývají), rok je pod sloupcem, počet nad ním (bez osy Y a mřížky). Přepínač
-  vpravo nahoře: **Porovnání** (výchozí) ukáže pro každý rok **vedené (modře)**
-  a **oponované (fialově)** vedle sebe (s legendou); **Vedené** / **Oponované**
-  samostatně obarví sloupce **kapacitním gradientem** — pod 15 zeleně (čím méně,
-  tím tmavší), **15 žlutě**, nad 15 červeně (čím více, tím tmavší).
 
 Třetí řádek:
 

@@ -123,7 +123,7 @@ class _OborBars(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         area = self.rect().adjusted(2, 2, -2, -2)
         maxv = max(all_counts) or 1
-        top_pad = 18                       # místo na číslo nad sloupcem
+        top_pad = 28                       # místo na (větší) číslo nad sloupcem
         bottom_pad = 17 if self._show_labels else 0
         base_y = area.bottom() - 2.0 - bottom_pad
         avail = max(1.0, area.height() - top_pad - bottom_pad)
@@ -141,7 +141,7 @@ class _OborBars(QWidget):
         total_w = sum(group_width(b) for _l, b in self._groups) + (ng - 1) * inter
         x = area.left() + (area.width() - total_w) / 2.0
         num_font = QFont()
-        num_font.setPointSize(9)
+        num_font.setPointSize(18)          # čísla nad sloupci výrazně větší
         num_font.setBold(True)
         lbl_font = QFont()
         lbl_font.setPointSize(10)
@@ -205,10 +205,11 @@ class StatsTab(QWidget):
         cv = QVBoxLayout(container)
         cv.setContentsMargins(0, 0, 0, 0)
         cv.setSpacing(12)
-        # Horní pruh: vlevo Souhrn (nadpis + pilulky), vpravo Kapacita vedení.
+        # Horní pruh (vycentrovaný): zleva „Aktuálně vedených", uprostřed Souhrn
+        # (nadpis + pilulky), zprava „Budoucí" — kapacita jen jako text, bez karty.
         top_bar = QHBoxLayout()
         top_bar.setContentsMargins(0, 0, 0, 0)
-        top_bar.setSpacing(12)
+        top_bar.setSpacing(0)
         souhrn = QVBoxLayout()
         souhrn.setContentsMargins(0, 0, 0, 0)
         self._kpi_banner = QLabel()   # nadpis „Souhrn" (drží text pro testy)
@@ -222,14 +223,19 @@ class StatsTab(QWidget):
         self._kpi_cards_lay.setContentsMargins(0, 0, 0, 0)
         self._kpi_cards_lay.setSpacing(10)
         souhrn.addWidget(self._kpi_cards, alignment=Qt.AlignmentFlag.AlignHCenter)
-        top_bar.addLayout(souhrn, stretch=1)
-        # Kapacita vedení vpravo nahoře (mimo panely; bez odmítnutých — ti jsou
-        # v Souhrnu).
-        self._capacity_lbl = QLabel()
-        self._capacity_lbl.setTextFormat(Qt.TextFormat.RichText)
-        self._capacity_lbl.setWordWrap(True)
-        self._capacity_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        top_bar.addWidget(self._capacity_lbl, alignment=Qt.AlignmentFlag.AlignVCenter)
+        self._cap_active_lbl = QLabel()
+        self._cap_future_lbl = QLabel()
+        for lbl in (self._cap_active_lbl, self._cap_future_lbl):
+            lbl.setTextFormat(Qt.TextFormat.RichText)
+            lbl.setWordWrap(True)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        top_bar.addStretch(1)
+        top_bar.addWidget(self._cap_active_lbl, alignment=Qt.AlignmentFlag.AlignVCenter)
+        top_bar.addSpacing(18)
+        top_bar.addLayout(souhrn)
+        top_bar.addSpacing(18)
+        top_bar.addWidget(self._cap_future_lbl, alignment=Qt.AlignmentFlag.AlignVCenter)
+        top_bar.addStretch(1)
         cv.addLayout(top_bar)
         # Stav interaktivních karet (přepínače).
         self._trend_mode = "cmp"   # "cmp" = porovnání (výchozí), "led", "opp"
@@ -380,14 +386,11 @@ class StatsTab(QWidget):
         for label, n, color in self._kpi_data(theses, opposings, students, rejected):
             self._kpi_cards_lay.addWidget(self._kpi_pill(n, label, color))
 
-        # Kapacita vedení vpravo nahoře (karta vedle Souhrnu).
-        self._capacity_lbl.setText(
-            f"<div style='font-size:13px;text-align:center;'>{self._capacity(theses)}</div>"
-        )
-        self._capacity_lbl.setStyleSheet(
-            f"QLabel {{ border:1px solid {self._border}; border-radius:10px; "
-            "background:rgba(127,127,127,15); padding:8px 16px; }"
-        )
+        # Kapacita vedení jen jako text vedle Souhrnu (vlevo aktuální, vpravo
+        # budoucí; bez titulku i karty).
+        active_html, future_html = self._capacity_texts(theses)
+        self._cap_active_lbl.setText(active_html)
+        self._cap_future_lbl.setText(future_html)
 
         while self._rows.count():
             item = self._rows.takeAt(0)
@@ -395,14 +398,14 @@ class StatsTab(QWidget):
             if w is not None:
                 w.deleteLater()
 
-        # Řádek 1 — obory·typ·forma, podle roku, známky.
+        # Řádek 1 — vývoj počtu po letech přes celou šířku (roky tu přibývají).
+        self._add_row([self._card_trend(theses, opposings)])
+        # Řádek 2 — obory·typ·forma, podle roku, známky.
         self._add_row([
             self._card_obory(theses),
             self._card_year(theses),
             self._card_grades(theses, opposings),
         ], stretches=[2, 1, 1])
-        # Řádek 2 — vývoj počtu po letech přes celou šířku (roky tu přibývají).
-        self._add_row([self._card_trend(theses, opposings)])
         # Řádek 3 — soubory a odměny vedle sebe (posudky jsou jinde v GUI).
         self._add_row([
             self._make_card(self._files(theses, opposings)),
@@ -806,20 +809,26 @@ class StatsTab(QWidget):
         )
         return lbl
 
-    def _capacity(self, theses) -> str:
+    def _capacity_texts(self, theses) -> tuple[str, str]:
+        """Kapacita vedení jako dva textové bloky (bez titulku): vlevo aktuální,
+        vpravo budoucí. Odmítnutí zájemci jsou v Souhrnu, tady už ne."""
         active = sum(1 for t in theses if t.status in STATUSES_CURRENT)
         future = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         color = "#2e7d32" if active < _MAX_LED_THESES else "#c62828"
         fcolor = "#2e7d32" if future < _MAX_LED_THESES else "#c62828"
-        # Odmítnutí zájemci jsou v Souhrnu, tady už ne.
-        return (
-            self._h("Kapacita vedení")
-            + f"<p>Aktuálně vedených prací (V řešení): "
-            f"<b style='color:{color};'>{active}</b> z max. {_MAX_LED_THESES} "
-            f"(volných {max(0, _MAX_LED_THESES - active)}).</p>"
-            + f"<p>Budoucí (vypsaná / rezervovaná témata): "
-            f"<b style='color:{fcolor};'>{future}</b> z {_MAX_LED_THESES}.</p>"
+        active_html = (
+            "<div style='font-size:13px;text-align:center;'>Aktuálně vedených<br>"
+            f"<span style='color:{self._muted};'>(V řešení)</span><br>"
+            f"<b style='color:{color};font-size:18px;'>{active}</b> z {_MAX_LED_THESES}<br>"
+            f"<span style='color:{self._muted};'>volných {max(0, _MAX_LED_THESES - active)}"
+            "</span></div>"
         )
+        future_html = (
+            "<div style='font-size:13px;text-align:center;'>Budoucí<br>"
+            f"<span style='color:{self._muted};'>(vypsaná / rezervovaná)</span><br>"
+            f"<b style='color:{fcolor};font-size:18px;'>{future}</b> z {_MAX_LED_THESES}</div>"
+        )
+        return active_html, future_html
 
     def _finance(self, theses, opposings) -> str:
         years: dict[str, dict] = {}

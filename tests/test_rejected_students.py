@@ -52,7 +52,7 @@ def test_finance_cap_and_opposing(qapp, service: ThesisService) -> None:
     html = w.rendered_html()
     assert _czk(12 * 3000) in html       # strop vedení
     assert _czk(600) in html             # jeden oponentský posudek
-    assert "Kapacita vedení" in html
+    assert "Aktuálně vedených" in html   # kapacita (text vedle Souhrnu)
 
 
 def test_rejected_in_stats(qapp, service: ThesisService) -> None:
