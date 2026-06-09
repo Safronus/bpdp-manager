@@ -73,11 +73,17 @@ def test_stats_opponent_grades_and_opposing_summary(qapp, service: ThesisService
     ))
 
     w = StatsTab(service)
-    html = w.rendered_html()
-    assert "Navržené vedoucím" in html
-    assert "Navržené oponentem" in html      # známky oponenta u vedených prací
-    assert "Oponentury" in html              # souhrn oponovaných prací
-    assert "Mnou navržené známky" in html     # moje známky jako oponent
+    # Známky vedených i oponovaných jsou v jednom grafu se 4 sériemi:
+    # Vedu·já / Vedu·oponent / Oponuji·já / Vedoucí (mé oponentury).
+    from PySide6.QtCharts import QBarSeries, QChartView
+
+    assert "Známky (vedené i oponované" in w.rendered_html()
+    grade_series = [
+        s for cv in w.findChildren(QChartView)
+        for s in cv.chart().series()
+        if isinstance(s, QBarSeries) and s.count() == 4
+    ]
+    assert grade_series, "graf známek se 4 sériemi musí existovat"
 
 
 def test_stats_palette_muted_color_set(qapp, service: ThesisService) -> None:

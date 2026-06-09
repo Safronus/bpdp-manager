@@ -7,6 +7,23 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-06-08
+
+### Changed
+- **Statistiky — dotažený grafový dashboard.** Podle zpětné vazby:
+  - **Souhrn** (KPI) je teď **vycentrovaný banner** nahoře (ne karta).
+  - **Vývoj počtu po letech** má **šikmé popisky** osy X a **přepínač Vedené /
+    Oponované** (sjednocen i počet oponovaných prací).
+  - **Úspěšnost obhajob** rozlišuje **Obhájeno / Neobhájeno / Nedokončeno**
+    a procento je menší uprostřed donutu.
+  - Nová sloučená karta **Obory · typ · kapacita**: nahoře BP/DP, uprostřed
+    **vodorovný graf oborů**, dole **kapacita vedení** přes celou šířku.
+  - **Podle akademického roku** je menší karta s **přepínačem roku** a rozpadem
+    včetně *Neobhájeno* a *Nedokončeno*.
+  - **Známky** sjednoceny do jednoho grafu se **4 sériemi**: vedené (já /
+    oponent) a oponované (já / vedoucí).
+  - **Soubory**, **Odměny** a **Posudky** jsou karty přes celou šířku pod sebou.
+
 ## [1.16.0] - 2026-06-08
 
 ### Changed
