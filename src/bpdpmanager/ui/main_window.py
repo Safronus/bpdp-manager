@@ -760,6 +760,47 @@ class MainWindow(QMainWindow):
         # vykreslit). Indikátor v proužku + odznaky na záložkách.
         self._stag_checker: object | None = None
         QTimer.singleShot(900, lambda: self._start_stag_check(auto=True))
+        # Tichá kontrola aktualizací aplikace (GitHub CHANGELOG.md).
+        self._update_checker: object | None = None
+        QTimer.singleShot(1500, self._start_update_check)
+
+    # --- tichá kontrola aktualizací aplikace ---------------------------------
+
+    def _start_update_check(self) -> None:
+        """Tichá kontrola nové verze na GitHubu (lze vypnout v dialogu updatu)."""
+        from .update_dialog import UpdateChecker
+
+        if self.profile_manager and (
+            self.profile_manager.get_ui_pref("update_check_enabled", True) is False
+        ):
+            return
+        from .. import __version__
+
+        checker = UpdateChecker(__version__, parent=self)
+        checker.finished.connect(self._on_update_check_done)
+        self._update_checker = checker
+        checker.start()
+
+    def _on_update_check_done(self, info) -> None:
+        self._update_checker = None
+        if info is None:
+            return  # aktuální verze / offline / není git klon — ticho
+        skip = (
+            self.profile_manager.get_ui_pref("update_skip_version")
+            if self.profile_manager else None
+        )
+        if info.latest == skip:
+            return  # tuto verzi si uživatel přál přeskočit
+        from .update_dialog import UpdateDialog
+
+        dlg = UpdateDialog(info, self, check_enabled=True)
+        dlg.exec()
+        if self.profile_manager:
+            self.profile_manager.set_ui_pref(
+                "update_check_enabled", dlg.check_enabled
+            )
+            if dlg.skip_requested:
+                self.profile_manager.set_ui_pref("update_skip_version", info.latest)
 
     # --- tichá kontrola STAG -------------------------------------------------
 

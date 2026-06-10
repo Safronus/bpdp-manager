@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-06-10
+
+### Added
+- **Automatická kontrola aktualizací.** Po startu proběhne tichá kontrola nové
+  verze proti GitHubu (čte `CHANGELOG.md` z main; offline = ticho). Při nové
+  verzi se otevře dialog s **changelogem všech verzí mezi** nainstalovanou a
+  nejnovější; **🔄 Aktualizovat a restartovat** provede `git pull` +
+  `pip install -e .` (doinstaluje nové závislosti) a aplikaci restartuje.
+  K dispozici je „Přeskočit tuto verzi", „Později" i vypínač kontroly.
+  Lokální neuložené změny v klonu se nikdy nepřepisují (ff-only + kontrola
+  čistoty předem).
+
+### Fixed
+- **CHANGELOG.md:** doplněny omylem smazané nadpisy verzí `1.17.1` a `1.16.15`
+  (jejich obsah byl slitý do sousedních sekcí).
+
 ## [1.17.4] - 2026-06-10
 
 ### Added
@@ -42,6 +58,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 ### Changed
 - Úklid: `extract_grade_from_file` sjednoceno (Word přes `.docx` XML), odstraněn
   původní `.doc → txt` převod (`_read_doc_text`).
+
+## [1.17.1] - 2026-06-10
 
 ### Fixed
 - **Načtení navržené známky z PDF posudku staženého ze STAG.** Tyto posudky jsou
@@ -99,6 +117,8 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 ### Removed
 - Mrtvý kód po převodu Odměn na grafy: `_finance` (HTML tabulka) a větev
   `center` v `_make_card`.
+
+## [1.16.15] - 2026-06-09
 
 ### Changed
 - **Statistiky — „Podle akademického roku" a „Známky" jako sloupcové grafy:**

@@ -1007,6 +1007,28 @@ v následujících 60 dnech.
 
 ---
 
+## Aktualizace aplikace
+
+Po startu proběhne **tichá kontrola nové verze** proti GitHubu (čte se
+`CHANGELOG.md` z hlavní větve; offline nebo při chybě se nic neukazuje).
+Když je k dispozici novější verze, otevře se dialog **Aktualizace aplikace**:
+
+- ukáže **novou verzi** a **changelog všech verzí** mezi tvojí a nejnovější,
+- **🔄 Aktualizovat a restartovat** provede `git pull` + doinstaluje případné
+  nové závislosti (`pip install -e .`) a aplikaci **restartuje**,
+- **Přeskočit tuto verzi** — tahle verze se už nebude nabízet (další ano),
+- **Později** — dialog se ukáže zase při příštím startu,
+- zaškrtávátko **Kontrolovat aktualizace po startu** kontrolu úplně vypne
+  (zapneš ji zase v témže dialogu, až se někdy objeví, nebo v
+  `profiles.json` → `ui_prefs.update_check_enabled`).
+
+> **Pozn.:** aktualizace funguje jen když aplikace běží z **git klonu**
+> (standardní instalace `pip install -e .`). Lokální neuložené změny v klonu
+> aktualizace nikdy nepřepíše — místo toho srozumitelně řekne, že je potřeba
+> je uklidit.
+
+---
+
 ## Statistiky
 
 Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný **dashboard** napříč
