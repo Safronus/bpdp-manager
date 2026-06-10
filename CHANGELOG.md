@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-06-11
+
+### Added
+- **Jazyk CZ/EN — vlna 4: anglická nápověda (část 1).** Nový soubor
+  `napoveda_en.md` — v EN režimu ho zobrazí okno Nápovědy (F1) místo českého.
+  Přeložené jsou orientační sekce: úvod, **Začínáme**, **Přehled obrazovky**,
+  **Stavy práce**, **Jazyk**, **Aktualizace**, **Statistiky**, **Profily
+  a data**, **Tipy** a **Spuštění**. Zbylé kapitoly (detail práce, posudky,
+  šablony, odesílání, tisk, STAG import, harmonogram) jsou v EN souboru zatím
+  česky s poznámkou a doloží se v dalších vlnách.
+
 ## [2.0.2] - 2026-06-11
 
 ### Added

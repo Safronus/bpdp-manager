@@ -25,9 +25,19 @@ from ..i18n import tr
 
 
 def _napoveda_path() -> Path:
-    """Cesta k markdown souboru nápovědy uvnitř balíčku."""
-    # ui/help_dialog.py → ui → bpdpmanager → resources/napoveda.md
-    return Path(__file__).resolve().parent.parent / "resources" / "napoveda.md"
+    """Cesta k nápovědě dle jazyka UI — EN verze, když existuje, jinak CZ.
+
+    ``napoveda_en.md`` se překládá po vlnách; dokud sekce chybí, EN soubor
+    obsahuje poznámku + českou verzi (fallback je vždy funkční).
+    """
+    from ..i18n import get_language
+
+    base = Path(__file__).resolve().parent.parent / "resources"
+    if get_language() == "en":
+        en = base / "napoveda_en.md"
+        if en.is_file():
+            return en
+    return base / "napoveda.md"
 
 
 def _extract_section(md: str, heading_prefix: str) -> str:

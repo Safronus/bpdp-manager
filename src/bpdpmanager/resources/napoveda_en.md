@@ -1,328 +1,269 @@
-# Nápověda — BPDPManager
+# Help — BPDPManager
 
-Desktopová aplikace pro správu vedení a oponování **bakalářských (BP)**
-a **diplomových (DP)** prací jednoho akademického vedoucího.
+A desktop application for managing the supervision and opposition of
+**bachelor's (BP)** and **master's (DP)** theses of a single academic
+supervisor.
 
-> Tato nápověda je *jediný zdroj pravdy* — zobrazuje se v aplikaci
-> (toolbar **❓ Nápověda**) i v repozitáři
-> (`src/bpdpmanager/resources/napoveda.md`). Při změně funkcí se
-> aktualizuje tady a promítne se na obou místech.
+> This help is the *single source of truth* — it is shown in the app
+> (toolbar **❓ Help**) and in the repository. The English version is being
+> translated in waves; sections not translated yet are shown in Czech below.
 
 ---
 
-## 🚀 Začínáme (první spuštění)
+## 🚀 Getting started (first run)
 
-**Nejrychlejší a doporučená cesta je prvnotní hromadný import ze STAG.** Ten ti
-**sám založí studenty, oponenty i vedoucí** přímo z dat STAG — **nemusíš je
-zakládat ručně**. Stačí tedy: vybrat **datový profil** (krok 1), vyplnit **své
-jméno** (krok 2, kvůli auto-detekci role) a spustit **import ze STAG** (krok 3),
-který naplní databázi. Obory, šablony posudků a LibreOffice jsou doplňkové
-nastavení (kroky 4–6).
+**The fastest and recommended path is an initial bulk import from STAG.** It
+**creates students, opponents and supervisors for you** directly from STAG
+data — **no manual entry needed**. So: pick a **data profile** (step 1), fill
+in **your name** (step 2, for role auto-detection) and run the **STAG import**
+(step 3), which fills the database. Programmes, review templates and
+LibreOffice are supplementary settings (steps 4–6).
 
-### 1. Datový profil a složka s daty
-Při prvním spuštění tě uvítá okno, kde zvolíš, **kam se ukládají data**:
+### 1. Data profile and data folder
+On first run a welcome window asks **where to store the data**:
 
-- **🆕 Nový prázdný profil** — vyber složku pro `db.json`, dokumenty,
-  šablony a zálohy. Pokud chceš data synchronizovat mezi víc Macy,
-  vyber složku v **iCloud Drive** (např.
+- **🆕 New empty profile** — choose a folder for `db.json`, documents,
+  templates and backups. To sync between several Macs, pick a folder in
+  **iCloud Drive** (e.g.
   `~/Library/Mobile Documents/com~apple~CloudDocs/BPDPManager`).
-- **📂 Otevřít existující profil** — pokud už složku s `db.json` máš.
-- **📥 Importovat ze ZIP balíku** — pokud přenášíš profil z jiného
-  zařízení (export z druhého Macu).
+- **📂 Open an existing profile** — if you already have a folder with `db.json`.
+- **📥 Import from a ZIP bundle** — when moving a profile from another device.
 
-> Profil lze kdykoli přepnout / přidat přes toolbar **👤** menu.
-> Více profilů = oddělené datové sady (osobní / sdílený …).
+> Profiles can be switched / added any time via the **👤** toolbar menu.
+> Multiple profiles = separate data sets (personal / shared …).
 
-### 2. Tvoje jméno, e-mail a místo posudku (v profilu)
-V **👤 → 🗂 Správa profilů**:
+### 2. Your name, e-mail and review place (in the profile)
+In **👤 → 🗂 Profile management**:
 
-- **👤 Tvoje jméno a tituly…** — jméno + **tituly před/za** (např.
-  „doc. Ing." a „Ph.D."). Jméno slouží k **auto-detekci role** při STAG
-  importu (vedoucí / oponent); tituly se **automaticky složí do jména
-  autora v posudku** („doc. Ing. Petr Žáček, Ph.D.").
-- **✉ E-mail…** — tvůj e-mail (např. `prijmeni@utb.cz`). Slouží jako
-  **odesílatel při posílání posudků sekretářkám** (viz *Odeslání posudků
-  e-mailem*). SMTP server se nastavuje v **👤 → ✉ Nastavení e-mailu (SMTP)**.
-- **📍 Místo posudku…** — město pro podpisový blok posudku
+- **👤 Your name and titles…** — name + **titles before/after** (e.g.
+  "doc. Ing." and "Ph.D."). The name is used for **role auto-detection**
+  during STAG import (supervisor / opponent); the titles are **automatically
+  composed into the author name in reviews**.
+- **✉ E-mail…** — your e-mail (e.g. `surname@utb.cz`). Used as the **sender
+  when e-mailing reviews to secretaries**. The SMTP server is configured in
+  **👤 → ✉ E-mail settings (SMTP)**.
+- **📍 Review place…** — the city for the review signature block
   (default *Zlín*).
 
-> Tituly před/za jdou nastavit i u **oponentů** a **vedoucích** v jejich
-> registrech — uloží se jako text a zobrazí se u jejich jména (i v posudku,
-> když píšeš za ně).
+> Titles before/after can also be set for **opponents** and **supervisors**
+> in their registries — stored as text and shown with their name (also in
+> reviews written on their behalf).
 >
-> **Manažer *Oponenti*** seskupuje oponenty na **Interní** / **Externí**
-> (mezi skupinami je lze **přetáhnout**) a uvnitř ještě do **podskupin podle
-> Pracoviště**. Sloupec **Oponuje prací** ukazuje u každého počet prací, které
-> oponuje / oponoval; u podskupin je mezisoučet a u skupiny **kontrolní součet
-> Σ** všech oponovaných prací.
+> The **Opponents manager** groups opponents into **Internal** / **External**
+> (drag & drop between groups) and into **sub-groups by Department**. The
+> **Opposes theses** column shows the count of opposed theses, with subtotals
+> per department and a **checksum Σ** per group.
 >
-> **Manažer *Studenti*** má nahoře **🔎 filtr podle příjmení** (real-time,
-> necitlivý na diakritiku) a checkbox *Skrýt historické studenty* (skryje
-> studenty s **obhájenou** i **nedokončenou** prací).
+> The **Students manager** has a real-time, diacritics-insensitive
+> **🔎 surname filter** and a *Hide historical students* checkbox (hides
+> students with a **defended** or **not completed** thesis).
 >
-> **Tituly ze STAG.** STAG dává jména ve formátu *„Příjmení Jméno, tituly"*
-> (vše za jménem). Při stahování práce je aplikace **rozparsuje** na tituly
-> před / jméno / tituly za (podle známých seznamů titulů). Starší (dříve
-> stažené) záznamy srovnáš tlačítkem **🧹 Uklidit tituly** v manažeru
-> *Oponentů* / *Vedoucích* — ukáže náhled a rozparsuje i jméno vedoucího
-> uložené u oponentur.
+> **Titles from STAG.** STAG provides names as *"Surname Name, titles"*. When
+> downloading a thesis, the app **parses** them into titles before / name /
+> titles after. Older records can be fixed with **🧹 Clean up titles** in the
+> *Opponents* / *Supervisors* manager (with a preview; also parses supervisor
+> names stored with opposed theses).
 
-### 3. 🌟 Prvnotní import ze STAG — hlavní krok
-Jakmile máš nastavené **jméno** (krok 2), je nejrychlejší start **hromadně
-stáhnout své práce přímo ze STAG**:
+### 3. 🌟 Initial STAG import — the main step
+Once your **name** is set (step 2), the fastest start is a **bulk download of
+your theses directly from STAG**:
 
-1. Toolbar **📥 Import ze STAG…**
-2. **🎓 Moje vedené práce…** — najde a předvybere všechny tvé vedené práce
-   (historické i aktuální) podle jména z profilu.
-3. **🧐 Moje oponentury…** — totéž pro práce, kde jsi oponent.
-4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. U velkého objemu příloh
-   zvol *„Jen data (bez příloh)"* — gigabajty plných textů dotáhneš později
-   cíleně. Stav a chybějící soubory pak průběžně doplníš přes
-   *🔄 Aktualizovat …* a zkontroluješ tlačítkem *🔍 Kontrola se STAG*.
+1. Toolbar **📥 Import from STAG…**
+2. **🎓 My supervised theses…** — finds and pre-selects all your supervised
+   theses (historical and current) by your profile name.
+3. **🧐 My opposed theses…** — the same for theses where you are the opponent.
+4. Tick what you want and **⬇ Download selected**. For large attachment
+   volumes choose *"Data only (no attachments)"* — gigabytes of full texts can
+   be fetched later via *🔄 Update…* and checked with *🔍 STAG consistency*.
 
-Před zápisem se objeví **📋 Souhrn před importem** s výčtem **nových studentů,
-oponentů, vedoucích a oborů, které se automaticky založí**. Díky tomu
-**nemusíš ručně zakládat studenty, oponenty ani vedoucí** — STAG import je
-vytvoří za tebe (oponenti se založí jako *interní*, kind a kontakt lze upravit
-dodatečně). Tím máš databázi naplněnou během chvíle.
+Before writing, a **📋 Summary before import** lists the **new students,
+opponents, supervisors and programmes that will be created automatically** —
+so you **don't have to create them by hand** (opponents are created as
+*internal*; kind and contact can be edited later). Your database is filled in
+minutes.
 
-### 4. Studijní obory (+ STAG zkratky) — doporučené
-Nejjednodušší je **nahrát defaultní obory** tlačítkem **⭐ Defaultní…**
-(toolbar **Obory + sekretářky**) — doplní celou sadu FAI UTB i s STAG kódy.
-Cokoli navíc pak **případně přidáš rovnou při importu** (obor lze založit i
-z dialogu importu). Pro **správné mapování** a hlavně přiřazení **sekretářky**
-(kvůli odesílání posudků e-mailem) je dobré mít obory nachystané předem.
+### 4. Study programmes (+ STAG codes) — recommended
+The easiest way is to load the **default programmes** via **⭐ Defaults…**
+(toolbar **Programmes + secretaries**) — adds the whole FAI UTB set including
+STAG codes. Anything extra can be added right during import. Having programmes
+ready matters for **correct mapping** and for assigning a **secretary**
+(needed for e-mailing reviews).
 
-U každého oboru lze vyplnit:
+Each programme can have:
 
-- **STAG kód** (např. `knIT-KYB`) — **důležité pro STAG import**:
-  podle něj se obor automaticky namapuje. Bez něj tě import upozorní,
-  že obor není namapovaný (a budeš ho muset doplnit ručně).
-- volitelně sekretářku oboru (jméno, email, telefon) a její **oslovení
-  v mailu** (např. „Vážená paní Nováková") — použije se při odesílání posudků;
-  prázdné = formální výchozí „Dobrý den, paní {jméno},".
+- a **STAG code** (e.g. `knIT-KYB`) — **important for STAG import**: the
+  programme is mapped automatically by it. Without it the import warns you.
+- optionally a programme secretary (name, e-mail, phone) and her **e-mail
+  salutation** (e.g. "Vážená paní Nováková") — used when sending reviews;
+  empty = a formal default.
 
-> Manažer **seskupuje obory podle sekretářky**; ve sloupci **Oslovení** vidíš
-> její oslovení. **Dvojklik na hlavičku sekretářky** upraví její kontakt
-> i oslovení **hromadně pro všechny její obory** (dvojklik na obor upraví
-> jen ten obor).
+> The manager **groups programmes by secretary**; the **Salutation** column
+> shows her salutation. **Double-click a secretary header** to edit her
+> contact and salutation **for all her programmes at once**.
 
-> **⭐ Defaultní obory:** tlačítko **Defaultní…** v manažeru oborů nabídne
-> buď **doplnit chybějící** výchozí obory FAI UTB i s STAG zkratkami (NSWI,
-> NKYB, NUI, SWI, ITA — prezenční/kombinované, vč. anglických variant; lze
-> přepsat lišící se STAG kódy), nebo **smazat celý číselník a nahradit ho
-> výchozími**. Nový (prázdný) profil obory dostane rovnou.
+> **⭐ Default programmes:** the **Defaults…** button offers either **adding
+> the missing** FAI UTB defaults incl. STAG codes (NSWI, NKYB, NUI, SWI, ITA —
+> full-time/part-time, incl. English variants), or **replacing the whole
+> list with the defaults**. A new (empty) profile gets them automatically.
 
-### 5. Šablony posudků
-**Doporučeně si stáhni defaultní šablony** tlačítkem **⭐ Defaultní…** v knihovně
-šablon (toolbar **📝 Šablony posudků**) — doplní hotovou sadu FAI UTB, takže
-můžeš rovnou psát posudky bez ručního nahrávání. Bez šablon nelze posudky
-generovat.
+### 5. Review templates
+**Download the default templates** via **⭐ Defaults…** in the template
+library (toolbar **📝 Review templates**) — adds the ready FAI UTB set so you
+can write reviews immediately. Without templates, reviews cannot be generated.
 
-> **Co defaultní sada obsahuje (a co ne).** Vestavěné šablony **nepokrývají
-> všechny obory** — některé musíš doplnit ručně:
+> **What the default set covers (and what not).** The built-in templates
+> **do not cover all programmes**:
 >
-> | Obor | BP | DP |
+> | Programme | BP | DP |
 > |------|----|----|
-> | **SWI** | ✅ (vč. EN) | — |
-> | **ITA** | ✅ (jen CZ) | — |
-> | **NSWI** | — | ✅ (vč. EN) |
-> | **NKYB** | — | ✅ (vč. EN) |
-> | **NUI** | — | ✅ (jen CZ) |
-> | **BTSM** | ❌ chybí | ❌ chybí |
-> | **IŘT** | ❌ chybí | ❌ chybí |
+> | **SWI** | ✅ (incl. EN) | — |
+> | **ITA** | ✅ (CZ only) | — |
+> | **NSWI** | — | ✅ (incl. EN) |
+> | **NKYB** | — | ✅ (incl. EN) |
+> | **NUI** | — | ✅ (CZ only) |
+> | **BTSM** | ❌ missing | ❌ missing |
+> | **IŘT** | ❌ missing | ❌ missing |
 >
-> Tzn. **chybí** zejména **BTSM (BP + DP)**, **IŘT (BP)** a **anglické varianty
-> u ITA a NUI**. Tyto šablony nahraj přes **📝 Šablony posudků → + Přidat
-> šablonu…** (aplikace z XLSX sama rozpozná typ, roli, jazyk, obor, rok
-> i strukturu kritérií).
+> Missing ones (esp. **BTSM**, **IŘT**, EN variants of ITA/NUI) can be added
+> via **📝 Review templates → + Add template…** (the app auto-detects type,
+> role, language, programme, year and the criteria structure from the XLSX).
 
-> **Šablony jsou form-neutrální.** Prezenční (**-P**) a kombinovaná (**-K**)
-> forma téhož oboru **sdílí jednu šablonu** — posudek se liší jen oborem, ne
-> formou, takže se ve výběru i ve správci ukáže **jen jedna** (značky `-P/-K`
-> jsou jen STAG rozlišení a pro šablony jsou zbytečné).
+> **Templates are form-neutral.** Full-time (**-P**) and part-time (**-K**)
+> forms of the same programme **share one template** (`-P/-K` tags are STAG
+> distinctions only).
 
-> **⭐ Defaultní šablony:** tlačítko **Defaultní…** nabídne buď **doplnit
-> chybějící** z vestavěné sady FAI UTB (BP/DP, vedoucí/oponent, CZ/EN, podle
-> oboru; volitelně přepsat stejnojmenné), nebo **smazat všechny šablony
-> a nahradit je výchozí sadou**. Nový profil je dostane rovnou. (Akademický rok
-> se propíše z hlavičky šablony.)
+> **⭐ Default templates:** the **Defaults…** button offers **adding the
+> missing** built-in FAI UTB templates, or **replacing all templates** with
+> the default set. A new profile gets them automatically.
 
-> **🧹 Uklidit duplicity:** pokud máš z dřívějška dvojí šablony pro `-P` a `-K`
-> formu (nebo názvy se značkou formy), tlačítko **Uklidit duplicity** v knihovně
-> je **sjednotí**: šablony se stejným typem/rolí/jazykem/oborem, jejichž název
-> se liší jen značkou `-P/-K`, **sloučí do jedné** a přeživší **přejmenuje na
-> form-neutrální název** (zmizí `-P`/`-K` i redundantní `-EN` v kódu). Ukáže
-> náhled; už vygenerované posudky zůstávají nedotčené.
+> **🧹 Clean duplicates:** if you have legacy duplicate `-P`/`-K` templates,
+> the **Clean duplicates** button **merges** them and renames survivors to
+> form-neutral names. Shows a preview; generated reviews stay untouched.
 
-### 6. (Volitelně) LibreOffice pro PDF
-Pro generování **PDF** posudku z XLSX je potřeba LibreOffice:
+### 6. (Optional) LibreOffice for PDF
+Generating the review **PDF** from XLSX requires LibreOffice:
 
 ```bash
 brew install --cask libreoffice
 ```
 
-Bez něj se vygeneruje jen XLSX (PDF si vyrobíš v Excelu přes Export).
-LibreOffice se použije i k **vyčtení navržené známky ze starých `.doc`**
-posudků (převede je na pozadí na text). PDF a `.docx` fungují i bez něj.
+Without it only the XLSX is generated. LibreOffice is also used to **read the
+suggested grade from old `.doc`** reviews. PDF and `.docx` work without it.
 
-(Detaily importu ze STAG viz sekce *Import ze STAG* níže.)
+### 7. What next
+Students, opponents and supervisors are already in the database (the STAG
+import created them). You can also:
 
-### 7. Co dál
-Studenti, oponenti i vedoucí už v databázi jsou (založil je import ze STAG —
-krok 3), takže je **ručně zakládat nemusíš**. Dále můžeš:
-
-- **ručně přidat práci** (toolbar *+ Nová práce*) — pro případy, které ve STAG
-  nejsou,
-- **🌱 Zájemce** — nová budoucí práce s dialogem, kde rovnou (volitelně)
-  vyplníš **studenta, obor, název a anotaci** (nic není povinné — co
-  nevyplníš, zůstane prázdné). Studenta lze rovnou **založit tlačítkem
-  „+ Nový"** (vč. oboru). Obor je **vždy editovatelný**; při výběru studenta se
-  předvyplní jeho oborem a (je-li student zvolen) se k němu uloží. Stav je
-  defaultně *Vypsané téma* (lze změnit na *Zájemce s tématem* / *bez tématu*).
-- u práce *V řešení* kliknout **📝 Napsat posudek…**.
+- **add a thesis manually** (toolbar *+ New thesis*) — for cases not in STAG,
+- **🌱 Candidate** — a new future thesis with an optional quick form
+  (student, programme, title, annotation; nothing is required). Default
+  status is *Listed topic*.
+- click **📝 Write review…** on a thesis *In progress*.
 
 ---
 
-## Přehled obrazovky
+## Screen overview
 
-Hlavní okno má nahoře **toolbar** (tlačítka jsou barevně seskupená:
-zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
-*Import ze STAG*, šedá *Profil / Obnovit / Nápověda*), pod ním
-**🔍 vyhledávací pole** a pak **záložky** (taby):
+The main window has a **toolbar** at the top (buttons grouped by colour:
+green *Create*, blue *Manage*, purple *Review templates*, teal *STAG import*,
+grey *Profile / Refresh / Help*), a **🔍 search field** below it and then the
+**tabs**:
 
-- **Aktuálně vedené práce** — práce ve stavu *V řešení*. V titulku záložky je
-  **počet** vedených prací.
-- **Práce v dalším akademickém roce R/R** — *Zájemce bez tématu*,
-  *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok).
-  V titulku je **počet budoucích prací barevně podle kapacity**: pod 15 zeleně,
-  rovných 15 žlutě, nad 15 červeně. Budoucí práce ještě nemají známky ani
-  posudky, takže se nezobrazují sloupce **V/O**, *Posudky* ani *Odesláno*.
-- **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
-  filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
-  defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
-  rozbalovací **Oponent** (jen oponenti z historie), **Známka** (A–F/FX —
-  projde, když odpovídá vedoucí **nebo** oponent), **Obor** (agregovaně:
-  *BTSM* = jakákoli BTSM varianta, *SWI*, *NSWI*, *NKYB*, *IRT*, *ITA*, *NUI*,
-  *Jiné*) a **Typ** (BP/DP). Filtry se kombinují. U hotových prací jsou
-  sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
-  V titulku záložky je **počet prací v historii**.
-- **Vše** — všechny vedené práce; v titulku záložky je jejich **počet**.
-  Hlavičky **akademických roků** jsou barevně odlišené podle období: **budoucí**
-  (modře), **aktuální** (zeleně), **minulé** (šedě). U prací v **budoucích
-  stavech** (*Zájemce / Vypsané téma*) je sloupec *Posudky* prázdný (je tam
-  irelevantní).
-- **🧐 Oponované práce** — práce, kde jsi oponent (ne vedoucí). V titulku je
-  **počet oponentur aktuálního akademického roku**.
-  I tady lze psát posudek — v hlavičce detailu **📝 Napsat posudek…**.
-- **📅 Harmonogram** — fakultní termíny z PDF
+- **Currently supervised theses** — theses *In progress*. The tab title shows
+  the **count**.
+- **Theses in the next academic year Y/Y** — *Candidate without/with topic*,
+  *Listed topic*. The count is **coloured by capacity**: under 15 green,
+  exactly 15 yellow, over 15 red. Future theses have no grades or reviews, so
+  the **S/O**, *Reviews* and *Sent* columns are hidden.
+- **History** — *Defended*, *Failed defense*, *Not completed*. Filters above
+  the list: **status checkboxes** (remembered across restarts), **Opponent**,
+  **Grade** (matches supervisor **or** opponent), **Programme** (aggregated)
+  and **Type** (BP/DP). Filters combine. Irrelevant columns are hidden.
+- **All** — all supervised theses. **Academic year headers** are coloured:
+  **future** (blue), **current** (green), **past** (grey).
+- **🧐 Opposed theses** — theses where you are the opponent. The tab title
+  counts the current academic year. Reviews can be written here too.
+- **📅 Schedule** — faculty deadlines from PDF
 
-> **Důležité:** zařazení práce do tabu se řídí **stavem**, ne rokem.
-> Rok ovlivňuje jen řazení a grupování uvnitř tabu.
+> **Important:** the tab placement is driven by **status**, not year.
 
-### 🔍 Vyhledávání a navigace
-Do pole nad záložkami napiš **jméno studenta**, **název práce** nebo
-**osobní číslo (Axxxxx)** — hledá napříč vedenými pracemi i oponenturami.
+### 🔍 Search and navigation
+Type a **student name**, **thesis title** or **personal number (Axxxxx)** into
+the field above the tabs — searches across supervised and opposed theses.
 
-**Našeptává v reálném čase:** stačí napsat **kousek** příjmení nebo názvu
-(nemusí být celé) a hned se rozbalí **seznam pasujících prací**. Hledá se
-**bez ohledu na diakritiku i velikost písmen** — `gol` (i `golan`) najde
-studenta **Goláň** — a také **podle oboru**. Každý řádek ukazuje, **kde práce
-je** a o co jde:
-`[záložka]  Vedená/Oponovaná · BP/DP · jméno studenta — název · obor`. Výběrem
-řádku (šipky + Enter, nebo klik) aplikace rovnou **skočí na práci** (přepne
-záložku a vybere ji).
+**Real-time suggestions:** a **fragment** of a surname or title is enough,
+**diacritics- and case-insensitive** (`gol` finds **Goláň**), programme works
+too. Each row shows `[tab]  Supervised/Opposed · BP/DP · student — title ·
+programme`; selecting it **jumps straight to the thesis**.
 
-Když napíšeš dotaz a dáš **Enter** bez výběru z našeptávače (nebo klikneš na
-**Najít**), platí původní chování: jedna shoda rovnou skočí, víc shod nabídne
-**výběr v menu** (práce v *Aktuální* jsou nahoře).
+Pressing **Enter** without picking a suggestion (or clicking **Find**) keeps
+the original behaviour: one match jumps, several offer a menu.
 
-### 🟢🟡🔴 Stav posudku barevně
-V **Aktuální** indikuje stav posudku vedoucího **barevný puntík přímo
-v názvu práce**: 🟢 vyrobený soubor · 🟡 jen rozpracovaná data (uložená bez
-XLSX) · 🔴 nic. Buňka názvu se **nepodbarvuje** — barvu nese jen tečka
-(plný popis stavu je v tooltipu). V **🧐 Oponovaných pracích** stejně
-podle oponentského posudku. **Dolní lišta** ukazuje barevný
-souhrn *hotovo / chybí* (vedoucí i oponentury), ať máš přehled, kolik práce
-tě ještě čeká.
+### 🟢🟡🔴 Review status colours
+In **Current**, a **coloured dot in the thesis title** shows the supervisor
+review status: 🟢 produced file · 🟡 draft data only · 🔴 nothing. The same in
+**🧐 Opposed theses** for the opponent review. The **bottom bar** shows a
+coloured *done / missing* summary.
 
-Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
-**V/O** se známkou **vedoucího i oponenta** — vlevo známka vedoucího (V),
-vpravo oponenta (O), jako **barevně podbarvená dvojice písmen** (zelená A →
-červená F/FX; „—" když chybí obě, plný popis v tooltipu). **Stejně vypadající
-sloupec V/O** je i v záložce *Oponované práce*. Když je známka, ale **posudek
-dané role chybí** (např. po smazání přílohy), ukáže se vedle známky oranžové
-**⚠** — známka „visí" bez podkladu (tooltip říká, které role se to týká).
-U budoucích prací se ⚠ nekreslí.
+The thesis lists have an **S/O column** with the supervisor (left) and
+opponent (right) grade as a **colour-tinted letter pair** (green A → red
+F/FX). When a grade exists but the **role's review file is missing**, an
+orange **⚠** appears next to the grade (not drawn for future theses).
 
-> **Oponentury — řazení dle roku a typu.** Práce jsou seskupené dle
-> akademického roku a uvnitř ještě na **BP / DP** (prázdná podskupina se
-> nezobrazí); defaultně je rozbalený **jen aktuální rok**, starší roky sbalené.
->
-> **Oponentury — sloupec Stav a indikace dle roku.** Tabulka oponentur má
-> sloupec **Stav** jako **zaoblený barevný badge** (stejný styl jako v ostatních
-> záložkách — *Obhájeno / Neobhájeno / Nedokončeno / V řešení*). Sloupec
-> **Vedoucí** je nově až **před sloupcem Obor**. Barevný puntík
-> stavu posudku a sloupec *Odesláno* se ukazují **jen u aktuálního
-> akademického roku** (u starších je to irelevantní). Známka oponenta se
-> u stažených oponentur doplní z nahraného **posudku** (PDF i Word `.doc`/
-> `.docx`) automaticky.
+> **Opposed theses** are grouped by academic year and **BP / DP**; only the
+> current year is expanded by default. The **Status** column is a rounded
+> colour badge; the review-status dot and *Sent* column only show for the
+> current academic year. The opponent grade is auto-read from the uploaded
+> review (PDF and Word `.doc`/`.docx`).
 
-Seznam prací v *Aktuální* i *Oponované práce* má jednotný sloupec
-**Odesláno**: u prací s **hotovým posudkem** ukazuje **✉ ✓ odesláno** /
-**✉ ✗ neodesláno** (stejná informace je i v Souhrnu — *Odeslání posudku:
-✓/✗*). Posudek se označí jako odeslaný **automaticky** při odeslání e-mailem,
-nebo **ručně** přes pravý klik na práci → *✉ Označit posudek za odeslaný
-sekretářce* (a zpět). U **historických prací** (*Obhájeno* / *Nedokončeno*)
-se odeslání posudku už neřeší — sekce *Odeslání posudku* se v jejich Souhrnu
-**nezobrazuje**.
+The *Current* and *Opposed theses* lists share the **Sent** column
+(**✉ ✓ sent** / **✉ ✗ not sent** for theses with a finished review). A review
+is marked as sent **automatically** when e-mailed, or **manually** via
+right-click → *✉ Mark review as sent to the secretary*. Historical theses
+don't track sending.
 
-Hned vedle je sloupec **Vytištěno** (✓ vytištěno / ✗ nevytištěno, stejný styl)
-— indikuje, jestli jsi posudek poslal na tisk. Je relevantní **jen u aktuálně
-vedených** prací a u **letošních oponentur** (jinde je skrytý). Označíš/zrušíš
-ho **ručně** přes pravý klik na práci → *🖨 Označit posudek za vytištěný* (a
-zpět), nebo se na to dialog **zeptá po úspěšném odeslání na tisk přes MyQ**.
-Podle tohoto příznaku pak tiskový dialog předzaškrtává, co ještě tisknout
-(viz *Tisk posudků přes MyQ*).
+Next to it is the **Printed** column (✓ / ✗) — whether the review went to
+print. Relevant only for **currently supervised** theses and **this year's
+opposed** ones. Toggle manually via right-click → *🖨 Mark review as printed*,
+or the dialog asks after a successful MyQ print. The print dialog pre-checks
+unprinted reviews based on this flag.
 
-Každý tab prací má nahoře **strom** (rok → BP/DP → práce) a dole
-**detail** vybrané práce. Po startu se automaticky otevře první práce
-v *Aktuální*.
+Each thesis tab has a **tree** (year → BP/DP → thesis) at the top and the
+**detail** of the selected thesis below. The first thesis in *Current* opens
+automatically on start.
 
 ---
 
-## Stavy práce a přechody
+## Thesis statuses and transitions
 
-Práce prochází 7 stavy:
+A thesis passes through 7 statuses:
 
-1. **Zájemce bez tématu** — student má zájem, téma zatím není
-2. **Zájemce s tématem** — domluvené téma
-3. **Vypsané téma** — oficiálně vypsané (vyžaduje název CZ + anotaci)
-4. **V řešení** — schválené zadání, aktivní práce (vyžaduje název EN,
-   body zadání a literaturu)
-5. **Obhájeno** — úspěšná obhajoba
-6. **Neobhájeno** — práce dotažená k obhajobě, ale obhajoba **neúspěšná**
-   (ze STAG kódy *DBUO* / *OPUNO*)
-7. **Nedokončeno** — práce **nikdy nedotažená** k obhajobě (ze STAG kód *ND*)
+1. **Candidate without topic** — interested student, no topic yet
+2. **Candidate with topic** — topic agreed
+3. **Listed topic** — officially listed (requires CZ title + annotation)
+4. **In progress** — approved assignment, active work (requires EN title,
+   objectives and references)
+5. **Defended** — successful defense
+6. **Failed defense** — completed but the defense **failed**
+   (STAG codes *DBUO* / *OPUNO*)
+7. **Not completed** — **never brought** to a defense (STAG code *ND*)
 
-> **Neobhájeno vs Nedokončeno.** *Neobhájeno* = student šel k obhajobě a
-> neuspěl; *Nedokončeno* = práci nikdy nedokončil / nedošlo k obhajobě.
-> Při importu/aktualizaci ze STAG se rozliší automaticky. U starších prací
-> stažených dřív (kdy se rozdíl neukládal) můžeš stav opravit ručně tlačítkem
-> *Přechod do stavu* (*Nedokončeno → Neobhájeno*) nebo práci znovu naimportovat
-> ze STAG.
+> **Failed defense vs Not completed.** *Failed defense* = the student
+> defended and failed; *Not completed* = never finished. STAG import tells
+> them apart automatically; older records can be fixed manually via
+> *Transition to status*.
 
-**Druhý pokus obhajoby:** z *Nedokončeno* i *Neobhájeno* se práce dá vrátit do
-*V řešení* (znovuotevření) nebo přímo do *Obhájeno*. Mezi *Nedokončeno* a
-*Neobhájeno* lze přepnout (oprava klasifikace). Posudky a text práce mohou být
-verzované (viz Dokumenty).
+**Second defense attempt:** from *Not completed* and *Failed defense* a thesis
+can return to *In progress* (reopening) or go straight to *Defended*.
 
-Přechody mezi stavy jsou validované — tlačítka *Přechod do stavu*
-v detailu práce nabízejí jen povolené cíle. Panel *Přechod do stavu* se
-zobrazuje **jen u rozpracovaných prací** (aktuálně vedené / budoucí); u
-**historických** (*Obhájeno / Neobhájeno / Nedokončeno*) je skrytý.
+Transitions are validated — the *Transition to status* buttons offer only
+allowed targets, and the panel is shown **only for work-in-progress theses**.
 
 ---
+
+> **🌐 Translation in progress.** The following sections are not
+> translated to English yet and are shown in Czech. They will be
+> translated in upcoming updates.
 
 ## Práce — detail (záložky)
 
@@ -1007,180 +948,157 @@ v následujících 60 dnech.
 
 ---
 
-## Jazyk aplikace (CZ / EN)
+---
 
-Tlačítko **🌐** v toolbaru přepíná jazyk aplikace mezi **češtinou** (výchozí)
-a **angličtinou**. Volba se ukládá do profilu a projeví se **po restartu**
-(restart se rovnou nabídne). Přeložené je **celé UI** (hlavní plocha, detaily,
-všechny dialogy, tooltipy) i **nápověda** (orientační sekce; zbylé kapitoly
-nápovědy se dokládají po vlnách — do té doby se v EN režimu zobrazí česky).
+## Application language (CZ / EN)
+
+The **🌐** toolbar button switches the app language between **Czech**
+(default) and **English**. The choice is stored in the profile and takes
+effect **after a restart** (offered right away). The main surface, details
+and dialogs are translated; this help is being translated in waves — sections
+not translated yet are shown in Czech.
 
 ---
 
-## Aktualizace aplikace
+## Application updates
 
-Po startu proběhne **tichá kontrola nové verze** proti GitHubu (čte se
-`CHANGELOG.md` z hlavní větve; offline nebo při chybě se nic neukazuje).
-Když je k dispozici novější verze, otevře se dialog **Aktualizace aplikace**:
+A **silent update check** against GitHub runs after start (reads
+`CHANGELOG.md` from the main branch; offline or on error nothing is shown).
+When a newer version exists, the **Application update** dialog opens:
 
-- ukáže **novou verzi** a **changelog všech verzí** mezi tvojí a nejnovější,
-- **🔄 Aktualizovat a restartovat** provede `git pull` + doinstaluje případné
-  nové závislosti (`pip install -e .`) a aplikaci **restartuje**,
-- **Přeskočit tuto verzi** — tahle verze se už nebude nabízet (další ano),
-- **Později** — dialog se ukáže zase při příštím startu,
-- zaškrtávátko **Kontrolovat aktualizace po startu** kontrolu úplně vypne
-  (zapneš ji zase v témže dialogu, až se někdy objeví, nebo v
-  `profiles.json` → `ui_prefs.update_check_enabled`).
+- shows the **new version** and the **changelog of all versions between**
+  yours and the latest,
+- **🔄 Update and restart** runs `git pull`, installs any new dependencies
+  (`pip install -e .`) and **restarts** the app,
+- **Skip this version** — this version won't be offered again (the next will),
+- **Later** — the dialog appears again on the next start,
+- the **Check for updates on app start** checkbox turns the check off
+  entirely (re-enable in `profiles.json` → `ui_prefs.update_check_enabled`).
 
-> **Pozn.:** aktualizace funguje jen když aplikace běží z **git klonu**
-> (standardní instalace `pip install -e .`). Lokální neuložené změny v klonu
-> aktualizace nikdy nepřepíše — místo toho srozumitelně řekne, že je potřeba
-> je uklidit.
-
----
-
-## Statistiky
-
-Záložka **📊 Statistiky** (za Harmonogramem) je souhrnný **dashboard** napříč
-budoucími, aktuálními i historickými pracemi. Přepočítá se při každém otevření
-(nebo tlačítkem *🔄 Přepočítat*). Nahoře je **KPI banner**, pod ním **6 panelů**
-(reálné grafy QtCharts + tabulky) ve třech řádcích:
-
-- **Souhrn** — KPI pilulky: vedené práce, V řešení, budoucí, historie,
-  oponentury, studenti, odmítnutí zájemci. Po stranách Souhrnu je **kapacita
-  vedení** jako text (bez karty): vlevo *Aktuálně vedených* (V řešení) z maxima
-  15, vpravo *Budoucí* (vypsaná/rezervovaná témata) z 15.
-
-První řádek:
-
-- **Vývoj počtu prací po letech** — sloupcový graf přes celou šířku (roky tu
-  přibývají), rok je pod sloupcem, počet nad ním (bez osy Y a mřížky). Přepínač
-  vpravo nahoře: **Porovnání** (výchozí) ukáže pro každý rok **vedené** a
-  **oponované (fialově)** vedle sebe (s legendou); i tady mají **vedené**
-  **kapacitní gradient**. V režimech **Vedené** / **Oponované** samostatně jsou
-  sloupce obarvené **kapacitním gradientem** — pod 15 zeleně (čím méně, tím
-  tmavší), **15 žlutě**, nad 15 červeně (čím více, tím tmavší). Čísla nad
-  sloupci jsou výrazně větší.
-
-Druhý řádek:
-
-- **Obory · typ · forma prací** — tři sloupce: vlevo graf oborů
-  **bakalářských (BP)** prací, uprostřed **diplomových (DP)**, vpravo nahoře
-  **Typ prací** (BP/DP) a dole **Forma studia** (prezenční / kombinovaná).
-  Sloupce grafů mají **zaoblené rohy** a **barvu oboru**, pod grafem je legenda
-  barevných puntíků. Z oboru se odřízne jen forma (*-P/-K*) a jazyk (*-EN*) —
-  prefix *N* (DP) i specializace (*-M/-T*) zůstávají, takže BP a DP obory se
-  nemíchají (`NSWI` ≠ `SWI`, `BTSM-M` ≠ `BTSM-T`).
-- **Podle akademického roku** — přepínač roku vpravo nahoře (výchozí *Všechny
-  roky*); vlevo rozpad stavů (jen ty, které v daném výběru dávají smysl) +
-  *Úspěšnost obhajob*, vpravo **sloupce stavů** (barvy stavů sedí s ● v datech),
-  které se mění s přepínačem.
-- **Známky** — přepínač 4 pohledů vpravo nahoře (*Vedu já* / *Jsem oponent* /
-  *Oponent mých vedených* / *Vedoucí mých oponovaných*); **sloupce známek A–F**
-  obarvené stejně jako známky v tabulce prací (zelená A → červená F), písmeno
-  pod sloupcem.
-
-Třetí řádek:
-
-- **Soubory (přílohy)** — nahoře souhrn (počet souborů · velikost · počet
-  prací), pak **dva sloupcové grafy „Podle druhu dokumentu"** (vlevo počet,
-  vpravo velikost; barvy druhů v legendě) a dole **žebříček TOP 10 největších
-  prací** ve dvou sloupcích (1.–5. vlevo, 6.–10. vpravo). Počítá se z reálných
-  souborů na disku (vč. starších verzí).
-- **Odměny (orientačně)** — dva sloupcové grafy po letech: vlevo **odměna za
-  vedení** (3 000 Kč/obhájenou, max 12/rok), vpravo **odměna za oponentury**
-  (600 Kč/posudek). Čísla nad sloupci jsou v **tisících Kč**, v titulku grafu
-  celkový součet.
-
-> **Odmítnutí zájemci** se evidují v toolbaru **🚫 Odmítnutí** (jméno, obor,
-> akademický rok) — souvisí s kapacitou vedení a promítají se do statistik.
-> Seznam je **seskupený podle akademického roku** (sbalitelné skupiny,
-> roky sestupně).
+> **Note:** updating only works when the app runs from a **git clone**
+> (standard `pip install -e .` setup). Local uncommitted changes are never
+> overwritten — the dialog asks you to clean them up instead.
 
 ---
 
-## Profily a data
+## Statistics
 
-Aplikace podporuje **víc datových profilů** (osobní / sdílený / pro
-různé instituce). Přepínání přes toolbar **👤** menu.
+The **📊 Statistics** tab (after Schedule) is a summary **dashboard** across
+future, current and historical theses. It recalculates on every open (or via
+*🔄 Recalculate*). A **KPI banner** on top, then **6 panels** in three rows:
 
-- **Nový profil** — libovolná složka pro data; volitelně import dat
-  z existujícího profilu.
-- **Tvoje jméno** (pro STAG auto-detekci role a podpis v posudku)
-  a **📍 Místo posudku** (default Zlín) se nastavují v *🗂 Správa profilů*.
-- **🔒 Lock soubor** — varuje, když je profil otevřený na jiném zařízení
-  (např. přes iCloud), aby nedošlo k přepsání.
-- **💾 Zálohy** — 10 rotujících záloh + ruční zálohy. **👤 → 💾 Zálohovat teď**
-  vytvoří zálohu kdykoliv jedním klikem; **👤 → 💾 Zálohy** otevře manažer
-  (seznam, **obnova**, mazání, *Zálohovat teď*, otevřít složku). Při obnově se
-  aktuální stav předtím uloží jako `before-restore`, takže i obnova jde vrátit.
-- **📤 Export profilu do ZIPu** — přenosný balík (db + dokumenty +
-  šablony + harmonogramy). Na druhém zařízení **📥 Import profilu ze
-  ZIPu** (i z welcome okna při prvním spuštění). Lze i **sloučit**
-  ZIP do existujícího profilu (add-only merge s preview).
+- **Summary** — KPI pills: supervised theses, in progress, future, history,
+  opposed reviews, students, rejected candidates. **Supervision capacity** is
+  shown as text beside the Summary: *currently supervised* (left) and
+  *future* (right) out of the maximum 15.
 
-### Data na cloudu
-`data_dir` profilu může být v iCloud / Dropbox / OneDrive složce —
-data se synchronizují mezi zařízeními. Lock soubor hlídá souběžný
-přístup. Bytecode cache (`.pyc`) aplikace ukládá mimo synchronizovaný
-strom (`~/.cache/bpdpmanager/`), aby se předešlo problémům s iCloud
-synchronizací.
+First row:
 
----
+- **Theses per year over time** — full-width bar chart (years keep growing),
+  year below each bar, count above (no Y axis or grid). The combo offers
+  **Comparison** (default: supervised + opposed side by side per year, with a
+  legend; supervised bars use the capacity gradient) and **Supervised** /
+  **Opposed** separately — coloured by the **capacity gradient**: under 15
+  green (darker = fewer), **15 yellow**, over 15 red (darker = more).
 
-## Tipy
+Second row:
 
-- **Řazení** prací a studentů je české abecední (s diakritikou),
-  akademické tituly se při řazení ignorují.
-- **Sloupec Posudky** ve stromu prací ukazuje, jestli je nahraný
-  posudek vedoucího (📘 V) a/nebo oponenta (📕 O).
-- **Autosave** — změny v detailu práce se ukládají automaticky
-  (1,5 s po poslední úpravě) + při přepnutí práce a zavření okna.
-- **Roll-back** — pravý klik na práci ve stromu → kompletní smazání
-  záznamu i souborů (s náhledem a potvrzením).
-- **Otevřít posudek** — pravý klik: u **vedené práce** *📕 Otevřít posudek
-  oponenta*, u **oponované práce aktuálního roku** *📘 Otevřít posudek
-  vedoucího* (otevře PDF; když posudek není, je akce neaktivní).
-- **📄 Otevřít text práce** — pravý klik na práci (vedenou i oponovanou) otevře
-  plný text práce, je-li k dispozici (jinak neaktivní).
-- **📄 Export PDF mých posudků…** — pravý klik na práci (v *Aktuálně vedené
-  práce* i *Oponované práce*). Ve stromu lze předem **označit více prací**
-  (Ctrl/Shift klik) a hromadně **zkopírovat nejnovější PDF mého posudku** do
-  zvolené složky — u **vedených** prací posudek **vedoucího**, u **oponovaných**
-  posudek **oponenta**. Hodí se pro **tisk**: vyber jen práce, které ještě
-  tisknout chceš. Práce **bez vytvořeného PDF posudku** se přeskočí; na konci se
-  zobrazí **souhrn** (kolik exportováno, co přeskočeno). Soubor stejného názvu ve
-  cílové složce se **přepíše**. Když je vybráno **více prací**, kontextové menu
-  nabízí **jen tuto hromadnou akci** — ostatní položky (aktualizace ze STAG,
-  napsat/generovat posudek, otevřít posudek, Roll-back…) se vztahují k jedné
-  práci, takže se zobrazí jen při výběru **jediné** práce.
-- **🖨 Tisk posudku…** — pravý klik na práci (v *Aktuálně vedené práce* i
-  *Oponované práce*). Otevře dialog **Tisk posudků** **jen s vybranými pracemi**
-  (posudek vedoucího u vedených, oponenta u oponovaných). Funguje pro jednu
-  i pro **více vybraných** prací; práce **bez hotového PDF posudku** se přeskočí.
-- **📦 Export / import práce (ZIP)** — pravý klik na práci → *Exportovat práci
-  do ZIP* nejdřív ukáže **výběr „co zahrnout"**: náhled dat práce (ta se
-  exportují vždy), navázané entity (**student / oponent / obor**) a **soubory
-  seskupené po kategoriích** — odznačit lze i **jednotlivý soubor**. Defaultně
-  je vše zaškrtnuté (tlačítka *Vybrat vše / Zrušit vše*).
+- **Programmes · type · form** — three columns: left a bar chart of
+  **bachelor's (BP)** programmes, middle **master's (DP)**, right **Thesis
+  types** (top) and **Study form** (bottom). Bars have **rounded corners**
+  and **programme colours** with a dot legend. Only the form (*-P/-K*) and
+  language (*-EN*) tags are stripped — the *N* prefix and specialisations
+  (*-M/-T*) stay, so BP and DP programmes don't mix.
+- **By academic year** — year combo top-right (default *All years*); status
+  breakdown + *Defense success rate* on the left, **status bars** on the
+  right, both reflecting the combo.
+- **Grades** — a 4-view combo top-right (*Supervised by me* / *I am the
+  opponent* / *Opponents of my supervised* / *Supervisors of my opposed*);
+  **A–F grade bars** coloured like the grades in the thesis list (green A →
+  red F), letter below each bar.
 
-  Na jiném zařízení / v jiném profilu balík otevřeš přes toolbar **📦 Import
-  práce ze ZIP…**. Import sám **pozná, zda práce už existuje** (podle ID
-  z balíku, jinak podle studenta + typu + akademického roku):
-  - když **neexistuje**, vytvoří se **nová práce** (obnoví se i navázaný
-    student, oponent a obor; soubory se přenesou);
-  - když **existuje**, nabídne *vytvořit novou* / **aktualizovat existující**.
-    U aktualizace si stejným výběrem zvolíš, **co se přepíše** (data práce,
-    jednotlivé entity, vybrané soubory). Vhodné pro přesun jediné práce mezi
-    profily, zálohu, nebo doplnění/aktualizaci už evidované práce.
+Third row:
+
+- **Files (attachments)** — summary (count · size · theses), two bar charts
+  **by document kind** (count left, size right; kind colours in the legend)
+  and a **TOP 10 largest theses** ranking in two columns. Computed from real
+  files on disk (incl. older versions).
+- **Remuneration (estimate)** — two bar charts by year: **supervision
+  remuneration** (left) and **opponent-review remuneration** (right).
+  Numbers above bars are in **thousands of CZK**, totals in the captions.
+
+> **Rejected candidates** are tracked via the **🚫 Rejected** toolbar button
+> (name, programme, year) — they relate to supervision capacity and appear in
+> Statistics. The list is **grouped by academic year**.
 
 ---
 
-## Spuštění
+## Profiles and data
+
+The app supports **multiple data profiles** (personal / shared / different
+institutions). Switch via the **👤** toolbar menu.
+
+- **New profile** — any folder for the data; optional import from an
+  existing profile.
+- **Your name** (for STAG role auto-detection and the review signature) and
+  **📍 Review place** (default Zlín) are set in *🗂 Profile management*.
+- **🔒 Lock file** — warns when the profile is open on another device
+  (e.g. via iCloud) to prevent overwriting.
+- **💾 Backups** — 10 rotating backups + manual ones. **👤 → 💾 Back up now**
+  creates a backup with one click; **👤 → 💾 Backups** opens the manager
+  (list, **restore**, delete, open folder). Restoring first saves the current
+  state as `before-restore`, so even a restore can be undone.
+- **📤 Profile export to ZIP** — a portable bundle (db + documents +
+  templates + schedules). On another device use **📥 Import profile from
+  ZIP** (also from the welcome window). A ZIP can also be **merged** into an
+  existing profile (add-only merge with a preview).
+
+### Data in the cloud
+The profile `data_dir` may live in iCloud / Dropbox / OneDrive — data syncs
+between devices. The lock file guards concurrent access. The bytecode cache
+(`.pyc`) is stored outside the synced tree (`~/.cache/bpdpmanager/`).
+
+---
+
+## Tips
+
+- **Sorting** of theses and students is Czech alphabetical (with diacritics);
+  academic titles are ignored when sorting.
+- **The Reviews column** in the thesis tree shows whether the supervisor
+  (📘 S) and/or opponent (📕 O) review is uploaded.
+- **Autosave** — thesis detail changes save automatically (1.5 s after the
+  last edit) + on switching theses and closing the window.
+- **Roll-back** — right-click a thesis in the tree → complete deletion of the
+  record and files (with a preview and confirmation).
+- **Open review** — right-click: on a **supervised thesis** *📕 Open
+  opponent's review*, on a **current-year opposed thesis** *📘 Open
+  supervisor's review*.
+- **📄 Open thesis text** — right-click opens the full text, if available.
+- **📄 Export my review PDFs…** — right-click (in *Currently supervised* and
+  *Opposed theses*). Select **multiple theses** first (Ctrl/Shift) to bulk
+  copy the latest PDFs of **your** review into a chosen folder — supervisor's
+  for supervised, opponent's for opposed. Theses without a PDF are skipped;
+  a summary is shown. With multiple theses selected, the context menu offers
+  only bulk actions.
+- **🖨 Print review…** — right-click opens the **Print reviews** dialog
+  **with only the selected theses** (supervisor's review for supervised,
+  opponent's for opposed). Works for one or **many selected**; theses without
+  a finished PDF are skipped.
+- **📦 Thesis export / import (ZIP)** — right-click → *Export thesis to ZIP*
+  shows a "what to include" picker (thesis data, linked student / opponent /
+  programme, files by category — individual files can be unticked). On
+  another device use the toolbar **📦 Import thesis from ZIP…**; the import
+  detects whether the thesis exists (by bundle ID, else student + type +
+  year) and creates a new one or offers an **update of the existing one**
+  with the same picker.
+
+---
+
+## Running
 
 ```bash
-python -m bpdpmanager            # spustí aplikaci
-python -m bpdpmanager --load-demo  # nahraje fiktivní demo data
+python -m bpdpmanager            # start the app
+python -m bpdpmanager --load-demo  # load fictional demo data
 ```
 
-Reálná data nikdy nejsou v Gitu — zůstávají lokálně ve složce profilu.
+Real data is never in Git — it stays locally in the profile folder.
