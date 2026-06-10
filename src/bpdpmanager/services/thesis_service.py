@@ -1248,18 +1248,17 @@ class ThesisService:
         )
         thesis.attachments.append(attachment)
 
-        # Z nahraného posudku (vedoucího/oponenta) zkus vyčíst navrženou
-        # známku a doplnit ji — užitečné u historických prací, kde posudek není
-        # psaný v aplikaci, ale jen přiložený jako hotové PDF/Word. Plní jen
-        # prázdné pole (in-app posudek má přednost a řeší ho sync_thesis_grades).
+        # Z nahraného posudku (vedoucího/oponenta) zkus vyčíst navrženou známku.
+        # Nový soubor posudku je autoritativní → známka role se PŘEPÍŠE (jinak by
+        # dřív špatně vyčtená/stará hodnota držela navždy — smazání ani nové
+        # stažení ze STAG by ji neobnovilo). Automatický sync_thesis_grades
+        # naproti tomu jen doplňuje prázdné (nepřepisuje ruční úpravy).
         if _is_grade_source(target_path.name):
-            if kind == AttachmentKind.SUPERVISOR_REVIEW and not thesis.grade_supervisor:
-                grade = extract_grade_from_file(target_path)
-                if grade:
+            grade = extract_grade_from_file(target_path)
+            if grade:
+                if kind == AttachmentKind.SUPERVISOR_REVIEW:
                     thesis.grade_supervisor = grade
-            elif kind == AttachmentKind.OPPONENT_REVIEW and not thesis.grade_opponent:
-                grade = extract_grade_from_file(target_path)
-                if grade:
+                elif kind == AttachmentKind.OPPONENT_REVIEW:
                     thesis.grade_opponent = grade
 
         self.upsert_thesis(thesis)
@@ -1440,15 +1439,17 @@ class ThesisService:
         )
         op.attachments.append(attachment)
 
-        # Z nahraného posudku VEDOUCÍHO zkus vyčíst navrženou známku a doplnit
-        # ji (externí vedoucí dodá hotové PDF/Word — nemáme strukturovaná data).
-        if (
-            kind == AttachmentKind.SUPERVISOR_REVIEW
-            and _is_grade_source(target_path.name)
-        ):
+        # Z nahraného posudku zkus vyčíst navrženou známku — nový soubor je
+        # autoritativní, hodnota role se PŘEPÍŠE (vedoucí: externí PDF/Word;
+        # oponent: vlastní posudek stažený ze STAG). Automatický
+        # sync_opposing_grades jen doplňuje prázdné (nepřepisuje ruční úpravy).
+        if _is_grade_source(target_path.name):
             grade = extract_grade_from_file(target_path)
             if grade:
-                op.grade_supervisor = grade
+                if kind == AttachmentKind.SUPERVISOR_REVIEW:
+                    op.grade_supervisor = grade
+                elif kind == AttachmentKind.OPPONENT_REVIEW:
+                    op.grade_opponent = grade
 
         self.upsert_opposing_thesis(op)
 

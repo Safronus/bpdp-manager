@@ -342,8 +342,10 @@ posudky, přílohy…). Každá sekce má tlačítko 📋 pro zkopírování do 
 > se volný text („navrhuji hodnocení B…", „Navržená známka: D", „doporučuji
 > k obhajobě s hodnocením B"). (Starý binární `.doc` se na pozadí převede přes
 > LibreOffice — viz krok 5 v *Začínáme*.) Šifrovaná PDF ze STAG se taky čtou.
-> Děje se to automaticky při otevření práce i po stažení posudku ze STAG;
-> ručně zadanou známku nikdy nepřepíše.
+> **Nahrání/stažení nového souboru posudku známku dané role přepíše** (nový
+> posudek je autoritativní — tím se i opraví dřív špatně vyčtená hodnota).
+> Automatické doplnění při otevření práce naopak jen **doplňuje prázdné**
+> a ručně zadanou známku nikdy nepřepíše.
 
 ### 📝 Téma zadání
 Rok, student, **obor**, oponent, název CZ + EN, anotace CZ + EN, body zadání

@@ -7,6 +7,18 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.17.3] - 2026-06-10
+
+### Fixed
+- **Stará (špatně vyčtená) známka držela navždy.** Známka vyčtená z posudku se
+  ukládala jen do prázdného pole — když se jednou uložila špatná hodnota
+  (např. „B" z volného textu před opravou 1.17.2), nešlo ji obnovit: smazání
+  posudku ani nové stažení ze STAG ji nepřepsalo. Nově **nahrání/stažení nového
+  souboru posudku známku dané role přepíše** (nový posudek je autoritativní) —
+  u vedených prací (vedoucí i oponent) i u oponentur (doplněna i větev pro
+  posudek oponenta). Automatický sync při otevření práce dál jen doplňuje
+  prázdné (ruční úpravy nepřepisuje).
+
 ## [1.17.2] - 2026-06-10
 
 ### Fixed

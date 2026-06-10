@@ -87,3 +87,27 @@ def test_supervisor_grade_from_uploaded_pdf(service: ThesisService, tmp_path: Pa
     service.opposing_attach_document(op.id, fake, kind=AttachmentKind.SUPERVISOR_REVIEW)
     refreshed = service.get_opposing_thesis(op.id)
     assert refreshed.grade_supervisor == ""  # nečitelné PDF → bez známky, bez pádu
+
+
+def test_opponent_grade_overwritten_by_new_attachment(
+    service: ThesisService, tmp_path: Path
+) -> None:
+    """Nahrání nového posudku oponenta přepíše dřív uloženou známku."""
+    import zipfile
+
+    from bpdpmanager.models.enums import AttachmentKind
+
+    op = OpposingThesis(type=ThesisType.BP, academic_year="2018/2019",
+                        student_last_name="Stará", grade_opponent="B")
+    service.upsert_opposing_thesis(op)
+    f = tmp_path / "posudek-oponenta.docx"
+    xml = (
+        '<?xml version="1.0"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        "<w:body><w:p><w:r><w:t>Navržená známka: C</w:t></w:r></w:p></w:body>"
+        "</w:document>"
+    )
+    with zipfile.ZipFile(f, "w") as zf:
+        zf.writestr("word/document.xml", xml)
+    service.opposing_attach_document(op.id, f, kind=AttachmentKind.OPPONENT_REVIEW)
+    assert service.get_opposing_thesis(op.id).grade_opponent == "C"

@@ -129,3 +129,50 @@ def test_sync_empty_when_no_data(service: ThesisService) -> None:
     synced = service.sync_thesis_grades(t.id)
     assert synced.grade_supervisor == ""
     assert synced.grade_opponent == ""
+
+
+# ── nahrání nového posudku přepíše známku ────────────────────────────────────
+
+def _make_docx_review(path: Path, grade: str) -> None:
+    import zipfile
+
+    xml = (
+        '<?xml version="1.0"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body><w:p><w:r><w:t>Navržená známka: {grade}</w:t></w:r></w:p></w:body>"
+        "</w:document>"
+    )
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("word/document.xml", xml)
+
+
+def test_attach_review_overwrites_stale_grade(
+    service: ThesisService, tmp_path: Path
+) -> None:
+    """Nový soubor posudku je autoritativní — přepíše dřív (špatně) uloženou
+    známku. (Jinak by stará hodnota držela navždy: smazání přílohy ani nové
+    stažení ze STAG ji neobnovilo.)"""
+    from bpdpmanager.models.enums import AttachmentKind
+
+    t = Thesis(type=ThesisType.BP, academic_year="2018/2019",
+               grade_opponent="B")          # stará, špatně vyčtená hodnota
+    service.upsert_thesis(t)
+    f = tmp_path / "posudek-oponenta.docx"
+    _make_docx_review(f, "C")
+    service.attach_document(t.id, f, kind=AttachmentKind.OPPONENT_REVIEW)
+    assert service.get_thesis(t.id).grade_opponent == "C"
+
+
+def test_attach_unreadable_review_keeps_grade(
+    service: ThesisService, tmp_path: Path
+) -> None:
+    """Když ze souboru známku nelze vyčíst, stávající hodnota zůstane."""
+    from bpdpmanager.models.enums import AttachmentKind
+
+    t = Thesis(type=ThesisType.BP, academic_year="2018/2019",
+               grade_supervisor="A")
+    service.upsert_thesis(t)
+    f = tmp_path / "posudek-vedouciho.pdf"
+    f.write_bytes(b"%PDF-1 broken")
+    service.attach_document(t.id, f, kind=AttachmentKind.SUPERVISOR_REVIEW)
+    assert service.get_thesis(t.id).grade_supervisor == "A"
