@@ -5,8 +5,8 @@ A desktop application for managing the supervision and opposition of
 supervisor.
 
 > This help is the *single source of truth* — it is shown in the app
-> (toolbar **❓ Help**) and in the repository. The English version is being
-> translated in waves; sections not translated yet are shown in Czech below.
+> (toolbar **❓ Help**) and in the repository. The Czech original lives in
+> `napoveda.md`; this is its full English translation.
 
 ---
 
@@ -575,332 +575,301 @@ In the dialog:
 
 ---
 
-> **🌐 Translation in progress.** The following section (STAG import) is
-> not translated yet and is shown in Czech. It will be translated in an
-> upcoming update.
+## Import from STAG (CSV)
 
-## Import ze STAG (CSV)
+The **📥 Import from STAG…** toolbar button can either **download a thesis
+directly from STAG** or load a manually downloaded CSV export
+`getKvalifikacniPrace*.csv`.
 
-Toolbar **📥 Import ze STAG…** umí práci buď **stáhnout přímo ze STAG**,
-nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
+### A) Download directly from STAG (recommended)
 
-### A) Stáhnout přímo ze STAG (doporučeno)
-
-> **Hromadně všechny moje práce:** v import dialogu jsou tlačítka
-> **🎓 Moje vedené práce…** a **🧐 Moje oponentury…**. Každé otevře dialog
-> **uzamčený na danou roli** (žádné přepínání). Najdou ve STAG podle
-> tvého jména z profilu **všechny** práce dané role (historické, aktuální
-> i vypsané na další rok), seřazené **dle akademického roku**. Příjmení nemusí
-> být jednoznačné (víc vedoucích stejného příjmení) — proto je zapnutý filtr
-> **„Jen moje práce (dle celého jména)"**, který ponechá jen práce s tvým
-> celým jménem. Filtr lze vypnout. Pak jen zaškrtneš, co naimportovat.
+> **All my theses in bulk:** the import dialog has **🎓 My supervised
+> theses…** and **🧐 My opposed theses…** buttons. Each opens a dialog
+> **locked to that role**. They find **all** theses of the role in STAG by
+> your profile name (historical, current and listed for next year), sorted
+> **by academic year**. A surname may be ambiguous, so the **"Only my theses
+> (by full name)"** filter is on by default (can be turned off). Then just
+> tick what to import.
 >
-> **Načtou se opravdu všechny.** STAG výsledky vyhledávání implicitně
-> stránkuje (vrací jen první stránku), takže by se část prací do seznamu
-> nedostala. Aplikace proto stránkování automaticky vypne a načte
-> **kompletní** seznam.
+> **Really all of them load.** STAG paginates search results implicitly
+> (returning only the first page) — the app disables pagination and loads
+> the **complete** list.
 >
-> **Přehledná tabulka.** Nalezené práce jsou v tabulce se sloupci
-> **Práce · Typ · Akademický rok · Obhajoba · Oponent · Stav**. Datum
-> obhajoby a stav (obhájeno / čeká na obhajobu / nedokončeno / neúspěšná
-> obhajoba) jsou přímo z výsledků STAG. **Akademický rok a obor** se po
-> vyhledání **automaticky dotáhnou z detailu** každé práce (progress okno,
-> lze přerušit) — akademický rok je proto vidět **i u nedokončených** prací.
+> **A clear table.** Found theses are listed with columns **Thesis · Type ·
+> Academic year · Defense · Opponent · Status**. The defense date and status
+> come straight from STAG. **Academic year and programme** are
+> **auto-fetched from each thesis detail** after the search (progress
+> window, can be interrupted) — so the year shows **even for unfinished**
+> theses.
 >
-> **Seskupení.** Výběrem **„Seskupit podle"** můžeš práce seskupit dle
-> **stavu, typu (BP/DP), oboru, akademického roku** (nebo bez seskupení).
-> Zaškrtnutím hlavičky skupiny vybereš/zrušíš celou skupinu naráz.
+> **Grouping.** The **"Group by"** selector groups theses by **status, type
+> (BP/DP), programme, academic year** (or no grouping). Ticking a group
+> header (de)selects the whole group.
 >
-> **Přílohy (📎).** Počet a velikost příloh se u práce zobrazí, **jakmile ji
-> zaškrtneš** (např. „📎 4 · 14.0 MB") — dotahuje se z detailu jen u
-> zaškrtnutých prací. Samotné **stahování** ukazuje **průběh** (která práce a
-> která příloha se zrovna stahuje, **vč. staženo/celkem MB** u velkých příloh)
-> a lze ho **přerušit** — po přerušení se **dočasně stažené soubory uklidí**.
-> Pokud se nějaká příloha nestáhne, aplikace to vypíše. Stahování běží
-> **na pozadí**, takže okno **nezamrzne** ani když STAG odpovídá pomalu
-> (Přerušit funguje pořád). Timeout je **odstupňovaný podle velikosti**
-> (velká příloha dostane víc času — i stovky MB / GB se v klidu stáhnou,
-> malý soubor naopak selže rychle, když opravdu visí). Kdyby se i tak něco
-> nestáhlo včas, aplikace to řekne a připomene, že **soubor jde vždy stáhnout
-> ze STAGu ručně** (přes webový prohlížeč) a přidat k práci v sekci
-> **📎 Dokumenty**. Před stahováním aplikace **nabídne smazání
-> zbylých dočasných souborů** z dřívějška (po přerušení / pádu). Když by
-> přílohy zabraly **hodně místa** (stovky MB a víc, typicky u hromadného
-> stažení mnoha prací), zeptá se, jestli stáhnout přílohy, nebo
-> **naimportovat jen data prací bez příloh**. Co se nakonec naimportuje
-> (a vyloučení velkých příloh) vybereš v **náhledu souborů** v dalším kroku.
+> **Attachments (📎).** The count and size of attachments appears **once you
+> tick a thesis** (e.g. "📎 4 · 14.0 MB"). The **download** itself shows
+> **progress** (which thesis and attachment, incl. downloaded/total MB for
+> large files) and can be **interrupted** — temporary files are cleaned up.
+> Failures are listed. Downloads run **in the background**, so the window
+> never freezes (Cancel always works). The timeout **scales with file size**
+> (a large attachment gets more time — even hundreds of MB / GB download
+> fine; a small file fails fast when truly stuck). If something still times
+> out, the app reminds you that **files can always be downloaded manually
+> from STAG** (via the browser) and added in **📎 Documents**. Before
+> downloading, the app **offers to delete leftover temporary files** from
+> earlier runs. When attachments would take **a lot of space** (hundreds of
+> MB+, typical for bulk downloads), it asks whether to download attachments
+> or **import data only**. What gets imported (and excluding large
+> attachments) is chosen in the **file preview** in the next step.
 >
-> **„✓ už máš" — co se stane při opětovném stažení (merge).** Práce, které už
-> v databázi jsou, mají odznak **✓ už máš** a jsou **předem odškrtnuté** (ve
-> výchozím stavu se přeskočí). Když je ale **zaškrtneš a stáhneš**, NEvznikne
-> duplikát — práce se **spáruje a aktualizuje**:
-> - **Párování:** primárně přes **STAG ID (`adipidno`)**, jinak přes
->   *student + akademický rok + typ (BP/DP)*. Repetent (řádný + opravný pokus
->   se stejným studentem, ale jiným STAG ID) zůstává jako **samostatná** práce.
-> - **Slučování polí:** ze STAG se převezmou **vyplněné** údaje (název CZ/EN,
->   anotace, body zadání, literatura, vedoucí/oponent, rok); kde STAG nic nemá,
->   **zůstane tvá stávající hodnota** (nic se nepřepíše prázdnem).
-> - **Stav práce se NEmění** — u existující práce zůstává tvůj aktuální stav
->   (z dialogu se bere jen u nově zakládaných).
-> - **Přílohy** se připojí; dvě **různé** přílohy dostanou rozlišitelné názvy
->   (podle původního názvu, ne `_v2`), **shodný obsah** se nepřidá podruhé
->   a posudky se archivují.
-> - Před importem se vytvoří záloha `before-stag-import` a celý import jde
->   **vrátit** tlačítkem *„↩ Vrátit celý import zpět"*.
+> **"✓ already have" — what re-downloading does (merge).** Theses already in
+> the database get a **✓ already have** badge and are **unticked** by
+> default. If you **tick and download** them, NO duplicate is created — the
+> thesis is **paired and updated**:
+> - **Pairing:** primarily via the **STAG ID (`adipidno`)**, otherwise via
+>   *student + academic year + type (BP/DP)*. A repeat attempt (regular +
+>   retake with the same student but a different STAG ID) stays a
+>   **separate** thesis.
+> - **Field merging:** **filled** STAG values are taken (CZ/EN title,
+>   annotation, objectives, references, supervisor/opponent, year); where
+>   STAG has nothing, **your existing value stays** (nothing is overwritten
+>   with emptiness).
+> - **The thesis status does NOT change** for existing theses.
+> - **Attachments** are attached; two **different** attachments get
+>   distinguishable names (from the original name, not `_v2`), **identical
+>   content** is not added twice, and reviews are archived.
+> - A `before-stag-import` backup is created and the whole import can be
+>   **rolled back** via *"↩ Roll back the whole import"*.
 
-### 🔄 Tichá kontrola STAG (na pozadí)
+### 🔄 Silent STAG check (in the background)
 
-Po startu aplikace (automaticky **nejvýš jednou denně** — ať zbytečně
-nezatěžuje STAG) porovná na pozadí **aktuální akademický rok** se STAG a
-výsledek ukáže v **proužku nad záložkami**. Kdykoli ji spustíš i ručně přes
-toolbar **🔄 Aktualizace prací → Zkontrolovat změny ve STAG**. Smysl: máš
-jistotu, že je vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola
-hlídá:
+After app start (automatically **at most once a day**) the **current
+academic year** is compared with STAG in the background; the result shows in
+a **banner above the tabs**. You can also run it manually via
+**🔄 Update theses → Check STAG changes**. It watches:
 
-- **změnu stavu** nebo **chybějící druh souboru** u vedených prací *V řešení*,
-- totéž u **oponentur aktuálního roku**,
-- **nové práce ve STAG**, které ještě nemáš v databázi — páruje se podle
-  **celého jména** (křestní + příjmení), takže se **nezapočítají jmenovci**
-  (jiní vedoucí/oponenti se stejným příjmením).
+- **status changes** or a **missing document kind** for supervised theses
+  *In progress*,
+- the same for **current-year opposed theses**,
+- **new theses in STAG** you don't have yet — paired by **full name**, so
+  namesakes don't count.
 
-Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
-práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuálně vedené práce*
-a *🧐 Oponované práce*. Tlačítkem **🔎 Detaily…** otevřeš **rychlý
-náhled** — jmenovitě, které práce mají změnu, které nové práce STAG nabízí,
-a (pro kontrolu/debug) i seznam **zkontrolovaných a aktuálních** prací; teprve
-odtud přejdeš na **Import ze STAG**. Tlačítko **Detaily…** je dostupné i když
-je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze kdykoli **ručně
-zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
-Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.
+The banner always shows a result — even **"✓ everything up to date"**. On
+changes, a **🔄 badge** lights up on the *Currently supervised* and
+*🧐 Opposed theses* tabs. **🔎 Details…** opens a **quick preview** — which
+theses changed, which new theses STAG offers, and (for verification) the
+list of **checked, up-to-date** theses; from there you continue to **Import
+from STAG**. The check is **read-only**; offline it reports quietly.
 
-### 🔍 Kontrola se STAG (co chybí)
+### 🔍 STAG consistency (what's missing)
 
-Toolbarové tlačítko **🔍 Kontrola se STAG** (skupina *Import*): projde práce
-(vedené i oponentury) s STAG ID, porovná je se STAG a vypíše, kde **STAG
-nabízí druh dokumentu** (plný text / příloha / posudek), který **v databázi
-ještě nemáš**. **Budoucí práce** (zájemci / vypsaná témata) se nekontrolují
-(ve STAG ještě soubory nemají). Chybějící soubory jsou **předzaškrtnuté** a
-tlačítkem **⬇ Dostáhnout vybrané** je rovnou stáhneš a připojíš k práci (před
-zápisem se vytvoří záloha). **Průběh** stahování běží **přímo v seznamu** —
-u každého souboru se ukazuje staženo/celkem a po dokončení **✓ staženo**
-(nebo **✗ chyba**). U velkých / ZIP příloh STAG soubor teprve **připravuje**,
-takže než začne stahování, chvíli to trvá (řádek ukazuje *„STAG připravuje
-soubor…"*) — časový limit se **přizpůsobí velikosti** souboru. Když přesto
-vyprší, ukáže se to v řádku jako *„✗ … — STAG neodpověděl včas…"* (stejně
-srozumitelně i u ostatních způsobů stahování). Zvlášť se vypíšou práce
-**bez STAG ID** (nelze ověřit) a případné **chyby dotazu**.
+The **🔍 STAG consistency** toolbar button (Import group): walks theses
+(supervised and opposed) with a STAG ID, compares them with STAG and lists
+where **STAG offers a document kind** (full text / attachment / review)
+**missing in the database**. **Future theses** are not checked. Missing
+files are **pre-checked** and **⬇ Download selected (missing)** fetches and
+attaches them (with a backup). **Progress** runs **inline in the list** —
+each file shows downloaded/total, then **✓ downloaded** (or **✗ error**).
+For large / ZIP attachments STAG first **prepares** the file (the row shows
+*"STAG is preparing the file…"*) — the timeout **adapts to file size**.
+Theses **without a STAG ID** and any **query errors** are listed separately.
 
-> **Průběh stahování.** Než STAG začne posílat data (server soubor občas
-> teprve generuje nebo přiškrtí spojení při mnoha souborech po sobě), ukazuje
-> progres **„⏳ připojuji k STAG…"** — není to zamrznutí, jen čekání na server.
-> Při krátkém výpadku se stažení **jednou zopakuje**.
+> **Download progress.** Before STAG starts sending data, the progress shows
+> **"⏳ connecting to STAG…"** — not a freeze, just waiting for the server.
+> A short outage is **retried once**.
 
-### 🧹 Úklid duplicitních příloh
+### 🧹 Cleaning duplicate attachments
 
-Toolbarové tlačítko **🔄 Aktualizace prací → 🧹 Úklid duplicitních příloh**:
-projde **vedené i oponované** práce a najde **přílohy** (druh *Příloha práce*
-a *Jiné*), které mají **shodný obsah** jako jiná příloha téže práce — typicky
-když se tentýž soubor stáhl ze STAG **dvakrát** (např. 6. a 8. 6.) a uložil se
-pod různými cílovými názvy. Shoda se pozná podle **velikosti a obsahu**
-(kontrolní součet), ne podle názvu, takže odhalí i duplikáty s odlišným
-pojmenováním. **Text práce ani posudky se nikdy neřeší** — u nich může být
-stejný obsah legitimní.
+**🔄 Update theses → 🧹 Clean duplicate attachments**: walks **supervised
+and opposed** theses and finds **attachments** (*Thesis attachments* and
+*Other*) whose **content is identical** to another attachment of the same
+thesis — typically the same file downloaded from STAG **twice** under
+different target names. Matching uses **size and content** (checksum), not
+the name. **Thesis texts and reviews are never touched.**
 
-Otevře se **náhled**: pro každou práci je vypsáno, **které soubory se smažou**
-a **která kopie zůstane**, včetně velikosti. Vše ke smazání je **předzaškrtnuté**
-(můžeš odškrtnout); tlačítky *Vybrat vše / Zrušit vše* hromadně. **🗑 Smazat
-vybrané** odstraní vybrané přílohy (soubor i evidenci), ponechá vždy jednu
-kopii a zbylé přílohy práce označí jako **aktuální**. Když nic shodného není,
-okno hlásí *„✓ Žádné duplicitní přílohy nenalezeny."*.
+A **preview** opens: for each thesis it lists **which files get deleted**
+and **which copy stays**, with sizes. Everything is **pre-checked**
+(adjustable). **🗑 Remove selected** deletes the chosen attachments (file +
+record), always keeps one copy and marks the rest as **current**. With no
+duplicates, the window reports *"✓ No duplicate attachments found."*.
 
-> **Prevence.** Od verze 1.10.0 se duplicitní příloha **nevytvoří znovu**:
-> když stahuješ přílohu (nebo *Jiné*), jejíž obsah už u práce je, soubor se
-> **nepřipojí podruhé** — zůstane stávající. Nová **verze** přílohy vznikne jen
-> tehdy, když se její **obsah opravdu změní**.
+> **Prevention.** Since 1.10.0 a duplicate attachment is **never created
+> again**: downloading an attachment whose content the thesis already has
+> does **not attach it twice**. A new attachment **version** appears only
+> when the **content really changes**.
 
-### 🔧 Náprava zařazení textu a příloh
+### 🔧 Fixing text/attachment classification
 
-Toolbarové tlačítko **🔄 Aktualizace prací → 🔧 Náprava zařazení textu/příloh**
-řeší dva pozůstatky staršího stahování ze STAG (kde se druh v sekci „elektronická
-podoba" určoval jen **pořadím** souborů):
+**🔄 Update theses → 🔧 Fix text/attachment classification** fixes two
+leftovers of older STAG downloads (where the kind was determined only by
+file **order**):
 
-- **↔ Prohození** — archiv (zip) je veden jako **Text práce** a PDF jako
-  **Příloha**. Oprava **PDF přeřadí na Text práce** a **archiv na Přílohu**
-  (`text-prace/` ↔ `prilohy/`).
-- **📦 Balík** — archiv jako **Text práce**, ke kterému **není žádné samostatné
-  PDF** (text i přílohy jsou v jednom zipu, např. *Kopas BP / Jakuba DP /
-  Jelínek BP*). Přeřadí se na novou kategorii **Text práce + přílohy**.
+- **↔ Swap** — an archive (zip) classified as **Thesis text** and a PDF as
+  an **Attachment**. The fix **reclassifies the PDF as Thesis text** and
+  **the archive as an Attachment** (`text-prace/` ↔ `prilohy/`).
+- **📦 Bundle** — an archive as **Thesis text** with **no separate PDF**
+  (text and attachments in one zip). Reclassified to **Thesis text +
+  attachments**.
 
-Otevře se **náhled** s oběma druhy oprav; vše je **předzaškrtnuté**.
-**🔧 Opravit vybrané** druhy přeřadí a soubory **přejmenuje a přesune** do správné
-podsložky — **obsah se nemění**. Před zápisem se vytvoří **záloha**. Opravují se
-jen **jednoznačné případy** (prohození = právě jeden archiv-text a jedno PDF;
-balík = archiv-text bez PDF přílohy); nejasné případy (víc kandidátů) se
-**přeskočí**.
+A **preview** opens with both fix kinds, everything **pre-checked**.
+**🔧 Fix selected** reclassifies and **renames/moves** files into the right
+subfolder — **contents are unchanged**. A **backup** is made first. Only
+**unambiguous** cases are fixed; unclear ones are **skipped**.
 
-> **Od verze 1.11.0** se text vs. příloha při stahování rozpozná správně:
-> archiv (.zip/.rar/…) **není nikdy** plný text, text je **PDF**; a jediný zip
-> bez PDF textu je **Text práce + přílohy** (balík). Toto tlačítko
-> je hlavně na nápravu prací stažených dřív.
+> **Since 1.11.0** the text vs. attachment kind is detected correctly at
+> download time; this button mainly fixes theses downloaded earlier.
 
-Nebo klasicky přes **🌐 Stáhnout ze STAG**:
+Or classically via **🌐 Download from STAG**:
 
-1. Zadej **příjmení studenta** (nepovinné).
-2. Zadej **příjmení vedoucího nebo oponenta** a přepni *role* (Vedoucí /
-   Oponent) — druhé příjmení hledání zpřesní. Předvyplní se tvé příjmení
-   z profilu.
-   - **Hromadně dle vedoucího/oponenta:** nech **příjmení studenta prázdné**
-     a zadej jen vedoucího/oponenta — STAG najde **všechny jeho práce**
-     (historické i aktuální) a můžeš jich naimportovat víc najednou.
-3. **🔍 Vyhledat ve STAG** → ve výsledcích **zaškrtni práce**, které chceš.
-   U každé je odznak **🆕 nové** / **✓ už máš** (podle toho, co je v DB) —
-   nové jsou předzaškrtnuté. Můžeš tak v jednom kroku stáhnout třeba **BP
-   i DP** stejného studenta.
-4. **⬇ Stáhnout vybrané (N)** → všechna zaškrtnutá CSV se stáhnou a sloučí
-   do jednoho náhledu; ke každé práci se připojí její vlastní CSV. Spolu
-   s prací se **automaticky stáhnou i její veřejné soubory** (viz níže).
+1. Enter the **student's surname** (optional).
+2. Enter the **supervisor's or opponent's surname** and switch the *role*
+   (Supervisor / Opponent) — the second surname narrows the search. Your
+   profile surname is prefilled.
+   - **Bulk by supervisor/opponent:** leave the **student surname empty**
+     and enter only the supervisor/opponent — STAG finds **all their
+     theses** and you can import several at once.
+3. **🔍 Search in STAG** → **tick the theses** you want. Each has a
+   **🆕 new** / **✓ already have** badge — new ones are pre-checked. You can
+   download e.g. a student's **BP and DP** in one step.
+4. **⬇ Download selected (N)** → all ticked CSVs download and merge into one
+   preview; each thesis gets its own CSV attached. The thesis's **public
+   files download automatically** too (see below).
 
-Hledá se ve veřejném *Prohlížení → Kvalifikační práce* na **stag.utb.cz**,
-takže přihlášení obvykle není potřeba.
+The search uses the public *Browse → Qualification theses* on
+**stag.utb.cz**, so no login is usually needed.
 
-### Aktualizace už evidovaných prací ze STAG
+### Updating already-registered theses from STAG
 
-V průběhu semestru často přibyde u práce nový soubor (odevzdaná práce,
-posudek) nebo se změní stav. K tomu slouží dvě tlačítka v *Import ze STAG…*:
+During the semester theses often gain a new file (submitted thesis, review)
+or change status. Two buttons in *Import from STAG…* handle this:
 
-- **🔄 Aktualizovat práce v řešení ze STAG** — projde **vedené práce ve stavu
-  *V řešení***, dohledá je ve STAG (podle uloženého STAG ID, a když chybí, zkusí
-  **dle příjmení studenta**) a nabídne:
-  - **změnu stavu** — když STAG hlásí jiný stav (např. *V řešení → Obhájeno*),
-    návrh se zobrazí a **aplikuje jen po zaškrtnutí**;
-  - **dohrání chybějících souborů** — předzaškrtnou se soubory, jejichž **druh**
-    u práce ještě nemáš (typicky nový posudek / odevzdaná práce). Soubory, jejichž
-    druh už máš, jsou ponechané neoznačené (můžeš si je přidat ručně).
-- **🔄 Aktualizovat práce k oponování ze STAG** — totéž pro **oponentury
-  aktuálního akademického roku** (soubory; navíc **doplní STAG stav** do
-  sloupce *Stav* i u dříve stažených oponentur).
+- **🔄 Update in-progress theses from STAG** — walks **supervised theses
+  *In progress***, finds them in STAG (by stored STAG ID, falling back to
+  the **student's surname**) and offers:
+  - a **status change** — when STAG reports a different status (e.g. *In
+    progress → Defended*); applied **only when ticked**;
+  - **downloading missing files** — files whose **kind** the thesis lacks
+    are pre-checked (typically a new review / submitted thesis).
+- **🔄 Update opposed theses from STAG** — the same for **current-year
+  opposed theses** (files; also fills the STAG status into the *Status*
+  column for previously downloaded ones).
 
-Vše běží s **progres oknem** a přehledem změn k zaškrtnutí. Před zápisem se
-udělá **záloha** a v souhrnu je tlačítko **„↩ Vrátit vše"**. Práce **bez STAG
-ID**, které se nepodaří dohledat podle příjmení, se **přeskočí a vypíšou**
-(doimportuj je klasicky přes hledání).
+Everything runs with a **progress window** and a tickable change list. A
+**backup** is made before writing and the summary has **"↩ Roll back all"**.
+Theses **without a STAG ID** that can't be found by surname are **skipped
+and listed**.
 
-> **🔄 Aktualizace JEDNÉ práce ze STAG (pravý klik).** Nad libovolnou prací —
-> vedenou (*Aktuální / Budoucí / Historie / Vše*) i oponenturou — je
-> v kontextovém menu **„🔄 Aktualizace práce ze STAG…"**. Porovná **jen tu
-> jednu** práci se STAG, ukáže navrhované změny (stav + chybějící soubory)
-> k zaškrtnutí a aplikuje jen vybrané (se zálohou). Funguje **i z Historie**
-> (na rozdíl od hromadné aktualizace, která bere jen práce *V řešení*). Když
-> je vše aktuální, dialog to oznámí (nic k aktualizaci).
+> **🔄 Updating ONE thesis from STAG (right-click).** Any thesis — supervised
+> (*Current / Future / History / All*) or opposed — has **"🔄 Update thesis
+> from STAG…"** in its context menu. It compares **just that one** thesis,
+> shows the proposed changes (status + missing files) and applies only the
+> selected ones (with a backup). Works **even from History**. When
+> everything is current, the dialog says so.
 
-> **Hromadné akce nad více pracemi (multi-select).** Označ víc prací
-> (**Ctrl/Shift** klik) a pravý klik nabídne hromadně — ve vedených i
-> oponovaných: **🔄 Aktualizace N prací ze STAG** (jeden dialog, jen vybrané),
-> **📄 Otevřít texty prací**, **📘 Otevřít posudky vedoucího i oponenta**,
-> **✉ Označit / zrušit odeslání**, **🖨 Označit / zrušit vytištění** a
-> **🗑 Roll-back — smazat N prací** (s jedním potvrzením). U jedné vybrané práce
-> je k dispozici plné per-práce menu (vč. otevření **obou** posudků).
+> **Bulk actions over multiple theses (multi-select).** Select several
+> theses (**Ctrl/Shift** click); right-click offers — in supervised and
+> opposed: **🔄 Update N theses from STAG** (one dialog, selected only),
+> **📄 Open thesis texts**, **📘 Open supervisor's and opponent's reviews**,
+> **✉ Mark / unmark as sent**, **🖨 Mark / unmark as printed** and
+> **🗑 Roll-back — delete N theses** (single confirmation). With one
+> selected thesis the full per-thesis menu is available.
 
-> **Pozor — „Aktualizovat" jen osvěžuje práce, které už máš.** Nové práce
-> (např. pro **nový akademický rok**), které v databázi ještě nemáš, se zde
-> **neobjeví**. Na ně je v dialogu *Aktualizovat…* tlačítko **🆕 Najít nové
-> práce…** (otevře hromadné vyhledání *Moje vedené práce… / Moje oponentury…*
-> podle tvého jména, s odznaky **🆕 nové / ✓ už máš**). Když není co
-> aktualizovat, dialog na tuto možnost rovnou upozorní.
+> **Careful — "Update" only refreshes theses you already have.** New theses
+> (e.g. for a **new academic year**) won't appear here. Use the **🆕 Find
+> new theses…** button in the *Update…* dialog (opens the bulk search *My
+> supervised theses… / My opposed theses…* with **🆕 new / ✓ already have**
+> badges). When there is nothing to update, the dialog points this out.
 
-### Soubory práce (plný text, přílohy, posudky)
+### Thesis files (full text, attachments, reviews)
 
-Pokud STAG u práce nabízí soubory, stáhnou se spolu s ní a otevře se
-**📎 náhled souborů**:
+When STAG offers files for a thesis, they download with it and a **📎 file
+preview** opens:
 
-- typicky **plný text práce**, **přílohy**, **posudek vedoucího** a
-  **posudek oponenta** (ne vždy jsou všechny k dispozici),
-- každý soubor je **předzaškrtnutý** — odznač, co nechceš importovat
-  (tlačítka **☑ Vše** / **☐ Nic**),
-- **typ přílohy** je odhadnutý ze STAG; pokud nesedí (nebo se nepodařilo
-  rozpoznat), přepiš ho v posledním sloupci.
+- typically the **full thesis text**, **attachments**, the **supervisor's
+  review** and the **opponent's review** (not always all available),
+- every file is **pre-checked** — untick what you don't want (**☑ All** /
+  **☐ None** buttons),
+- the **attachment kind** is estimated from STAG; override it in the last
+  column if needed.
 
-> **Velké přílohy.** Pokud je některá příloha velká (nad ~25 MB — typicky
-> objemný plný text nebo přílohy), aplikace se **před stažením zeptá** a vypíše
-> velikosti. Můžeš zvolit *⬇ Stáhnout i tak*, nebo *Přeskočit velké* (ostatní
-> soubory se stáhnou normálně).
+> **Large attachments.** If an attachment is large (over ~25 MB), the app
+> **asks before downloading** and lists the sizes. Choose *⬇ Download
+> anyway* or *Skip large* (the rest downloads normally).
 
-Vybrané soubory se po importu **připojí k té správné práci** (párováno přes
-STAG ID) jako přílohy příslušného typu — objeví se v záložce **Dokumenty**.
-Z PDF posudku vedoucího se navíc u oponentur zkusí **vyčíst navržená známka** —
-přednostně z **tabulkového pole „Navržená známka"** (orientační formulace
-v *Celkovém hodnocení* se ignoruje); u starších posudků bez toho pole se
-použije návrhová věta („navrhuji hodnocení …").
+The selected files are **attached to the right thesis** after import
+(paired via STAG ID) as attachments of the right kind — visible in
+**Documents**. For opposed theses, the **suggested grade is read** from the
+supervisor review PDF — preferring the structured **"Navržená známka"
+field** (the loose wording in the *Overall evaluation* is ignored); older
+reviews without that field fall back to the suggestion sentence.
 
-> **📎 Stáhnout jen soubory:** když práci už v databázi máš a chceš jen
-> doplnit soubory, použij ve vyhledávacím okně tlačítko **📎 Stáhnout jen
-> soubory**. Stáhne soubory a připojí je k odpovídající práci (párováno přes
-> STAG ID, jinak jméno + typ). Pokud práci v databázi nenajde, upozorní tě.
+> **📎 Download files only:** when the thesis is already in the database and
+> you only want files, use the **📎 Download files only** button in the
+> search window. It downloads files and attaches them to the matching
+> thesis (paired by STAG ID, else name + type). Warns if the thesis isn't
+> found.
 >
-> **🏷 Aktualizovat jen stavy:** vedle něj je tlačítko **🏷 Aktualizovat jen
-> stavy** — u zaškrtnutých prací, které už v databázi máš, **aktualizuje jen
-> stav** ze STAG (bez stahování souborů). U vedených prací nastaví stav
-> (*Obhájeno / Neobhájeno / Nedokončeno / …*), u oponentur stav práce ve STAG.
-> Je to rychlé a **vyřeší i zpětné přeřazení** dříve naimportovaných prací
-> *Nedokončeno → Neobhájeno* (kde se dřív neúspěšná obhajoba neodlišovala).
-> Ukáže přehled, u koho se stav změnil.
+> **🏷 Update statuses only:** next to it, **🏷 Update statuses only**
+> updates **just the status** of ticked already-known theses from STAG (no
+> file downloads). Supervised theses get *Defended / Failed defense / Not
+> completed / …*; opposed theses the STAG status. Fast — also fixes the
+> retroactive *Not completed → Failed defense* reclassification. Shows a
+> summary of changed statuses.
 
-> **BP × DP:** BP a DP jsou samostatné záznamy (párují se podle typu),
-> takže import DP **nepřepíše** dříve naimportovanou BP. Práce se navíc
-> párují přes **STAG ID (`adipidno`)**, takže opětovný import téže práce ji
-> spolehlivě *aktualizuje* místo zdvojení.
+> **BP × DP:** BP and DP are separate records (paired by type), so importing
+> a DP **never overwrites** a previously imported BP. Theses are also paired
+> by the **STAG ID (`adipidno`)**, so re-importing the same thesis reliably
+> *updates* it instead of duplicating.
 
-> **Pozn.:** Veřejný CSV export STAG **neobsahuje jméno studenta**
-> (jen osobní číslo). Aplikace ho proto doplní z výsledku vyhledávání.
+> **Note:** the public STAG CSV export **lacks the student's name** (only
+> the personal number). The app fills it from the search result.
 
-> **Repetent (řádný + opravný pokus):** když má student dvě práce stejného
-> typu (např. řádný pokus *Nedokončeno* + opravný *Obhájeno*, každá s vlastním
-> STAG ID), import je **nikdy nespojí ani nepřepíše** — zůstanou jako **dva
-> samostatné záznamy** (každý se svým posudkem a soubory). Aplikace je navíc
-> **automaticky propojí** (vazba řádný ↔ opravný) a v seznamu i Souhrnu je
-> označí **🔁**. Obě jsou v *Historii* podle svého stavu (Obhájeno / Nedokončeno).
-> Ve Statistikách je počet *opravných pokusů (repetentů)*.
+> **Repeat attempt (regular + retake):** when a student has two theses of
+> the same type (e.g. regular *Not completed* + retake *Defended*, each with
+> its own STAG ID), the import **never merges or overwrites them** — they
+> stay **two separate records** (each with its review and files). The app
+> also **links them** (regular ↔ retake) and marks them **🔁** in the list
+> and the Overview. Both live in *History* by their status. Statistics
+> count *repeat attempts*.
 
-### B) Ručně stažený CSV
-1. Otevři **stag.utb.cz** → **Prohlížení** → **Kvalifikační práce**
-2. Vyhledej práci podle jména studenta a u ní zvol **stažení CSV**
-3. V aplikaci vyber soubor přes *Import ze STAG… → Procházet…*
+### B) Manually downloaded CSV
+1. Open **stag.utb.cz** → **Browse** → **Qualification theses**
+2. Find the thesis by the student's name and choose **download CSV**
+3. In the app pick the file via *Import from STAG… → Browse…*
 
-(Stejný návod je i pod tlačítkem **❓ Odkud stáhnout** v import dialogu.)
+(The same guide is under the **❓ Where to download** button in the import
+dialog.)
 
-### Průběh importu
+### Import flow
 
-- **Auto-detekce role** podle *Tvého jména* (z profilu) v poli
-  `vedouciJmeno` / `oponentJmeno` → práce se zařadí jako vedená nebo
-  oponentská.
-- **Náhled** s per-řádkovou volbou role, mapování oboru (STAG kód →
-  lokální obor), stavu a akce (Vytvořit / Aktualizovat / Přeskočit).
-  Stav se předvyplní podle STAG kódu (`R`, `DBPOO` → V řešení;
-  `DUO` → Obhájeno; `DBUO`, `ND` → Nedokončeno) nebo podle datumů.
-  U **nenamapovaného oboru** (jantarový řádek) zvol existující obor, nebo
-  **„➕ Nový obor…"** (předvyplní STAG kód). Nově založený obor se **hned
-  nabídne i v ostatních řádcích** a u všech řádků **se stejným STAG kódem**
-  se rovnou předvybere — nemusíš ho zakládat znovu.
-- **Studenti** — u vedených prací se chybějící student automaticky
-  založí a přiřadí k práci. Volba **✎ Před založením zkontrolovat /
-  doplnit nové studenty** otevře pro každého nového studenta jeho kartu
-  (e-mail, telefon, obor…) k doplnění — zapíše se až v rámci importu.
-  *(U oponovaných prací se student neeviduje jako samostatná entita,
-  ukládá se inline u posudku.)*
-- **Souhrn před importem** ukáže, které entity (studenti, oponenti,
-  vedoucí, obory) se založí.
-- **Transakční** — vše se zapíše jednou na konci; při chybě rollback.
-- **Záchranná brzda:** těsně před importem se vytvoří záloha
-  `before-stag-import` a po dokončení nabídne souhrnné okno tlačítko
-  **↩ Vrátit celý import zpět** — obnoví stav databáze do podoby před importem
-  (importovaný stav se předtím ještě zazálohuje jako `before-restore`, takže
-  i vrácení jde vrátit). Zálohy spravuješ i v **👤 → 💾 Zálohy**.
-- Originální CSV se připojí ke každé importované práci.
-- Po importu se aplikace přepne na importovanou práci.
+- **Role auto-detection** by *Your name* (from the profile) in
+  `vedouciJmeno` / `oponentJmeno` → the thesis is classified as supervised
+  or opposed.
+- A **preview** with per-row choice of role, programme mapping (STAG code →
+  local programme), status and action (Create / Update / Skip). The status
+  is prefilled from the STAG code (`R`, `DBPOO` → In progress; `DUO` →
+  Defended; `DBUO`, `ND` → Not completed) or from dates. For an **unmapped
+  programme** (amber row) pick an existing programme or **"➕ New
+  programme…"** (the STAG code is prefilled). A newly created programme is
+  **immediately offered in other rows** and pre-selected for rows **with
+  the same STAG code**.
+- **Students** — for supervised theses a missing student is created and
+  assigned automatically. The **✎ Check / complete new students before
+  creating** option opens each new student's card (e-mail, phone,
+  programme…) — saved as part of the import. *(For opposed theses the
+  student is stored inline, not as a separate entity.)*
+- A **Summary before import** shows which entities (students, opponents,
+  supervisors, programmes) will be created.
+- **Transactional** — everything writes once at the end; errors roll back.
+- **Emergency brake:** a `before-stag-import` backup is created just before
+  the import and the summary window offers **↩ Roll back the whole import**
+  (the imported state is first backed up as `before-restore`, so even the
+  rollback can be undone). Backups are also managed in **👤 → 💾 Backups**.
+- The original CSV is attached to every imported thesis.
+- After the import the app jumps to the imported thesis.
 
-STAG kód oboru lze evidovat v dialogu *Obory* (pole *STAG kód*).
-
----
+The STAG programme code is managed in the *Programmes* dialog (the *STAG
+code* field).
 
 ---
 
@@ -916,9 +885,8 @@ period). A yellow panel shows important deadlines in the next 60 days.
 
 The **🌐** toolbar button switches the app language between **Czech**
 (default) and **English**. The choice is stored in the profile and takes
-effect **after a restart** (offered right away). The main surface, details
-and dialogs are translated; this help is being translated in waves — sections
-not translated yet are shown in Czech.
+effect **after a restart** (offered right away). The whole UI (main surface,
+details, all dialogs, tooltips) and this complete help are translated.
 
 ---
 

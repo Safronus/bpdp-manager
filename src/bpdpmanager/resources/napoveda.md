@@ -1012,8 +1012,7 @@ v následujících 60 dnech.
 Tlačítko **🌐** v toolbaru přepíná jazyk aplikace mezi **češtinou** (výchozí)
 a **angličtinou**. Volba se ukládá do profilu a projeví se **po restartu**
 (restart se rovnou nabídne). Přeložené je **celé UI** (hlavní plocha, detaily,
-všechny dialogy, tooltipy) i **nápověda** (orientační sekce; zbylé kapitoly
-nápovědy se dokládají po vlnách — do té doby se v EN režimu zobrazí česky).
+všechny dialogy, tooltipy) i **kompletní nápověda** (`napoveda_en.md`).
 
 ---
 

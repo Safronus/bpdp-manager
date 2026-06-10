@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-11
+
+### Added
+- **Jazyk CZ/EN — dokončeno (vlna 4c).** Přeložena poslední kapitola nápovědy
+  **Import from STAG (CSV)** — anglická nápověda `napoveda_en.md` je tím
+  **kompletní** (1035 řádků). Celá aplikace (UI, dialogy, tooltipy, nápověda)
+  je teď plně dvojjazyčná CZ/EN; čeština zůstává výchozí.
+
 ## [2.0.4] - 2026-06-11
 
 ### Added
