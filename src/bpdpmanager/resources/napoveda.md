@@ -1007,6 +1007,16 @@ v následujících 60 dnech.
 
 ---
 
+## Jazyk aplikace (CZ / EN)
+
+Tlačítko **🌐** v toolbaru přepíná jazyk aplikace mezi **češtinou** (výchozí)
+a **angličtinou**. Volba se ukládá do profilu a projeví se **po restartu**
+(restart se rovnou nabídne). Zatím je přeložená **hlavní plocha** (záložky,
+toolbar, seznamy prací, statistiky, stavy) — detaily a dialogy se překládají
+postupně v dalších verzích; nepřeložený text se zobrazí česky.
+
+---
+
 ## Aktualizace aplikace
 
 Po startu proběhne **tichá kontrola nové verze** proti GitHubu (čte se

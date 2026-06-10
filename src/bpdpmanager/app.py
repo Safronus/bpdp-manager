@@ -123,6 +123,13 @@ def run() -> int:
         repo = _build_repo_for_profile(pm)
         service = ThesisService(repo)
 
+    # Jazyk UI z předvolby (default čeština) — musí se nastavit před stavbou
+    # hlavního okna; změna jazyka se projeví po restartu.
+    if pm is not None:
+        from .i18n import set_language
+
+        set_language(pm.get_ui_pref("language", "cs"))
+
     # Nový (právě vytvořený) profil dostane výchozí obory + šablony.
     service.maybe_seed_defaults()
 

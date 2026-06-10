@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import Thesis
+from ..i18n import tr
 from ..models.enums import (
     GRADES_ORDER,
     REVIEW_STATE_STRONG,
@@ -678,24 +679,24 @@ class MainWindow(QMainWindow):
         self.tab_stats = StatsTab(service)
 
         # Tab labely (bez roku — status-driven, jeden tab = jeden bucket napříč roky)
-        self.tabs.addTab(self.tab_current, "Aktuálně vedené práce")
-        self.tabs.addTab(self.tab_future, f"Práce v dalším akademickém roce {next_year}")
-        self.tabs.addTab(self.tab_history, "Historie")
-        self.tabs.addTab(self.tab_all, "Vše")
-        self.tabs.addTab(self.tab_opposing, "🧐 Oponované práce")
-        self.tabs.addTab(self.tab_proposals, "💡 Návrhy témat")
-        self.tabs.addTab(self.tab_harmonogram, "📅 Harmonogram")
-        self.tabs.addTab(self.tab_stats, "📊 Statistiky")
+        self.tabs.addTab(self.tab_current, tr("Aktuálně vedené práce"))
+        self.tabs.addTab(self.tab_future, tr("Práce v dalším akademickém roce") + f" {next_year}")
+        self.tabs.addTab(self.tab_history, tr("Historie"))
+        self.tabs.addTab(self.tab_all, tr("Vše"))
+        self.tabs.addTab(self.tab_opposing, tr("🧐 Oponované práce"))
+        self.tabs.addTab(self.tab_proposals, tr("💡 Návrhy témat"))
+        self.tabs.addTab(self.tab_harmonogram, tr("📅 Harmonogram"))
+        self.tabs.addTab(self.tab_stats, tr("📊 Statistiky"))
 
         # Základní titulky záložek s počty (počet doplňuje _refresh_tab_labels);
         # STAG odznak 🔄 se přidává zvlášť (drží se v _stag_badges).
         self._tab_base = {
-            id(self.tab_current): "Aktuálně vedené práce",
-            id(self.tab_future): f"Práce v dalším akademickém roce {next_year}",
-            id(self.tab_opposing): "🧐 Oponované práce",
-            id(self.tab_history): "Historie",
-            id(self.tab_all): "Vše",
-            id(self.tab_proposals): "💡 Návrhy témat",
+            id(self.tab_current): tr("Aktuálně vedené práce"),
+            id(self.tab_future): tr("Práce v dalším akademickém roce") + f" {next_year}",
+            id(self.tab_opposing): tr("🧐 Oponované práce"),
+            id(self.tab_history): tr("Historie"),
+            id(self.tab_all): tr("Vše"),
+            id(self.tab_proposals): tr("💡 Návrhy témat"),
         }
         self._stag_badges: dict[int, int] = {}
 
@@ -708,7 +709,7 @@ class MainWindow(QMainWindow):
         self.ed_search = QLineEdit()
         self.ed_search.setClearButtonEnabled(True)
         self.ed_search.setPlaceholderText(
-            "🔍 Najít práci: stačí kousek jména studenta · názvu · ID (Axxxxx)"
+            tr("🔍 Najít práci: stačí kousek jména studenta · názvu · ID (Axxxxx)")
         )
         self.ed_search.returnPressed.connect(self._do_search)
         # Real-time našeptávač — ukazuje pasující práce hned při psaní.
@@ -728,7 +729,7 @@ class MainWindow(QMainWindow):
         self.ed_search.setCompleter(self._completer)
         self._completer.activated[QModelIndex].connect(self._on_search_activated)
         self._rebuild_search_model()
-        btn_search = QPushButton("Najít")
+        btn_search = QPushButton(tr("Najít"))
         btn_search.clicked.connect(self._do_search)
         search_row.addWidget(self.ed_search, stretch=1)
         search_row.addWidget(btn_search)
@@ -1108,37 +1109,37 @@ class MainWindow(QMainWindow):
 
         # ── Skupina: Vytvořit (zelená) ──────────────────────────────────
         add(
-            "➕ Nová práce", lambda: self._new_thesis_smart(), self._GROUP_CREATE,
+            tr("➕ Nová práce"), lambda: self._new_thesis_smart(), self._GROUP_CREATE,
             "Vytvoří novou práci. Výchozí stav se odvodí z aktuálního tabu:\n"
             "  Aktuální → V řešení\n  Budoucí → Vypsané téma\n"
             "  Historie → Obhájeno\n  Vše → Vypsané téma",
         )
         add(
-            "🌱 Zájemce", self._new_future_thesis, self._GROUP_CREATE,
+            tr("🌱 Zájemce"), self._new_future_thesis, self._GROUP_CREATE,
             "Nová budoucí práce — volitelně rovnou vyplníš studenta, obor, "
             "název a anotaci (nic není povinné). Stav default Vypsané téma.",
         )
         add(
-            "🕘 Minulá práce", self._new_past_thesis, self._GROUP_CREATE,
+            tr("🕘 Minulá práce"), self._new_past_thesis, self._GROUP_CREATE,
             "Rychlý formulář pro historickou práci (vlastní rok + stav).",
         )
 
         toolbar.addSeparator()
 
         # ── Skupina: Správa registrů (modrá) ────────────────────────────
-        add("🎓 Studenti", self._manage_students, self._GROUP_MANAGE)
-        add("🧐 Oponenti", self._manage_opponents, self._GROUP_MANAGE)
+        add(tr("🎓 Studenti"), self._manage_students, self._GROUP_MANAGE)
+        add(tr("🧐 Oponenti"), self._manage_opponents, self._GROUP_MANAGE)
         add(
-            "👔 Vedoucí", self._manage_supervisors, self._GROUP_MANAGE,
+            tr("👔 Vedoucí"), self._manage_supervisors, self._GROUP_MANAGE,
             "Registr vedoucích cizích BP/DP — pro oponentské posudky",
         )
         add(
-            "🏷 Obory + sekretářky", self._manage_obory, self._GROUP_MANAGE,
+            tr("🏷 Obory + sekretářky"), self._manage_obory, self._GROUP_MANAGE,
             "Číselník oborů + sekretářky oborů. Dvojklik na hlavičku sekretářky "
             "upraví její kontakt a oslovení hromadně pro všechny její obory.",
         )
         add(
-            "🚫 Odmítnutí", self._manage_rejected, self._GROUP_MANAGE,
+            tr("🚫 Odmítnutí"), self._manage_rejected, self._GROUP_MANAGE,
             "Evidence odmítnutých zájemců o vedení (jméno, obor, rok) — "
             "promítá se do Statistik (kapacita vedení).",
         )
@@ -1147,28 +1148,28 @@ class MainWindow(QMainWindow):
 
         # ── Skupina: Posudky (fialová) ──────────────────────────────────
         add(
-            "📝 Šablony posudků", self._manage_review_templates, self._GROUP_REVIEW,
+            tr("📝 Šablony posudků"), self._manage_review_templates, self._GROUP_REVIEW,
             "Knihovna XLSX šablon posudků (vedoucího / oponenta) — "
             "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek.",
         )
         # „Odeslat posudky" s volbou: vedoucího (vedené práce) / oponentské.
         self._send_button = QToolButton()
-        self._send_button.setText(self._dropdown_text("✉ Odeslat posudky"))
+        self._send_button.setText(self._dropdown_text(tr("✉ Odeslat posudky")))
         self._send_button.setToolTip(
             "Odeslání připravených posudků sekretářce e-mailem — vyber, zda "
             "posudky vedoucího (vedené práce) nebo oponentské."
         )
         self._send_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         send_menu = QMenu(self._send_button)
-        act_send_sup = send_menu.addAction("🎓 Posudky vedoucího (vedené práce)…")
+        act_send_sup = send_menu.addAction(tr("🎓 Posudky vedoucího (vedené práce)…"))
         act_send_sup.triggered.connect(self._send_supervisor_reviews)
-        act_send_opp = send_menu.addAction("🧐 Oponentské posudky…")
+        act_send_opp = send_menu.addAction(tr("🧐 Oponentské posudky…"))
         act_send_opp.triggered.connect(self._send_opponent_reviews)
         self._send_button.setMenu(send_menu)
         self._tint_widget(self._send_button, self._GROUP_REVIEW)
         toolbar.addWidget(self._send_button)
         add(
-            "🖨 Tisk posudků", self._print_reviews_myq, self._GROUP_REVIEW,
+            tr("🖨 Tisk posudků"), self._print_reviews_myq, self._GROUP_REVIEW,
             "Vytisknout PDF posudků (vedoucího i oponentské) — přes MyQ "
             "(myq.utb.cz) nebo na systémovou tiskárnu. Vybereš práce a cíl "
             "tisku. Tiskne oboustranně.",
@@ -1178,12 +1179,12 @@ class MainWindow(QMainWindow):
 
         # ── Skupina: Import (tyrkysová) ─────────────────────────────────
         add(
-            "📥 Import ze STAG…", self._import_from_stag, self._GROUP_IMPORT,
+            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
             "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
             "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.",
         )
         add(
-            "📦 Import práce ze ZIP…", self._import_thesis_zip, self._GROUP_IMPORT,
+            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
             "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
             "posudky, soubory) — vytvoří novou práci.",
         )
@@ -1195,23 +1196,23 @@ class MainWindow(QMainWindow):
 
         # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()
-        self._checks_button.setText(self._dropdown_text("🔄 Aktualizace prací"))
+        self._checks_button.setText(self._dropdown_text(tr("🔄 Aktualizace prací")))
         self._checks_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         checks_menu = QMenu(self._checks_button)
-        act_check = checks_menu.addAction("🔄 Zkontrolovat změny ve STAG")
+        act_check = checks_menu.addAction(tr("🔄 Zkontrolovat změny ve STAG"))
         act_check.setToolTip("Tichá kontrola: změny stavu/souborů + nové práce.")
         act_check.triggered.connect(self._start_stag_check)
-        act_consist = checks_menu.addAction("🔍 Kontrola se STAG (chybějící soubory)")
+        act_consist = checks_menu.addAction(tr("🔍 Kontrola se STAG (chybějící soubory)"))
         act_consist.triggered.connect(self._check_stag_consistency)
-        act_defense = checks_menu.addAction("🗂 Přeřadit průběh obhajoby")
+        act_defense = checks_menu.addAction(tr("🗂 Přeřadit průběh obhajoby"))
         act_defense.triggered.connect(self._reclassify_defense_records)
-        act_dupatt = checks_menu.addAction("🧹 Úklid duplicitních příloh")
+        act_dupatt = checks_menu.addAction(tr("🧹 Úklid duplicitních příloh"))
         act_dupatt.setToolTip(
             "Najde přílohy se shodným obsahem (duplikáty z opětovného stažení) "
             "a nabídne jejich smazání — s náhledem, co a proč."
         )
         act_dupatt.triggered.connect(self._cleanup_duplicate_appendices)
-        act_swapped = checks_menu.addAction("🔧 Náprava zařazení textu/příloh")
+        act_swapped = checks_menu.addAction(tr("🔧 Náprava zařazení textu/příloh"))
         act_swapped.setToolTip(
             "Najde práce, kde je archiv (zip) veden jako Text práce — buď "
             "prohozený s PDF přílohou, nebo balík (text+přílohy v zipu) — a "
@@ -1237,11 +1238,38 @@ class MainWindow(QMainWindow):
             toolbar.addWidget(self._profile_button)
             toolbar.addSeparator()
 
-        add("🔄 Obnovit", self._refresh_all, self._GROUP_NEUTRAL)
+        add(tr("🔄 Obnovit"), self._refresh_all, self._GROUP_NEUTRAL)
+        # Přepínač jazyka CZ/EN — projeví se po restartu aplikace.
+        from ..i18n import get_language
+        other = "EN" if get_language() == "cs" else "CZ"
         add(
-            "❓ Nápověda", self._show_help, self._GROUP_NEUTRAL,
+            f"🌐 {other}", self._switch_language, self._GROUP_NEUTRAL,
+            tr("Přepnout jazyk aplikace (CZ/EN) — projeví se po restartu."),
+        )
+        add(
+            tr("❓ Nápověda"), self._show_help, self._GROUP_NEUTRAL,
             "Popis funkcí a jak aplikace funguje (F1).", shortcut="F1",
         )
+
+    def _switch_language(self) -> None:
+        """Přepne jazyk UI (CZ↔EN), uloží do profilu a nabídne restart."""
+        from ..i18n import get_language
+
+        new_lang = "en" if get_language() == "cs" else "cs"
+        if self.profile_manager:
+            self.profile_manager.set_ui_pref("language", new_lang)
+        resp = QMessageBox.question(
+            self, "Jazyk / Language",
+            "Language will change after restart. Restart now?"
+            if new_lang == "en"
+            else "Jazyk se změní po restartu aplikace. Restartovat teď?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if resp == QMessageBox.StandardButton.Yes:
+            from ..services.update_checker import restart_app
+
+            restart_app()
 
     def _on_tab_changed(self, index: int) -> None:
         """Při přepnutí na Statistiky je přepočítej z aktuálních dat."""
@@ -2137,8 +2165,8 @@ class MainWindow(QMainWindow):
         if s in STATUSES_FUTURE:
             return "Budoucí"
         if s in STATUSES_HISTORY:
-            return "Historie"
-        return "Vše"
+            return tr("Historie")
+        return tr("Vše")
 
     def _tab_for_status(self, status) -> "_ThesesTab":
         if status in STATUSES_CURRENT:

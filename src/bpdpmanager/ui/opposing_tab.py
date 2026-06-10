@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
 from ..models import OpposingThesis
 from ..models.enums import (
     REVIEW_STATE_LABELS,
@@ -109,8 +110,8 @@ class OpposingTab(QWidget):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(9)
         self.tree.setHeaderLabels(
-            ["Student / Skupina", "Téma", "Stav", "Známky V/O",
-             "Posudky", "Odesláno", "Vytištěno", "Vedoucí", "Obor"]
+            [tr(h) for h in ("Student / Skupina", "Téma", "Stav", "Známky V/O",
+                             "Posudky", "Odesláno", "Vytištěno", "Vedoucí", "Obor")]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from enum import Enum
 
+from ..i18n import tr
+
 
 class ThesisType(str, Enum):
     BP = "BP"
@@ -9,7 +11,7 @@ class ThesisType(str, Enum):
 
     @property
     def label(self) -> str:
-        return {"BP": "Bakalářská práce", "DP": "Diplomová práce"}[self.value]
+        return tr({"BP": "Bakalářská práce", "DP": "Diplomová práce"}[self.value])
 
 
 class StudyForm(str, Enum):
@@ -18,7 +20,7 @@ class StudyForm(str, Enum):
 
     @property
     def label(self) -> str:
-        return {"P": "Prezenční", "K": "Kombinovaná"}[self.value]
+        return tr({"P": "Prezenční", "K": "Kombinovaná"}[self.value])
 
 
 class OpponentKind(str, Enum):
@@ -27,7 +29,7 @@ class OpponentKind(str, Enum):
 
     @property
     def label(self) -> str:
-        return {"internal": "Interní", "external": "Externí"}[self.value]
+        return tr({"internal": "Interní", "external": "Externí"}[self.value])
 
 
 class AttachmentKind(str, Enum):
@@ -48,7 +50,7 @@ class AttachmentKind(str, Enum):
 
     @property
     def label(self) -> str:
-        return ATTACHMENT_KIND_LABELS[self]
+        return tr(ATTACHMENT_KIND_LABELS[self])
 
 
 ATTACHMENT_KIND_LABELS: dict[AttachmentKind, str] = {
@@ -75,7 +77,7 @@ class PlagiarismVerdict(str, Enum):
 
     @property
     def label(self) -> str:
-        return PLAGIARISM_VERDICT_LABELS[self]
+        return tr(PLAGIARISM_VERDICT_LABELS[self])
 
     @property
     def color(self) -> str:
@@ -112,7 +114,7 @@ class ThesisStatus(str, Enum):
 
     @property
     def label(self) -> str:
-        return STATUS_LABELS[self]
+        return tr(STATUS_LABELS[self])
 
     @property
     def color(self) -> str:

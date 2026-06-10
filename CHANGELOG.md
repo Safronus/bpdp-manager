@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-10
+
+### Added
+- **Přepínání jazyka CZ / EN (vlna 1).** Nové tlačítko **🌐** v toolbaru přepne
+  jazyk aplikace; volba se ukládá do profilu a projeví se **po restartu**
+  (nabídne se rovnou). Čeština zůstává výchozí a chování CZ režimu se nemění.
+  V EN režimu je přeložená **hlavní plocha**: záložky, toolbar, globální
+  hledání, hlavičky stromů prací i oponentur, kontextové akce, dashboard
+  Statistik a všechny stavy/typy/formy/druhy dokumentů (enumy).
+  Nepřeložené texty (detaily, dialogy) zatím zůstávají česky a doplní se
+  v dalších vlnách (2.0.x) — stejně jako anglická nápověda.
+- Infrastruktura překladu: modul `bpdpmanager.i18n` (`tr()`, `set_language`),
+  slovník `i18n/en.py`. Čeština = zdrojový text, angličtina = překladová
+  vrstva s tichým fallbackem.
+
 ## [1.18.0] - 2026-06-10
 
 ### Added

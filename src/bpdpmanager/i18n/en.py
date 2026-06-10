@@ -1,0 +1,126 @@
+"""Anglické překlady UI (zdroj = český text v kódu).
+
+Slovník se doplňuje po vlnách — nepřeložený text zůstává česky (bez pádu).
+Vlna 1 (2.0.0): hlavní plocha — záložky, toolbar, stromy prací, statistiky,
+stavy/enumy.
+"""
+
+from __future__ import annotations
+
+EN: dict[str, str] = {
+    # ── Enumy: stavy, typy, formy, druhy ─────────────────────────────────
+    "Bakalářská práce": "Bachelor's thesis",
+    "Diplomová práce": "Master's thesis",
+    "Prezenční": "Full-time",
+    "Kombinovaná": "Part-time",
+    "Interní": "Internal",
+    "Externí": "External",
+    "Zájemce bez tématu": "Candidate without topic",
+    "Zájemce s tématem": "Candidate with topic",
+    "Vypsané téma": "Listed topic",
+    "V řešení": "In progress",
+    "Obhájeno": "Defended",
+    "Nedokončeno": "Not completed",
+    "Neobhájeno": "Failed defense",
+    "Text práce": "Thesis text",
+    "Přílohy práce": "Thesis attachments",
+    "Text práce + přílohy": "Thesis text + attachments",
+    "Pracovní deník": "Work journal",
+    "Oficiální zadání": "Official assignment",
+    "Posudek vedoucího": "Supervisor's review",
+    "Posudek oponenta": "Opponent's review",
+    "Prezentace": "Presentation",
+    "Soubor s průběhem obhajoby": "Defense record",
+    "STAG export (CSV)": "STAG export (CSV)",
+    "Jiné": "Other",
+    "Neposouzen": "Not assessed",
+    "Posouzen — je plagiát": "Assessed — plagiarism",
+    "Posouzen — není plagiát": "Assessed — not plagiarism",
+
+    # ── Hlavní okno: záložky ─────────────────────────────────────────────
+    "Aktuálně vedené práce": "Currently supervised theses",
+    "Práce v dalším akademickém roce": "Theses in the next academic year",
+    "Historie": "History",
+    "Vše": "All",
+    "🧐 Oponované práce": "🧐 Opposed theses",
+    "💡 Návrhy témat": "💡 Topic proposals",
+    "📅 Harmonogram": "📅 Schedule",
+    "📊 Statistiky": "📊 Statistics",
+
+    # ── Hlavní okno: toolbar ─────────────────────────────────────────────
+    "➕ Nová práce": "➕ New thesis",  # noqa: RUF001
+    "🌱 Zájemce": "🌱 Candidate",
+    "🕘 Minulá práce": "🕘 Past thesis",
+    "🎓 Studenti": "🎓 Students",
+    "🧐 Oponenti": "🧐 Opponents",
+    "👔 Vedoucí": "👔 Supervisors",
+    "🏷 Obory + sekretářky": "🏷 Programmes + secretaries",
+    "🚫 Odmítnutí": "🚫 Rejected",
+    "📝 Šablony posudků": "📝 Review templates",
+    "✉ Odeslat posudky": "✉ Send reviews",
+    "🎓 Posudky vedoucího (vedené práce)…": "🎓 Supervisor's reviews (supervised)…",
+    "🧐 Oponentské posudky…": "🧐 Opponent's reviews…",
+    "🖨 Tisk posudků": "🖨 Print reviews",
+    "📥 Import ze STAG…": "📥 Import from STAG…",
+    "📦 Import práce ze ZIP…": "📦 Import thesis from ZIP…",
+    "🔄 Aktualizace prací": "🔄 Update theses",
+    "🔄 Zkontrolovat změny ve STAG": "🔄 Check STAG changes",
+    "🔍 Kontrola se STAG (chybějící soubory)": "🔍 STAG consistency (missing files)",
+    "🗂 Přeřadit průběh obhajoby": "🗂 Reclassify defense records",
+    "🧹 Úklid duplicitních příloh": "🧹 Clean duplicate attachments",
+    "🔧 Náprava zařazení textu/příloh": "🔧 Fix text/attachment classification",
+    "🔄 Obnovit": "🔄 Refresh",
+    "❓ Nápověda": "❓ Help",
+    "Přepnout jazyk aplikace (CZ/EN) — projeví se po restartu.":
+        "Switch application language (CZ/EN) — applies after restart.",
+    "🔍 Najít práci: stačí kousek jména studenta · názvu · ID (Axxxxx)":
+        "🔍 Find thesis: part of student name · title · ID (Axxxxx)",
+    "Najít": "Find",
+
+    # ── Stromy prací: hlavičky sloupců ───────────────────────────────────
+    "Student / Skupina": "Student / Group",
+    "Téma": "Topic",
+    "Stav": "Status",
+    "Známky V/O": "Grades S/O",
+    "Posudky": "Reviews",
+    "Plagiát posouzen": "Plagiarism assessed",
+    "Odesláno": "Sent",
+    "Vytištěno": "Printed",
+    "Oponent": "Opponent",
+    "Obor": "Programme",
+    "Vedoucí": "Supervisor",
+
+    # ── Kontextové akce ──────────────────────────────────────────────────
+    "🔄 Aktualizace práce ze STAG…": "🔄 Update thesis from STAG…",
+    "📝 Generovat posudek z šablony…": "📝 Generate review from template…",
+    "✉ Označit posudky za odeslané": "✉ Mark reviews as sent",
+
+    # ── Statistiky ───────────────────────────────────────────────────────
+    "🔄 Přepočítat": "🔄 Recalculate",
+    "Souhrn": "Summary",
+    "Obory · typ · forma prací": "Programmes · type · form",
+    "Podle akademického roku": "By academic year",
+    "Známky": "Grades",
+    "Vývoj počtu prací po letech": "Theses per year over time",
+    "Soubory (přílohy)": "Files (attachments)",
+    "Odměny (orientačně)": "Remuneration (estimate)",
+    "Všechny roky": "All years",
+    "Porovnání": "Comparison",
+    "Vedené": "Supervised",
+    "Oponované": "Opposed",
+    "Vedu já": "Supervised by me",
+    "Jsem oponent": "I am the opponent",
+    "Oponent mých vedených": "Opponents of my supervised",
+    "Vedoucí mých oponovaných": "Supervisors of my opposed",
+    "Vedené práce": "Supervised theses",
+    "Budoucí": "Future",
+    "Oponentury": "Opposed reviews",
+    "Studenti": "Students",
+    "Odmítnutí": "Rejected",
+    "Bakalářské (BP)": "Bachelor's (BP)",
+    "Diplomové (DP)": "Master's (DP)",
+    "Typ prací": "Thesis types",
+    "Forma studia": "Study form",
+    "Počet souborů": "File count",
+    "Velikost": "Size",
+}

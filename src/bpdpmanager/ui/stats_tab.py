@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import thesis_documents_dir
+from ..i18n import tr
 from ..models.enums import (
     GRADE_TINTS,
     STATUSES_CURRENT,
@@ -212,11 +213,11 @@ class StatsTab(QWidget):
         outer.setSpacing(8)
 
         head = QHBoxLayout()
-        title = QLabel("📊 Statistiky")
+        title = QLabel(tr("📊 Statistiky"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         head.addWidget(title)
         head.addStretch()
-        btn_refresh = QPushButton("🔄 Přepočítat")
+        btn_refresh = QPushButton(tr("🔄 Přepočítat"))
         btn_refresh.clicked.connect(self.refresh)
         head.addWidget(btn_refresh)
         outer.addLayout(head)
@@ -358,7 +359,7 @@ class StatsTab(QWidget):
         rejected = self.service.list_rejected_students()
 
         # KPI souhrn — nadpis + řada zaoblených pilulek (vycentrováno nahoře).
-        self._kpi_banner.setText(self._h("Souhrn"))
+        self._kpi_banner.setText(self._h(tr("Souhrn")))
         while self._kpi_cards_lay.count():
             it = self._kpi_cards_lay.takeAt(0)
             if it.widget() is not None:
@@ -403,16 +404,16 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         self._trend_combo = QComboBox()
-        self._trend_combo.addItem("Porovnání")   # 0 = porovnání (výchozí)
-        self._trend_combo.addItem("Vedené")      # 1
-        self._trend_combo.addItem("Oponované")   # 2
+        self._trend_combo.addItem(tr("Porovnání"))   # 0 = porovnání (výchozí)
+        self._trend_combo.addItem(tr("Vedené"))      # 1
+        self._trend_combo.addItem(tr("Oponované"))   # 2
         modes = ["cmp", "led", "opp"]
         self._trend_combo.setCurrentIndex(modes.index(self._trend_mode))
         self._trend_combo.currentIndexChanged.connect(
             lambda i: self._set_trend(modes[i])
         )
         lay.addWidget(
-            self._header_with_control("Vývoj počtu prací po letech", self._trend_combo)
+            self._header_with_control(tr("Vývoj počtu prací po letech"), self._trend_combo)
         )
         # Kreslené zaoblené sloupce s rokem pod sloupcem (bez osy Y a mřížky).
         # Vedené/Oponované samostatně = kapacitní gradient; Porovnání = dva
@@ -517,7 +518,7 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         lay.setSpacing(6)
-        lay.addWidget(self._header_label("Obory · typ · forma prací"))
+        lay.addWidget(self._header_label(tr("Obory · typ · forma prací")))
         bp_items = [t for t in theses if t.type.value == "BP"]
         dp_items = [t for t in theses if t.type.value == "DP"]
         bp = len(bp_items)
@@ -532,7 +533,7 @@ class StatsTab(QWidget):
         # -EN, specializace -M/-T zůstává.
         cols = QHBoxLayout()
         cols.setContentsMargins(0, 0, 0, 0)
-        for caption, items in (("Bakalářské (BP)", bp_items), ("Diplomové (DP)", dp_items)):
+        for caption, items in ((tr("Bakalářské (BP)"), bp_items), (tr("Diplomové (DP)"), dp_items)):
             col = QVBoxLayout()
             col.setContentsMargins(0, 0, 0, 0)
             col.setSpacing(2)
@@ -549,7 +550,7 @@ class StatsTab(QWidget):
         bp_pct = bp / total * 100.0
         dp_pct = dp / total * 100.0
         type_html = (
-            self._h("Typ prací")
+            self._h(tr("Typ prací"))
             + f"<p>Bakalářské (BP): <b>{bp}</b> "
             f"<span style='color:{self._muted};'>({bp_pct:.0f}%)</span><br>"
             f"Diplomové (DP): <b>{dp}</b> "
@@ -569,7 +570,7 @@ class StatsTab(QWidget):
                 f"<br>Neuvedeno: <b>{unkn}</b> "
                 f"<span style='color:{self._muted};'>({unkn / total * 100:.0f}%)</span>"
             )
-        form_html = self._h("Forma studia") + f"<p>{form_rows}</p>"
+        form_html = self._h(tr("Forma studia")) + f"<p>{form_rows}</p>"
         third = QVBoxLayout()
         third.setContentsMargins(0, 0, 0, 0)
         for html in (type_html, form_html):
@@ -599,12 +600,12 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         self._year_combo = QComboBox()
-        self._year_combo.addItem(self._ALL_YEARS)   # výchozí: souhrn přes všechny roky
+        self._year_combo.addItem(tr(self._ALL_YEARS))   # výchozí: souhrn přes všechny roky
         for y in sorted(years, reverse=True):
             self._year_combo.addItem(y)
         self._year_combo.currentTextChanged.connect(self._render_year)
         lay.addWidget(
-            self._header_with_control("Podle akademického roku", self._year_combo)
+            self._header_with_control(tr("Podle akademického roku"), self._year_combo)
         )
         # Dvě poloviny: vlevo data na střed levé poloviny, vpravo graf na střed
         # pravé poloviny (barvy stavů sedí s ● v datech).
@@ -634,7 +635,7 @@ class StatsTab(QWidget):
         return card
 
     def _render_year(self, sel: str) -> None:
-        if sel == self._ALL_YEARS:
+        if sel == tr(self._ALL_YEARS):
             # Souhrn přes všechny roky (sloučí stavy).
             st: Counter = Counter()
             for dd in self._year_data.values():
@@ -716,10 +717,10 @@ class StatsTab(QWidget):
                 opp_sup[gs] += 1
         # 4 pohledy přepínatelné comboboxem.
         self._grade_views = [
-            ("Vedu já", led_me, "#1565c0"),
-            ("Jsem oponent", opp_me, "#8e24aa"),
-            ("Oponent mých vedených", led_opp, "#00897b"),
-            ("Vedoucí mých oponovaných", opp_sup, "#ef6c00"),
+            (tr("Vedu já"), led_me, "#1565c0"),
+            (tr("Jsem oponent"), opp_me, "#8e24aa"),
+            (tr("Oponent mých vedených"), led_opp, "#00897b"),
+            (tr("Vedoucí mých oponovaných"), opp_sup, "#ef6c00"),
         ]
         if not any(c for _n, c, _col in self._grade_views):
             return None
@@ -730,7 +731,7 @@ class StatsTab(QWidget):
         for name, _c, _col in self._grade_views:
             self._grade_combo.addItem(name)
         self._grade_combo.currentIndexChanged.connect(self._render_grades)
-        lay.addWidget(self._header_with_control("Známky", self._grade_combo))
+        lay.addWidget(self._header_with_control(tr("Známky"), self._grade_combo))
         # Sloupce známek A-F obarvené stejně jako známky v tabulce prací
         # (GRADE_TINTS: zelená A → červená F), písmeno pod sloupcem.
         self._grade_bars = _OborBars([], self._fg, show_labels=True, muted=self._muted)
@@ -760,13 +761,13 @@ class StatsTab(QWidget):
         fut = sum(1 for t in theses if t.status in STATUSES_FUTURE)
         hist = sum(1 for t in theses if t.status in STATUSES_HISTORY)
         return [
-            ("Vedené práce", len(theses), "#1565c0"),
-            ("V řešení", cur, "#00897b"),
-            ("Budoucí", fut, "#7cb342"),
-            ("Historie", hist, "#8e24aa"),
-            ("Oponentury", len(opposings), "#5e35b1"),
-            ("Studenti", len(students), "#546e7a"),
-            ("Odmítnutí", len(rejected), "#b71c1c"),
+            (tr("Vedené práce"), len(theses), "#1565c0"),
+            (tr("V řešení"), cur, "#00897b"),
+            (tr("Budoucí"), fut, "#7cb342"),
+            (tr("Historie"), hist, "#8e24aa"),
+            (tr("Oponentury"), len(opposings), "#5e35b1"),
+            (tr("Studenti"), len(students), "#546e7a"),
+            (tr("Odmítnutí"), len(rejected), "#b71c1c"),
         ]
 
     def _kpi_pill(self, n: int, label: str, color: str) -> QLabel:
@@ -835,7 +836,7 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         lay.setSpacing(6)
-        lay.addWidget(self._header_label("Odměny (orientačně)"))
+        lay.addWidget(self._header_label(tr("Odměny (orientačně)")))
         note = QLabel(
             f"<div style='font-size:11px;color:{self._muted};text-align:center;'>"
             f"Vedení {_czk(_FEE_THESIS)}/obhájenou (max {_THESIS_FEE_CAP_PER_YEAR}/rok), "
@@ -940,7 +941,7 @@ class StatsTab(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(14, 8, 14, 12)
         lay.setSpacing(6)
-        lay.addWidget(self._header_label("Soubory (přílohy)"))
+        lay.addWidget(self._header_label(tr("Soubory (přílohy)")))
         summary = QLabel(
             "<div style='font-size:13px;text-align:center;'>Celkem "
             f"<b>{total_count}</b> souborů · <b>{_human_size(total_bytes)}</b> · napříč "
@@ -959,8 +960,8 @@ class StatsTab(QWidget):
         cols = QHBoxLayout()
         cols.setContentsMargins(0, 0, 0, 0)
         for cap_text, groups, vfmt, npt in (
-            ("Počet souborů", count_groups, str, 14),
-            ("Velikost", size_groups, _size_short, 13),
+            (tr("Počet souborů"), count_groups, str, 14),
+            (tr("Velikost"), size_groups, _size_short, 13),
         ):
             col = QVBoxLayout()
             col.setContentsMargins(0, 0, 0, 0)

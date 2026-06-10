@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
 )
 
+from ..i18n import tr
 from ..models import Thesis
 from ..models.enums import (
     GRADE_TINTS,
@@ -537,7 +538,7 @@ class ThesesTreeWidget(QTreeWidget):
         self.blank_future_reviews = False
 
         self.setColumnCount(len(self.HEADERS))
-        self.setHeaderLabels(self.HEADERS)
+        self.setHeaderLabels([tr(h) for h in self.HEADERS])
         self.setRootIsDecorated(True)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -973,7 +974,7 @@ class ThesesTreeWidget(QTreeWidget):
             self._add_multi_actions(menu, selected_theses)
             return menu
 
-        act_update = QAction("🔄 Aktualizace práce ze STAG…", self)
+        act_update = QAction(tr("🔄 Aktualizace práce ze STAG…"), self)
         act_update.setToolTip(
             "Porovná tuto práci se STAG a nabídne změnu stavu a dohrání "
             "chybějících souborů (ukáže, co se aktualizuje; lze vybrat)."
@@ -984,7 +985,7 @@ class ThesesTreeWidget(QTreeWidget):
         menu.addAction(act_update)
         menu.addSeparator()
 
-        act_generate = QAction("📝 Generovat posudek z šablony…", self)
+        act_generate = QAction(tr("📝 Generovat posudek z šablony…"), self)
         act_generate.setToolTip(
             "Vybere se šablona z knihovny, vyplní se daty z této práce "
             "a připojí se jako příloha."
@@ -1157,7 +1158,7 @@ class ThesesTreeWidget(QTreeWidget):
         menu.addAction(act_rev)
         menu.addSeparator()
 
-        act_sent = QAction("✉ Označit posudky za odeslané", self)
+        act_sent = QAction(tr("✉ Označit posudky za odeslané"), self)
         act_sent.triggered.connect(
             lambda _c=False, v=ids: self.mark_reviews_sent_requested.emit(v, True)
         )
