@@ -336,11 +336,14 @@ posudky, přílohy…). Každá sekce má tlačítko 📋 pro zkopírování do 
 > **Známky u historických prací.** Sekce *Známky* bere známku primárně
 > z posudku napsaného v aplikaci. Pokud posudek existuje jen jako **nahraný
 > soubor** — PDF i Word (`.doc` / `.docx`), typicky u starších prací stažených
-> ze STAG — aplikace se z něj pokusí navrženou známku **vyčíst** („navrhuji
-> hodnocení B…", „Navržená známka: D", „doporučuji k obhajobě s hodnocením B"
-> apod.) a doplní ji. (Starý binární `.doc` se na pozadí převede přes
-> LibreOffice — viz krok 5 v *Začínáme*.) Děje se to automaticky při otevření
-> práce i po stažení posudku ze STAG; ručně zadanou známku nikdy nepřepíše.
+> ze STAG — aplikace se z něj pokusí navrženou známku **vyčíst** a doplní ji.
+> U **Wordových** posudků se přednostně bere **vybraná hodnota formulářového
+> rozevíracího pole** se známkou (autoritativní), a teprve když chybí, použije
+> se volný text („navrhuji hodnocení B…", „Navržená známka: D", „doporučuji
+> k obhajobě s hodnocením B"). (Starý binární `.doc` se na pozadí převede přes
+> LibreOffice — viz krok 5 v *Začínáme*.) Šifrovaná PDF ze STAG se taky čtou.
+> Děje se to automaticky při otevření práce i po stažení posudku ze STAG;
+> ručně zadanou známku nikdy nepřepíše.
 
 ### 📝 Téma zadání
 Rok, student, **obor**, oponent, název CZ + EN, anotace CZ + EN, body zadání

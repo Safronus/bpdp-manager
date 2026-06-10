@@ -7,7 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [1.17.1] - 2026-06-10
+## [1.17.2] - 2026-06-10
+
+### Fixed
+- **Načtení známky ze starších Wordových posudků (.doc/.docx).** U těchto
+  posudků je navržená známka **formulářové rozevírací pole** („…navrhuji
+  hodnocení [A–F]") — jeho hodnota se do textu nedostane, takže se známka
+  nenačetla (a volný text typu „s hodnocením B-C" dával i špatný výsledek).
+  Nově se čte **přímo vybraná hodnota dropdownu** a má **přednost** před volným
+  textem. Starý binární `.doc` se kvůli tomu převádí na `.docx` (LibreOffice),
+  ne na txt — `.docx` zachová formulářová pole.
+
+### Changed
+- Úklid: `extract_grade_from_file` sjednoceno (Word přes `.docx` XML), odstraněn
+  původní `.doc → txt` převod (`_read_doc_text`).
 
 ### Fixed
 - **Načtení navržené známky z PDF posudku staženého ze STAG.** Tyto posudky jsou

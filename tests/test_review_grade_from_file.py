@@ -8,9 +8,26 @@ from pathlib import Path
 import pytest
 
 from bpdpmanager.services.review_pdf import (
+    _grade_from_docx_xml,
     extract_grade_from_file,
     parse_grade_from_text,
 )
+
+_W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+_GRADE_OPTIONS = [
+    "vyberte hodnocení", "A - výborně", "B - velmi dobře", "C - dobře",
+    "D - uspokojivě", "E - dostatečně", "F - nedostatečně",
+]
+
+
+def _ddlist(name: str, entries: list[str], result_idx: int) -> str:
+    items = "".join(f'<w:listEntry w:val="{e}"/>' for e in entries)
+    return (
+        f'<w:r><w:fldChar w:fldCharType="begin"><w:ffData>'
+        f'<w:name w:val="{name}"/>'
+        f'<w:ddList><w:result w:val="{result_idx}"/>{items}</w:ddList>'
+        f"</w:ffData></w:fldChar></w:r>"
+    )
 
 _DOCX_XML = (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -46,6 +63,42 @@ def test_extract_grade_from_docx(tmp_path: Path) -> None:
     docx = tmp_path / "posudek.docx"
     _make_docx(docx, "Předloženou práci doporučuji k obhajobě s hodnocením B.")
     assert extract_grade_from_file(docx) == "B"
+
+
+def test_grade_from_form_dropdown_is_authoritative() -> None:
+    """Známka z formulářového dropdownu vyhrává nad jinou položkou i textem.
+
+    Mimo známkový dropdown jsou i dropdowny oboru / „doporučuji" — nesmí splést.
+    """
+    body = (
+        _ddlist("Rozevírací1", ["Inženýrská informatika"], 0)
+        + _ddlist("Rozevírací2",
+                  ["Bezpečnostní technologie", "Softwarové inženýrství"], 0)
+        + _ddlist("Rozevírací4", ["doporučuji", "nedoporučuji"], 0)
+        + _ddlist("Rozevírací3", _GRADE_OPTIONS, 3)   # idx 3 = „C - dobře"
+    )
+    xml = f"<w:document {_W_NS}><w:body><w:p>{body}</w:p></w:body></w:document>"
+    assert _grade_from_docx_xml(xml) == "C"
+
+
+def test_grade_dropdown_unset_returns_none() -> None:
+    """Nevyplněný dropdown (idx 0 = „vyberte hodnocení") → žádná známka."""
+    body = _ddlist("Rozevírací3", _GRADE_OPTIONS, 0)
+    xml = f"<w:document {_W_NS}><w:body><w:p>{body}</w:p></w:body></w:document>"
+    assert _grade_from_docx_xml(xml) is None
+
+
+def test_docx_dropdown_beats_conflicting_free_text(tmp_path: Path) -> None:
+    """Celé .docx: dropdown „C" vyhraje nad volným textem „B-C"."""
+    docx = tmp_path / "posudek.docx"
+    body = (
+        "<w:p><w:r><w:t>doporučuji k obhajobě s hodnocením B-C</w:t></w:r></w:p>"
+        f"<w:p>{_ddlist('Rozevírací3', _GRADE_OPTIONS, 3)}</w:p>"
+    )
+    doc = f'<?xml version="1.0"?><w:document {_W_NS}><w:body>{body}</w:body></w:document>'
+    with zipfile.ZipFile(docx, "w") as zf:
+        zf.writestr("word/document.xml", doc)
+    assert extract_grade_from_file(docx) == "C"
 
 
 def test_extract_grade_unknown_suffix_returns_none(tmp_path: Path) -> None:
