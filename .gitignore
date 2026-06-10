@@ -69,3 +69,6 @@ ui_*.h
 # Lokální překlady
 *.ts.bak
 *.tmp
+
+# Dočasná složka pro soubory předané Claudovi (reálná data — mimo Git)
+Claude_TEMP/

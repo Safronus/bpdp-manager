@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-06-10
+
+### Fixed
+- **Načtení navržené známky z PDF posudku staženého ze STAG.** Tyto posudky jsou
+  **AES-šifrované** (prázdné heslo, jen omezení práv) a `pypdf` je bez knihovny
+  `cryptography` neuměl přečíst — extrakce textu tiše selhala a známka se
+  nenačetla. Přidána závislost **`pypdf[crypto]`** (cryptography); čtení PDF teď
+  funguje i u šifrovaných posudků. Selhání čtení PDF se navíc loguje (debug),
+  ať je příště dohledatelné.
+
 ## [1.17.0] - 2026-06-09
 
 ### Added

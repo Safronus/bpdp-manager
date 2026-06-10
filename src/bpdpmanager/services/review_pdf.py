@@ -14,6 +14,7 @@ from pathlib import Path
 # pypdf u některých (mírně vadných) PDF spamuje varování „Ignoring wrong
 # pointing object …" — pro nás neškodná, ztlumíme ji.
 logging.getLogger("pypdf").setLevel(logging.ERROR)
+logger = logging.getLogger(__name__)
 
 # Navrženou známku čteme přednostně ze STRUKTUROVANÉHO pole „Navržená známka"
 # (FAI UTB šablony). To je autoritativní; volný text v „Celkovém hodnocení"
@@ -71,13 +72,21 @@ def parse_grade_from_text(text: str) -> str | None:
 
 
 def extract_grade_from_pdf(path: Path) -> str | None:
-    """Vrátí navrženou známku (A–F / FX) z PDF posudku, nebo ``None``."""
+    """Vrátí navrženou známku (A–F / FX) z PDF posudku, nebo ``None``.
+
+    Posudky stažené ze STAG bývají **AES-šifrované** (prázdné uživatelské heslo,
+    jen omezení práv) — pypdf je umí dešifrovat jen s knihovnou ``cryptography``
+    (proto závislost ``pypdf[crypto]``). Bez ní by extrakce textu tiše selhala
+    a známka by se nenačetla.
+    """
     try:
         from pypdf import PdfReader
 
         reader = PdfReader(str(path))
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
     except Exception:  # noqa: BLE001 — PDF nemusí jít přečíst, to není fatal
+        # Logujeme (debug) — ať je důvod „nenačtené známky" dohledatelný.
+        logger.debug("Nelze přečíst PDF posudku %s", path, exc_info=True)
         return None
     return parse_grade_from_text(text)
 
