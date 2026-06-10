@@ -117,9 +117,16 @@ _REVIEW_HAS_BG = "#43a047"   # zelená — posudek je
 _REVIEW_NONE_BG = "#e53935"  # červená — chybí
 
 
+# Popisek prázdné známky (EN DASH schválně — vizuálně decentní pomlčka).
+_NO_GRADE = "–"  # noqa: RUF001
+
+
 def _grade_badges(gs: str, go: str) -> list[str]:
-    """Dvojice popisků pro sloupec V/O — prázdná známka jako „–"."""
-    return [(gs or "").upper().strip() or "–", (go or "").upper().strip() or "–"]
+    """Dvojice popisků pro sloupec V/O — prázdná známka jako pomlčka."""
+    return [
+        (gs or "").upper().strip() or _NO_GRADE,
+        (go or "").upper().strip() or _NO_GRADE,
+    ]
 
 
 class GradesDelegate(QStyledItemDelegate):
@@ -127,19 +134,35 @@ class GradesDelegate(QStyledItemDelegate):
 
     Levé písmeno = známka vedoucího, pravé = oponenta; barva dle ECTS stupně
     (zelená A → červená F/FX). Prázdná známka je decentní „–" bez podbarvení.
+    Když je na indexu i ``ROLE_REVIEWS`` (má/nemá posudek dané role), kreslí se
+    za známkou **bez posudku** varovné „⚠" — známka visí bez podkladu (např.
+    smazaný posudek).
     """
 
     _GAP = 8        # mezera mezi dvojicí
     _PAD = 7        # vnitřní okraj v rámečku písmene
     _MIN_W = 22     # minimální šířka rámečku
     _BADGE_H = 18
+    _WARN = "⚠"
 
-    def _layout(self, fm, gs: str, go: str) -> tuple[list[str], list[int], int]:
+    @staticmethod
+    def _warn_flags(labels: list[str], backed) -> list[bool]:
+        """True tam, kde je známka, ale posudek dané role chybí."""
+        if not backed:
+            return [False, False]
+        return [
+            lbl != _NO_GRADE and not has
+            for lbl, has in zip(labels, backed, strict=True)
+        ]
+
+    def _layout(self, fm, gs: str, go: str, backed) -> tuple[list[str], list[int], list[bool], int]:
         labels = _grade_badges(gs, go)
         widths = [max(self._MIN_W, fm.horizontalAdvance(lbl) + 2 * self._PAD)
                   for lbl in labels]
-        total = sum(widths) + self._GAP
-        return labels, widths, total
+        warns = self._warn_flags(labels, backed)
+        warn_w = fm.horizontalAdvance(self._WARN) + 2
+        total = sum(widths) + self._GAP + sum(warn_w for w in warns if w)
+        return labels, widths, warns, total
 
     def paint(self, painter, option, index) -> None:
         pair = index.data(ROLE_GRADES)
@@ -147,20 +170,22 @@ class GradesDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
             return
         gs, go = pair
+        backed = index.data(ROLE_REVIEWS)
         painter.save()
         if option.state & QStyle.StateFlag.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
         fm = option.fontMetrics
-        labels, widths, total = self._layout(fm, gs, go)
+        labels, widths, warns, total = self._layout(fm, gs, go, backed)
+        warn_w = fm.horizontalAdvance(self._WARN) + 2
         rect = option.rect
         x = rect.x() + max(0, (rect.width() - total) // 2)
         y = rect.y() + (rect.height() - self._BADGE_H) // 2
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
-        for lbl, w in zip(labels, widths, strict=True):
+        for lbl, w, warn in zip(labels, widths, warns, strict=True):
             br = QRectF(x, y, w, self._BADGE_H)
-            if lbl != "–":
+            if lbl != _NO_GRADE:
                 tint = GRADE_TINTS.get(lbl, "#e0e0e0")
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(QColor(tint))
@@ -169,7 +194,13 @@ class GradesDelegate(QStyledItemDelegate):
             else:
                 painter.setPen(QColor("#9e9e9e"))
             painter.drawText(br, Qt.AlignmentFlag.AlignCenter, lbl)
-            x += w + self._GAP
+            x += w
+            if warn:
+                wr = QRectF(x, y, warn_w, self._BADGE_H)
+                painter.setPen(QColor("#e65100"))   # oranžová — známka bez posudku
+                painter.drawText(wr, Qt.AlignmentFlag.AlignCenter, self._WARN)
+                x += warn_w
+            x += self._GAP
         painter.restore()
 
     def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
@@ -177,7 +208,9 @@ class GradesDelegate(QStyledItemDelegate):
         if not pair:
             return super().sizeHint(option, index)
         gs, go = pair
-        _, _, total = self._layout(option.fontMetrics, gs, go)
+        _, _, _, total = self._layout(
+            option.fontMetrics, gs, go, index.data(ROLE_REVIEWS)
+        )
         base = super().sizeHint(option, index)
         return QSize(total + 8, max(base.height(), self._BADGE_H + 6))
 
@@ -742,10 +775,22 @@ class ThesesTreeWidget(QTreeWidget):
         )
         if gs or go:
             leaf.setData(self.COL_GRADES, ROLE_GRADES, (gs, go))
-            leaf.setToolTip(
-                self.COL_GRADES,
-                f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}",
-            )
+            tip = f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}"
+            # ⚠ u známky bez posudku dané role (kromě budoucích — tam nehrají roli).
+            if thesis.status not in STATUSES_FUTURE:
+                leaf.setData(
+                    self.COL_GRADES, ROLE_REVIEWS,
+                    (has_supervisor_review, has_opponent_review),
+                )
+                missing = [
+                    role for role, g, has in (
+                        ("vedoucího", gs, has_supervisor_review),
+                        ("oponenta", go, has_opponent_review),
+                    ) if g and not has
+                ]
+                if missing:
+                    tip += "\n⚠ Známka bez posudku: " + ", ".join(missing)
+            leaf.setToolTip(self.COL_GRADES, tip)
         if sent_bg:
             leaf.setData(self.COL_SENT, ROLE_SENT, sent_bg)
         if sent_tip:

@@ -325,9 +325,17 @@ class OpposingTab(QWidget):
         )
         if gs or go:
             leaf.setData(COL_GRADES, ROLE_GRADES, (gs, go))
-            leaf.setToolTip(
-                COL_GRADES, f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}"
-            )
+            # ⚠ u známky bez posudku dané role (kreslí GradesDelegate).
+            leaf.setData(COL_GRADES, ROLE_REVIEWS, (has_v, has_o))
+            tip = f"Vedoucí: {gs or '—'}  ·  Oponent: {go or '—'}"
+            missing = [
+                role for role, g, has in (
+                    ("vedoucího", gs, has_v), ("oponenta", go, has_o),
+                ) if g and not has
+            ]
+            if missing:
+                tip += "\n⚠ Známka bez posudku: " + ", ".join(missing)
+            leaf.setToolTip(COL_GRADES, tip)
         leaf.setTextAlignment(
             COL_GRADES, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )

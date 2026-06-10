@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [1.17.4] - 2026-06-10
+
+### Added
+- **Indikace „známka bez posudku" (⚠).** Když má práce známku, ale posudek dané
+  role chybí (např. po smazání přílohy), zobrazí se ve sloupci *Známky V/O*
+  vedle známky oranžové **⚠** s tooltipem „Známka bez posudku: …". Platí ve
+  vedených pracích (vč. historie a Vše) i v oponenturách; u budoucích prací se
+  nekreslí (známky tam nehrají roli).
+
 ## [1.17.3] - 2026-06-10
 
 ### Fixed

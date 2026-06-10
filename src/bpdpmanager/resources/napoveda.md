@@ -250,7 +250,10 @@ Seznam vedených prací (*Aktuální / Budoucí / Historie / Vše*) má sloupec
 **V/O** se známkou **vedoucího i oponenta** — vlevo známka vedoucího (V),
 vpravo oponenta (O), jako **barevně podbarvená dvojice písmen** (zelená A →
 červená F/FX; „—" když chybí obě, plný popis v tooltipu). **Stejně vypadající
-sloupec V/O** je i v záložce *Oponované práce*.
+sloupec V/O** je i v záložce *Oponované práce*. Když je známka, ale **posudek
+dané role chybí** (např. po smazání přílohy), ukáže se vedle známky oranžové
+**⚠** — známka „visí" bez podkladu (tooltip říká, které role se to týká).
+U budoucích prací se ⚠ nekreslí.
 
 > **Oponentury — řazení dle roku a typu.** Práce jsou seskupené dle
 > akademického roku a uvnitř ještě na **BP / DP** (prázdná podskupina se

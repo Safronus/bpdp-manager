@@ -90,6 +90,62 @@ def test_grades_column_dash_when_empty(qapp, service) -> None:
     assert leaf.text(ThesesTreeWidget.COL_GRADES) == "—"
 
 
+def test_grade_without_review_flagged(qapp, service) -> None:
+    """Známka bez posudku dané role → ROLE_REVIEWS i na sloupci známek
+    (delegát kreslí ⚠) a tooltip to říká."""
+    s = Student(first_name="Jitka", last_name="Stará")
+    service.upsert_student(s)
+    t = Thesis(type=ThesisType.BP, status=ThesisStatus.DEFENDED,
+               academic_year="2018/2019", student_id=s.id,
+               grade_supervisor="B", grade_opponent="C")   # bez příloh posudků
+    service.upsert_thesis(t)
+
+    tree = ThesesTreeWidget(service)
+    tree.refresh()
+    leaf = _leaf(tree, t.id)
+    assert leaf.data(ThesesTreeWidget.COL_GRADES, ROLE_REVIEWS) == (False, False)
+    tip = leaf.toolTip(ThesesTreeWidget.COL_GRADES)
+    assert "⚠" in tip and "bez posudku" in tip
+    assert "vedoucího" in tip and "oponenta" in tip
+
+
+def test_grade_with_review_not_flagged(qapp, service, tmp_path) -> None:
+    """Známka s nahraným posudkem → bez varování."""
+    from bpdpmanager.models.enums import AttachmentKind
+
+    s = Student(first_name="Jan", last_name="Krytý")
+    service.upsert_student(s)
+    t = Thesis(type=ThesisType.BP, status=ThesisStatus.DEFENDED,
+               academic_year="2024/2025", student_id=s.id,
+               grade_supervisor="A")
+    service.upsert_thesis(t)
+    pdf = tmp_path / "pv.pdf"
+    pdf.write_bytes(b"%PDF-1")
+    service.attach_document(t.id, pdf, kind=AttachmentKind.SUPERVISOR_REVIEW)
+
+    tree = ThesesTreeWidget(service)
+    tree.refresh()
+    leaf = _leaf(tree, t.id)
+    backed = leaf.data(ThesesTreeWidget.COL_GRADES, ROLE_REVIEWS)
+    assert backed[0] is True                  # vedoucí krytý posudkem
+    assert "⚠" not in leaf.toolTip(ThesesTreeWidget.COL_GRADES)
+
+
+def test_grade_future_not_flagged(qapp, service) -> None:
+    """U budoucích prací se varování nekreslí (známky tam nehrají roli)."""
+    s = Student(first_name="Eva", last_name="Budoucí")
+    service.upsert_student(s)
+    t = Thesis(type=ThesisType.BP, status=ThesisStatus.RESERVED,
+               academic_year="2026/2027", student_id=s.id,
+               grade_supervisor="A")          # uměle, jen pro test větve
+    service.upsert_thesis(t)
+
+    tree = ThesesTreeWidget(service)
+    tree.refresh()
+    leaf = _leaf(tree, t.id)
+    assert leaf.data(ThesesTreeWidget.COL_GRADES, ROLE_REVIEWS) is None
+
+
 def test_reviews_badge_data(qapp, service, tmp_path) -> None:
     """Sloupec Posudky nese (má_vedoucího, má_oponenta) pro V/O badge."""
     from bpdpmanager.models.enums import AttachmentKind
