@@ -1099,7 +1099,7 @@ class MainWindow(QMainWindow):
         def add(label: str, handler, rgb, tooltip: str = "", shortcut: str = ""):
             act = QAction(label, self)
             if tooltip:
-                act.setToolTip(tooltip)
+                act.setToolTip(tr(tooltip))
             if shortcut:
                 act.setShortcut(shortcut)
             act.triggered.connect(handler)
@@ -1155,10 +1155,10 @@ class MainWindow(QMainWindow):
         # „Odeslat posudky" s volbou: vedoucího (vedené práce) / oponentské.
         self._send_button = QToolButton()
         self._send_button.setText(self._dropdown_text(tr("✉ Odeslat posudky")))
-        self._send_button.setToolTip(
+        self._send_button.setToolTip(tr(
             "Odeslání připravených posudků sekretářce e-mailem — vyber, zda "
             "posudky vedoucího (vedené práce) nebo oponentské."
-        )
+        ))
         self._send_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         send_menu = QMenu(self._send_button)
         act_send_sup = send_menu.addAction(tr("🎓 Posudky vedoucího (vedené práce)…"))
@@ -1200,24 +1200,24 @@ class MainWindow(QMainWindow):
         self._checks_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         checks_menu = QMenu(self._checks_button)
         act_check = checks_menu.addAction(tr("🔄 Zkontrolovat změny ve STAG"))
-        act_check.setToolTip("Tichá kontrola: změny stavu/souborů + nové práce.")
+        act_check.setToolTip(tr("Tichá kontrola: změny stavu/souborů + nové práce."))
         act_check.triggered.connect(self._start_stag_check)
         act_consist = checks_menu.addAction(tr("🔍 Kontrola se STAG (chybějící soubory)"))
         act_consist.triggered.connect(self._check_stag_consistency)
         act_defense = checks_menu.addAction(tr("🗂 Přeřadit průběh obhajoby"))
         act_defense.triggered.connect(self._reclassify_defense_records)
         act_dupatt = checks_menu.addAction(tr("🧹 Úklid duplicitních příloh"))
-        act_dupatt.setToolTip(
+        act_dupatt.setToolTip(tr(
             "Najde přílohy se shodným obsahem (duplikáty z opětovného stažení) "
             "a nabídne jejich smazání — s náhledem, co a proč."
-        )
+        ))
         act_dupatt.triggered.connect(self._cleanup_duplicate_appendices)
         act_swapped = checks_menu.addAction(tr("🔧 Náprava zařazení textu/příloh"))
-        act_swapped.setToolTip(
+        act_swapped.setToolTip(tr(
             "Najde práce, kde je archiv (zip) veden jako Text práce — buď "
             "prohozený s PDF přílohou, nebo balík (text+přílohy v zipu) — a "
             "nabídne nápravu."
-        )
+        ))
         act_swapped.triggered.connect(self._repair_swapped_documents)
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)

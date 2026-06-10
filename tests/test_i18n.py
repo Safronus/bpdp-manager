@@ -96,3 +96,22 @@ def test_theses_tree_headers_english(tmp_path: Path) -> None:
     tree = ThesesTreeWidget(ThesisService(repo))
     assert tree.headerItem().text(0) == "Student / Group"
     assert tree.headerItem().text(2) == "Status"
+
+
+def test_thesis_detail_english(tmp_path: Path) -> None:
+    """EN smoke vlny 2: detail práce má anglické záložky a tlačítka."""
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+
+    from bpdpmanager.services import ThesisService
+    from bpdpmanager.storage import JsonRepository
+    from bpdpmanager.ui.thesis_detail import ThesisDetail
+
+    repo = JsonRepository(path=tmp_path / "db.json", backup_path=tmp_path / "db.bak")
+    set_language("en")
+    w = ThesisDetail(ThesisService(repo))
+    titles = [w.tabs.tabText(i) for i in range(w.tabs.count())]
+    assert "📋 Overview" in titles and "Notes" in titles
+    assert w.btn_save.text() == "Save changes"
+    assert w.btn_delete.text() == "Delete"

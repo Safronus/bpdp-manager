@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-06-11
+
+### Added
+- **Jazyk CZ/EN — vlna 2: detaily a tooltipy.** V EN režimu je nově přeložený
+  **detail práce** (záložky Souhrn/Téma zadání/Poznámky/Plagiátorství/Dokumenty,
+  Základní info, stavová tlačítka, ukládání), **detail oponentury** (Známky,
+  tlačítka), **widget Dokumenty** (tlačítka, hlavičky sloupců) a **tooltipy
+  hlavního toolbaru**. Slovník má ~170 položek; zbývají dialogy a EN nápověda
+  (další vlny).
+
 ## [2.0.0] - 2026-06-10
 
 ### Added

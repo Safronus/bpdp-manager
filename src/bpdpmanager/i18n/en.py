@@ -123,4 +123,122 @@ EN: dict[str, str] = {
     "Forma studia": "Study form",
     "Počet souborů": "File count",
     "Velikost": "Size",
+    # ── Vlna 2: detail práce / oponentury ────────────────────────────────
+    "Vyberte práci ve stromu vlevo, nebo přidejte novou.":
+        "Select a thesis in the tree on the left, or add a new one.",
+    "Přechod do stavu": "Transition to status",
+    "📋 Souhrn": "📋 Overview",
+    "📝 Téma zadání": "📝 Topic & assignment",
+    "Poznámky": "Notes",
+    "🔍 Plagiátorství": "🔍 Plagiarism",
+    "📎 Dokumenty": "📎 Documents",
+    "Uložit změny": "Save changes",
+    "📝 Napsat posudek…": "📝 Write review…",
+    "Smazat": "Delete",
+    "Základní info": "Basic info",
+    "Typ:": "Type:",
+    "Rok:": "Year:",
+    "Student:": "Student:",
+    "Obor:": "Programme:",
+    "Oponent:": "Opponent:",
+    "Vypsané téma (název CZ/EN, anotace CZ/EN)":
+        "Listed topic (title CZ/EN, annotation CZ/EN)",
+    "Název (CZ)": "Title (CZ)",
+    "Název (EN)": "Title (EN)",
+    "Anotace (CZ)": "Annotation (CZ)",
+    "Anotace (EN)": "Annotation (EN)",
+    "Anotace": "Annotation",
+    "Body zadání": "Assignment objectives",
+    "Literární zdroje": "References",
+    "Oficiální zadání (body zadání, literatura)":
+        "Official assignment (objectives, references)",
+    "Poznámky a deník konzultací": "Notes and consultation journal",
+    "Dokumenty k práci (posudky, text práce, prezentace, odkazy…)":
+        "Thesis documents (reviews, thesis text, presentations, links…)",
+    "Komentář k výsledku plagiátorství:": "Plagiarism result comment:",
+    "💡 Doporučený komentář": "💡 Suggested comment",
+    "PDF protokol o plagiátorství:": "Plagiarism PDF report:",
+    "(žádný soubor)": "(no file)",
+    "📂 Otevřít": "📂 Open",
+    "● Ukládám…": "● Saving…",
+    "✓ Uloženo": "✓ Saved",
+    "⚠ Chyba ukládání:": "⚠ Save error:",
+    "Aktuálně:": "Currently:",
+    'Posudek lze psát jen pro práci ve stavu „V řešení".':
+        'A review can only be written for a thesis "In progress".',
+    "Vedoucí:": "Supervisor:",
+    "Oponent (moje):": "Opponent (mine):",
+
+    # ── Vlna 2: dokumenty (widget) ───────────────────────────────────────
+    "Zobrazit starší verze (superseded)": "Show older versions (superseded)",
+    "📎 Nahrát soubor…": "📎 Upload file…",
+    "🔗 Přidat odkaz/URL…": "🔗 Add link/URL…",
+    "🗑 Smazat originál po nahrání": "🗑 Delete original after upload",
+    "Otevřít": "Open",
+    "📂 Ve Finderu": "📂 Show in Finder",
+    "Odebrat": "Remove",
+    "🧹 Odklidit chybějící": "🧹 Clean up missing",
+    "Typ / soubor": "Type / file",
+    "Verze": "Version",
+    "Formát": "Format",
+    "Cesta k souboru": "File path",
+
+    # ── Vlna 2: tooltipy toolbaru ────────────────────────────────────────
+    "Vytvoří novou práci. Výchozí stav se odvodí z aktuálního tabu:\n"
+    "  Aktuální → V řešení\n  Budoucí → Vypsané téma\n"
+    "  Historie → Obhájeno\n  Vše → Vypsané téma":
+        "Creates a new thesis. Default status follows the current tab:\n"
+        "  Current → In progress\n  Future → Listed topic\n"
+        "  History → Defended\n  All → Listed topic",
+    "Nová budoucí práce — volitelně rovnou vyplníš studenta, obor, "
+    "název a anotaci (nic není povinné). Stav default Vypsané téma.":
+        "New future thesis — optionally fill in student, programme, title and "
+        "annotation right away (nothing is required). Default status Listed topic.",
+    "Rychlý formulář pro historickou práci (vlastní rok + stav).":
+        "Quick form for a historical thesis (custom year + status).",
+    "Registr vedoucích cizích BP/DP — pro oponentské posudky":
+        "Registry of supervisors of others' theses — for opponent reviews",
+    "Číselník oborů + sekretářky oborů. Dvojklik na hlavičku sekretářky "
+    "upraví její kontakt a oslovení hromadně pro všechny její obory.":
+        "Programme list + programme secretaries. Double-click a secretary "
+        "header to edit her contact and salutation for all her programmes at once.",
+    "Evidence odmítnutých zájemců o vedení (jméno, obor, rok) — "
+    "promítá se do Statistik (kapacita vedení).":
+        "Registry of rejected supervision candidates (name, programme, year) — "
+        "reflected in Statistics (supervision capacity).",
+    "Knihovna XLSX šablon posudků (vedoucího / oponenta) — "
+    "z kontextu konkrétní práce lze vygenerovat předvyplněný posudek.":
+        "Library of XLSX review templates (supervisor / opponent) — a prefilled "
+        "review can be generated from a thesis context.",
+    "Odeslání připravených posudků sekretářce e-mailem — vyber, zda "
+    "posudky vedoucího (vedené práce) nebo oponentské.":
+        "Send prepared reviews to the secretary by e-mail — choose supervisor's "
+        "reviews (supervised theses) or opponent's reviews.",
+    "Vytisknout PDF posudků (vedoucího i oponentské) — přes MyQ "
+    "(myq.utb.cz) nebo na systémovou tiskárnu. Vybereš práce a cíl "
+    "tisku. Tiskne oboustranně.":
+        "Print review PDFs (supervisor's and opponent's) — via MyQ (myq.utb.cz) "
+        "or a system printer. Choose theses and destination. Prints double-sided.",
+    "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
+    "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.":
+        "Import data from a STAG CSV export (getKvalifikacniPrace*.csv) — "
+        "creates or updates supervised theses and opponent reviews.",
+    "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
+    "posudky, soubory) — vytvoří novou práci.":
+        "Imports a thesis from a previously exported ZIP bundle (data, status, "
+        "reviews, files) — creates a new thesis.",
+    "Tichá kontrola: změny stavu/souborů + nové práce.":
+        "Silent check: status/file changes + new theses.",
+    "Najde přílohy se shodným obsahem (duplikáty z opětovného stažení) "
+    "a nabídne jejich smazání — s náhledem, co a proč.":
+        "Finds attachments with identical content (duplicates from re-download) "
+        "and offers to delete them — with a preview of what and why.",
+    "Najde práce, kde je archiv (zip) veden jako Text práce — buď "
+    "prohozený s PDF přílohou, nebo balík (text+přílohy v zipu) — a "
+    "nabídne nápravu.":
+        "Finds theses where an archive (zip) is classified as Thesis text — "
+        "either swapped with a PDF attachment, or a bundle (text+attachments) — "
+        "and offers a fix.",
+    "Popis funkcí a jak aplikace funguje (F1).":
+        "Description of features and how the app works (F1).",
 }

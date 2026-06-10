@@ -5,6 +5,8 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
+from ..i18n import tr
+
 _NUM_PREFIX_RE = re.compile(r"^\s*\d+\.\s+")
 
 
@@ -192,7 +194,7 @@ class ThesisDetail(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        self.placeholder = QLabel("Vyberte práci ve stromu vlevo, nebo přidejte novou.")
+        self.placeholder = QLabel(tr("Vyberte práci ve stromu vlevo, nebo přidejte novou."))
         self.placeholder.setStyleSheet("color: #888; padding: 24px;")
         outer.addWidget(self.placeholder)
 
@@ -219,7 +221,7 @@ class ThesisDetail(QWidget):
         # Prominent action: napsat posudek z šablony (otevře wizard
         # s auto-filtrem dle typu + oboru práce, vyplní šablonu a po
         # potvrzení rovnou otevře v Excelu).
-        self.btn_generate_review = QPushButton("📝 Napsat posudek…")
+        self.btn_generate_review = QPushButton(tr("📝 Napsat posudek…"))
         self.btn_generate_review.setToolTip(
             "Vybere se šablona z knihovny (auto-filtr dle typu a oboru), "
             "vyplní se daty z této práce a otevře se v Excelu k vyplnění "
@@ -228,13 +230,13 @@ class ThesisDetail(QWidget):
         self.btn_generate_review.clicked.connect(self._generate_review)
         header.addWidget(self.btn_generate_review)
 
-        self.btn_delete = QPushButton("Smazat")
+        self.btn_delete = QPushButton(tr("Smazat"))
         self.btn_delete.clicked.connect(self._delete)
         header.addWidget(self.btn_delete)
         layout.addLayout(header)
 
         # Přechody stavů (v záložce Historie se skrývají — viz show_transitions)
-        transition_box = QGroupBox("Přechod do stavu")
+        transition_box = QGroupBox(tr("Přechod do stavu"))
         tl = QHBoxLayout(transition_box)
         self.transition_buttons: dict[ThesisStatus, QPushButton] = {}
         for status in ThesisStatus:
@@ -250,17 +252,17 @@ class ThesisDetail(QWidget):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
-        self.tabs.addTab(self._build_summary_tab(), "📋 Souhrn")
-        self.tabs.addTab(self._build_topic_tab(), "📝 Téma zadání")
-        self.tabs.addTab(self._build_notes_tab(), "Poznámky")
-        self.tabs.addTab(self._build_plagiarism_tab(), "🔍 Plagiátorství")
-        self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
+        self.tabs.addTab(self._build_summary_tab(), tr("📋 Souhrn"))
+        self.tabs.addTab(self._build_topic_tab(), tr("📝 Téma zadání"))
+        self.tabs.addTab(self._build_notes_tab(), tr("Poznámky"))
+        self.tabs.addTab(self._build_plagiarism_tab(), tr("🔍 Plagiátorství"))
+        self.tabs.addTab(self._build_documents_tab(), tr("📎 Dokumenty"))
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
         # Uložit
         save_row = QHBoxLayout()
         save_row.addStretch()
-        self.btn_save = QPushButton("Uložit změny")
+        self.btn_save = QPushButton(tr("Uložit změny"))
         self.btn_save.setDefault(True)
         self.btn_save.clicked.connect(self._save)
         save_row.addWidget(self.btn_save)
@@ -295,7 +297,7 @@ class ThesisDetail(QWidget):
 
     def _build_basic_section(self) -> QGroupBox:
         """Kompaktní jednořádkové info: Typ (radio) + Rok (combo) + Student + Oponent."""
-        box = QGroupBox("Základní info")
+        box = QGroupBox(tr("Základní info"))
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
 
@@ -303,7 +305,7 @@ class ThesisDetail(QWidget):
         row.setSpacing(10)
 
         # Typ — radio BP / DP
-        row.addWidget(QLabel("Typ:"))
+        row.addWidget(QLabel(tr("Typ:")))
         self.rb_bp = QRadioButton("BP")
         self.rb_dp = QRadioButton("DP")
         self._type_group = QButtonGroup(self)
@@ -315,7 +317,7 @@ class ThesisDetail(QWidget):
         row.addSpacing(12)
 
         # Rok — combobox s rozsahem podle year_mode
-        row.addWidget(QLabel("Rok:"))
+        row.addWidget(QLabel(tr("Rok:")))
         self.cb_year = QComboBox()
         for y in _academic_year_choices(self._year_mode):
             self.cb_year.addItem(y)
@@ -340,7 +342,7 @@ class ThesisDetail(QWidget):
         row.addSpacing(12)
 
         # Student — combobox s našeptáváním + tlačítko
-        row.addWidget(QLabel("Student:"))
+        row.addWidget(QLabel(tr("Student:")))
         self.cb_student = QComboBox()
         self.cb_student.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -359,7 +361,7 @@ class ThesisDetail(QWidget):
         # Obor studenta — editovatelný combobox z evidovaných oborů (uloží se
         # ke studentovi). Dropdown nabízí jen obory založené v manažeru, aby
         # obor seděl na sekretářku (odesílání posudků); ruční hodnota zůstane.
-        row.addWidget(QLabel("Obor:"))
+        row.addWidget(QLabel(tr("Obor:")))
         self.cb_thesis_obor = QComboBox()
         self.cb_thesis_obor.setEditable(True)
         self.cb_thesis_obor.setMinimumWidth(130)
@@ -374,7 +376,7 @@ class ThesisDetail(QWidget):
         row.addSpacing(12)
 
         # Oponent — totéž
-        row.addWidget(QLabel("Oponent:"))
+        row.addWidget(QLabel(tr("Oponent:")))
         self.cb_opponent = QComboBox()
         self.cb_opponent.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -405,15 +407,15 @@ class ThesisDetail(QWidget):
         return box
 
     def _build_listing_section(self) -> QGroupBox:
-        box = QGroupBox("Vypsané téma (název CZ/EN, anotace CZ/EN)")
+        box = QGroupBox(tr("Vypsané téma (název CZ/EN, anotace CZ/EN)"))
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
 
         form = _make_form_layout()
         self.ed_title_cs = QLineEdit()
         self.ed_title_en = QLineEdit()
-        form.addRow("Název (CZ)", self.ed_title_cs)
-        form.addRow("Název (EN)", self.ed_title_en)
+        form.addRow(tr("Název (CZ)"), self.ed_title_cs)
+        form.addRow(tr("Název (EN)"), self.ed_title_en)
         layout.addLayout(form)
 
         # Anotace CZ a EN vedle sebe — šetří svislé místo
@@ -422,7 +424,7 @@ class ThesisDetail(QWidget):
 
         cz_col = QVBoxLayout()
         cz_col.setSpacing(2)
-        lbl_cs = QLabel("Anotace (CZ)")
+        lbl_cs = QLabel(tr("Anotace (CZ)"))
         lbl_cs.setContentsMargins(2, 4, 0, 0)
         cz_col.addWidget(lbl_cs)
         self.ed_annotation = QPlainTextEdit()
@@ -435,7 +437,7 @@ class ThesisDetail(QWidget):
 
         en_col = QVBoxLayout()
         en_col.setSpacing(2)
-        lbl_en = QLabel("Anotace (EN)")
+        lbl_en = QLabel(tr("Anotace (EN)"))
         lbl_en.setContentsMargins(2, 4, 0, 0)
         en_col.addWidget(lbl_en)
         self.ed_annotation_en = QPlainTextEdit()
@@ -453,7 +455,7 @@ class ThesisDetail(QWidget):
         return box
 
     def _build_assignment_section(self) -> QGroupBox:
-        box = QGroupBox("Oficiální zadání (body zadání, literatura)")
+        box = QGroupBox(tr("Oficiální zadání (body zadání, literatura)"))
         layout = QVBoxLayout(box)
         layout.setContentsMargins(8, 12, 8, 8)
 
@@ -501,7 +503,7 @@ class ThesisDetail(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setContentsMargins(0, 0, 0, 0)
-        lbl = QLabel("Poznámky a deník konzultací")
+        lbl = QLabel(tr("Poznámky a deník konzultací"))
         lbl.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl)
         self.ed_notes = QPlainTextEdit()
@@ -513,7 +515,7 @@ class ThesisDetail(QWidget):
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setContentsMargins(0, 0, 0, 0)
-        lbl = QLabel("Dokumenty k práci (posudky, text práce, prezentace, odkazy…)")
+        lbl = QLabel(tr("Dokumenty k práci (posudky, text práce, prezentace, odkazy…)"))
         lbl.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl)
         self.documents_widget = DocumentsWidget(
@@ -590,13 +592,13 @@ class ThesisDetail(QWidget):
 
         # Komentář — label + tlačítko doporučeného komentáře
         comment_hdr = QHBoxLayout()
-        lbl_c = QLabel("Komentář k výsledku plagiátorství:")
+        lbl_c = QLabel(tr("Komentář k výsledku plagiátorství:"))
         lbl_c.setContentsMargins(0, 8, 0, 0)
         comment_hdr.addWidget(lbl_c)
         comment_hdr.addStretch()
 
         self.btn_plag_suggest = QToolButton()
-        self.btn_plag_suggest.setText("💡 Doporučený komentář")
+        self.btn_plag_suggest.setText(tr("💡 Doporučený komentář"))
         self.btn_plag_suggest.setToolTip(
             "Vloží doporučené znění podle verdiktu a procenta shody. "
             "Lze libovolně upravit. Rozbalovací šipka nabízí konkrétní varianty."
@@ -623,12 +625,12 @@ class ThesisDetail(QWidget):
         layout.addWidget(self.ed_plag_comment, stretch=1)
 
         # PDF protokol
-        pdf_lbl = QLabel("PDF protokol o plagiátorství:")
+        pdf_lbl = QLabel(tr("PDF protokol o plagiátorství:"))
         pdf_lbl.setContentsMargins(0, 8, 0, 0)
         layout.addWidget(pdf_lbl)
 
         pdf_row = QHBoxLayout()
-        self.lbl_plag_pdf = QLabel("(žádný soubor)")
+        self.lbl_plag_pdf = QLabel(tr("(žádný soubor)"))
         self.lbl_plag_pdf.setStyleSheet("color: #888;")
         pdf_row.addWidget(self.lbl_plag_pdf, stretch=1)
 
@@ -636,7 +638,7 @@ class ThesisDetail(QWidget):
         self.btn_plag_upload.clicked.connect(self._plag_upload)
         pdf_row.addWidget(self.btn_plag_upload)
 
-        self.btn_plag_open = QPushButton("📂 Otevřít")
+        self.btn_plag_open = QPushButton(tr("📂 Otevřít"))
         self.btn_plag_open.clicked.connect(self._plag_open)
         pdf_row.addWidget(self.btn_plag_open)
 
@@ -693,8 +695,8 @@ class ThesisDetail(QWidget):
             )
         else:
             self.btn_generate_review.setToolTip(
-                'Posudek lze psát jen pro práci ve stavu „V řešení". '
-                "Aktuálně: " + self.thesis.status.label
+                tr('Posudek lze psát jen pro práci ve stavu „V řešení".')
+                + " " + tr("Aktuálně:") + " " + self.thesis.status.label
             )
 
     def refresh_combos(self) -> None:
@@ -910,16 +912,16 @@ class ThesisDetail(QWidget):
             self.lbl_save_state.setText("")
             return
         if error:
-            self.lbl_save_state.setText(f"⚠ Chyba ukládání: {error}")
+            self.lbl_save_state.setText(tr("⚠ Chyba ukládání:") + f" {error}")
             self.lbl_save_state.setStyleSheet("color: #c62828; font-size: 11px;")
             return
         if pending:
-            self.lbl_save_state.setText("● Ukládám…")
+            self.lbl_save_state.setText(tr("● Ukládám…"))
             self.lbl_save_state.setStyleSheet("color: #ef6c00; font-size: 11px;")
             return
         # po úspěšném autosavu
         ts = self._last_save_at.strftime("%H:%M:%S") if self._last_save_at else ""
-        self.lbl_save_state.setText(f"✓ Uloženo {ts}")
+        self.lbl_save_state.setText(tr("✓ Uloženo") + f" {ts}")
         self.lbl_save_state.setStyleSheet("color: #2e7d32; font-size: 11px;")
 
     # --- souhrn (read-only přehled) -----------------------------------------
@@ -935,8 +937,8 @@ class ThesisDetail(QWidget):
         if self.thesis is None:
             self.summary_view.setHtml(
                 "<p style='color:#888;padding:24px;'>"
-                "Vyberte práci ve stromu vlevo, nebo přidejte novou."
-                "</p>"
+                + tr("Vyberte práci ve stromu vlevo, nebo přidejte novou.")
+                + "</p>"
             )
             return
         self.summary_view.setHtml(self._build_summary_html(self.thesis))
@@ -1076,7 +1078,7 @@ class ThesisDetail(QWidget):
         anot_en_section = ""
         if annotation_en:
             anot_en_section = (
-                f'<h3 style="{section_header_style}">Anotace (EN):'
+                f'<h3 style="{section_header_style}">{tr("Anotace (EN)")}:'
                 f"{cp('annotation_en', 'Zkopírovat anotaci EN')}</h3>"
                 f"{anot_en_html}"
             )
@@ -1110,7 +1112,7 @@ class ThesisDetail(QWidget):
                 else "<span style='color:#888;font-style:italic;'>(žádné PDF)</span>"
             )
             plag_section = (
-                f'<h3 style="{section_header_style}">🔍 Plagiátorství:</h3>'
+                f'<h3 style="{section_header_style}">{tr("🔍 Plagiátorství")}:</h3>'
                 f"<p><b>Verdikt:</b> {verdict_badge}</p>"
                 f"<p><b>Shoda:</b> {pct_str}"
                 f"{cp('plag_pct', 'Zkopírovat procento shody') if has_plag_pct else ''}</p>"
@@ -1160,14 +1162,14 @@ class ThesisDetail(QWidget):
             f"{header_line}"
             f"{en_line}"
             f"{stag_html}"
-            f'<h3 style="{section_header_style}">Anotace:'
+            f'<h3 style="{section_header_style}">{tr("Anotace")}:'
             f"{cp('annotation', 'Zkopírovat anotaci')}</h3>"
             f"{anot_html}"
             f"{anot_en_section}"
-            f'<h3 style="{section_header_style}">Body zadání:'
+            f'<h3 style="{section_header_style}">{tr("Body zadání")}:'
             f"{cp('objectives', 'Zkopírovat body zadání')}</h3>"
             f"{obj_html}"
-            f'<h3 style="{section_header_style}">Literární zdroje:'
+            f'<h3 style="{section_header_style}">{tr("Literární zdroje")}:'
             f"{cp('references', 'Zkopírovat literární zdroje')}</h3>"
             f"{ref_html}"
             f"{plag_section}"
@@ -1260,7 +1262,7 @@ class ThesisDetail(QWidget):
         table = (
             "<table style='margin:12px auto;'><tr>"
             + self._grade_badge_cell("Vedoucí:", sup_grade, e)
-            + self._grade_badge_cell("Oponent:", opp_grade, e)
+            + self._grade_badge_cell(tr("Oponent:"), opp_grade, e)
             + "</tr></table>"
         )
         return f'<h3 style="{section_header_style}">Známky</h3>{table}'
@@ -1613,7 +1615,7 @@ class ThesisDetail(QWidget):
             self.lbl_plag_pdf.setText(f"📄 {self.thesis.plagiarism_pdf_filename}")
             self.lbl_plag_pdf.setStyleSheet("")
         else:
-            self.lbl_plag_pdf.setText("(žádný soubor)")
+            self.lbl_plag_pdf.setText(tr("(žádný soubor)"))
             self.lbl_plag_pdf.setStyleSheet("color: #888;")
         self.btn_plag_open.setEnabled(has_pdf)
         self.btn_plag_remove.setEnabled(has_pdf)

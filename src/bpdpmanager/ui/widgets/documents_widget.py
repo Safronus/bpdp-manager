@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ...i18n import tr
 from ...models import Attachment, AttachmentKind
 from ...services import ThesisService
 from ...services.file_naming import guess_kind_from_filename
@@ -82,7 +83,7 @@ class DocumentsWidget(QWidget):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(5)
         self.tree.setHeaderLabels(
-            ["Typ / soubor", "Verze", "Velikost", "Formát", "Cesta k souboru"]
+            [tr("Typ / soubor"), tr("Verze"), tr("Velikost"), tr("Formát"), tr("Cesta k souboru")]
         )
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
@@ -100,7 +101,7 @@ class DocumentsWidget(QWidget):
         layout.addWidget(self.tree)
 
         # Toggle pro starší verze (defaultně schované)
-        self.chk_show_old = QCheckBox("Zobrazit starší verze (superseded)")
+        self.chk_show_old = QCheckBox(tr("Zobrazit starší verze (superseded)"))
         self.chk_show_old.setChecked(True)  # výchozí: ukázat i archiv/starší verze
         self.chk_show_old.setToolTip(
             "Když je odškrtnuto, vidíš jen aktuální verzi každého typu. "
@@ -121,18 +122,18 @@ class DocumentsWidget(QWidget):
         self.cb_kind.activated.connect(self._on_kind_activated)
         row.addWidget(self.cb_kind)
 
-        self.btn_upload = QPushButton("📎 Nahrát soubor…")
+        self.btn_upload = QPushButton(tr("📎 Nahrát soubor…"))
         self.btn_upload.clicked.connect(self._upload)
         row.addWidget(self.btn_upload)
 
-        self.btn_url = QPushButton("🔗 Přidat odkaz/URL…")
+        self.btn_url = QPushButton(tr("🔗 Přidat odkaz/URL…"))
         self.btn_url.clicked.connect(self._add_url)
         row.addWidget(self.btn_url)
 
         # Po dokončení uploadu: smazat originální soubor (default zapnuto —
         # uživatel typicky nechce, aby zdroj zůstal v Downloads a duplikoval
         # se s kopií v documents/).
-        self.chk_delete_source = QCheckBox("🗑 Smazat originál po nahrání")
+        self.chk_delete_source = QCheckBox(tr("🗑 Smazat originál po nahrání"))
         self.chk_delete_source.setChecked(True)
         self.chk_delete_source.setToolTip(
             "Po úspěšném nahrání soubor odstraní z původního umístění "
@@ -144,16 +145,16 @@ class DocumentsWidget(QWidget):
 
         row.addStretch()
 
-        self.btn_open = QPushButton("Otevřít")
+        self.btn_open = QPushButton(tr("Otevřít"))
         self.btn_open.clicked.connect(self._open_selected)
         row.addWidget(self.btn_open)
 
-        self.btn_reveal = QPushButton("📂 Ve Finderu")
+        self.btn_reveal = QPushButton(tr("📂 Ve Finderu"))
         self.btn_reveal.setToolTip("Zobrazí vybraný soubor ve správci souborů (Finder / Explorer).")
         self.btn_reveal.clicked.connect(self._reveal_selected)
         row.addWidget(self.btn_reveal)
 
-        self.btn_remove = QPushButton("Odebrat")
+        self.btn_remove = QPushButton(tr("Odebrat"))
         self.btn_remove.clicked.connect(self._remove_selected)
         row.addWidget(self.btn_remove)
 
@@ -164,7 +165,7 @@ class DocumentsWidget(QWidget):
         self.lbl_missing = QLabel("")
         self.lbl_missing.setStyleSheet("color:#c62828;")
         row2.addWidget(self.lbl_missing, stretch=1)
-        self.btn_prune = QPushButton("🧹 Odklidit chybějící")
+        self.btn_prune = QPushButton(tr("🧹 Odklidit chybějící"))
         self.btn_prune.setToolTip(
             "Odebere ze seznamu záznamy, jejichž soubor byl smazán mimo aplikaci "
             "(např. ručně ve Finderu). Existující soubory ani odkazy se nedotkne."
@@ -528,7 +529,7 @@ class DocumentsWidget(QWidget):
         if att.is_file:
             path = self._abs_path(att)
             if path is None or not path.exists():
-                QMessageBox.warning(self, "Otevřít", f"Soubor neexistuje:\n{path}")
+                QMessageBox.warning(self, tr("Otevřít"), f"Soubor neexistuje:\n{path}")
                 return
             open_path(path)
         else:
@@ -604,7 +605,7 @@ class DocumentsWidget(QWidget):
         multi = len(sel_files) > 1
 
         menu = QMenu(self)
-        act_open = menu.addAction("Otevřít")
+        act_open = menu.addAction(tr("Otevřít"))
         act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
         act_copy = act_export = act_email = None
         act_export_many = act_email_many = None
@@ -627,7 +628,7 @@ class DocumentsWidget(QWidget):
             act_remove_many = menu.addAction(f"🗑 Odebrat vybrané ({n_sel})…")
             act_remove = None
         else:
-            act_remove = menu.addAction("Odebrat")
+            act_remove = menu.addAction(tr("Odebrat"))
         chosen = menu.exec(self.tree.viewport().mapToGlobal(pos))
         if chosen is None:
             return

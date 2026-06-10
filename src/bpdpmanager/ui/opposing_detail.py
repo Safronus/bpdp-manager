@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
 from ..models import OpposingThesis
 from ..models.enums import AttachmentKind
 from ..services import ThesisService
@@ -93,29 +94,29 @@ class OpposingDetail(QWidget):
         self.lbl_save_state = QLabel("")
         self.lbl_save_state.setStyleSheet("color:#888;font-size:11px;")
         header.addWidget(self.lbl_save_state)
-        self.btn_generate_review = QPushButton("📝 Napsat posudek…")
+        self.btn_generate_review = QPushButton(tr("📝 Napsat posudek…"))
         self.btn_generate_review.setToolTip(
             "Vyplnit oponentský posudek z šablony (kritéria, body, známka) "
             "a připojit jako přílohu."
         )
         self.btn_generate_review.clicked.connect(self._generate_review)
         header.addWidget(self.btn_generate_review)
-        self.btn_delete = QPushButton("Smazat")
+        self.btn_delete = QPushButton(tr("Smazat"))
         self.btn_delete.clicked.connect(self._delete)
         header.addWidget(self.btn_delete)
         layout.addLayout(header)
 
         # Tabs
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._build_summary_tab(), "📋 Souhrn")
-        self.tabs.addTab(self._build_documents_tab(), "📎 Dokumenty")
+        self.tabs.addTab(self._build_summary_tab(), tr("📋 Souhrn"))
+        self.tabs.addTab(self._build_documents_tab(), tr("📎 Dokumenty"))
         self.tabs.currentChanged.connect(self._on_tab_changed)
         layout.addWidget(self.tabs, stretch=1)
 
         # Save button
         save_row = QHBoxLayout()
         save_row.addStretch()
-        self.btn_save = QPushButton("Uložit změny")
+        self.btn_save = QPushButton(tr("Uložit změny"))
         self.btn_save.setDefault(True)
         self.btn_save.clicked.connect(self._save_now)
         save_row.addWidget(self.btn_save)
@@ -132,14 +133,14 @@ class OpposingDetail(QWidget):
         # (zbytek dat se plní importem ze STAG / vyčte z posudku). Ostatní pole
         # se u oponovaných prací needitují, proto samostatná záložka „Detail"
         # není (oprava jména/názvu apod. se řeší přes STAG re-import).
-        box_grades = QGroupBox("Známky")
+        box_grades = QGroupBox(tr("Známky"))
         gl = QHBoxLayout(box_grades)
         gl.setContentsMargins(8, 10, 8, 8)
-        gl.addWidget(QLabel("Vedoucí:"))
+        gl.addWidget(QLabel(tr("Vedoucí:")))
         self.cb_grade_sup = self._make_grade_combo()
         gl.addWidget(self.cb_grade_sup)
         gl.addSpacing(20)
-        gl.addWidget(QLabel("Oponent (moje):"))
+        gl.addWidget(QLabel(tr("Oponent (moje):")))
         self.cb_grade_opp = self._make_grade_combo()
         gl.addWidget(self.cb_grade_opp)
         gl.addStretch()
@@ -304,11 +305,11 @@ class OpposingDetail(QWidget):
             self.lbl_save_state.setStyleSheet("color:#c62828;font-size:11px;")
             return
         if pending:
-            self.lbl_save_state.setText("● Ukládám…")
+            self.lbl_save_state.setText(tr("● Ukládám…"))
             self.lbl_save_state.setStyleSheet("color:#ef6c00;font-size:11px;")
             return
         ts = self._last_save_at.strftime("%H:%M:%S") if self._last_save_at else ""
-        self.lbl_save_state.setText(f"✓ Uloženo {ts}")
+        self.lbl_save_state.setText(tr("✓ Uloženo") + f" {ts}")
         self.lbl_save_state.setStyleSheet("color:#2e7d32;font-size:11px;")
 
     def _collect(self) -> None:
@@ -518,8 +519,8 @@ class OpposingDetail(QWidget):
 
         grades_table = (
             "<table style='margin:12px auto;'><tr>"
-            + grade_badge("Vedoucí:", op.grade_supervisor)
-            + grade_badge("Oponent (moje):", op.grade_opponent)
+            + grade_badge(tr("Vedoucí:"), op.grade_supervisor)
+            + grade_badge(tr("Oponent (moje):"), op.grade_opponent)
             + "</tr></table>"
         )
 
