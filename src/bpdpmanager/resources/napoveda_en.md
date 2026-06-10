@@ -261,360 +261,323 @@ allowed targets, and the panel is shown **only for work-in-progress theses**.
 
 ---
 
-> **🌐 Translation in progress.** The following sections are not
-> translated to English yet and are shown in Czech. They will be
-> translated in upcoming updates.
+## Thesis — detail (tabs)
 
-## Práce — detail (záložky)
+The detail of the selected thesis has inner tabs:
 
-Detail vybrané práce má vnitřní záložky:
+### 📋 Overview
+A read-only overview of the whole thesis — colour status badge, header
+(type / title / student / opponent), annotation, assignment objectives,
+references, plagiarism result, the **Grades** section (suggested from reviews
+— supervisor + opponent), a **preview of saved reviews** (role, points, grade,
+criteria, evaluation) and finally **Files** (current attachments). Every
+section has a 📋 button to copy it to the clipboard.
 
-### 📋 Souhrn
-Read-only přehled celé práce — barevný badge stavu, hlavička
-(typ / název / student / oponent), anotace, body zadání, literatura,
-výsledek plagiátorství, sekce **Známky** (navržené z posudků — vedoucí +
-oponent), **náhled uložených posudků** (role, body, známka, kritéria,
-hodnocení) a na konci **Soubory** (přehled aktuálních příloh — text práce,
-posudky, přílohy…). Každá sekce má tlačítko 📋 pro zkopírování do schránky.
+> **Grades of historical theses.** The *Grades* section takes the grade
+> primarily from a review written in the app. If the review exists only as an
+> **uploaded file** — PDF or Word (`.doc` / `.docx`), typically for older
+> theses downloaded from STAG — the app tries to **read** the suggested grade
+> from it. For **Word** reviews the **selected value of the grade dropdown
+> form field** takes precedence (authoritative); free text is used only as a
+> fallback ("navrhuji hodnocení B…", "Navržená známka: D"). (Old binary
+> `.doc` files are converted via LibreOffice in the background.) Encrypted
+> STAG PDFs are read too. **Uploading/downloading a new review file
+> overwrites the role's grade** (the new review is authoritative — this also
+> fixes previously mis-read values). The automatic fill on opening a thesis
+> only **fills empty fields** and never overwrites a manually entered grade.
 
-> **Známky u historických prací.** Sekce *Známky* bere známku primárně
-> z posudku napsaného v aplikaci. Pokud posudek existuje jen jako **nahraný
-> soubor** — PDF i Word (`.doc` / `.docx`), typicky u starších prací stažených
-> ze STAG — aplikace se z něj pokusí navrženou známku **vyčíst** a doplní ji.
-> U **Wordových** posudků se přednostně bere **vybraná hodnota formulářového
-> rozevíracího pole** se známkou (autoritativní), a teprve když chybí, použije
-> se volný text („navrhuji hodnocení B…", „Navržená známka: D", „doporučuji
-> k obhajobě s hodnocením B"). (Starý binární `.doc` se na pozadí převede přes
-> LibreOffice — viz krok 5 v *Začínáme*.) Šifrovaná PDF ze STAG se taky čtou.
-> **Nahrání/stažení nového souboru posudku známku dané role přepíše** (nový
-> posudek je autoritativní — tím se i opraví dřív špatně vyčtená hodnota).
-> Automatické doplnění při otevření práce naopak jen **doplňuje prázdné**
-> a ručně zadanou známku nikdy nepřepíše.
+### 📝 Topic & assignment
+Year, student, **programme**, opponent, CZ + EN title, CZ + EN annotation,
+assignment objectives and references (free text with automatic numbering),
+STAG link.
 
-### 📝 Téma zadání
-Rok, student, **obor**, oponent, název CZ + EN, anotace CZ + EN, body zadání
-a literární zdroje (volný text s vlastním číslováním), odkaz na STAG.
+> **Programme** is a dropdown of **registered programmes** (from the
+> *Programmes* manager) — stored with the student. Keep it on a registered
+> programme so the thesis pairs with a secretary when sending reviews.
 
-> **Obor** je rozbalovací seznam **evidovaných oborů** (z manažeru *Obory*) —
-> uloží se ke studentovi. Drž ho na některém z evidovaných oborů, ať se práce
-> správně spáruje na sekretářku při odesílání posudků. Ručně zadanou hodnotu
-> lze ponechat, ale nemusí sednout na žádnou sekretářku.
+### Notes
+Free text + deadlines/consultations.
 
-### Poznámky
-Volný text + termíny/konzultace.
+### 🔍 Plagiarism
+- **Match percentage** + **verdict** (Not assessed / Plagiarism / Not
+  plagiarism)
+- **Automatic comment prefill** — once you fill the **percentage** and click
+  a **verdict**, the comment is **prefilled** with a suggested wording (incl.
+  the percentage). Changing the percentage refreshes the auto text; once you
+  **edit the comment manually**, it is never overwritten. (*Not assessed*
+  generates nothing.)
+- **💡 Suggested comment** — inserts the suggested wording by verdict and
+  percentage (the dropdown arrow offers specific variants). Fully editable.
+- **PDF report** — upload and open the IS/STAG report.
+- **The "Plagiarism" column** in *Currently supervised theses* shows a rounded
+  badge — assessed (✓ green) or not (✗ red). Hidden in other tabs.
 
-### 🔍 Plagiátorství
-- **Procento shody** + **verdikt** (Neposouzen / Je plagiát / Není plagiát)
-- **Automatické předvyplnění komentáře** — jakmile vyplníš **procento shody**
-  a klikneš na **verdikt**, komentář se **sám předvyplní** doporučeným zněním
-  (vč. procenta). Změna procenta auto-text obnoví; jakmile komentář **ručně
-  upravíš**, už ho to nepřepíše. (*Neposouzen* nic negeneruje.)
-- **💡 Doporučený komentář** — tlačítko vloží doporučené znění podle
-  verdiktu a procenta shody (rozbalovací menu nabízí konkrétní varianty).
-  Plně editovatelné.
-- **PDF protokol** — nahrání a otevření protokolu z IS/STAG.
-- **Sloupec „Plagiát"** v seznamu *Aktuálně vedených prací* ukazuje zaobleným
-  badgem, zda kontrola **proběhla** (✓ zeleně = verdikt jiný než *Neposouzen*)
-  nebo **ne** (✗ červeně). V ostatních záložkách je skrytý (tam je irelevantní).
+### 📎 Documents
+Files and links of the thesis, **aggregated by type** (Thesis text,
+Attachments, **Thesis text + attachments** (one zip bundle), Work journal,
+Official assignment, Supervisor's review, Opponent's review, Presentation,
+**Defense record**, STAG export, Other).
+A *Defense record* = the defense protocol (SZZ); newly downloaded STAG files
+are recognised **by the STAG section** automatically. Older such files
+(classified as *Other*) can be reclassified via the **🗂 Reclassify defense
+records** toolbar button (fetches original STAG names, pairs them with local
+attachments and offers reclassification in a checkbox preview, with a backup).
 
-### 📎 Dokumenty
-Soubory a odkazy k práci, **agregované podle typu** (Text práce,
-Přílohy, **Text práce + přílohy** (balík v jednom zipu), Pracovní deník,
-Oficiální zadání, Posudek vedoucího, Posudek oponenta, Prezentace,
-**Soubor s průběhem obhajoby**, STAG export, Jiné).
-*Soubor s průběhem obhajoby* = protokol / zápis o průběhu obhajoby (SZZ);
-u nově stahovaných ze STAG se rozpozná **podle STAG sekce** automaticky
-(STAG je tak značí přímo, takže to funguje i u obecných názvů; původní
-název se navíc zachová). Už **dříve stažené** takové soubory (vedené jako *Jiné*)
-přeřadíš toolbarem **🗂 Přeřadit průběh obhajoby**: ten **dotáhne ze STAG
-původní názvy** (které se při dřívějším stažení ztrácely), spáruje je
-s lokálními přílohami a v **náhledu s checkboxy** nabídne přeřazení
-(protokoly/zápisy obhajoby předzaškrtnuté; se zálohou).
+- **Table columns:** *Type / file*, *Version*, *Size* (B / KB / MB / GB),
+  *Format* (extension, or *link* for URLs) and *File path* (full path).
+- **Colour categories:** each document kind has its heading colour;
+  supervisor and opponent reviews are grouped under a parent **Reviews**
+  group.
+- **Versioning:** uploading the **same** file (same name) creates a new
+  version and marks the previous one *superseded*. **Different files** of the
+  same kind **coexist** (e.g. `…_part1.zip` and `…_part2.zip`). The **Show
+  older versions** toggle is on by default. For reviews, the newest **XLSX
+  and PDF** both count as current.
+- **Auto-naming:** files are renamed to
+  `{Surname}_{type}_{YYYY-MM-DD}[_qualifier][_vN].{ext}` and sorted into a
+  subfolder by type. Attachments (and *Other*) get a **distinguishing part of
+  the original name** so two different attachments don't look like versions.
+- **Type auto-detection** from the original file name on upload.
+- **🗑 Delete original after upload** (default on) — removes the source from
+  Downloads; the copy stays in `documents/`.
+- **📂 In Finder** — reveals the selected file in the file manager.
+- **Right-click** on a document opens a context menu (also for opposed
+  theses): *Open* · *📂 Show in Finder* · *Remove*, plus for **files**:
+  - **🖨 Print** (PDF and XLSX) — a PDF goes straight to the default printer,
+    an XLSX opens in its app for manual printing (Cmd/Ctrl+P).
+  - **📋 Copy file** — copies the **file itself** to the clipboard.
+  - **💾 Export to disk…** — saves a copy to a chosen location.
+  - **✉ Send by e-mail…** — sends the file as an attachment via **SMTP**
+    (the password is asked on send, never stored). On SMTP failure a .eml
+    fallback is offered.
 
-- **Sloupce tabulky:** *Typ / soubor*, *Verze*, *Velikost* (B / KB / MB / GB),
-  *Formát* (přípona — PDF / ZIP / …, nebo *odkaz* u URL) a *Cesta k souboru*
-  (**celá cesta od kořene** disku). Šířky sloupců se přizpůsobí obsahu.
-- **Barevné kategorie:** každý druh dokumentu má svou barvu nadpisu; **posudky
-  vedoucího a oponenta** jsou navíc sdruženy do nadřazené skupiny **Posudky**
-  a dělí se až v ní.
-- **Verzování:** nahrání **stejného** souboru (téhož názvu) vytvoří novou
-  verzi a předchozí se označí jako *superseded*. **Různé soubory** stejného
-  typu ale **koexistují** — např. dvě přílohy `…_part1.zip` a `…_part2.zip`
-  zůstanou obě aktuální (jedna nenahradí druhou). Toggle **Zobrazit starší
-  verze** je defaultně **zapnutý** (vidíš i archiv). U posudku se **XLSX i PDF**
-  nejnovější verze berou jako aktuální — PDF se ukáže hned, ne až po
-  zapnutí starších verzí.
-- **Auto-pojmenování:** soubor se přejmenuje na
-  `{Příjmení}_{typ}_{YYYY-MM-DD}[_rozlišení][_vN].{ext}` a roztřídí do podsložky.
-  U **příloh** (a *Jiné*) se do názvu vloží **rozlišovací část z původního názvu**
-  (`…_prilohy_2026-06-08_zdrojove-kody.zip` vs. `…_prilohy_2026-06-08_dataset.zip`),
-  aby dvě **různé** přílohy nevypadaly jako verze (`_v2`) téhož souboru.
-- **Auto-detekce typu** z původního názvu při nahrání.
-- **🗑 Smazat originál po nahrání** (default zapnuto) — odstraní zdroj
-  z Downloads, kopie zůstává v `documents/`.
-- **📂 Ve Finderu** — označí vybraný soubor přímo ve správci souborů
-  (Finder / Explorer), ať se k němu snadno dostaneš na disku.
-- **Pravý klik** na dokument otevře kontextové menu (funguje i u oponentur):
-  *Otevřít* · *📂 Zobrazit ve Finderu* · *Odebrat*, a u **souborů** navíc:
-  - **🖨 Tisk** (u PDF a XLSX) — PDF se pošle rovnou na výchozí tiskárnu,
-    XLSX se otevře v aplikaci k ručnímu tisku (Cmd/Ctrl+P).
-  - **📋 Kopírovat soubor** — zkopíruje **samotný soubor** do schránky
-    (vložíš ho do Finderu, mailu apod.) — ne jen cestu.
-  - **💾 Exportovat na disk…** — uloží kopii souboru na zvolené místo.
-  - **✉ Odeslat mailem…** — pošle soubor jako přílohu: zvolíš příjemce,
-    předmět a text; odesílá se z tvého e-mailu přes **SMTP** (heslo se ptá při
-    odeslání, neukládá se — viz *Nastavení e-mailu*). Při selhání SMTP nabídne
-    fallback přes .eml.
-
-  > **Více souborů najednou:** označ více souborů (Cmd/Ctrl/Shift klik) a přes
-  > pravý klik je můžeš **hromadně exportovat** do zvolené složky,
-  > **odeslat jedním e-mailem** (všechny jako přílohy) nebo **🗑 hromadně
-  > odebrat** (s jedním dotazem, zda smazat i soubory ze složky).
-- **Chybějící soubory:** když soubor smažeš ručně mimo aplikaci (např.
-  ve Finderu), aplikace se nerozbije — záznam zůstane, ale zobrazí se
-  červeně s *⚠ chybí soubor*. Tlačítko **🧹 Odklidit chybějící** odebere
-  takové mrtvé záznamy ze seznamu (existující soubory ani odkazy nechá).
+  > **Multiple files at once:** select several files (Cmd/Ctrl/Shift) and
+  > bulk **export**, **send in one e-mail** or **🗑 bulk remove** them.
+- **Missing files:** deleting a file outside the app doesn't break anything —
+  the record stays, shown red with *⚠ missing file*. **🧹 Clean up missing**
+  removes such dead records (existing files and links are kept).
 
 ---
 
-## Psaní posudku (vedoucí / oponent)
+## Writing a review (supervisor / opponent)
 
-Tlačítko **📝 Napsat posudek…** je na **dvou místech**:
+The **📝 Write review…** button is in **two places**:
 
-- u **vedené práce** *V řešení* (záložka detailu práce — aktivní jen ve
-  stavu *V řešení*),
-- u **oponovaného posudku** (záložka *🧐 Oponované práce* → v hlavičce
-  detailu) — vyplníš tu svůj **oponentský** posudek cizí práce.
+- on a **supervised thesis** *In progress* (thesis detail — active only in
+  that status),
+- on an **opposed thesis** (the *🧐 Opposed theses* tab → detail header) —
+  here you fill in your **opponent** review of someone else's thesis.
 
 Workflow:
 
-1. **Výběr šablony** — dialog nabídne jen **relevantní** šablony,
-   **seskupené podle oboru**. Vždy se filtruje podle **typu práce** (u BP
-   se nenabízí DP a naopak) a **role**: u vedené práce jen posudek
-   *vedoucího*, u oponentury jen *oponenta*. Přepínač *Zobrazit i šablony
-   jiných oborů* uvolní už jen filtr oboru. Správná šablona se předvybere.
-   Pokud už pro práci existuje uložený posudek, nahoře je tlačítko
-   **✏ Pokračovat v posledním posudku**. (Předvybere se šablona **oboru
-   práce** — `SWI-P`/`NSWI-P` se mapuje na `SWI`, `NKYB-K` na `KYB`.)
-2. **Editor posudku** — formulář (nahoře tlačítka **📄 Otevřít text práce**
-   a **📕/📘 Otevřít opačný posudek** — u posudku vedoucího nabídne posudek
-   oponenta a naopak; aktivní, jen když soubor existuje):
-   - *Splnění bodů zadání* — volby **dle jazyka šablony** (CZ
-     *splnil(a)/nesplnil(a)*, EN *fulfilled/not fulfilled*)
-   - **Kritéria hodnocení** — body 0–5 po celých bodech, váhy ze šablony
-   - **Živý souhrn** — vážené body, procenta, navržená známka (ECTS).
-     Stupnice je 1:1 se vzorcem v šabloně: **BP** (max 30 b) A≥29, B≥26,
-     C≥23, D≥20, **E≥18**, jinak FX; **DP** (max 35 b) A≥33, B≥30, C≥27,
-     D≥24, **E≥21**, jinak F. Hranice E je u obou na **60 %** — cokoli pod
-     60 % je FX (BP) / F (DP).
-   - *Plagiátorství* (u vedoucího) — předvyplní se z práce
-   - *Celkové hodnocení, připomínky a dotazy* — u **nového** posudku se sem
-     předvyplní **kostra** (tematické nadpisy podle role a jazyka šablony),
-     pod kterou píšeš; tlačítkem **🦴 Vložit kostru posudku** ji vyvoláš
-     i ručně (rozepsaný text nepřepíše). Je tu i **kontrola pravopisu** (CZ):
-     neznámá slova se **podtrhnou** červeně, **pravý klik** nabídne návrhy
-     oprav (žádná autokorekce). Když by slovník chyběl nebo se nenačetl
-     (např. po přenosu na jiný počítač), ukáže se hláška s tlačítkem
-     **⬇ Stáhnout český slovník** — stáhne ho z LibreOffice do
-     `~/.bpdpmanager/dictionaries/` a kontrolu rovnou zapne.
-   - *Místo, datum* — místo z profilu (default Zlín), datum dnešní
-3. **Uložit & vyrobit XLSX + PDF** — data se uloží do práce (JSON),
-   vyplní se XLSX šablona a (pokud je nainstalován LibreOffice)
-   vygeneruje PDF. Oba soubory se připojí jako příloha typu posudek.
-   Během generování (pár sekund — hlavně převod do PDF) se ukáže okno
-   s **ukazatelem průběhu**; běží na pozadí, takže aplikace nezamrzne.
-4. **Po vygenerování** zůstane otevřené okno s akcemi **📄 Otevřít XLSX**,
-   **📕 Otevřít PDF** a **📂 Ukázat ve Finderu** — můžeš otevřít obojí
-   z jednoho místa, okno se zavře až tlačítkem *Zavřít*. Seznam dokumentů
-   práce se rovnou aktualizuje (nový posudek je hned vidět).
+1. **Template selection** — the dialog offers only **relevant** templates,
+   **grouped by programme**. Always filtered by **thesis type** (BP vs DP)
+   and **role** (supervisor for supervised, opponent for opposed). The *Also
+   show templates of other programmes* toggle relaxes only the programme
+   filter. The right template is pre-selected. If a saved review already
+   exists, a **✏ Continue last review** button appears on top. (The
+   **thesis programme** template is pre-selected — `SWI-P`/`NSWI-P` maps to
+   `SWI`, `NKYB-K` to `KYB`.)
+2. **Review editor** — a form (with **📄 Open thesis text** and **📕/📘 Open
+   the counterpart review** buttons on top; active only when the file
+   exists):
+   - *Fulfilment of objectives* — options follow the **template language**
+   - **Evaluation criteria** — whole points 0–5, weights from the template
+   - **Live summary** — weighted points, percentages, suggested ECTS grade.
+     The scale matches the template formula 1:1: **BP** (max 30 pts) A≥29,
+     B≥26, C≥23, D≥20, **E≥18**, else FX; **DP** (max 35 pts) A≥33, B≥30,
+     C≥27, D≥24, **E≥21**, else F. The E threshold is **60 %** for both.
+   - *Plagiarism* (supervisor) — prefilled from the thesis
+   - *Overall evaluation, comments and questions* — a new review gets a
+     **skeleton** (thematic headings by role and template language); the
+     **🦴 Insert review skeleton** button inserts it manually too. There is
+     also Czech **spell checking**: unknown words are underlined red,
+     right-click offers corrections. If the dictionary is missing, a
+     **⬇ Download the Czech dictionary** button fetches it from LibreOffice.
+   - *Place, date* — place from the profile (default Zlín), today's date
+3. **Save & produce XLSX + PDF** — the data is saved into the thesis (JSON),
+   the XLSX template is filled and (with LibreOffice installed) a PDF is
+   generated. Both files are attached as review attachments. A progress
+   window is shown during generation; it runs in the background.
+4. **After generation** the window stays open with **📄 Open XLSX**,
+   **📕 Open PDF** and **📂 Show in Finder** actions. The thesis document
+   list refreshes immediately.
 
-Data posudku jsou *zdrojem pravdy* v JSON — XLSX/PDF lze kdykoli
-přegenerovat. Náhled posudku je v záložce **Souhrn**.
+The review data is the *source of truth* in JSON — XLSX/PDF can be
+regenerated any time. A review preview is in the **Overview** tab.
 
-> **Archivace posudků:** vždy se drží **jeden aktuální** posudek.
-> Při novém vygenerování se předchozí **XLSX přesune** do podsložky
-> `posudky/archiv/` (přejmenovaný s časovým razítkem) a starší **PDF se
-> smaže** (je jen odvozeninou). V seznamu tak máš čistě 1 aktuální posudek
-> + archiv starších verzí.
+> **Review archiving:** exactly **one current** review is kept. On
+> regeneration the previous **XLSX moves** to `posudky/archiv/` (renamed with
+> a timestamp) and the older **PDF is deleted** (it's just a derivative).
 
-> **Věrnost šablony 1:1:** vyplněný XLSX je **totožný se šablonou** —
-> mění se jen vyplněné buňky. Logo fakulty (i v záhlaví), formátování,
-> rozvržení a tisková nastavení zůstávají beze změny.
+> **Template fidelity 1:1:** the filled XLSX is **identical to the template**
+> — only the filled cells change. The faculty logo, formatting, layout and
+> print settings stay untouched.
 
-> **PDF:** vyžaduje LibreOffice (`brew install --cask libreoffice`
-> nebo z libreoffice.org). Bez něj se vygeneruje jen XLSX.
+> **PDF:** requires LibreOffice (`brew install --cask libreoffice`).
+> Without it only the XLSX is generated.
 
-> **Logo v PDF:** pokud je logo v šabloně vložené jako *„obrázek
-> v buňce"* (Excel funkce *Umístit do buňky*), LibreOffice ho sám neumí
-> vykreslit (v PDF by chybělo a objevilo by se `#VALUE!`). Aplikace to
-> řeší automaticky — při převodu do PDF logo na dočasné kopii převede na
-> klasický obrázek, takže PDF vypadá stejně jako export z Excelu.
-> Uložený XLSX zůstává beze změny. Při převodu se navíc PDF **vyladí**:
-> tabulka se roztáhne na šířku stránky (menší mezera vpravo, levý okraj
-> zůstává), **vycentruje se logo** a hlavička sloupce *„Body (0–5)"*
-> dostane menší černý font (na jeden řádek).
+> **Logo in the PDF:** if the template logo is an *"image in cell"* (Excel's
+> *Place in Cell*), LibreOffice cannot render it. The app handles this
+> automatically — the logo is converted to a classic image on a temporary
+> copy, so the PDF looks like an Excel export. The PDF is also **polished**:
+> the table stretches to the page width, the logo is centred and the
+> *"Points (0–5)"* column header gets a smaller black font.
 
 ---
 
-## Knihovna šablon posudků
+## Review template library
 
-Toolbar **📝 Šablony posudků** spravuje XLSX šablony posudků v rámci
-profilu (kopie v `profile_dir/templates/`).
+The **📝 Review templates** toolbar button manages the profile's XLSX review
+templates (copies in `profile_dir/templates/`).
 
-- **Přidání šablony** — po výběru XLSX aplikace **auto-detekuje** typ
-  (BP/DP), roli (vedoucí/oponent), jazyk (CZ/EN), obor a akademický rok
-  z hlavičky a listu *Konfigurace*; navrhne i název. Strukturu kritérií
-  (váhy, buňky pro body) nascanuje a uloží.
-- **Grupování** v přehledu: 📘 BP / 📗 DP → obor → šablony (abecedně).
-  Ikona role (🎓 vedoucí / 🧐 oponent), indikace 🇬🇧 EN.
-- Šablony jdou s profilem v ZIP exportu.
-
----
-
-## Oponované práce
-
-Samostatná záložka **🧐 Oponované práce** pro práce, kde vystupuješ
-jako **oponent** (recenzuješ cizí BP/DP). Vlastní model — inline údaje
-o studentovi a vedoucím (přes registr vedoucích s našeptáváním),
-**obor** (rozbalovací seznam evidovaných oborů — drž ho na evidovaném oboru,
-ať se posudek spáruje na sekretářku; ručně zadaná hodnota zůstane),
-známky, dokumenty, generovaný souhrn. **Souhrn nově ukazuje i napsaný
-posudek** (body, procenta, navržená známka, kritéria, komentář) — stejně
-jako u vedených prací posudek vedoucího. **Známky se doplní samy:** známka
-*oponenta* z napsaného posudku, známka *vedoucího* se vyčte z nahraného **PDF
-posudku vedoucího** (z textu „Navržená známka / Proposed grade"). Sekce Souhrnu
-jsou v pořadí: Body zadání → Známky → Napsaný posudek → Dokumenty.
-**Seznam dokumentů je úplně stejný
-jako u vedených prací** — agregovaný strom podle typu, verzování, **📂 Ve
-Finderu**, pravý klik (Otevřít / Finder / Odebrat), indikace chybějících
-souborů i **🧹 Odklidit chybějící**. Archivace posudků (1 aktuální + archiv
-starších) funguje shodně.
+- **Adding a template** — after picking an XLSX the app **auto-detects** the
+  type (BP/DP), role (supervisor/opponent), language (CZ/EN), programme and
+  academic year from the header and the *Configuration* sheet; it also
+  suggests a name. The criteria structure (weights, score cells) is scanned
+  and stored.
+- **Grouping** in the list: 📘 BP / 📗 DP → programme → templates
+  (alphabetical). Role icon (🎓 supervisor / 🧐 opponent), 🇬🇧 EN indicator.
+- Templates travel with the profile in ZIP exports.
 
 ---
 
-## Návrhy témat
+## Opposed theses
 
-Samostatná záložka **💡 Návrhy témat** (za *Oponentskými posudky*) je seznam
-**vymyšlených potenciálních témat** — nekompletních nápadů, které ještě nikdo
-nevede. **Nemají studenta ani stav** a **akademický rok je tu irelevantní**.
-V titulku záložky je **počet návrhů**.
-
-U každého návrhu vyplníš **název, popis, body zadání, literaturu, obor** a
-**typ (BP/DP)**. Volitelně zaškrtni **🔒 Zarezervováno** a doplň **komu**
-(volný text — jméno či poznámka, bez vazby na evidované studenty).
-
-- **Seznam** vlevo je seskupený na *Bakalářské* / *Diplomové*; u rezervovaných
-  je 🔒 a komu. Nahoře je počet návrhů a kolik je rezervovaných.
-- **Detail** má **📋 Souhrn** (s tlačítky do schránky — název, popis, body,
-  literatura, nebo celý návrh) a **✏ Detail** (editor; ulož tlačítkem
-  **💾 Uložit**).
-- **➕ Nový návrh** přidá prázdný návrh a otevře editor.
-- **🎓 Převést na vedenou práci** z návrhu založí **skutečnou vedenou práci**
-  (přenese název, popis → anotace, body zadání, literaturu a typ; stav
-  *Zájemce s tématem*, aktuální akademický rok) a **návrh odebere**. Aplikace
-  se rovnou přepne na nově založenou práci. *Obor se nepřenáší — drží ho až
-  student, kterého k práci přiřadíš.*
+A separate **🧐 Opposed theses** tab for theses you **oppose** (reviewing
+someone else's BP/DP). Its own model — inline student and supervisor info
+(via the supervisors registry with autocompletion), **programme** (a dropdown
+of registered programmes — keep it registered so the review pairs with a
+secretary), grades, documents, a generated overview. **The Overview also
+shows the written review** (points, percentages, suggested grade, criteria,
+comments). **Grades fill themselves:** the *opponent* grade from the written
+review, the *supervisor* grade is read from the uploaded **supervisor review
+PDF**. Overview sections: Objectives → Grades → Written review → Documents.
+**The document list is exactly the same as for supervised theses** —
+aggregated tree by type, versioning, **📂 In Finder**, right-click menu,
+missing-file indication and **🧹 Clean up missing**. Review archiving works
+the same way.
 
 ---
 
-## Odeslání posudků e-mailem sekretářce
+## Topic proposals
 
-Připravené posudky (PDF) pošleš sekretářce oboru přímo z aplikace.
-V toolbaru je tlačítko **✉ Odeslat posudky** s volbou:
+A separate **💡 Topic proposals** tab (after *Opposed theses*) lists
+**potential topic ideas** — incomplete ideas nobody works on yet. They have
+**no student or status** and the **academic year is irrelevant**. The tab
+title shows the **count**.
 
-- **🎓 Posudky vedoucího (vedené práce)** — posudky, které jsi napsal(a) jako
-  vedoucí.
-- **🧐 Oponované práce** — posudky, které jsi napsal(a) jako oponent.
+Each proposal has a **title, description, objectives, references, programme**
+and **type (BP/DP)**. Optionally tick **🔒 Reserved** and note **for whom**
+(free text).
 
-V dialogu:
-
-1. **Vyber sekretářku** — nabízejí se sekretářky vyplněné u oborů (👤 e-mail
-   u oboru). Podle jejích oborů se vyfiltrují práce (matchuje se **název i
-   STAG kód** oboru). Oslovení v mailu se převezme z oboru (viz výše).
-
-   > Když obor práce nesedí na žádný obor sekretářky (typicky u oponentur, kde
-   > je kód oboru jiný), nic se nenabídne. Zaškrtni **Zobrazit i práce z jiných
-   > oborů** — ukáže se vše s hotovým posudkem (s červeně označeným oborem),
-   > vybereš ručně. Počet skrytých prací aplikace napoví pod tabulkou.
-2. **Seznam prací** — nabídnou se jen práce s **hotovým PDF posudku**.
-   U vedených prací **jen ty aktuální („V řešení")** — z Historie (obhájeno /
-   nedokončeno) se posudky nenabízejí. U **oponentur** se nabízí **jen aktuální
-   akademický rok** (starší oponentury se sekretářce neposílají). Nezaslané jsou předzaškrtnuté,
-   **už odeslané** se defaultně skryjí (zaškrtni *Zobrazit i už odeslané*,
-   pokud chceš poslat znovu). BP i DP můžeš poslat naráz.
-3. **Náhled e-mailu** — předmět a tělo se sestaví automaticky (pozdrav +
-   seznam prací seskupený na **bakalářské / diplomové**, u každé jméno,
-   osobní číslo a název). Text **lze upravit**; *↻ Přegenerovat text* ho
-   sestaví znovu dle výběru.
-4. **Kopie mně** (default zapnuto) — pošle kopii na tvůj e-mail, abys měl(a)
-   jistotu, že mail odešel. Volitelně lze zaškrtnout **Připojit popisek
-   o aplikaci** — do patičky se přidá řádek o BPDPManageru s odkazem na
-   GitHub (default vypnuto, projeví se v náhledu).
-5. **🧪 Test — poslat jen sobě** — *dry run*: pošle úplně stejný e-mail
-   (včetně PDF příloh) **jen na tvůj e-mail**, abys ho zkontroloval(a), než
-   ho pošleš sekretářce. Posudky **neoznačí** jako odeslané a dialog nechá
-   otevřený.
-6. **✉ Odeslat…** — po potvrzení tě aplikace vyzve k **heslu** (nikam se
-   neukládá) a odešle e-mail s **PDF posudky v příloze**. Odeslané práce se
-   označí jako *odeslané*.
-
-### Nastavení e-mailu (SMTP)
-
-**👤 → ✉ Nastavení e-mailu (SMTP)** — samostatný správce odchozí pošty:
-e-mail odesílatele, **SMTP server / port / zabezpečení** a tlačítko
-**🔌 Test spojení** (přihlásí se, bez odeslání). Výchozí hodnoty odpovídají
-**UTB Office365** (`outlook.office365.com`, port 587, STARTTLS) — viz
-[nastavení CVT UTB](https://www.utb.cz/cvt/office365-thunderbird-doc).
-**Heslo se nikde neukládá.**
-
-> **Pozn. k UTB Office365:** UTB vyžaduje pro odchozí poštu **OAuth2**, takže
-> přímé přihlášení heslem přes SMTP nemusí projít. Když odeslání selže,
-> aplikace nabídne **vytvořit hotový e-mail (.eml) a otevřít ho v tvém
-> mailovém klientovi** (Outlook/Thunderbird), kde jsi přihlášený přes OAuth2 —
-> stačí kliknout *Odeslat*. Posudky pak můžeš nechat označit jako odeslané.
+- **The list** on the left is grouped into *Bachelor's* / *Master's*;
+  reserved ones show 🔒 and for whom.
+- **The detail** has a **📋 Overview** (with copy-to-clipboard buttons) and
+  **✏ Detail** (editor; save via **💾 Save**).
+- **➕ New proposal** adds an empty proposal and opens the editor.
+- **🎓 Convert to a supervised thesis** creates a **real supervised thesis**
+  from the proposal (title, description → annotation, objectives, references,
+  type; status *Candidate with topic*, current academic year) and **removes
+  the proposal**. *The programme is not carried over — it belongs to the
+  student you assign later.*
 
 ---
 
-## Tisk posudků
+## Sending reviews to the secretary by e-mail
 
-Hotové **PDF posudky** vytiskneš přímo z aplikace — tlačítko **🖨 Tisk posudků**
-v toolbaru. V dialogu zvolíš **cíl tisku**:
+Finished review PDFs can be sent to the programme secretary directly from the
+app. The toolbar has **✉ Send reviews** with a choice:
 
-- **MyQ (`myq.utb.cz`)** — odešle posudky do tiskové fronty univerzity (vyzvedneš
-  je u libovolné multifunkce kartou/PINem). Zadáš přihlašovací **jméno + PIN**
-  (nikam se neukládají). MyQ posílal **neúplný řetězec certifikátu** (chyběl
-  mezičlánek GÉANT/HARICA) — ten je teď v aplikaci **přibalený**, takže ověření
-  TLS **obvykle projde samo**. Kdyby přesto selhalo, tisk se **automaticky
-  připojí i bez ověření** (MyQ je interní důvěryhodný server) a oznámí to;
-  ruční přepínač *Ověřit TLS certifikát serveru* tu zůstává jako pojistka.
-- **Systémová tiskárna** — vytiskne na **vybranou tiskárnu** nastavenou v systému
-  (macOS/Linux přes CUPS). Vybereš tiskárnu z nabídky a volitelně *Oboustranně*.
+- **🎓 Supervisor's reviews (supervised theses)** — reviews you wrote as the
+  supervisor.
+- **🧐 Opposed theses** — reviews you wrote as the opponent.
 
-V dialogu:
-- **Vybereš posudky.** Nabízejí se práce s **hotovým PDF posudkem** z aktuálně
-  vedených (posudek vedoucího) i letošních oponentur (posudek oponenta),
-  rozdělené na **🖨 K tisku — nevytištěné** (předzaškrtnuté) a **✓ Již
-  vytištěné** (samostatný seznam, nezaškrtnuté — pro případný opětovný tisk).
-  V každé skupině jsou posudky seskupené do podskupin **🎓 Posudky vedoucího**
-  a **🧐 Posudky oponenta**. Tlačítka *Vybrat vše / Zrušit vše* usnadní výběr.
-- **🖨 Odeslat na tisk** se nejdřív **zeptá na potvrzení** (kolik a kam), pak
-  postupně vytiskne vybraná PDF (do MyQ fronty, nebo na systémovou tiskárnu).
-  Na konci se zobrazí **souhrn** (znění podle cíle — *vytištěno* u tiskárny /
-  *odesláno do MyQ fronty*) a dialog se **zeptá, zda označit jako vytištěné**
-  (promítne se do sloupce *Vytištěno*).
+In the dialog:
 
-> **Tip — tisk jen vybraných prací.** Pravým klikem na **vybrané práce**
-> (v *Aktuálně vedené práce* nebo v *Oponentury*) zvolíš **🖨 Tisk posudku** —
-> otevře tentýž dialog, ale **jen se zvolenými pracemi** (posudek vedoucího
-> u vedených, posudek oponenta u oponovaných). Funguje i pro jednu práci i pro
-> více vybraných najednou; práce bez hotového PDF posudku se přeskočí.
+1. **Pick a secretary** — secretaries filled in for programmes are offered.
+   Theses are filtered by her programmes (matching the programme **name and
+   STAG code**). The e-mail salutation comes from the programme.
 
-> **Pozn.:** MyQ konektor komunikuje přímo s webem `myq.utb.cz`. Když UTB MyQ
-> výrazně změní rozhraní, lze tisk vždy provést i ručně přes web (posudky si
-> připravíš přes **📄 Export PDF mých posudků**), nebo použít systémovou
-> tiskárnu.
+   > When a thesis programme doesn't match the secretary, nothing is offered.
+   > Tick **Also show theses of other programmes** — everything with a
+   > finished review appears (programme marked red) and you pick manually.
+2. **Thesis list** — only theses with a **finished review PDF** are offered.
+   For supervised theses **only current ("In progress")** ones; for opposed
+   theses **only the current academic year**. Unsent ones are pre-checked,
+   **already sent** ones are hidden by default (tick *Also show already sent
+   reviews* to resend). BP and DP can be sent together.
+3. **E-mail preview** — the subject and body are composed automatically
+   (greeting + the thesis list grouped into bachelor's / master's). The text
+   is **editable**; *↻ Regenerate text* rebuilds it from the selection.
+4. **Copy to me** (default on) — sends a copy to your address. Optionally
+   tick **Append a note about the app** (a BPDPManager footer line, default
+   off).
+5. **🧪 Test — send only to myself** — a *dry run*: sends the exact e-mail
+   (incl. PDFs) **only to you** for checking. Reviews are NOT marked as sent.
+6. **✉ Send…** — after confirmation you are asked for the **password**
+   (never stored) and the e-mail with **PDF attachments** is sent. Sent
+   theses are marked as *sent*.
+
+### E-mail settings (SMTP)
+
+**👤 → ✉ E-mail settings (SMTP)** — a standalone outgoing-mail manager:
+sender e-mail, **SMTP server / port / security** and a **🔌 Connection test**
+button (logs in without sending). Defaults match **UTB Office365**
+(`outlook.office365.com`, port 587, STARTTLS). **The password is never
+stored.**
+
+> **Note on UTB Office365:** UTB requires **OAuth2** for outgoing mail, so a
+> direct SMTP password login may fail. On failure the app offers to **create
+> a ready e-mail (.eml) and open it in your mail client**
+> (Outlook/Thunderbird) where you are logged in via OAuth2 — just hit
+> *Send*. Reviews can then be marked as sent.
 
 ---
+
+## Printing reviews
+
+Finished **review PDFs** print straight from the app — the **🖨 Print
+reviews** toolbar button. Choose the **destination** in the dialog:
+
+- **MyQ (`myq.utb.cz`)** — sends reviews into the university print queue
+  (pick them up at any multifunction device with your card/PIN). Enter your
+  MyQ **name + PIN** (never stored). MyQ used to send an **incomplete
+  certificate chain** (missing GÉANT/HARICA intermediate) — it is now
+  **bundled** with the app, so TLS verification usually passes. If it still
+  fails, printing **automatically reconnects without verification** (MyQ is
+  an internal trusted server) and says so; the manual *Verify the server TLS
+  certificate* toggle remains as a safety.
+- **System printer** — prints on a system-configured printer (macOS/Linux
+  via CUPS). Pick the printer and optionally *Double-sided*.
+
+In the dialog:
+- **Select reviews.** Theses with a **finished PDF review** are offered from
+  currently supervised (supervisor's review) and this year's opposed theses
+  (opponent's review), split into **🖨 To print — not printed yet**
+  (pre-checked) and **✓ Already printed** (separate list, unchecked — for
+  reprints). Each group has **🎓 Supervisor's** and **🧐 Opponent's**
+  sub-groups. *Select all / Deselect all* helps.
+- **🖨 Send to print** first **asks for confirmation** (how many and where),
+  then prints the selected PDFs one by one. A **summary** is shown at the
+  end and the dialog **asks whether to mark them as printed** (reflected in
+  the *Printed* column).
+
+> **Tip — printing selected theses only.** Right-click **selected theses**
+> (in *Currently supervised theses* or *Opposed theses*) and choose
+> **🖨 Print review** — the same dialog opens, but **with only the chosen
+> theses**. Works for one or many; theses without a finished PDF are skipped.
+
+> **Note:** the MyQ connector talks directly to `myq.utb.cz`. If UTB
+> significantly changes the interface, you can always print manually via the
+> web (prepare PDFs via **📄 Export my review PDFs**) or use a system
+> printer.
+
+---
+
+> **🌐 Translation in progress.** The following section (STAG import) is
+> not translated yet and is shown in Czech. It will be translated in an
+> upcoming update.
 
 ## Import ze STAG (CSV)
 
@@ -939,14 +902,13 @@ STAG kód oboru lze evidovat v dialogu *Obory* (pole *STAG kód*).
 
 ---
 
-## Harmonogram fakulty
-
-Záložka **📅 Harmonogram** — import PDF časového plánu FAI UTB,
-automatická extrakce klíčových termínů (odevzdání BP/DP, SZZ, promoce,
-zkouškové). Žlutý panel ukazuje nadcházející důležité termíny
-v následujících 60 dnech.
-
 ---
+
+## Faculty schedule
+
+The **📅 Schedule** tab — import of the FAI UTB PDF time plan, automatic
+extraction of key deadlines (BP/DP submission, finals, graduation, exam
+period). A yellow panel shows important deadlines in the next 60 days.
 
 ---
 

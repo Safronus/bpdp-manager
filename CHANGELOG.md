@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-06-11
+
+### Added
+- **Jazyk CZ/EN — vlna 4b: anglická nápověda (část 2).** Přeloženy kapitoly
+  **Thesis — detail**, **Writing a review**, **Review template library**,
+  **Opposed theses**, **Topic proposals**, **Sending reviews by e-mail**,
+  **Printing reviews** a **Faculty schedule**. V EN nápovědě zbývá česky už
+  jen kapitola *Import ze STAG* (přijde v další vlně).
+
 ## [2.0.3] - 2026-06-11
 
 ### Added
