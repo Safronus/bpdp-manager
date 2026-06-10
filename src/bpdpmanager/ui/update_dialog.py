@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..services import update_checker as uc
 
 
@@ -80,7 +81,7 @@ class UpdateDialog(QDialog):
         self.check_enabled = check_enabled   # stav vypínače po zavření
         self.updated = False
         self._worker: _UpdateWorker | None = None
-        self.setWindowTitle("Aktualizace aplikace")
+        self.setWindowTitle(tr("Aktualizace aplikace"))
         self.setMinimumSize(560, 480)
 
         lay = QVBoxLayout(self)
@@ -91,7 +92,7 @@ class UpdateDialog(QDialog):
         head.setTextFormat(Qt.TextFormat.RichText)
         lay.addWidget(head)
 
-        sub = QLabel("Novinky od tvé verze:")
+        sub = QLabel(tr("Novinky od tvé verze:"))
         lay.addWidget(sub)
         self.changelog = QTextBrowser()
         self.changelog.setOpenExternalLinks(True)
@@ -102,20 +103,20 @@ class UpdateDialog(QDialog):
         self.status.setWordWrap(True)
         lay.addWidget(self.status)
 
-        self.cb_check = QCheckBox("Kontrolovat aktualizace po startu aplikace")
+        self.cb_check = QCheckBox(tr("Kontrolovat aktualizace po startu aplikace"))
         self.cb_check.setChecked(check_enabled)
         lay.addWidget(self.cb_check)
 
         btns = QHBoxLayout()
-        self.btn_update = QPushButton("🔄 Aktualizovat a restartovat")
+        self.btn_update = QPushButton(tr("🔄 Aktualizovat a restartovat"))
         self.btn_update.setDefault(True)
         self.btn_update.clicked.connect(self._on_update)
-        self.btn_skip = QPushButton("Přeskočit tuto verzi")
+        self.btn_skip = QPushButton(tr("Přeskočit tuto verzi"))
         self.btn_skip.setToolTip(
             f"Verze {info.latest} se už nebude nabízet (další ano)."
         )
         self.btn_skip.clicked.connect(self._on_skip)
-        self.btn_later = QPushButton("Později")
+        self.btn_later = QPushButton(tr("Později"))
         self.btn_later.clicked.connect(self.reject)
         btns.addWidget(self.btn_update)
         btns.addStretch(1)
@@ -131,7 +132,7 @@ class UpdateDialog(QDialog):
     def _on_update(self) -> None:
         for b in (self.btn_update, self.btn_skip, self.btn_later):
             b.setEnabled(False)
-        self.status.setText("⏳ Stahuji aktualizaci (git pull + závislosti)…")
+        self.status.setText(tr("⏳ Stahuji aktualizaci (git pull + závislosti)…"))
         self._worker = _UpdateWorker(parent=self)
         self._worker.done.connect(self._on_update_done)
         self._worker.start()

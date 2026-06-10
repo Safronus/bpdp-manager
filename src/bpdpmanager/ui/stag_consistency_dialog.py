@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models.enums import STATUSES_FUTURE, AttachmentKind
 from ..services import BackupManager, stag_api
 from .stag_import_dialog import _SECTION_TO_KIND, _fmt_size
@@ -70,7 +71,7 @@ class StagConsistencyDialog(QDialog):
         self._rows: list[_Row] = []
         self._no_id: list[str] = []
 
-        self.setWindowTitle("Kontrola konzistence se STAG")
+        self.setWindowTitle(tr("Kontrola konzistence se STAG"))
         self.setMinimumSize(860, 620)
         self.resize(1040, 780)
 
@@ -78,23 +79,23 @@ class StagConsistencyDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        title = QLabel("🔍 Kontrola konzistence se STAG")
+        title = QLabel(tr("🔍 Kontrola konzistence se STAG"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
         intro = QLabel(
-            "Porovná soubory u prací (vedených i oponovaných) se STAG a vypíše, "
+            tr("Porovná soubory u prací (vedených i oponovaných) se STAG a vypíše, "
             "kde STAG nabízí <b>druh dokumentu</b> (plný text / příloha / posudek), "
             "který <b>v databázi chybí</b>. Zaškrtnuté soubory můžeš rovnou "
             "<b>dostáhnout</b>. Budoucí práce (zájemci / vypsaná témata) se "
-            "nekontrolují."
+            "nekontrolují.")
         )
         intro.setTextFormat(Qt.TextFormat.RichText)
         intro.setWordWrap(True)
         intro.setStyleSheet("color:#888;")
         outer.addWidget(intro)
 
-        self.lbl_status = QLabel("⏳ Porovnávám se STAG…")
+        self.lbl_status = QLabel(tr("⏳ Porovnávám se STAG…"))
         self.lbl_status.setWordWrap(True)
         outer.addWidget(self.lbl_status)
 
@@ -104,9 +105,9 @@ class StagConsistencyDialog(QDialog):
         outer.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(self.accept)
-        self.btn_download = QPushButton("⬇ Dostáhnout vybrané")
+        self.btn_download = QPushButton(tr("⬇ Dostáhnout vybrané"))
         self.btn_download.setEnabled(False)
         bf = self.btn_download.font()
         bf.setBold(True)

@@ -12,6 +12,8 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
+from ..i18n import tr
+
 
 def export_my_review_pdfs(
     parent: QWidget, jobs: list[tuple[str, Path | None]]
@@ -24,7 +26,7 @@ def export_my_review_pdfs(
     """
     if not jobs:
         QMessageBox.information(
-            parent, "Export PDF posudků", "Nevybrali jste žádnou práci."
+            parent, tr("Export PDF posudků"), tr("Nevybrali jste žádnou práci.")
         )
         return
 
@@ -34,9 +36,9 @@ def export_my_review_pdfs(
     if not have:
         QMessageBox.information(
             parent,
-            "Export PDF posudků",
-            "Žádná z vybraných prací nemá vytvořený PDF posudek — "
-            "není co exportovat.",
+            tr("Export PDF posudků"),
+            tr("Žádná z vybraných prací nemá vytvořený PDF posudek — "
+            "není co exportovat."),
         )
         return
 
@@ -63,4 +65,4 @@ def export_my_review_pdfs(
     if failed:
         lines += ["", f"⚠ Nepodařilo se zkopírovat: {len(failed)}"]
         lines += [f"   • {n}" for n in failed]
-    QMessageBox.information(parent, "Souhrn exportu posudků", "\n".join(lines))
+    QMessageBox.information(parent, tr("Souhrn exportu posudků"), "\n".join(lines))

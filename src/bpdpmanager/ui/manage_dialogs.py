@@ -29,6 +29,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
+
 # Akademické tituly, které ignorujeme při řazení abecedně.
 _TITLE_PREFIX_RE = re.compile(
     r"^(?:(?:doc\.|prof\.|MgA\.|MUDr\.|RNDr\.|JUDr\.|PhDr\.|PaedDr\.|"
@@ -82,7 +84,7 @@ def _run_title_cleanup(dialog, cleanup_fn, what: str, refresh_fn) -> None:
     changes = cleanup_fn(dry_run=True)
     if not changes:
         QMessageBox.information(
-            dialog, "Úklid titulů",
+            dialog, tr("Úklid titulů"),
             f"Žádná jména {what} k úklidu — vše už je rozparsované.",
         )
         return
@@ -90,7 +92,7 @@ def _run_title_cleanup(dialog, cleanup_fn, what: str, refresh_fn) -> None:
     if len(changes) > 40:
         shown += f"\n… a další ({len(changes) - 40})"
     confirm = QMessageBox.question(
-        dialog, "Úklid titulů",
+        dialog, tr("Úklid titulů"),
         f"Rozparsovat {len(changes)} jmen {what} na tituly před/za + jméno?\n\n"
         f"{shown}",
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -101,7 +103,7 @@ def _run_title_cleanup(dialog, cleanup_fn, what: str, refresh_fn) -> None:
     applied = cleanup_fn(dry_run=False)
     refresh_fn()
     QMessageBox.information(
-        dialog, "Úklid titulů", f"Uklizeno: {len(applied)} jmen.",
+        dialog, tr("Úklid titulů"), f"Uklizeno: {len(applied)} jmen.",
     )
 
 
@@ -163,17 +165,17 @@ class StudentsManageDialog(QDialog):
 
         # ── horní lišta s filtrem ───────────────────────────────────────────
         top_row = QHBoxLayout()
-        top_row.addWidget(QLabel("🔎 Příjmení:"))
+        top_row.addWidget(QLabel(tr("🔎 Příjmení:")))
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("filtr podle příjmení…")
+        self.search_edit.setPlaceholderText(tr("filtr podle příjmení…"))
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.setMaximumWidth(240)
         self.search_edit.textChanged.connect(self._refresh)
         top_row.addWidget(self.search_edit)
         top_row.addSpacing(16)
-        self.chk_hide_history = QCheckBox("Skrýt historické studenty")
+        self.chk_hide_history = QCheckBox(tr("Skrýt historické studenty"))
         self.chk_hide_history.setToolTip(
-            "Skryje studenty, jejichž aktuální práce je obhájená nebo nedokončená."
+            tr("Skryje studenty, jejichž aktuální práce je obhájená nebo nedokončená.")
         )
         self.chk_hide_history.toggled.connect(self._refresh)
         top_row.addWidget(self.chk_hide_history)
@@ -186,7 +188,7 @@ class StudentsManageDialog(QDialog):
         # ── strom ──────────────────────────────────────────────────────────
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Příjmení, Jméno", "Osobní č.", "Stav (rok)"])
+        self.tree.setHeaderLabels([tr("Příjmení, Jméno"), tr("Osobní č."), tr("Stav (rok)")])
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.itemDoubleClicked.connect(self._edit)
@@ -199,10 +201,10 @@ class StudentsManageDialog(QDialog):
 
         # ── tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
-        btn_new = QPushButton("Nový…")
-        btn_edit = QPushButton("Upravit…")
+        btn_new = QPushButton(tr("Nový…"))
+        btn_edit = QPushButton(tr("Upravit…"))
         btn_delete = QPushButton("Smazat")
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
         btn_delete.clicked.connect(self._delete)
@@ -216,10 +218,10 @@ class StudentsManageDialog(QDialog):
 
         # vysvětlivka barev
         legend = QLabel(
-            '<span style="color:#1565c0">●</span> aktuální rok &nbsp;&nbsp; '
+            tr('<span style="color:#1565c0">●</span> aktuální rok &nbsp;&nbsp; '
             '<span style="color:#00897b">●</span> budoucí rok &nbsp;&nbsp; '
             '<span style="color:#888">●</span> dokončeno &nbsp;&nbsp; '
-            '<span style="color:#c62828">●</span> nedokončeno'
+            '<span style="color:#c62828">●</span> nedokončeno')
         )
         legend.setStyleSheet("font-size: 11px; padding: 4px 0;")
         layout.addWidget(legend)
@@ -448,7 +450,7 @@ class StudentsManageDialog(QDialog):
             return
         confirm = QMessageBox.question(
             self,
-            "Smazat studenta",
+            tr("Smazat studenta"),
             f'Opravdu smazat „{s.full_name}"? Práce, které ho mají přiřazeného, '
             f"zůstanou (bez studenta).",
         )
@@ -515,21 +517,21 @@ class OpponentsManageDialog(QDialog):
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self.setWindowTitle("Oponenti")
+        self.setWindowTitle(tr("Oponenti"))
         self.setMinimumSize(820, 560)
 
         layout = QVBoxLayout(self)
         layout.addWidget(
             QLabel(
-                "Seznam oponentů — Interní (UTB) a Externí. "
-                "Dvojklik upraví detail."
+                tr("Seznam oponentů — Interní (UTB) a Externí. "
+                "Dvojklik upraví detail.")
             )
         )
 
         self.tree = _OpponentDnDTree()
         self.tree.setColumnCount(5)
         self.tree.setHeaderLabels(
-            ["Jméno", "Pracoviště", "Email", "Telefon", "Oponuje prací"]
+            [tr("Jméno"), tr("Pracoviště"), "Email", tr("Telefon"), tr("Oponuje prací")]
         )
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
@@ -547,16 +549,16 @@ class OpponentsManageDialog(QDialog):
         layout.addWidget(self.lbl_info)
 
         row = QHBoxLayout()
-        btn_new = QPushButton("Nový…")
-        btn_edit = QPushButton("Upravit…")
+        btn_new = QPushButton(tr("Nový…"))
+        btn_edit = QPushButton(tr("Upravit…"))
         btn_delete = QPushButton("Smazat")
-        btn_cleanup = QPushButton("🧹 Uklidit tituly")
+        btn_cleanup = QPushButton(tr("🧹 Uklidit tituly"))
         btn_cleanup.setToolTip(
-            "Rozparsuje jména stažená ze STAG (formát „Příjmení Jméno, tituly“) "
-            "na tituly před/za + jméno. Ukáže náhled."
+            tr("Rozparsuje jména stažená ze STAG (formát „Příjmení Jméno, tituly“) "
+            "na tituly před/za + jméno. Ukáže náhled.")
         )
         btn_cleanup.clicked.connect(self._cleanup_titles)
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
         btn_delete.clicked.connect(self._delete)
@@ -754,7 +756,7 @@ class OpponentsManageDialog(QDialog):
             return
         confirm = QMessageBox.question(
             self,
-            "Smazat oponenta",
+            tr("Smazat oponenta"),
             f'Opravdu smazat „{o.name}"? Práce, které ho mají přiřazeného, '
             f"zůstanou (bez oponenta).",
         )
@@ -775,17 +777,17 @@ class OboryManageDialog(QDialog):
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self.setWindowTitle("Obory + sekretářky")
+        self.setWindowTitle(tr("Obory + sekretářky"))
         self.setMinimumSize(920, 540)
 
         layout = QVBoxLayout(self)
         layout.addWidget(
             QLabel(
-                "Seznam studijních oborů (např. NSWI-P, NKYB-K). U každého lze evidovat "
+                tr("Seznam studijních oborů (např. NSWI-P, NKYB-K). U každého lze evidovat "
                 "STAG zkratku pro import (např. <code>knIT-KYB</code>) a sekretářku oboru. "
                 "Položky jsou agregovány podle sekretářky — <b>dvojklik na obor</b> upraví "
                 "detail, <b>dvojklik na hlavičku sekretářky</b> upraví její kontakt "
-                "a oslovení <b>hromadně pro všechny její obory</b>.",
+                "a oslovení <b>hromadně pro všechny její obory</b>."),
                 textFormat=Qt.TextFormat.RichText,
             )
         )
@@ -793,7 +795,7 @@ class OboryManageDialog(QDialog):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(5)
         self.tree.setHeaderLabels(
-            ["Obor / Sekretářka", "STAG zkratka", "Studentů", "Kontakt", "Oslovení"]
+            [tr("Obor / Sekretářka"), tr("STAG zkratka"), tr("Studentů"), tr("Kontakt"), tr("Oslovení")]
         )
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
@@ -812,16 +814,16 @@ class OboryManageDialog(QDialog):
         layout.addWidget(self.lbl_info)
 
         row = QHBoxLayout()
-        btn_new = QPushButton("+ Přidat…")
-        btn_edit = QPushButton("Upravit…")
+        btn_new = QPushButton(tr("+ Přidat…"))
+        btn_edit = QPushButton(tr("Upravit…"))
         btn_delete = QPushButton("Smazat")
-        btn_defaults = QPushButton("⭐ Defaultní…")
+        btn_defaults = QPushButton(tr("⭐ Defaultní…"))
         btn_defaults.setToolTip(
-            "Doplní výchozí obory FAI UTB (vč. STAG zkratek). Existující "
-            "nechá být; jen se zeptá, jestli přepsat lišící se STAG kódy."
+            tr("Doplní výchozí obory FAI UTB (vč. STAG zkratek). Existující "
+            "nechá být; jen se zeptá, jestli přepsat lišící se STAG kódy.")
         )
-        btn_expand = QPushButton("↕ Sbalit / rozbalit vše")
-        btn_close = QPushButton("Zavřít")
+        btn_expand = QPushButton(tr("↕ Sbalit / rozbalit vše"))
+        btn_close = QPushButton(tr("Zavřít"))
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
         btn_delete.clicked.connect(self._delete)
@@ -1033,7 +1035,7 @@ class OboryManageDialog(QDialog):
         sec_name, sec_email, sec_phone = key
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Sekretářka — hromadná úprava")
+        dlg.setWindowTitle(tr("Sekretářka — hromadná úprava"))
         dlg.setMinimumWidth(460)
         lay = QVBoxLayout(dlg)
         form = QFormLayout()
@@ -1041,11 +1043,11 @@ class OboryManageDialog(QDialog):
         ed_email = QLineEdit(sec_email)
         ed_phone = QLineEdit(sec_phone)
         ed_greeting = QLineEdit(greeting or "")
-        ed_greeting.setPlaceholderText("např. Vážená paní Nováková (prázdné = formální)")
-        form.addRow("Jméno", ed_name)
+        ed_greeting.setPlaceholderText(tr("např. Vážená paní Nováková (prázdné = formální)"))
+        form.addRow(tr("Jméno"), ed_name)
         form.addRow("E-mail", ed_email)
-        form.addRow("Telefon", ed_phone)
-        form.addRow("Oslovení v mailu", ed_greeting)
+        form.addRow(tr("Telefon"), ed_phone)
+        form.addRow(tr("Oslovení v mailu"), ed_greeting)
         lay.addLayout(form)
 
         names = ", ".join(o.name for o in sorted(obory, key=lambda o: o.name.lower()))
@@ -1092,7 +1094,7 @@ class OboryManageDialog(QDialog):
         msg = f"Opravdu smazat obor „{obor.name}\"?"
         if count:
             msg += f"\n\nU {count} studentů bude pole „obor\" vyprázdněno."
-        confirm = QMessageBox.question(self, "Smazat obor", msg)
+        confirm = QMessageBox.question(self, tr("Smazat obor"), msg)
         if confirm == QMessageBox.StandardButton.Yes:
             self.service.remove_obor(obor.name)
             self._refresh()
@@ -1102,19 +1104,19 @@ class OboryManageDialog(QDialog):
 
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
-        box.setWindowTitle("Defaultní obory")
+        box.setWindowTitle(tr("Defaultní obory"))
         box.setText(
             "Výchozí obory FAI UTB (vč. STAG zkratek).\n\n"
             f"Chybí: {missing}  ·  liší se STAG: {conflicts}\n\n"
             "Doplnit chybějící do tvého seznamu, nebo smazat celý číselník "
             "a nahradit ho výchozími?"
         )
-        chk = QCheckBox("Při doplnění přepsat i lišící se STAG kódy")
+        chk = QCheckBox(tr("Při doplnění přepsat i lišící se STAG kódy"))
         if conflicts:
             box.setCheckBox(chk)
-        btn_add = box.addButton("Doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
+        btn_add = box.addButton(tr("Doplnit chybějící"), QMessageBox.ButtonRole.AcceptRole)
         btn_wipe = box.addButton(
-            "Smazat vše a nahradit", QMessageBox.ButtonRole.DestructiveRole
+            tr("Smazat vše a nahradit"), QMessageBox.ButtonRole.DestructiveRole
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
         box.exec()
@@ -1124,16 +1126,16 @@ class OboryManageDialog(QDialog):
             res = self.service.seed_default_obory(overwrite_conflicts=chk.isChecked())
             self._refresh()
             QMessageBox.information(
-                self, "Defaultní obory",
+                self, tr("Defaultní obory"),
                 f"Přidáno: {res['added']} · přepsán STAG: {res['updated']} · "
                 f"ponecháno: {res['skipped']}.",
             )
         elif clicked == btn_wipe:
             if QMessageBox.question(
-                self, "Smazat vše a nahradit",
-                "Opravdu smazat celý číselník oborů a nahradit ho výchozími?\n\n"
+                self, tr("Smazat vše a nahradit"),
+                tr("Opravdu smazat celý číselník oborů a nahradit ho výchozími?\n\n"
                 "Studentům zůstane jejich uložený obor (je to jen text), jen se "
-                "přepíše seznam oborů.",
+                "přepíše seznam oborů."),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             ) != QMessageBox.StandardButton.Yes:
@@ -1141,7 +1143,7 @@ class OboryManageDialog(QDialog):
             n = self.service.reset_obory_to_defaults()
             self._refresh()
             QMessageBox.information(
-                self, "Defaultní obory", f"Číselník nahrazen — {n} výchozích oborů."
+                self, tr("Defaultní obory"), f"Číselník nahrazen — {n} výchozích oborů."
             )
 
 
@@ -1155,20 +1157,20 @@ class SupervisorsManageDialog(QDialog):
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self.setWindowTitle("Vedoucí (pro oponentské posudky)")
+        self.setWindowTitle(tr("Vedoucí (pro oponentské posudky)"))
         self.setMinimumSize(820, 520)
 
         layout = QVBoxLayout(self)
         layout.addWidget(
             QLabel(
-                "Registr vedoucích cizích BP/DP. Používá se pro našeptávání "
-                "při vyplňování oponentských posudků. Dvojklik upraví detail."
+                tr("Registr vedoucích cizích BP/DP. Používá se pro našeptávání "
+                "při vyplňování oponentských posudků. Dvojklik upraví detail.")
             )
         )
 
         self.tree = QTreeWidget()
         self.tree.setColumnCount(4)
-        self.tree.setHeaderLabels(["Jméno", "Pracoviště", "Email", "Telefon"])
+        self.tree.setHeaderLabels([tr("Jméno"), tr("Pracoviště"), "Email", tr("Telefon")])
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(False)
         self.tree.itemDoubleClicked.connect(self._edit)
@@ -1185,16 +1187,16 @@ class SupervisorsManageDialog(QDialog):
         layout.addWidget(self.lbl_info)
 
         row = QHBoxLayout()
-        btn_new = QPushButton("Nový…")
-        btn_edit = QPushButton("Upravit…")
+        btn_new = QPushButton(tr("Nový…"))
+        btn_edit = QPushButton(tr("Upravit…"))
         btn_delete = QPushButton("Smazat")
-        btn_cleanup = QPushButton("🧹 Uklidit tituly")
+        btn_cleanup = QPushButton(tr("🧹 Uklidit tituly"))
         btn_cleanup.setToolTip(
-            "Rozparsuje jména stažená ze STAG na tituly před/za + jméno "
-            "(i u jména vedoucího uloženého u oponentur). Ukáže náhled."
+            tr("Rozparsuje jména stažená ze STAG na tituly před/za + jméno "
+            "(i u jména vedoucího uloženého u oponentur). Ukáže náhled.")
         )
         btn_cleanup.clicked.connect(self._cleanup_titles)
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_new.clicked.connect(self._new)
         btn_edit.clicked.connect(self._edit)
         btn_delete.clicked.connect(self._delete)
@@ -1275,7 +1277,7 @@ class SupervisorsManageDialog(QDialog):
             return
         confirm = QMessageBox.question(
             self,
-            "Smazat vedoucího",
+            tr("Smazat vedoucího"),
             f'Opravdu smazat „{s.name}"? Oponentské posudky, které ho odkazují, '
             f"si jeho jméno + email zachovají (jsou kopií, ne FK).",
         )

@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
 from ..models import Review
 from ..models.enums import AttachmentKind
 from ..services import ThesisService, spellcheck
@@ -207,8 +208,8 @@ class ReviewEditorDialog(QDialog):
         # plus PDF/soubor s textem práce (pro nahlédnutí během psaní).
         quick = QHBoxLayout()
         text_path = self._attachment_path(AttachmentKind.THESIS_TEXT)
-        btn_text = QPushButton("📄 Otevřít text práce")
-        btn_text.setToolTip("Otevře nahraný text práce (PDF), je-li k dispozici.")
+        btn_text = QPushButton(tr("📄 Otevřít text práce"))
+        btn_text.setToolTip(tr("Otevře nahraný text práce (PDF), je-li k dispozici."))
         btn_text.setEnabled(text_path is not None and text_path.exists())
         if btn_text.isEnabled():
             btn_text.clicked.connect(lambda _c=False, p=text_path: open_path(p))
@@ -224,7 +225,7 @@ class ReviewEditorDialog(QDialog):
             "📕 Otevřít posudek oponenta" if other_is_opponent
             else "📘 Otevřít posudek vedoucího"
         )
-        btn_other.setToolTip("Otevře protější posudek (PDF/soubor), je-li k dispozici.")
+        btn_other.setToolTip(tr("Otevře protější posudek (PDF/soubor), je-li k dispozici."))
         btn_other.setEnabled(other_path is not None and other_path.exists())
         if btn_other.isEnabled():
             btn_other.clicked.connect(lambda _c=False, p=other_path: open_path(p))
@@ -243,7 +244,7 @@ class ReviewEditorDialog(QDialog):
         content_layout.setSpacing(12)
 
         # ── Splnění bodů zadání ───────────────────────────────────────
-        box_fulfill = QGroupBox("Splnění všech bodů zadání")
+        box_fulfill = QGroupBox(tr("Splnění všech bodů zadání"))
         form_f = QFormLayout(box_fulfill)
         self.cb_fulfilled = QComboBox()
         # Volby dle JAZYKA ŠABLONY — EN posudek nabízí jen anglické varianty,
@@ -263,15 +264,15 @@ class ReviewEditorDialog(QDialog):
         content_layout.addWidget(box_fulfill)
 
         # ── Kritéria ──────────────────────────────────────────────────
-        box_crit = QGroupBox("Kritéria hodnocení (skóre 0–5)")
+        box_crit = QGroupBox(tr("Kritéria hodnocení (skóre 0–5)"))
         crit_layout = QVBoxLayout(box_crit)
         crit_layout.setSpacing(2)
 
         # Header
         hdr_row = QHBoxLayout()
-        hdr_row.addWidget(QLabel("<b>Kritérium</b>"), stretch=1)
-        hdr_row.addWidget(QLabel("<b>Váha</b>"))
-        hdr_row.addWidget(QLabel("<b>Body</b>"))
+        hdr_row.addWidget(QLabel(tr("<b>Kritérium</b>")), stretch=1)
+        hdr_row.addWidget(QLabel(tr("<b>Váha</b>")))
+        hdr_row.addWidget(QLabel(tr("<b>Body</b>")))
         for w in box_crit.findChildren(QLabel):
             w.setTextFormat(Qt.TextFormat.RichText)
         crit_layout.addLayout(hdr_row)
@@ -315,7 +316,7 @@ class ReviewEditorDialog(QDialog):
 
         # ── Plagiátorství (jen supervisor) ────────────────────────────
         if review.role == "supervisor":
-            box_plag = QGroupBox("Výsledek kontroly plagiátorství (jen pro vedoucího)")
+            box_plag = QGroupBox(tr("Výsledek kontroly plagiátorství (jen pro vedoucího)"))
             form_p = QFormLayout(box_plag)
             # Pole zarovnaná doleva a roztažená na šířku dialogu (zejména
             # „Zdůvodnění" — víceřádkový text potřebuje celou šířku).
@@ -336,28 +337,28 @@ class ReviewEditorDialog(QDialog):
             idx = self.cb_plag_verdict.findData(review.plagiarism_verdict)
             if idx >= 0:
                 self.cb_plag_verdict.setCurrentIndex(idx)
-            form_p.addRow("Verdikt", self.cb_plag_verdict)
+            form_p.addRow(tr("Verdikt"), self.cb_plag_verdict)
 
             self.ed_plag_just = SpellCheckEdit(review.plagiarism_justification)
             self.ed_plag_just.setMaximumHeight(80)
             self.ed_plag_just.setPlaceholderText(
-                "Zdůvodnění (% shody, kontext, …)"
+                tr("Zdůvodnění (% shody, kontext, …)")
             )
-            form_p.addRow("Zdůvodnění", self.ed_plag_just)
+            form_p.addRow(tr("Zdůvodnění"), self.ed_plag_just)
             content_layout.addWidget(box_plag)
         else:
             self.cb_plag_verdict = None  # type: ignore
             self.ed_plag_just = None  # type: ignore
 
         # ── Celkové hodnocení ─────────────────────────────────────────
-        box_overall = QGroupBox("Celkové hodnocení, připomínky a dotazy")
+        box_overall = QGroupBox(tr("Celkové hodnocení, připomínky a dotazy"))
         v_overall = QVBoxLayout(box_overall)
         skel_row = QHBoxLayout()
         skel_row.addStretch()
-        btn_skeleton = QPushButton("🦴 Vložit kostru posudku")
+        btn_skeleton = QPushButton(tr("🦴 Vložit kostru posudku"))
         btn_skeleton.setToolTip(
-            "Vloží tematické nadpisy (kostru) pro slovní hodnocení podle role "
-            "a jazyka šablony. Když už něco píšeš, vloží se za kurzor."
+            tr("Vloží tematické nadpisy (kostru) pro slovní hodnocení podle role "
+            "a jazyka šablony. Když už něco píšeš, vloží se za kurzor.")
         )
         btn_skeleton.clicked.connect(self._insert_skeleton)
         skel_row.addWidget(btn_skeleton)
@@ -365,7 +366,7 @@ class ReviewEditorDialog(QDialog):
         self.ed_overall = SpellCheckEdit(review.overall_comment)
         self.ed_overall.setMinimumHeight(140)
         self.ed_overall.setPlaceholderText(
-            "Slovní zhodnocení práce, dotazy k obhajobě…"
+            tr("Slovní zhodnocení práce, dotazy k obhajobě…")
         )
         v_overall.addWidget(self.ed_overall)
         # Hláška, když kontrola pravopisu není k dispozici (chybí spylls/slovník).
@@ -381,45 +382,45 @@ class ReviewEditorDialog(QDialog):
             v_overall.addWidget(self._spell_hint)
             # Když je spylls, ale chybí/nejde slovník → nabídni stažení.
             if spellcheck.can_download():
-                self._spell_dl_btn = QPushButton("⬇ Stáhnout český slovník")
+                self._spell_dl_btn = QPushButton(tr("⬇ Stáhnout český slovník"))
                 self._spell_dl_btn.setToolTip(
-                    "Stáhne český hunspell slovník (LibreOffice) do "
-                    "~/.bpdpmanager/dictionaries/ a zapne kontrolu pravopisu."
+                    tr("Stáhne český hunspell slovník (LibreOffice) do "
+                    "~/.bpdpmanager/dictionaries/ a zapne kontrolu pravopisu.")
                 )
                 self._spell_dl_btn.clicked.connect(self._download_dictionary)
                 v_overall.addWidget(self._spell_dl_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         content_layout.addWidget(box_overall)
 
         # ── Místo, datum ──────────────────────────────────────────────
-        box_meta = QGroupBox("Podpis")
+        box_meta = QGroupBox(tr("Podpis"))
         form_m = QFormLayout(box_meta)
         self.ed_place_date = QLineEdit(review.place_date)
-        self.ed_place_date.setPlaceholderText("např. Zlín, 26. 5. 2026")
-        form_m.addRow("Místo, datum", self.ed_place_date)
+        self.ed_place_date.setPlaceholderText(tr("např. Zlín, 26. 5. 2026"))
+        form_m.addRow(tr("Místo, datum"), self.ed_place_date)
         content_layout.addWidget(box_meta)
 
         # ── Tlačítka ──────────────────────────────────────────────────
         btn_row = QHBoxLayout()
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_save_only = QPushButton("💾 Uložit (jen data)")
+        self.btn_save_only = QPushButton(tr("💾 Uložit (jen data)"))
         self.btn_save_only.setToolTip(
-            "Uloží strukturovaná data posudku. XLSX a PDF nevygeneruje — "
-            "stačí třeba pro rozpracovaný posudek, který chceš dokončit později."
+            tr("Uloží strukturovaná data posudku. XLSX a PDF nevygeneruje — "
+            "stačí třeba pro rozpracovaný posudek, který chceš dokončit později.")
         )
         self.btn_save_only.clicked.connect(self._save_only)
 
-        self.btn_save_generate = QPushButton("📝 Uložit & vyrobit XLSX + PDF")
+        self.btn_save_generate = QPushButton(tr("📝 Uložit & vyrobit XLSX + PDF"))
         bf = self.btn_save_generate.font()
         bf.setBold(True)
         self.btn_save_generate.setFont(bf)
         self.btn_save_generate.setDefault(True)
         self.btn_save_generate.clicked.connect(self._save_and_generate)
         if not service.libreoffice_available:
-            self.btn_save_generate.setText("📝 Uložit & vyrobit XLSX (PDF chybí soffice)")
+            self.btn_save_generate.setText(tr("📝 Uložit & vyrobit XLSX (PDF chybí soffice)"))
             self.btn_save_generate.setToolTip(
-                "LibreOffice není v PATH — PDF se nevygeneruje. "
-                "Nainstaluj přes brew install --cask libreoffice nebo z libreoffice.org."
+                tr("LibreOffice není v PATH — PDF se nevygeneruje. "
+                "Nainstaluj přes brew install --cask libreoffice nebo z libreoffice.org.")
             )
 
         btn_row.addStretch()
@@ -452,9 +453,9 @@ class ReviewEditorDialog(QDialog):
         if self._spell_dl_btn is None:
             return
         self._spell_dl_btn.setEnabled(False)
-        self._spell_dl_btn.setText("Stahuji slovník…")
+        self._spell_dl_btn.setText(tr("Stahuji slovník…"))
         if self._spell_hint is not None:
-            self._spell_hint.setText("ⓘ Stahuji český slovník z LibreOffice…")
+            self._spell_hint.setText(tr("ⓘ Stahuji český slovník z LibreOffice…"))
         self._dict_worker = _DictDownloadWorker()
         self._dict_worker.done.connect(self._on_dict_downloaded)
         self._dict_worker.start()
@@ -462,7 +463,7 @@ class ReviewEditorDialog(QDialog):
     def _on_dict_downloaded(self, ok: bool, error: str) -> None:
         if ok and spellcheck.is_available():
             if self._spell_hint is not None:
-                self._spell_hint.setText("✓ Slovník stažen — kontrola pravopisu zapnuta.")
+                self._spell_hint.setText(tr("✓ Slovník stažen — kontrola pravopisu zapnuta."))
             if self._spell_dl_btn is not None:
                 self._spell_dl_btn.hide()
             # Zapni podtržení živě v obou editorech.
@@ -472,13 +473,13 @@ class ReviewEditorDialog(QDialog):
             return
         if self._spell_dl_btn is not None:
             self._spell_dl_btn.setEnabled(True)
-            self._spell_dl_btn.setText("⬇ Stáhnout český slovník")
+            self._spell_dl_btn.setText(tr("⬇ Stáhnout český slovník"))
         if self._spell_hint is not None:
             self._spell_hint.setText(
                 "ⓘ Kontrola pravopisu je vypnutá — " + spellcheck.unavailable_reason()
             )
         QMessageBox.warning(
-            self, "Stažení slovníku",
+            self, tr("Stažení slovníku"),
             "Slovník se nepodařilo stáhnout:\n" + (error or "neznámá chyba"),
         )
 
@@ -562,14 +563,14 @@ class ReviewEditorDialog(QDialog):
                 self.thesis_id, self.review, opposing=self.opposing
             )
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Uložení selhalo", str(exc))
+            QMessageBox.critical(self, tr("Uložení selhalo"), str(exc))
             return
         self.saved = True
         QMessageBox.information(
             self,
-            "Uloženo",
-            "✓ Data posudku uložena. XLSX/PDF se nevygenerovaly — "
-            "můžeš dokončit kdykoli později (z detailu práce).",
+            tr("Uloženo"),
+            tr("✓ Data posudku uložena. XLSX/PDF se nevygenerovaly — "
+            "můžeš dokončit kdykoli později (z detailu práce)."),
         )
         self.accept()
 
@@ -580,7 +581,7 @@ class ReviewEditorDialog(QDialog):
                 self.thesis_id, self.review, opposing=self.opposing
             )
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Uložení dat selhalo", str(exc))
+            QMessageBox.critical(self, tr("Uložení dat selhalo"), str(exc))
             return
 
         # Generování XLSX + PDF běží ve vlákně, ať progress nezamrzne (PDF
@@ -589,7 +590,7 @@ class ReviewEditorDialog(QDialog):
             "Generuji posudek (vyplňuji XLSX a převádím do PDF)…",
             "", 0, 0, self,
         )
-        progress.setWindowTitle("Generování posudku")
+        progress.setWindowTitle(tr("Generování posudku"))
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setCancelButton(None)  # krátká operace — bez rušení
@@ -614,7 +615,7 @@ class ReviewEditorDialog(QDialog):
         if result["error"] is not None:
             QMessageBox.critical(
                 self,
-                "Generování selhalo",
+                tr("Generování selhalo"),
                 f"Data byla uložena, ale generování XLSX/PDF skončilo chybou:\n"
                 f"{result['error']}",
             )
@@ -658,7 +659,7 @@ class ReviewEditorDialog(QDialog):
         )
 
         dlg = QDialog(self.parent() or self)
-        dlg.setWindowTitle("Posudek vyrobený")
+        dlg.setWindowTitle(tr("Posudek vyrobený"))
         dlg.setMinimumWidth(460)
         lay = QVBoxLayout(dlg)
         lbl = QLabel(body)
@@ -667,18 +668,18 @@ class ReviewEditorDialog(QDialog):
         lay.addWidget(lbl)
 
         btn_row = QHBoxLayout()
-        btn_xlsx = QPushButton("📄 Otevřít XLSX")
+        btn_xlsx = QPushButton(tr("📄 Otevřít XLSX"))
         btn_xlsx.clicked.connect(lambda: open_path(xlsx))
         btn_row.addWidget(btn_xlsx)
         if pdf is not None:
-            btn_pdf = QPushButton("📕 Otevřít PDF")
+            btn_pdf = QPushButton(tr("📕 Otevřít PDF"))
             btn_pdf.clicked.connect(lambda: open_path(pdf))
             btn_row.addWidget(btn_pdf)
-        btn_reveal = QPushButton("📂 Ukázat ve Finderu")
+        btn_reveal = QPushButton(tr("📂 Ukázat ve Finderu"))
         btn_reveal.clicked.connect(lambda: reveal_in_file_manager(pdf or xlsx))
         btn_row.addWidget(btn_reveal)
         btn_row.addStretch()
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.setDefault(True)
         btn_close.clicked.connect(dlg.accept)
         btn_row.addWidget(btn_close)

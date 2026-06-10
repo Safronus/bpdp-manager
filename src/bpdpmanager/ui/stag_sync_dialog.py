@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models.enums import AttachmentKind, ThesisStatus
 from ..services import BackupManager, stag_api
 from ..services.stag_csv_importer import load_stag_csv_bytes
@@ -156,10 +157,10 @@ class StagSyncDialog(QDialog):
             title = QLabel(f"🔄 Aktualizace {n} {what} ze STAG"
                            if subset is not None else "🔄 Aktualizace práce ze STAG")
             intro = QLabel(
-                "Porovná vybrané práce se STAG a nabídne <b>změnu stavu</b> a "
+                tr("Porovná vybrané práce se STAG a nabídne <b>změnu stavu</b> a "
                 "<b>dohrání chybějících souborů</b> (např. nový posudek nebo "
                 "odevzdaná práce). Zaškrtni, co aplikovat. <b>Když je vše "
-                "aktuální, nic se nenabídne.</b>"
+                "aktuální, nic se nenabídne.</b>")
             )
         else:
             what = "vedené práce v řešení" if led else "oponentury (aktuální rok)"
@@ -181,7 +182,7 @@ class StagSyncDialog(QDialog):
         intro.setStyleSheet("color:#888;")
         outer.addWidget(intro)
 
-        self.lbl_status = QLabel("⏳ Zjišťuji stav prací ve STAG…")
+        self.lbl_status = QLabel(tr("⏳ Zjišťuji stav prací ve STAG…"))
         self.lbl_status.setWordWrap(True)
         outer.addWidget(self.lbl_status)
 
@@ -191,18 +192,18 @@ class StagSyncDialog(QDialog):
         outer.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
-        btn_new = QPushButton("🆕 Najít nové práce…")
+        btn_new = QPushButton(tr("🆕 Najít nové práce…"))
         btn_new.setToolTip(
-            "Otevře hromadné vyhledání tvých prací ve STAG podle jména "
+            tr("Otevře hromadné vyhledání tvých prací ve STAG podle jména "
             "(napříč roky) — odtud stáhneš a naimportuješ NOVÉ práce, které "
-            "ještě nemáš v databázi (např. pro nový akademický rok)."
+            "ještě nemáš v databázi (např. pro nový akademický rok).")
         )
         btn_new.clicked.connect(self._find_new_works)
         if self._single is not None or self._subset is not None:
             btn_new.setVisible(False)  # u vybraných prací nedává smysl
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(self.reject)
-        self.btn_apply = QPushButton("✓ Aktualizovat vybrané")
+        self.btn_apply = QPushButton(tr("✓ Aktualizovat vybrané"))
         self.btn_apply.setEnabled(False)
         af = self.btn_apply.font()
         af.setBold(True)
@@ -299,17 +300,17 @@ class StagSyncDialog(QDialog):
         targets = self._collect_targets()
         if not targets:
             self.lbl_status.setText(
-                "Nemáš žádné práce k aktualizaci "
+                tr("Nemáš žádné práce k aktualizaci "
                 "(vedené v řešení / oponentury aktuálního roku).\n"
                 "Chceš stáhnout NOVÉ práce ze STAG? Použij dole "
-                "🆕 Najít nové práce…"
+                "🆕 Najít nové práce…")
             )
             return
 
         progress = QProgressDialog(
             "Zjišťuji stav prací ve STAG…", "Přerušit", 0, len(targets), self
         )
-        progress.setWindowTitle("STAG — aktualizace")
+        progress.setWindowTitle(tr("STAG — aktualizace"))
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setValue(0)
@@ -637,13 +638,13 @@ class StagSyncDialog(QDialog):
 
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Information)
-        box.setWindowTitle("Aktualizace dokončena")
+        box.setWindowTitle(tr("Aktualizace dokončena"))
         box.setText("\n".join(parts))
         if backup_name and data_dir is not None:
-            btn_revert = box.addButton("↩ Vrátit vše", QMessageBox.ButtonRole.DestructiveRole)
+            btn_revert = box.addButton(tr("↩ Vrátit vše"), QMessageBox.ButtonRole.DestructiveRole)
         else:
             btn_revert = None
-        box.addButton("Zavřít", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("Zavřít"), QMessageBox.ButtonRole.AcceptRole)
         box.exec()
 
         if btn_revert is not None and box.clickedButton() == btn_revert:
@@ -654,8 +655,8 @@ class StagSyncDialog(QDialog):
                 self.service.reload()
                 self.changed = True  # data se změnila (zpět na původní)
                 QMessageBox.information(
-                    self, "Vráceno", "Změny byly vráceny ze zálohy."
+                    self, tr("Vráceno"), tr("Změny byly vráceny ze zálohy.")
                 )
             except Exception as exc:  # noqa: BLE001
-                QMessageBox.critical(self, "Vrácení selhalo", str(exc))
+                QMessageBox.critical(self, tr("Vrácení selhalo"), str(exc))
         self.accept()

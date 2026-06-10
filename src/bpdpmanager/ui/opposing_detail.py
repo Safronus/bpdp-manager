@@ -76,7 +76,7 @@ class OpposingDetail(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
 
         self.placeholder = QLabel(
-            "Vyber posudek ze seznamu vlevo, nebo přidej nový."
+            tr("Vyber posudek ze seznamu vlevo, nebo přidej nový.")
         )
         self.placeholder.setStyleSheet("color: #888; padding: 24px;")
         outer.addWidget(self.placeholder)
@@ -96,8 +96,8 @@ class OpposingDetail(QWidget):
         header.addWidget(self.lbl_save_state)
         self.btn_generate_review = QPushButton(tr("📝 Napsat posudek…"))
         self.btn_generate_review.setToolTip(
-            "Vyplnit oponentský posudek z šablony (kritéria, body, známka) "
-            "a připojit jako přílohu."
+            tr("Vyplnit oponentský posudek z šablony (kritéria, body, známka) "
+            "a připojit jako přílohu.")
         )
         self.btn_generate_review.clicked.connect(self._generate_review)
         header.addWidget(self.btn_generate_review)
@@ -170,8 +170,8 @@ class OpposingDetail(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
 
         layout.addWidget(QLabel(
-            "Dokumenty k oponentskému posudku (plný text práce, posudek vedoucího, "
-            "tvůj posudek oponenta, příp. další):"
+            tr("Dokumenty k oponentskému posudku (plný text práce, posudek vedoucího, "
+            "tvůj posudek oponenta, příp. další):")
         ))
 
         # Stejný agregovaný widget jako u vedených prací (strom podle typu,
@@ -340,7 +340,7 @@ class OpposingDetail(QWidget):
             return
         confirm = QMessageBox.question(
             self,
-            "Smazat posudek",
+            tr("Smazat posudek"),
             f"Opravdu smazat oponentský posudek „{self._compose_header_label()}“?",
         )
         if confirm == QMessageBox.StandardButton.Yes:

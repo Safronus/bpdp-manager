@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Profile
 from ..services import ProfileError, ProfileManager
 
@@ -40,7 +41,7 @@ class NewProfileDialog(QDialog):
         self.include_documents: bool = True
         self.include_harmonograms: bool = True
 
-        self.setWindowTitle("Nový profil")
+        self.setWindowTitle(tr("Nový profil"))
         self.setMinimumWidth(560)
 
         outer = QVBoxLayout(self)
@@ -53,48 +54,48 @@ class NewProfileDialog(QDialog):
         form.setVerticalSpacing(8)
 
         self.ed_name = QLineEdit()
-        self.ed_name.setPlaceholderText("např. „FAI UTB — osobní“")
-        form.addRow("Název", self.ed_name)
+        self.ed_name.setPlaceholderText(tr("např. „FAI UTB — osobní“"))
+        form.addRow(tr("Název"), self.ed_name)
 
         # Jméno uživatele profilu (pro STAG import auto-detect role)
         self.ed_user_name = QLineEdit()
         self.ed_user_name.setPlaceholderText(
-            "např. Petr Žáček — slouží k auto-detekci role při STAG importu"
+            tr("např. Petr Žáček — slouží k auto-detekci role při STAG importu")
         )
-        form.addRow("Tvoje jméno", self.ed_user_name)
+        form.addRow(tr("Tvoje jméno"), self.ed_user_name)
 
         # Cesta + Procházet
         self.ed_path = QLineEdit()
-        self.ed_path.setPlaceholderText("vyber složku, kam se uloží db.json a další")
-        btn_browse = QPushButton("Procházet…")
+        self.ed_path.setPlaceholderText(tr("vyber složku, kam se uloží db.json a další"))
+        btn_browse = QPushButton(tr("Procházet…"))
         btn_browse.clicked.connect(self._browse)
         path_row = QHBoxLayout()
         path_row.addWidget(self.ed_path, stretch=1)
         path_row.addWidget(btn_browse)
-        form.addRow("Cesta ke složce", path_row)
+        form.addRow(tr("Cesta ke složce"), path_row)
 
         # Import zdroj — combobox
         self.cb_source = QComboBox()
-        self.cb_source.addItem("(žádný — začít s prázdnou databází)", None)
+        self.cb_source.addItem(tr("(žádný — začít s prázdnou databází)"), None)
         for p in self.pm.all_profiles():
             self.cb_source.addItem(f"📦 {p.name}", p.id)
-        form.addRow("Importovat data z", self.cb_source)
+        form.addRow(tr("Importovat data z"), self.cb_source)
 
         outer.addLayout(form)
 
         # Volby importu (zobrazí se jen pokud je vybrán zdroj)
         self.opts_label = QLabel(
-            "Z vybraného profilu se zkopíruje db.json. Volitelně přibalit i:"
+            tr("Z vybraného profilu se zkopíruje db.json. Volitelně přibalit i:")
         )
         self.opts_label.setWordWrap(True)
         self.opts_label.setStyleSheet("color: #888; padding-left: 4px;")
         outer.addWidget(self.opts_label)
 
-        self.chk_docs = QCheckBox("📎 Dokumenty (posudky, text práce, prezentace…)")
+        self.chk_docs = QCheckBox(tr("📎 Dokumenty (posudky, text práce, prezentace…)"))
         self.chk_docs.setChecked(True)
         outer.addWidget(self.chk_docs)
 
-        self.chk_harm = QCheckBox("📅 Naimportované PDF harmonogramy")
+        self.chk_harm = QCheckBox(tr("📅 Naimportované PDF harmonogramy"))
         self.chk_harm.setChecked(True)
         outer.addWidget(self.chk_harm)
 
@@ -106,7 +107,7 @@ class NewProfileDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Vytvořit profil")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("Vytvořit profil"))
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         outer.addWidget(buttons)
@@ -131,19 +132,19 @@ class NewProfileDialog(QDialog):
     def _on_accept(self) -> None:
         name = self.ed_name.text().strip()
         if not name:
-            QMessageBox.warning(self, "Chybí název", "Zadej název profilu.")
+            QMessageBox.warning(self, tr("Chybí název"), tr("Zadej název profilu."))
             return
 
         path_str = self.ed_path.text().strip()
         if not path_str:
-            QMessageBox.warning(self, "Chybí cesta", "Vyber složku pro data profilu.")
+            QMessageBox.warning(self, tr("Chybí cesta"), tr("Vyber složku pro data profilu."))
             return
 
         data_dir = Path(path_str).expanduser()
         try:
             profile = self.pm.create(name=name, data_dir=data_dir)
         except ProfileError as exc:
-            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
+            QMessageBox.critical(self, tr("Vytvoření selhalo"), str(exc))
             return
 
         # Propíše Tvoje jméno (volitelné — používá se v STAG importu)
@@ -168,7 +169,7 @@ class NewProfileDialog(QDialog):
                 # Profile byl vytvořen, ale import selhal — necháme ho a oznámíme.
                 QMessageBox.warning(
                     self,
-                    "Import nedokončen",
+                    tr("Import nedokončen"),
                     f"Profil byl vytvořen, ale kopírování dat selhalo:\n{exc}",
                 )
                 self.created = profile
@@ -177,7 +178,7 @@ class NewProfileDialog(QDialog):
                 return
             QMessageBox.information(
                 self,
-                "Hotovo",
+                tr("Hotovo"),
                 f"Profil „{name}“ vytvořen a data zkopírována.\n\n"
                 f"db.json: {stats['db']}\n"
                 f"dokumenty (složek): {stats['documents']}\n"

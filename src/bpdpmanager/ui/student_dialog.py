@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Student
 from ..models.student import derive_form_from_obor
 from ..services import ThesisService
@@ -61,20 +62,20 @@ class StudentDialog(QDialog):
         self.cb_obor.editTextChanged.connect(self._update_form_label)
 
         self.ed_university_id = QLineEdit(self.student.university_id or "")
-        self.ed_university_id.setPlaceholderText("např. A24390")
+        self.ed_university_id.setPlaceholderText(tr("např. A24390"))
         self.ed_email = QLineEdit(self.student.email or "")
         self.ed_phone = QLineEdit(self.student.phone or "")
         self.ed_note = QPlainTextEdit(self.student.note or "")
         self.ed_note.setMaximumHeight(80)
 
-        form.addRow("Jméno", self.ed_first)
-        form.addRow("Příjmení", self.ed_last)
+        form.addRow(tr("Jméno"), self.ed_first)
+        form.addRow(tr("Příjmení"), self.ed_last)
         form.addRow("Obor", self.cb_obor)
         form.addRow("Forma studia", self.lbl_form_derived)
-        form.addRow("Osobní číslo (UTB)", self.ed_university_id)
+        form.addRow(tr("Osobní číslo (UTB)"), self.ed_university_id)
         form.addRow("Email", self.ed_email)
-        form.addRow("Telefon", self.ed_phone)
-        form.addRow("Poznámka", self.ed_note)
+        form.addRow(tr("Telefon"), self.ed_phone)
+        form.addRow(tr("Poznámka"), self.ed_note)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -92,10 +93,10 @@ class StudentDialog(QDialog):
         form = derive_form_from_obor(text)
         if form is None:
             if text.strip():
-                self.lbl_form_derived.setText("(přípona -P/-K v oboru nenalezena)")
+                self.lbl_form_derived.setText(tr("(přípona -P/-K v oboru nenalezena)"))
                 self.lbl_form_derived.setStyleSheet("color: #c62828; font-size: 11px;")
             else:
-                self.lbl_form_derived.setText("(odvodí se z přípony oboru: -P / -K)")
+                self.lbl_form_derived.setText(tr("(odvodí se z přípony oboru: -P / -K)"))
                 self.lbl_form_derived.setStyleSheet("color: #888; font-size: 11px;")
         else:
             self.lbl_form_derived.setText(f"✓ {form.label}")

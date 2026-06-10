@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import SmtpConfig
 from ..services import ProfileManager, email_sender
 
@@ -40,7 +41,7 @@ class EmailSettingsDialog(QDialog):
     def __init__(self, profile_manager: ProfileManager, parent=None) -> None:
         super().__init__(parent)
         self.profile_manager = profile_manager
-        self.setWindowTitle("Nastavení e-mailu (SMTP)")
+        self.setWindowTitle(tr("Nastavení e-mailu (SMTP)"))
         self.setMinimumWidth(560)
 
         profile = profile_manager.active
@@ -50,15 +51,15 @@ class EmailSettingsDialog(QDialog):
         outer.setContentsMargins(16, 16, 16, 16)
         outer.setSpacing(10)
 
-        title = QLabel("✉ Nastavení e-mailu (SMTP)")
+        title = QLabel(tr("✉ Nastavení e-mailu (SMTP)"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
         intro = QLabel(
-            "E-mail a odchozí server pro odesílání posudků sekretářkám. "
+            tr("E-mail a odchozí server pro odesílání posudků sekretářkám. "
             "Výchozí hodnoty jsou pro <b>UTB Office365</b> "
             "(<a href='https://www.utb.cz/cvt/office365-thunderbird-doc'>nastavení CVT UTB</a>). "
-            "<b>Heslo se nikde neukládá</b> — zadáš ho při každém odeslání i testu."
+            "<b>Heslo se nikde neukládá</b> — zadáš ho při každém odeslání i testu.")
         )
         intro.setTextFormat(Qt.TextFormat.RichText)
         intro.setOpenExternalLinks(True)
@@ -69,8 +70,8 @@ class EmailSettingsDialog(QDialog):
         form = QFormLayout()
 
         self.ed_email = QLineEdit(profile.user_email if profile else "")
-        self.ed_email.setPlaceholderText("např. prijmeni@utb.cz")
-        form.addRow("Tvůj e-mail (odesílatel)", self.ed_email)
+        self.ed_email.setPlaceholderText(tr("např. prijmeni@utb.cz"))
+        form.addRow(tr("Tvůj e-mail (odesílatel)"), self.ed_email)
 
         self.ed_host = QLineEdit(smtp.host)
         self.ed_host.setPlaceholderText("outlook.office365.com")
@@ -88,19 +89,19 @@ class EmailSettingsDialog(QDialog):
         if idx >= 0:
             self.cb_security.setCurrentIndex(idx)
         self.cb_security.currentIndexChanged.connect(self._on_security_changed)
-        form.addRow("Zabezpečení", self.cb_security)
+        form.addRow(tr("Zabezpečení"), self.cb_security)
 
         self.ed_username = QLineEdit(smtp.username)
-        self.ed_username.setPlaceholderText("(prázdné = stejné jako e-mail)")
-        form.addRow("Přihlašovací jméno", self.ed_username)
+        self.ed_username.setPlaceholderText(tr("(prázdné = stejné jako e-mail)"))
+        form.addRow(tr("Přihlašovací jméno"), self.ed_username)
 
         outer.addLayout(form)
 
         # Test spojení
         test_row = QHBoxLayout()
-        self.btn_test = QPushButton("🔌 Test spojení")
+        self.btn_test = QPushButton(tr("🔌 Test spojení"))
         self.btn_test.setToolTip(
-            "Připojí se k serveru a přihlásí (vyzve heslo) — bez odeslání e-mailu."
+            tr("Připojí se k serveru a přihlásí (vyzve heslo) — bez odeslání e-mailu.")
         )
         self.btn_test.clicked.connect(self._test_connection)
         self.lbl_test = QLabel("")
@@ -111,9 +112,9 @@ class EmailSettingsDialog(QDialog):
 
         # Tlačítka
         row = QHBoxLayout()
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(self.reject)
-        btn_save = QPushButton("💾 Uložit")
+        btn_save = QPushButton(tr("💾 Uložit"))
         btn_save.setDefault(True)
         f = btn_save.font()
         f.setBold(True)
@@ -146,8 +147,8 @@ class EmailSettingsDialog(QDialog):
         email, smtp = self._current_config()
         if not email and not smtp.username:
             QMessageBox.warning(
-                self, "Chybí e-mail",
-                "Zadej e-mail (nebo přihlašovací jméno) před testem spojení.",
+                self, tr("Chybí e-mail"),
+                tr("Zadej e-mail (nebo přihlašovací jméno) před testem spojení."),
             )
             return
         login_name = smtp.username or email
@@ -159,36 +160,36 @@ class EmailSettingsDialog(QDialog):
         )
         if not ok:
             return
-        self.lbl_test.setText("⏳ Testuji spojení…")
+        self.lbl_test.setText(tr("⏳ Testuji spojení…"))
         self.btn_test.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
         try:
             email_sender.test_connection(smtp, email, password)
         except email_sender.EmailError as exc:
-            self.lbl_test.setText("❌ Spojení selhalo.")
-            QMessageBox.warning(self, "Test spojení", str(exc))
+            self.lbl_test.setText(tr("❌ Spojení selhalo."))
+            QMessageBox.warning(self, tr("Test spojení"), str(exc))
             return
         except Exception as exc:  # noqa: BLE001
-            self.lbl_test.setText("❌ Neočekávaná chyba.")
-            QMessageBox.critical(self, "Test spojení", f"Neočekávaná chyba:\n{exc}")
+            self.lbl_test.setText(tr("❌ Neočekávaná chyba."))
+            QMessageBox.critical(self, tr("Test spojení"), f"Neočekávaná chyba:\n{exc}")
             return
         finally:
             QApplication.restoreOverrideCursor()
             self.btn_test.setEnabled(True)
         self.lbl_test.setStyleSheet("color:#2e7d32;")
-        self.lbl_test.setText("✓ Spojení i přihlášení v pořádku.")
+        self.lbl_test.setText(tr("✓ Spojení i přihlášení v pořádku."))
 
     def _save(self) -> None:
         profile = self.profile_manager.active
         if profile is None:
-            QMessageBox.warning(self, "Profil", "Není aktivní žádný profil.")
+            QMessageBox.warning(self, tr("Profil"), tr("Není aktivní žádný profil."))
             return
         email, smtp = self._current_config()
         try:
             self.profile_manager.set_user_email(profile.id, email)
             self.profile_manager.set_smtp_config(profile.id, smtp)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Uložení", f"Nepodařilo se uložit:\n{exc}")
+            QMessageBox.critical(self, tr("Uložení"), f"Nepodařilo se uložit:\n{exc}")
             return
         self.accept()

@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..services import ThesisService
 
 
@@ -55,15 +56,15 @@ class _RollbackDialogBase(QDialog):
         outer.setContentsMargins(16, 16, 16, 16)
         outer.setSpacing(10)
 
-        header = QLabel("🗑 Roll-back — kompletní smazání")
+        header = QLabel(tr("🗑 Roll-back — kompletní smazání"))
         header.setStyleSheet("font-size:15px;font-weight:bold;color:#c62828;")
         outer.addWidget(header)
 
         warning = QLabel(
-            "Tato akce <b>nevratně</b> smaže záznam práce z databáze a <b>všechny "
+            tr("Tato akce <b>nevratně</b> smaže záznam práce z databáze a <b>všechny "
             "související soubory</b> ze složky <code>documents/</code>. "
             "Student / oponent / vedoucí v registru zůstanou (mohou být provázáni "
-            "s jinými pracemi)."
+            "s jinými pracemi).")
         )
         warning.setWordWrap(True)
         warning.setTextFormat(Qt.TextFormat.RichText)
@@ -91,10 +92,10 @@ class _RollbackDialogBase(QDialog):
         """Tlačítka v preview fázi: Zrušit + Smazat kompletně."""
         self._clear_buttons()
         self.btn_row.addStretch()
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(self.reject)
         self.btn_row.addWidget(btn_cancel)
-        btn_delete = QPushButton("🗑 Smazat kompletně")
+        btn_delete = QPushButton(tr("🗑 Smazat kompletně"))
         btn_delete.setStyleSheet(
             "QPushButton { background:#c62828; color:white; padding:6px 14px; "
             "border-radius:3px; font-weight:bold; }"
@@ -107,7 +108,7 @@ class _RollbackDialogBase(QDialog):
         """Tlačítka v sumární fázi (po úspěšném mazání): Zavřít."""
         self._clear_buttons()
         self.btn_row.addStretch()
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.setDefault(True)
         btn_close.clicked.connect(self.accept)
         self.btn_row.addWidget(btn_close)
@@ -116,9 +117,9 @@ class _RollbackDialogBase(QDialog):
         # Druhotné potvrzení — yes/no message box jako last-chance
         confirm = QMessageBox.question(
             self,
-            "Potvrď smazání",
-            "Opravdu chceš <b>nenávratně</b> smazat tuto práci včetně všech "
-            "souborů?",
+            tr("Potvrď smazání"),
+            tr("Opravdu chceš <b>nenávratně</b> smazat tuto práci včetně všech "
+            "souborů?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -136,7 +137,7 @@ class RollbackThesisDialog(_RollbackDialogBase):
     def __init__(self, service: ThesisService, thesis_id: str, parent=None) -> None:
         super().__init__(service, parent)
         self.thesis_id = thesis_id
-        self.setWindowTitle("Roll-back vedené práce")
+        self.setWindowTitle(tr("Roll-back vedené práce"))
         self._show_preview()
         self._setup_preview_buttons()
 
@@ -240,7 +241,7 @@ class RollbackThesisDialog(_RollbackDialogBase):
             stats = self.service.rollback_thesis(self.thesis_id)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Mazání selhalo", f"Roll-back skončil chybou:\n{exc}"
+                self, tr("Mazání selhalo"), f"Roll-back skončil chybou:\n{exc}"
             )
             return
         self.executed = True
@@ -274,7 +275,7 @@ class RollbackOpposingDialog(_RollbackDialogBase):
     def __init__(self, service: ThesisService, op_id: str, parent=None) -> None:
         super().__init__(service, parent)
         self.op_id = op_id
-        self.setWindowTitle("Roll-back oponentského posudku")
+        self.setWindowTitle(tr("Roll-back oponentského posudku"))
         self._show_preview()
         self._setup_preview_buttons()
 
@@ -358,7 +359,7 @@ class RollbackOpposingDialog(_RollbackDialogBase):
             stats = self.service.rollback_opposing_thesis(self.op_id)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Mazání selhalo", f"Roll-back skončil chybou:\n{exc}"
+                self, tr("Mazání selhalo"), f"Roll-back skončil chybou:\n{exc}"
             )
             return
         self.executed = True

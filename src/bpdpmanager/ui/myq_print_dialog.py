@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
 from ..models.enums import STATUSES_CURRENT
 from ..services import ThesisService, system_print
 
@@ -149,22 +150,22 @@ class MyQPrintDialog(QDialog):
         self._worker: _PrintWorker | _SystemPrintWorker | None = None
         self._is_system_print = False
         self._jobs: list[tuple[str, Path]] = []
-        self.setWindowTitle("Tisk posudků")
+        self.setWindowTitle(tr("Tisk posudků"))
         self.setMinimumSize(640, 600)
 
         outer = QVBoxLayout(self)
 
         intro = QLabel(
-            "Vyber posudky k tisku a cíl: <b>MyQ</b> (tisková fronta univerzity) "
+            tr("Vyber posudky k tisku a cíl: <b>MyQ</b> (tisková fronta univerzity) "
             "nebo <b>systémová tiskárna</b>. Tisknou se <b>oboustranně</b>. "
-            "Předzaškrtnuté jsou posudky, které ještě nebyly vytištěné."
+            "Předzaškrtnuté jsou posudky, které ještě nebyly vytištěné.")
         )
         intro.setWordWrap(True)
         outer.addWidget(intro)
 
         # ── strom výběru prací ────────────────────────────────────────────
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Práce", "Posudek"])
+        self.tree.setHeaderLabels([tr("Práce"), tr("Posudek")])
         self.tree.setRootIsDecorated(True)
         hdr = self.tree.header()
         hdr.setStretchLastSection(True)
@@ -174,8 +175,8 @@ class MyQPrintDialog(QDialog):
         self._populate_tree()
 
         sel_row = QHBoxLayout()
-        btn_all = QPushButton("Vybrat vše")
-        btn_none = QPushButton("Zrušit vše")
+        btn_all = QPushButton(tr("Vybrat vše"))
+        btn_none = QPushButton(tr("Zrušit vše"))
         btn_all.clicked.connect(lambda: self._set_all_checked(True))
         btn_none.clicked.connect(lambda: self._set_all_checked(False))
         sel_row.addWidget(btn_all)
@@ -185,9 +186,9 @@ class MyQPrintDialog(QDialog):
 
         # ── cíl tisku: MyQ / systémová tiskárna ───────────────────────────
         dest_row = QHBoxLayout()
-        dest_row.addWidget(QLabel("Tisknout přes:"))
+        dest_row.addWidget(QLabel(tr("Tisknout přes:")))
         self.rb_myq = QRadioButton("MyQ (myq.utb.cz)")
-        self.rb_system = QRadioButton("Systémová tiskárna")
+        self.rb_system = QRadioButton(tr("Systémová tiskárna"))
         self.rb_myq.setChecked(True)
         self._dest_group = QButtonGroup(self)
         self._dest_group.addButton(self.rb_myq)
@@ -202,9 +203,9 @@ class MyQPrintDialog(QDialog):
         myq_v = QVBoxLayout(self._myq_box)
         myq_v.setContentsMargins(0, 0, 0, 0)
         cred = QHBoxLayout()
-        cred.addWidget(QLabel("Jméno:"))
+        cred.addWidget(QLabel(tr("Jméno:")))
         self.ed_user = QLineEdit()
-        self.ed_user.setPlaceholderText("uživatelské jméno MyQ")
+        self.ed_user.setPlaceholderText(tr("uživatelské jméno MyQ"))
         cred.addWidget(self.ed_user, stretch=1)
         cred.addWidget(QLabel("PIN:"))
         self.ed_pin = QLineEdit()
@@ -216,12 +217,12 @@ class MyQPrintDialog(QDialog):
         # Chybějící mezičlánek řetězce MyQ je přibalený (resources/certs), takže
         # ověření obvykle projde. Kdyby přesto selhalo, tisk se automaticky připojí
         # i bez ověření (interní důvěryhodný host).
-        self.cb_verify = QCheckBox("Ověřit TLS certifikát serveru")
+        self.cb_verify = QCheckBox(tr("Ověřit TLS certifikát serveru"))
         self.cb_verify.setChecked(True)
         self.cb_verify.setToolTip(
-            "Aplikace má přibalený chybějící mezilehlý certifikát (GÉANT/HARICA), "
+            tr("Aplikace má přibalený chybějící mezilehlý certifikát (GÉANT/HARICA), "
             "takže ověření MyQ obvykle projde. Když by přesto selhalo, tisk se "
-            "automaticky připojí i bez ověření (MyQ je interní univerzitní server)."
+            "automaticky připojí i bez ověření (MyQ je interní univerzitní server).")
         )
         myq_v.addWidget(self.cb_verify)
         outer.addWidget(self._myq_box)
@@ -230,20 +231,20 @@ class MyQPrintDialog(QDialog):
         self._sys_box = QWidget()
         sys_v = QHBoxLayout(self._sys_box)
         sys_v.setContentsMargins(0, 0, 0, 0)
-        sys_v.addWidget(QLabel("Tiskárna:"))
+        sys_v.addWidget(QLabel(tr("Tiskárna:")))
         self.cmb_printer = QComboBox()
         for p in system_print.list_printers():
             label = p.label + ("  (výchozí)" if p.is_default else "")
             self.cmb_printer.addItem(label, p.name)
         sys_v.addWidget(self.cmb_printer, stretch=1)
-        self.cb_duplex = QCheckBox("Oboustranně")
+        self.cb_duplex = QCheckBox(tr("Oboustranně"))
         self.cb_duplex.setChecked(True)
         sys_v.addWidget(self.cb_duplex)
         outer.addWidget(self._sys_box)
         if not system_print.system_print_available() or self.cmb_printer.count() == 0:
             self.rb_system.setEnabled(False)
             self.rb_system.setToolTip(
-                "Systémový tisk není dostupný (chybí CUPS/lp nebo tiskárna)."
+                tr("Systémový tisk není dostupný (chybí CUPS/lp nebo tiskárna).")
             )
 
         self.rb_myq.toggled.connect(self._update_dest)
@@ -260,7 +261,7 @@ class MyQPrintDialog(QDialog):
         # ── tlačítka ──────────────────────────────────────────────────────
         self.buttons = QDialogButtonBox()
         self.btn_send = self.buttons.addButton(
-            "🖨 Odeslat na tisk", QDialogButtonBox.ButtonRole.AcceptRole
+            tr("🖨 Odeslat na tisk"), QDialogButtonBox.ButtonRole.AcceptRole
         )
         self.btn_close = self.buttons.addButton(QDialogButtonBox.StandardButton.Close)
         self.btn_send.clicked.connect(self._on_send)
@@ -346,7 +347,7 @@ class MyQPrintDialog(QDialog):
         group = self._make_header(f"{title}  ({len(items)})", bold=True)
         self.tree.addTopLevelItem(group)
         if not items:
-            empty = QTreeWidgetItem(["(žádné)", ""])
+            empty = QTreeWidgetItem([tr("(žádné)"), ""])
             empty.setFlags(Qt.ItemFlag.ItemIsEnabled)
             empty.setForeground(0, Qt.GlobalColor.gray)
             group.addChild(empty)
@@ -354,8 +355,8 @@ class MyQPrintDialog(QDialog):
             return
         # Podskupiny podle typu posudku (vedoucího / oponenta).
         for kind, sub_title in (
-            ("supervised", "🎓 Posudky vedoucího"),
-            ("opposing", "🧐 Posudky oponenta"),
+            ("supervised", tr("🎓 Posudky vedoucího")),
+            ("opposing", tr("🧐 Posudky oponenta")),
         ):
             sub_items = [it for it in items if it["kind"] == kind]
             if not sub_items:
@@ -373,10 +374,10 @@ class MyQPrintDialog(QDialog):
         not_printed = [it for it in items if not it["printed"]]
         printed = [it for it in items if it["printed"]]
         # Nevytištěné — předzaškrtnuté (výchozí nabídka k tisku).
-        self._add_group("🖨 K tisku — nevytištěné", not_printed, checked=True)
+        self._add_group(tr("🖨 K tisku — nevytištěné"), not_printed, checked=True)
         # Již vytištěné — samostatný seznam, nezaškrtnuté (volitelný 2. tisk).
         self._add_group(
-            "✓ Již vytištěné (pro opětovný tisk)", printed, checked=False
+            tr("✓ Již vytištěné (pro opětovný tisk)"), printed, checked=False
         )
 
     def _iter_leaves(self):
@@ -430,7 +431,7 @@ class MyQPrintDialog(QDialog):
         selected = self._selected()
         if not selected:
             QMessageBox.information(
-                self, "Tisk posudků", "Nevybral jsi žádný posudek k tisku."
+                self, tr("Tisk posudků"), tr("Nevybral jsi žádný posudek k tisku.")
             )
             return
 
@@ -440,7 +441,7 @@ class MyQPrintDialog(QDialog):
             pin = self.ed_pin.text().strip()
             if not user or not pin:
                 QMessageBox.information(
-                    self, "Tisk posudků", "Zadej přihlašovací jméno i PIN do MyQ."
+                    self, tr("Tisk posudků"), tr("Zadej přihlašovací jméno i PIN do MyQ.")
                 )
                 return
             # Pre-potvrzení: odeslání do MyQ fronty.
@@ -459,7 +460,7 @@ class MyQPrintDialog(QDialog):
             printer = self.cmb_printer.currentData()
             if not printer:
                 QMessageBox.information(
-                    self, "Tisk posudků", "Vyber systémovou tiskárnu."
+                    self, tr("Tisk posudků"), tr("Vyber systémovou tiskárnu.")
                 )
                 return
             printer_label = self.cmb_printer.currentText()
@@ -488,7 +489,7 @@ class MyQPrintDialog(QDialog):
     def _confirm_print(self, count: int, target: str) -> bool:
         """Potvrzení před tiskem (kolik a kam)."""
         ans = QMessageBox.question(
-            self, "Potvrdit tisk",
+            self, tr("Potvrdit tisk"),
             f"Vytisknout {count} posudků {target}?",
         )
         return ans == QMessageBox.StandardButton.Yes
@@ -502,13 +503,13 @@ class MyQPrintDialog(QDialog):
         self._set_busy(False)
         self.progress.setVisible(False)
         self.status.setText("")
-        QMessageBox.warning(self, "Tisk posudků — chyba přihlášení", message)
+        QMessageBox.warning(self, tr("Tisk posudků — chyba přihlášení"), message)
 
     def _on_tls_fallback(self) -> None:
         """Ověření TLS selhalo → tisk pokračuje bez ověření (interní host)."""
         self.status.setText(
-            "⚠ Ověření TLS certifikátu MyQ selhalo — pokračuji bez ověření "
-            "(interní univerzitní server)."
+            tr("⚠ Ověření TLS certifikátu MyQ selhalo — pokračuji bez ověření "
+            "(interní univerzitní server).")
         )
 
     def _on_done(self, results: list) -> None:
@@ -531,12 +532,12 @@ class MyQPrintDialog(QDialog):
             lines += [f"   • {n} — {e}" for n, e in bad]
         short = "vytištěno" if sys_print else "odesláno"
         self.status.setText(f"Hotovo — {short} {len(ok_jobs)} z {len(results)}.")
-        QMessageBox.information(self, "Souhrn tisku", "\n".join(lines))
+        QMessageBox.information(self, tr("Souhrn tisku"), "\n".join(lines))
 
         # Po úspěšném tisku nabídni označení jako „vytištěno".
         if ok_jobs:
             ans = QMessageBox.question(
-                self, "Označit jako vytištěné?",
+                self, tr("Označit jako vytištěné?"),
                 f"Označit {len(ok_jobs)} posudků jako vytištěné?\n\n"
                 "(Posudek se přesune do „Již vytištěné“. Lze kdykoli vrátit "
                 "přes pravý klik na práci v seznamu.)",
@@ -567,8 +568,8 @@ class MyQPrintDialog(QDialog):
     def reject(self) -> None:  # zabraň zavření během odesílání
         if self._worker is not None and self._worker.isRunning():
             QMessageBox.information(
-                self, "Tisk posudků",
-                "Počkej, než doběhne odesílání na tisk.",
+                self, tr("Tisk posudků"),
+                tr("Počkej, než doběhne odesílání na tisk."),
             )
             return
         super().reject()

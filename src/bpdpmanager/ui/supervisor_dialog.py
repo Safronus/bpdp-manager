@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Supervisor
 from ..services import ThesisService
 
@@ -41,7 +42,7 @@ class SupervisorDialog(QDialog):
 
         self.ed_title_after = QLineEdit(self.supervisor.title_after)
         self.ed_title_after.setPlaceholderText("např. Ph.D.")
-        form.addRow("Tituly za", self.ed_title_after)
+        form.addRow(tr("Tituly za"), self.ed_title_after)
 
         self.ed_email = QLineEdit(self.supervisor.email or "")
         self.ed_email.setPlaceholderText("novak@utb.cz")
@@ -53,7 +54,7 @@ class SupervisorDialog(QDialog):
 
         self.ed_phone = QLineEdit(self.supervisor.phone or "")
         self.ed_phone.setPlaceholderText("+420 …")
-        form.addRow("Telefon", self.ed_phone)
+        form.addRow(tr("Telefon"), self.ed_phone)
 
         self.ed_note = QPlainTextEdit(self.supervisor.note or "")
         self.ed_note.setMaximumHeight(80)

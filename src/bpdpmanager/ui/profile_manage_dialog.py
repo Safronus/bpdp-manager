@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Profile
 from ..services import ProfileError, ProfileManager
 
@@ -32,14 +33,14 @@ class ProfileManageDialog(QDialog):
     def __init__(self, pm: ProfileManager, parent=None) -> None:
         super().__init__(parent)
         self.pm = pm
-        self.setWindowTitle("Správa profilů")
+        self.setWindowTitle(tr("Správa profilů"))
         self.setMinimumSize(820, 460)
 
         layout = QVBoxLayout(self)
 
         hdr = QLabel(
-            "Seznam profilů. Aktivní profil je zvýrazněn. "
-            "Smazat profil z registry můžeš, data ve složce zůstanou (pokud explicitně neodklikneš jejich smazání)."
+            tr("Seznam profilů. Aktivní profil je zvýrazněn. "
+            "Smazat profil z registry můžeš, data ve složce zůstanou (pokud explicitně neodklikneš jejich smazání).")
         )
         hdr.setWordWrap(True)
         layout.addWidget(hdr)
@@ -47,7 +48,7 @@ class ProfileManageDialog(QDialog):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(5)
         self.tree.setHeaderLabels(
-            ["Profil", "Tvoje jméno", "Cesta", "Poslední otevření", "Status"]
+            [tr("Profil"), tr("Tvoje jméno"), tr("Cesta"), tr("Poslední otevření"), "Status"]
         )
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
@@ -62,28 +63,28 @@ class ProfileManageDialog(QDialog):
         layout.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
-        self.btn_rename = QPushButton("Přejmenovat…")
-        self.btn_user_name = QPushButton("👤 Tvoje jméno a tituly…")
+        self.btn_rename = QPushButton(tr("Přejmenovat…"))
+        self.btn_user_name = QPushButton(tr("👤 Tvoje jméno a tituly…"))
         self.btn_user_name.setToolTip(
-            "Jméno uživatele profilu — pro auto-detekci role při STAG importu "
-            "a podpis v posudcích"
+            tr("Jméno uživatele profilu — pro auto-detekci role při STAG importu "
+            "a podpis v posudcích")
         )
-        self.btn_review_place = QPushButton("📍 Místo posudku…")
+        self.btn_review_place = QPushButton(tr("📍 Místo posudku…"))
         self.btn_review_place.setToolTip(
-            'Místo pro podpisový blok posudku (Místo, datum). Default „Zlín".'
+            tr('Místo pro podpisový blok posudku (Místo, datum). Default „Zlín".')
         )
-        self.btn_user_email = QPushButton("✉ E-mail…")
+        self.btn_user_email = QPushButton(tr("✉ E-mail…"))
         self.btn_user_email.setToolTip(
-            "E-mail uživatele (odesílatel posudků sekretářkám). SMTP server se "
-            "nastavuje v 👤 → Nastavení e-mailu."
+            tr("E-mail uživatele (odesílatel posudků sekretářkám). SMTP server se "
+            "nastavuje v 👤 → Nastavení e-mailu.")
         )
-        self.btn_export = QPushButton("📤 Export…")
+        self.btn_export = QPushButton(tr("📤 Export…"))
         self.btn_export.setToolTip(
-            "Vyexportuje vybraný profil do přenosného ZIP balíku."
+            tr("Vyexportuje vybraný profil do přenosného ZIP balíku.")
         )
-        self.btn_open_folder = QPushButton("📂 Otevřít složku")
-        self.btn_remove = QPushButton("Odebrat z registry…")
-        self.btn_close = QPushButton("Zavřít")
+        self.btn_open_folder = QPushButton(tr("📂 Otevřít složku"))
+        self.btn_remove = QPushButton(tr("Odebrat z registry…"))
+        self.btn_close = QPushButton(tr("Zavřít"))
         self.btn_rename.clicked.connect(self._rename)
         self.btn_user_name.clicked.connect(self._edit_user_name)
         self.btn_review_place.clicked.connect(self._edit_review_place)
@@ -155,7 +156,7 @@ class ProfileManageDialog(QDialog):
         try:
             self.pm.rename(profile.id, new_name.strip())
         except ProfileError as exc:
-            QMessageBox.warning(self, "Přejmenování selhalo", str(exc))
+            QMessageBox.warning(self, tr("Přejmenování selhalo"), str(exc))
             return
         self._refresh()
 
@@ -164,28 +165,28 @@ class ProfileManageDialog(QDialog):
         if profile is None:
             QMessageBox.information(
                 self,
-                "Vyber profil",
-                "Vyber v seznamu profil, kterému chceš nastavit jméno.",
+                tr("Vyber profil"),
+                tr("Vyber v seznamu profil, kterému chceš nastavit jméno."),
             )
             return
         dlg = QDialog(self)
-        dlg.setWindowTitle("Tvoje jméno a tituly")
+        dlg.setWindowTitle(tr("Tvoje jméno a tituly"))
         dlg.setMinimumWidth(440)
         v = QVBoxLayout(dlg)
         v.addWidget(QLabel(
-            "Jméno se používá k auto-detekci role při importu ze STAG.\n"
-            "Tituly před/za se automaticky doplní do jména autora v posudku."
+            tr("Jméno se používá k auto-detekci role při importu ze STAG.\n"
+            "Tituly před/za se automaticky doplní do jména autora v posudku.")
         ))
         form = QFormLayout()
         ed_before = QLineEdit(profile.user_title_before or "")
-        ed_before.setPlaceholderText("např. doc. Ing.")
+        ed_before.setPlaceholderText(tr("např. doc. Ing."))
         ed_name = QLineEdit(profile.user_name or "")
-        ed_name.setPlaceholderText("např. Petr Novák")
+        ed_name.setPlaceholderText(tr("např. Petr Novák"))
         ed_after = QLineEdit(profile.user_title_after or "")
-        ed_after.setPlaceholderText("např. Ph.D.")
-        form.addRow("Tituly před", ed_before)
-        form.addRow("Jméno a příjmení", ed_name)
-        form.addRow("Tituly za", ed_after)
+        ed_after.setPlaceholderText(tr("např. Ph.D."))
+        form.addRow(tr("Tituly před"), ed_before)
+        form.addRow(tr("Jméno a příjmení"), ed_name)
+        form.addRow(tr("Tituly za"), ed_after)
         v.addLayout(form)
         from ..models.naming import compose_titled_name
         preview = QLabel()
@@ -212,7 +213,7 @@ class ProfileManageDialog(QDialog):
             self.pm.set_user_name(profile.id, ed_name.text())
             self.pm.set_user_titles(profile.id, ed_before.text(), ed_after.text())
         except ProfileError as exc:
-            QMessageBox.warning(self, "Uložení selhalo", str(exc))
+            QMessageBox.warning(self, tr("Uložení selhalo"), str(exc))
             return
         self._refresh()
 
@@ -221,8 +222,8 @@ class ProfileManageDialog(QDialog):
         if profile is None:
             QMessageBox.information(
                 self,
-                "Vyber profil",
-                "Vyber v seznamu profil, kterému chceš nastavit místo posudku.",
+                tr("Vyber profil"),
+                tr("Vyber v seznamu profil, kterému chceš nastavit místo posudku."),
             )
             return
         new_place, ok = QInputDialog.getText(
@@ -236,7 +237,7 @@ class ProfileManageDialog(QDialog):
         try:
             self.pm.set_review_place(profile.id, new_place)
         except ProfileError as exc:
-            QMessageBox.warning(self, "Uložení selhalo", str(exc))
+            QMessageBox.warning(self, tr("Uložení selhalo"), str(exc))
             return
         self._refresh()
 
@@ -245,8 +246,8 @@ class ProfileManageDialog(QDialog):
         if profile is None:
             QMessageBox.information(
                 self,
-                "Vyber profil",
-                "Vyber v seznamu profil, kterému chceš nastavit e-mail.",
+                tr("Vyber profil"),
+                tr("Vyber v seznamu profil, kterému chceš nastavit e-mail."),
             )
             return
         new_email, ok = QInputDialog.getText(
@@ -260,7 +261,7 @@ class ProfileManageDialog(QDialog):
         try:
             self.pm.set_user_email(profile.id, new_email)
         except ProfileError as exc:
-            QMessageBox.warning(self, "Uložení selhalo", str(exc))
+            QMessageBox.warning(self, tr("Uložení selhalo"), str(exc))
             return
         self._refresh()
 
@@ -268,7 +269,7 @@ class ProfileManageDialog(QDialog):
         profile = self._current()
         if profile is None:
             QMessageBox.information(
-                self, "Vyber profil", "Vyber v seznamu profil pro export."
+                self, tr("Vyber profil"), tr("Vyber v seznamu profil pro export.")
             )
             return
         # Lazy import (kruhový import s main_window)
@@ -284,7 +285,7 @@ class ProfileManageDialog(QDialog):
         path = Path(profile.data_dir)
         if not path.exists():
             QMessageBox.warning(
-                self, "Složka neexistuje", f"Složka {path} už neexistuje."
+                self, tr("Složka neexistuje"), f"Složka {path} už neexistuje."
             )
             return
         if sys.platform == "darwin":
@@ -301,25 +302,25 @@ class ProfileManageDialog(QDialog):
         if self.pm.active and self.pm.active.id == profile.id:
             QMessageBox.warning(
                 self,
-                "Aktivní profil",
-                "Nelze odebrat profil, který je právě aktivní. "
-                "Přepni se nejprve jinam.",
+                tr("Aktivní profil"),
+                tr("Nelze odebrat profil, který je právě aktivní. "
+                "Přepni se nejprve jinam."),
             )
             return
 
         # Dotaz: jen z registry, nebo i data?
         msg = QMessageBox(self)
-        msg.setWindowTitle("Odebrat profil")
+        msg.setWindowTitle(tr("Odebrat profil"))
         msg.setText(f"Odebrat profil „{profile.name}“?")
         msg.setInformativeText(
             f"Cesta: {profile.data_dir}\n\n"
             "Co se má stát s daty?"
         )
         btn_keep = msg.addButton(
-            "Odebrat z registry (data zachovat)", QMessageBox.ButtonRole.AcceptRole
+            tr("Odebrat z registry (data zachovat)"), QMessageBox.ButtonRole.AcceptRole
         )
         btn_delete = msg.addButton(
-            "⚠ Smazat i složku s daty", QMessageBox.ButtonRole.DestructiveRole
+            tr("⚠ Smazat i složku s daty"), QMessageBox.ButtonRole.DestructiveRole
         )
         msg.addButton(QMessageBox.StandardButton.Cancel)
         msg.exec()
@@ -330,7 +331,7 @@ class ProfileManageDialog(QDialog):
         elif clicked == btn_delete:
             confirm = QMessageBox.question(
                 self,
-                "Smazat data",
+                tr("Smazat data"),
                 f"Opravdu nenávratně smazat složku\n{profile.data_dir}\n"
                 "se VŠEMI daty?",
             )

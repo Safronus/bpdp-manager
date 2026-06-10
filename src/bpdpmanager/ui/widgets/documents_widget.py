@@ -104,8 +104,8 @@ class DocumentsWidget(QWidget):
         self.chk_show_old = QCheckBox(tr("Zobrazit starší verze (superseded)"))
         self.chk_show_old.setChecked(True)  # výchozí: ukázat i archiv/starší verze
         self.chk_show_old.setToolTip(
-            "Když je odškrtnuto, vidíš jen aktuální verzi každého typu. "
-            "Při nahrání nové verze se předchozí automaticky schová."
+            tr("Když je odškrtnuto, vidíš jen aktuální verzi každého typu. "
+            "Při nahrání nové verze se předchozí automaticky schová.")
         )
         self.chk_show_old.toggled.connect(lambda _: self.refresh())
         layout.addWidget(self.chk_show_old)
@@ -136,10 +136,10 @@ class DocumentsWidget(QWidget):
         self.chk_delete_source = QCheckBox(tr("🗑 Smazat originál po nahrání"))
         self.chk_delete_source.setChecked(True)
         self.chk_delete_source.setToolTip(
-            "Po úspěšném nahrání soubor odstraní z původního umístění "
+            tr("Po úspěšném nahrání soubor odstraní z původního umístění "
             "(typicky Downloads). Kopie je bezpečně uložená v documents/ "
             "konkrétní práce, takže o nic nepřijdeš. Pro testování / "
-            "opakované nahrávání odškrtni."
+            "opakované nahrávání odškrtni.")
         )
         row.addWidget(self.chk_delete_source)
 
@@ -150,7 +150,7 @@ class DocumentsWidget(QWidget):
         row.addWidget(self.btn_open)
 
         self.btn_reveal = QPushButton(tr("📂 Ve Finderu"))
-        self.btn_reveal.setToolTip("Zobrazí vybraný soubor ve správci souborů (Finder / Explorer).")
+        self.btn_reveal.setToolTip(tr("Zobrazí vybraný soubor ve správci souborů (Finder / Explorer)."))
         self.btn_reveal.clicked.connect(self._reveal_selected)
         row.addWidget(self.btn_reveal)
 
@@ -167,8 +167,8 @@ class DocumentsWidget(QWidget):
         row2.addWidget(self.lbl_missing, stretch=1)
         self.btn_prune = QPushButton(tr("🧹 Odklidit chybějící"))
         self.btn_prune.setToolTip(
-            "Odebere ze seznamu záznamy, jejichž soubor byl smazán mimo aplikaci "
-            "(např. ručně ve Finderu). Existující soubory ani odkazy se nedotkne."
+            tr("Odebere ze seznamu záznamy, jejichž soubor byl smazán mimo aplikaci "
+            "(např. ručně ve Finderu). Existující soubory ani odkazy se nedotkne.")
         )
         self.btn_prune.clicked.connect(self._prune_missing)
         self.btn_prune.setVisible(False)
@@ -404,8 +404,8 @@ class DocumentsWidget(QWidget):
         if not self.thesis_id:
             QMessageBox.information(
                 self,
-                "Nahrát soubor",
-                "Před nahráním dokumentu nejdřív uložte rozpracovanou práci.",
+                tr("Nahrát soubor"),
+                tr("Před nahráním dokumentu nejdřív uložte rozpracovanou práci."),
             )
             return
         path_str, _ = QFileDialog.getOpenFileName(
@@ -429,7 +429,7 @@ class DocumentsWidget(QWidget):
         try:
             self._attach(Path(path_str), kind, delete_source)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Chyba", f"Nepodařilo se nahrát soubor:\n{exc}")
+            QMessageBox.critical(self, tr("Chyba"), f"Nepodařilo se nahrát soubor:\n{exc}")
             return
         self.refresh()
         self.changed.emit()
@@ -497,7 +497,7 @@ class DocumentsWidget(QWidget):
         if att.is_file:
             confirm = QMessageBox.question(
                 self,
-                "Odebrat dokument",
+                tr("Odebrat dokument"),
                 f"Odebrat „{att.label}“ ze seznamu?\n\nSouběžně smazat i soubor ze složky?",
                 QMessageBox.StandardButton.Yes
                 | QMessageBox.StandardButton.No
@@ -507,7 +507,7 @@ class DocumentsWidget(QWidget):
                 return
             delete_file = confirm == QMessageBox.StandardButton.Yes
         else:
-            confirm = QMessageBox.question(self, "Odebrat odkaz", f"Odebrat „{att.label}“?")
+            confirm = QMessageBox.question(self, tr("Odebrat odkaz"), f"Odebrat „{att.label}“?")
             if confirm != QMessageBox.StandardButton.Yes:
                 return
             delete_file = False
@@ -573,7 +573,7 @@ class DocumentsWidget(QWidget):
             return
         n_files = sum(1 for i in idxs if work.attachments[i].is_file)
         confirm = QMessageBox.question(
-            self, "Odebrat dokumenty",
+            self, tr("Odebrat dokumenty"),
             f"Odebrat {len(idxs)} vybraných dokumentů ze seznamu?"
             + (f"\n\nSouběžně smazat i {n_files} souborů ze složky?" if n_files else ""),
             QMessageBox.StandardButton.Yes
@@ -606,7 +606,7 @@ class DocumentsWidget(QWidget):
 
         menu = QMenu(self)
         act_open = menu.addAction(tr("Otevřít"))
-        act_reveal = menu.addAction("📂 Zobrazit ve Finderu")
+        act_reveal = menu.addAction(tr("📂 Zobrazit ve Finderu"))
         act_copy = act_export = act_email = None
         act_export_many = act_email_many = None
         n_sel = len(self._selected_indices())
@@ -618,10 +618,10 @@ class DocumentsWidget(QWidget):
         if is_file:
             menu.addSeparator()
             if att.url_or_path.lower().endswith((".pdf", ".xlsx")):
-                act_print = menu.addAction("🖨 Tisk")
-            act_copy = menu.addAction("📋 Kopírovat soubor (do schránky)")
-            act_export = menu.addAction("💾 Exportovat na disk…")
-            act_email = menu.addAction("✉ Odeslat mailem…")
+                act_print = menu.addAction(tr("🖨 Tisk"))
+            act_copy = menu.addAction(tr("📋 Kopírovat soubor (do schránky)"))
+            act_export = menu.addAction(tr("💾 Exportovat na disk…"))
+            act_email = menu.addAction(tr("✉ Odeslat mailem…"))
         menu.addSeparator()
         act_remove_many = None
         if n_sel > 1:
@@ -660,7 +660,7 @@ class DocumentsWidget(QWidget):
         paths = [(att, self._abs_path(att)) for att in atts]
         paths = [(att, p) for att, p in paths if p is not None and p.exists()]
         if not paths:
-            QMessageBox.warning(self, "Exportovat", "Žádný z vybraných souborů neexistuje.")
+            QMessageBox.warning(self, tr("Exportovat"), tr("Žádný z vybraných souborů neexistuje."))
             return
         target_dir = QFileDialog.getExistingDirectory(
             self, "Exportovat vybrané soubory do složky", str(Path.home())
@@ -677,7 +677,7 @@ class DocumentsWidget(QWidget):
         msg = f"Exportováno {ok} z {len(paths)} souborů do:\n{target_dir}"
         if errors:
             msg += "\n\nChyby:\n" + "\n".join(errors)
-        QMessageBox.information(self, "Export", msg)
+        QMessageBox.information(self, tr("Export"), msg)
 
     def _email_files(self, atts: list[Attachment]) -> None:
         """Odešle více souborů jako přílohy jednoho e-mailu."""
@@ -687,13 +687,13 @@ class DocumentsWidget(QWidget):
             if p is not None and p.exists():
                 paths.append(p)
         if not paths:
-            QMessageBox.warning(self, "Odeslat mailem", "Žádný z vybraných souborů neexistuje.")
+            QMessageBox.warning(self, tr("Odeslat mailem"), tr("Žádný z vybraných souborů neexistuje."))
             return
         if self.profile_manager is None or self.profile_manager.active is None:
             QMessageBox.information(
-                self, "Odeslat mailem",
-                "Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem "
-                "(👤 → Nastavení e-mailu).",
+                self, tr("Odeslat mailem"),
+                tr("Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem "
+                "(👤 → Nastavení e-mailu)."),
             )
             return
         from ..send_file_dialog import SendFileDialog
@@ -707,27 +707,27 @@ class DocumentsWidget(QWidget):
         """Vytiskne soubor (PDF přímo na tiskárnu, XLSX otevře k ručnímu tisku)."""
         path = self._abs_path(att)
         if path is None or not path.exists():
-            QMessageBox.warning(self, "Tisk", f"Soubor neexistuje:\n{path}")
+            QMessageBox.warning(self, tr("Tisk"), f"Soubor neexistuje:\n{path}")
             return
         result = print_path(path)
         if result == "printed":
             QMessageBox.information(
-                self, "Tisk", f"Soubor byl odeslán na výchozí tiskárnu:\n{path.name}"
+                self, tr("Tisk"), f"Soubor byl odeslán na výchozí tiskárnu:\n{path.name}"
             )
         elif result == "opened":
             QMessageBox.information(
-                self, "Tisk",
+                self, tr("Tisk"),
                 f"Soubor jsem otevřel v aplikaci — vytiskni ho odtud (Cmd/Ctrl+P):"
                 f"\n{path.name}",
             )
         else:
-            QMessageBox.warning(self, "Tisk", f"Tisk se nezdařil:\n{path.name}")
+            QMessageBox.warning(self, tr("Tisk"), f"Tisk se nezdařil:\n{path.name}")
 
     def _copy_file_to_clipboard(self, att: Attachment) -> None:
         """Zkopíruje SOUBOR do schránky (jde vložit do Finderu / mailu), ne cestu."""
         path = self._abs_path(att)
         if path is None or not path.exists():
-            QMessageBox.warning(self, "Kopírovat", f"Soubor neexistuje:\n{path}")
+            QMessageBox.warning(self, tr("Kopírovat"), f"Soubor neexistuje:\n{path}")
             return
         mime = QMimeData()
         mime.setUrls([QUrl.fromLocalFile(str(path))])
@@ -737,7 +737,7 @@ class DocumentsWidget(QWidget):
     def _export_file(self, att: Attachment) -> None:
         path = self._abs_path(att)
         if path is None or not path.exists():
-            QMessageBox.warning(self, "Exportovat", f"Soubor neexistuje:\n{path}")
+            QMessageBox.warning(self, tr("Exportovat"), f"Soubor neexistuje:\n{path}")
             return
         target, _ = QFileDialog.getSaveFileName(
             self, "Exportovat soubor", str(Path.home() / path.name)
@@ -747,19 +747,19 @@ class DocumentsWidget(QWidget):
         try:
             shutil.copy2(path, target)
         except OSError as exc:
-            QMessageBox.critical(self, "Exportovat", f"Nepodařilo se uložit:\n{exc}")
+            QMessageBox.critical(self, tr("Exportovat"), f"Nepodařilo se uložit:\n{exc}")
             return
 
     def _email_file(self, att: Attachment) -> None:
         path = self._abs_path(att)
         if path is None or not path.exists():
-            QMessageBox.warning(self, "Odeslat mailem", f"Soubor neexistuje:\n{path}")
+            QMessageBox.warning(self, tr("Odeslat mailem"), f"Soubor neexistuje:\n{path}")
             return
         if self.profile_manager is None or self.profile_manager.active is None:
             QMessageBox.information(
-                self, "Odeslat mailem",
-                "Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem "
-                "(👤 → Nastavení e-mailu).",
+                self, tr("Odeslat mailem"),
+                tr("Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem "
+                "(👤 → Nastavení e-mailu)."),
             )
             return
         from ..send_file_dialog import SendFileDialog
@@ -781,12 +781,12 @@ class DocumentsWidget(QWidget):
         att = thesis.attachments[idx]
         if not att.is_file:
             QMessageBox.information(
-                self, "Ve Finderu", "Odkaz/URL nelze zobrazit ve správci souborů."
+                self, tr("Ve Finderu"), tr("Odkaz/URL nelze zobrazit ve správci souborů.")
             )
             return
         path = self._abs_path(att)
         if path is None or not path.exists():
-            QMessageBox.warning(self, "Ve Finderu", f"Soubor neexistuje:\n{path}")
+            QMessageBox.warning(self, tr("Ve Finderu"), f"Soubor neexistuje:\n{path}")
             return
         reveal_in_file_manager(path)
 
@@ -795,10 +795,10 @@ class DocumentsWidget(QWidget):
             return
         confirm = QMessageBox.question(
             self,
-            "Odklidit chybějící",
-            "Odebrat ze seznamu všechny záznamy, jejichž soubor už na disku "
+            tr("Odklidit chybějící"),
+            tr("Odebrat ze seznamu všechny záznamy, jejichž soubor už na disku "
             "neexistuje?\n\nSmažou se jen záznamy v aplikaci — žádné existující "
-            "soubory ani odkazy se nedotkne.",
+            "soubory ani odkazy se nedotkne."),
         )
         if confirm != QMessageBox.StandardButton.Yes:
             return
@@ -806,5 +806,5 @@ class DocumentsWidget(QWidget):
         self.refresh()
         self.changed.emit()
         QMessageBox.information(
-            self, "Odklidit chybějící", f"Odebráno záznamů: {removed}."
+            self, tr("Odklidit chybějící"), f"Odebráno záznamů: {removed}."
         )

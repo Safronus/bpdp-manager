@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
 from ..models import (
     Obor,
     Opponent,
@@ -293,7 +294,7 @@ class StagImportDialog(QDialog):
         # po založení práce připojí k té správné (přes adipIdno).
         self._stag_downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
 
-        self.setWindowTitle("Import dat ze STAG CSV")
+        self.setWindowTitle(tr("Import dat ze STAG CSV"))
         self.setMinimumSize(1240, 820)
 
         outer = QVBoxLayout(self)
@@ -301,82 +302,82 @@ class StagImportDialog(QDialog):
         outer.setSpacing(10)
 
         # ── Hlavička ────────────────────────────────────────────────────────
-        title = QLabel("📥 Import dat ze STAG CSV")
+        title = QLabel(tr("📥 Import dat ze STAG CSV"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
         # ── Formulář s parametry ────────────────────────────────────────────
         form = QFormLayout()
         self.ed_path = QLineEdit()
-        self.ed_path.setPlaceholderText("vyber CSV soubor exportovaný ze STAG")
-        btn_browse = QPushButton("Procházet…")
+        self.ed_path.setPlaceholderText(tr("vyber CSV soubor exportovaný ze STAG"))
+        btn_browse = QPushButton(tr("Procházet…"))
         btn_browse.clicked.connect(self._browse)
-        btn_stag_dl = QPushButton("🌐 Stáhnout ze STAG")
+        btn_stag_dl = QPushButton(tr("🌐 Stáhnout ze STAG"))
         btn_stag_dl.setToolTip(
-            "Najdi a stáhni CSV s prací přímo ze STAG podle příjmení "
-            "studenta a vedoucího/oponenta (bez přihlášení)."
+            tr("Najdi a stáhni CSV s prací přímo ze STAG podle příjmení "
+            "studenta a vedoucího/oponenta (bez přihlášení).")
         )
         btn_stag_dl.clicked.connect(self._open_stag_download)
-        btn_csv_help = QPushButton("❓ Odkud stáhnout")
-        btn_csv_help.setToolTip("Jak získat CSV s prací ze STAG")
+        btn_csv_help = QPushButton(tr("❓ Odkud stáhnout"))
+        btn_csv_help.setToolTip(tr("Jak získat CSV s prací ze STAG"))
         btn_csv_help.clicked.connect(self._show_csv_download_help)
         row_path = QHBoxLayout()
         row_path.addWidget(self.ed_path, stretch=1)
         row_path.addWidget(btn_browse)
         row_path.addWidget(btn_stag_dl)
         row_path.addWidget(btn_csv_help)
-        form.addRow("CSV soubor", row_path)
+        form.addRow(tr("CSV soubor"), row_path)
 
         # Hromadné stažení všech mých prací ze STAG (napříč roky).
-        btn_my_led = QPushButton("🎓 Moje vedené práce…")
+        btn_my_led = QPushButton(tr("🎓 Moje vedené práce…"))
         btn_my_led.setToolTip(
-            "Najde ve STAG všechny práce, kde jsi vedoucí (historické, aktuální "
-            "i vypsané) — podle tvého jména z profilu. Vybereš, co naimportovat."
+            tr("Najde ve STAG všechny práce, kde jsi vedoucí (historické, aktuální "
+            "i vypsané) — podle tvého jména z profilu. Vybereš, co naimportovat.")
         )
         btn_my_led.clicked.connect(lambda: self._open_stag_download(auto_role="supervisor"))
-        btn_my_opp = QPushButton("🧐 Moje oponentury…")
+        btn_my_opp = QPushButton(tr("🧐 Moje oponentury…"))
         btn_my_opp.setToolTip(
-            "Najde ve STAG všechny práce, kde jsi oponent — podle tvého jména "
-            "z profilu. Vybereš, co naimportovat."
+            tr("Najde ve STAG všechny práce, kde jsi oponent — podle tvého jména "
+            "z profilu. Vybereš, co naimportovat.")
         )
         btn_my_opp.clicked.connect(lambda: self._open_stag_download(auto_role="opponent"))
         row_bulk = QHBoxLayout()
         row_bulk.addWidget(btn_my_led)
         row_bulk.addWidget(btn_my_opp)
         row_bulk.addStretch()
-        form.addRow("Hromadně ze STAG", row_bulk)
+        form.addRow(tr("Hromadně ze STAG"), row_bulk)
 
         # Aktualizace už evidovaných prací ze STAG (stav + nové soubory).
-        btn_upd_led = QPushButton("🔄 Aktualizovat práce v řešení ze STAG")
+        btn_upd_led = QPushButton(tr("🔄 Aktualizovat práce v řešení ze STAG"))
         btn_upd_led.setToolTip(
-            "U vedených prací ve stavu „V řešení“ porovná stav a soubory se "
+            tr("U vedených prací ve stavu „V řešení“ porovná stav a soubory se "
             "STAG a nabídne změnu stavu + dohrání chybějících souborů "
-            "(např. nový posudek nebo odevzdaná práce)."
+            "(např. nový posudek nebo odevzdaná práce).")
         )
         btn_upd_led.clicked.connect(lambda: self._open_stag_sync("supervisor"))
-        btn_upd_opp = QPushButton("🔄 Aktualizovat práce k oponování ze STAG")
+        btn_upd_opp = QPushButton(tr("🔄 Aktualizovat práce k oponování ze STAG"))
         btn_upd_opp.setToolTip(
-            "U oponovaných prací aktuálního akademického roku porovná soubory "
-            "se STAG a nabídne dohrání chybějících (např. nový posudek)."
+            tr("U oponovaných prací aktuálního akademického roku porovná soubory "
+            "se STAG a nabídne dohrání chybějících (např. nový posudek).")
         )
         btn_upd_opp.clicked.connect(lambda: self._open_stag_sync("opponent"))
         row_upd = QHBoxLayout()
         row_upd.addWidget(btn_upd_led)
         row_upd.addWidget(btn_upd_opp)
         row_upd.addStretch()
-        form.addRow("Aktualizovat ze STAG", row_upd)
+        form.addRow(tr("Aktualizovat ze STAG"), row_upd)
 
         # Tvoje jméno (pro detekci role)
         default_user_name = ""
         if profile_manager and profile_manager.active:
             default_user_name = profile_manager.active.user_name or ""
         self.ed_user_name = QLineEdit(default_user_name)
-        self.ed_user_name.setPlaceholderText("např. Petr Žáček")
-        form.addRow("Tvoje jméno", self.ed_user_name)
+        self.ed_user_name.setPlaceholderText(tr("např. Petr Žáček"))
+        form.addRow(tr("Tvoje jméno"), self.ed_user_name)
         help_lbl = QLabel(
-            "<small><i>Použije se k auto-detekci role: pokud se najde "
+            tr("<small><i>Použije se k auto-detekci role: pokud se najde "
             "v `vedouciJmeno` → ‚Vedu‘, v `oponentJmeno` → ‚Oponuji‘. "
-            "Per řádek lze přepsat v náhledu.</i></small>"
+            "Per řádek lze přepsat v náhledu.</i></small>")
         )
         help_lbl.setStyleSheet("color:#888;")
         help_lbl.setTextFormat(Qt.TextFormat.RichText)
@@ -393,12 +394,12 @@ class StagImportDialog(QDialog):
         idx = self.cb_default_status.findData(ThesisStatus.IN_PROGRESS.value)
         if idx >= 0:
             self.cb_default_status.setCurrentIndex(idx)
-        form.addRow("Fallback stav (vedené práce)", self.cb_default_status)
+        form.addRow(tr("Fallback stav (vedené práce)"), self.cb_default_status)
         status_help = QLabel(
-            "<small><i>Použije se jen pro řádky, kde CSV neobsahuje "
+            tr("<small><i>Použije se jen pro řádky, kde CSV neobsahuje "
             "<code>datumZadani</code>/<code>datumOdevzdani</code>/"
             "<code>datumObhajoby</code>. Reálný stav per řádek určí "
-            "heuristika nad dat z CSV (lze ručně přepsat v náhledu).</i></small>"
+            "heuristika nad dat z CSV (lze ručně přepsat v náhledu).</i></small>")
         )
         status_help.setStyleSheet("color:#888;")
         status_help.setTextFormat(Qt.TextFormat.RichText)
@@ -408,13 +409,13 @@ class StagImportDialog(QDialog):
         # Po úspěchu importu smazat originální CSV (default: ON — typicky
         # nechce na disku zůstat nepořádek se stáhnutým CSV ze STAG)
         self.chk_delete_csv = QCheckBox(
-            "🗑 Po dokončení importu smazat originální CSV"
+            tr("🗑 Po dokončení importu smazat originální CSV")
         )
         self.chk_delete_csv.setChecked(True)
         self.chk_delete_csv.setToolTip(
-            "Po úspěšném importu (rollback se nepočítá) původní CSV soubor "
+            tr("Po úspěšném importu (rollback se nepočítá) původní CSV soubor "
             "odstraní z disku. Kopie zůstává jako příloha typu *STAG export* "
-            "u každé importované práce."
+            "u každé importované práce.")
         )
         form.addRow("", self.chk_delete_csv)
 
@@ -422,24 +423,24 @@ class StagImportDialog(QDialog):
         # (e-mail, telefon, obor…). Veřejný STAG CSV nese jen osobní číslo a
         # jméno (jméno doplňujeme z vyhledávání), zbytek je vhodné doplnit ručně.
         self.chk_review_students = QCheckBox(
-            "✎ Před založením zkontrolovat / doplnit nové studenty"
+            tr("✎ Před založením zkontrolovat / doplnit nové studenty")
         )
         self.chk_review_students.setChecked(False)
         self.chk_review_students.setToolTip(
-            "Pro každého nového studenta (u vedených prací) otevře kartu "
+            tr("Pro každého nového studenta (u vedených prací) otevře kartu "
             "studenta předvyplněnou daty ze STAG — můžeš doplnit e-mail, "
-            "telefon, obor apod. Záznam se uloží až v rámci importu."
+            "telefon, obor apod. Záznam se uloží až v rámci importu.")
         )
         form.addRow("", self.chk_review_students)
 
-        btn_load = QPushButton("🔍 Načíst náhled")
+        btn_load = QPushButton(tr("🔍 Načíst náhled"))
         btn_load.clicked.connect(self._load_preview)
         form.addRow("", btn_load)
 
         outer.addLayout(form)
 
         # ── Náhled tabulky + detail panel ──────────────────────────────────
-        self.lbl_info = QLabel("Načti CSV soubor pro náhled.")
+        self.lbl_info = QLabel(tr("Načti CSV soubor pro náhled."))
         self.lbl_info.setStyleSheet("color:#888;")
         outer.addWidget(self.lbl_info)
 
@@ -488,7 +489,7 @@ class StagImportDialog(QDialog):
         detail_layout = QVBoxLayout(detail_box)
         detail_layout.setContentsMargins(0, 6, 0, 0)
         detail_layout.setSpacing(4)
-        detail_header = QLabel("🔎 Detail vybraného řádku")
+        detail_header = QLabel(tr("🔎 Detail vybraného řádku"))
         detail_header.setStyleSheet("font-weight:bold;")
         detail_layout.addWidget(detail_header)
         self.detail_view = QTextBrowser()
@@ -508,13 +509,13 @@ class StagImportDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
-        self.btn_import = QPushButton("📥 Provést import")
+        self.btn_import = QPushButton(tr("📥 Provést import"))
         self.btn_import.setEnabled(False)
         self.btn_import.clicked.connect(self._execute_import)
         f = self.btn_import.font()
         f.setBold(True)
         self.btn_import.setFont(f)
-        btn_cancel = QPushButton("Zavřít")
+        btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
         row.addStretch()
         row.addWidget(btn_cancel)
@@ -527,10 +528,10 @@ class StagImportDialog(QDialog):
         """Návod, odkud a jak stáhnout CSV s prací ze STAG."""
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Odkud stáhnout CSV ze STAG")
+        msg.setWindowTitle(tr("Odkud stáhnout CSV ze STAG"))
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(
-            "<b>Nejrychleji:</b> použij tlačítko "
+            tr("<b>Nejrychleji:</b> použij tlačítko "
             "<b>🌐 Stáhnout ze STAG</b> — práci najde a CSV stáhne přímo "
             "(stačí příjmení studenta + vedoucího/oponenta).<hr>"
             "<b>Nebo ručně z webu STAG:</b>"
@@ -543,7 +544,7 @@ class StagImportDialog(QDialog):
             "<p>Stažený soubor (<code>getKvalifikacniPrace*.csv</code>) pak "
             "vyber tlačítkem <i>Procházet…</i>.</p>"
             "<p style='color:#888;font-size:11px;'>Záznam kvalifikační práce "
-            "je veřejný, takže ke stažení obvykle není potřeba přihlášení.</p>"
+            "je veřejný, takže ke stažení obvykle není potřeba přihlášení.</p>")
         )
         # Umožni klik na odkaz
         lbl = msg.findChild(QLabel, "qt_msgbox_label")
@@ -624,9 +625,9 @@ class StagImportDialog(QDialog):
 
         if auto_role and not default_surname:
             QMessageBox.information(
-                self, "Chybí jméno",
-                "Pro hromadné stažení doplň své jméno v profilu "
-                "(👤 → Tvoje jméno).",
+                self, tr("Chybí jméno"),
+                tr("Pro hromadné stažení doplň své jméno v profilu "
+                "(👤 → Tvoje jméno)."),
             )
             return
 
@@ -672,7 +673,7 @@ class StagImportDialog(QDialog):
                 imp = load_stag_csv(Path(path), user_name=user_name)
             except Exception as exc:  # noqa: BLE001
                 QMessageBox.warning(
-                    self, "Chyba načítání", f"CSV {Path(path).name} nelze přečíst:\n{exc}"
+                    self, tr("Chyba načítání"), f"CSV {Path(path).name} nelze přečíst:\n{exc}"
                 )
                 continue
             encoding = encoding or imp.encoding
@@ -686,7 +687,7 @@ class StagImportDialog(QDialog):
             all_records.extend(imp.records)
 
         if not all_records:
-            QMessageBox.warning(self, "STAG", "Stažené CSV neobsahuje žádná data.")
+            QMessageBox.warning(self, "STAG", tr("Stažené CSV neobsahuje žádná data."))
             return
 
         self.import_file = ImportFile(
@@ -717,13 +718,13 @@ class StagImportDialog(QDialog):
     def _load_preview(self) -> None:
         path_str = self.ed_path.text().strip()
         if not path_str:
-            QMessageBox.warning(self, "Chybí soubor", "Vyber nejdřív CSV soubor.")
+            QMessageBox.warning(self, tr("Chybí soubor"), tr("Vyber nejdřív CSV soubor."))
             return
         user_name = self.ed_user_name.text().strip()
         try:
             self.import_file = load_stag_csv(Path(path_str), user_name=user_name)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Chyba načítání", f"Soubor nelze přečíst:\n{exc}")
+            QMessageBox.critical(self, tr("Chyba načítání"), f"Soubor nelze přečíst:\n{exc}")
             return
 
         # Doplň jméno studenta z výsledku vyhledávání ve STAG — veřejný CSV
@@ -806,8 +807,8 @@ class StagImportDialog(QDialog):
 
             # === Role combobox ===
             cb_role = QComboBox()
-            cb_role.addItem("🎓 Vedu já", ImportRole.SUPERVISOR.value)
-            cb_role.addItem("🧐 Oponuji", ImportRole.OPPONENT.value)
+            cb_role.addItem(tr("🎓 Vedu já"), ImportRole.SUPERVISOR.value)
+            cb_role.addItem(tr("🧐 Oponuji"), ImportRole.OPPONENT.value)
             initial = (
                 ImportRole.SUPERVISOR.value
                 if record.role != ImportRole.OPPONENT
@@ -824,7 +825,7 @@ class StagImportDialog(QDialog):
                     "color: #5d4037; }"
                 )
                 cb_role.setToolTip(
-                    "⚠ Roli se nepodařilo auto-detekovat — překontroluj ji."
+                    tr("⚠ Roli se nepodařilo auto-detekovat — překontroluj ji.")
                 )
             else:
                 cb_role.setStyleSheet(combo_neutral_qss)
@@ -876,7 +877,7 @@ class StagImportDialog(QDialog):
             cb_obor.addItem(f"⚠ Nemapováno — uložit jako '{record.student_obor_stag}'", "__keep__")
             for obor_name in all_obor_names:
                 cb_obor.addItem(obor_name, obor_name)
-            cb_obor.addItem("➕ Nový obor…", "__new__")
+            cb_obor.addItem(tr("➕ Nový obor…"), "__new__")
 
             # Auto-mapping přes stag_code
             mapped = obory_by_stag.get(record.student_obor_stag)
@@ -938,10 +939,10 @@ class StagImportDialog(QDialog):
             cb_action.setStyleSheet(combo_neutral_qss)
             if existing_label:
                 cb_action.addItem(f"🔄 Aktualizovat ({existing_label})", ACTION_UPDATE)
-                cb_action.addItem("✗ Přeskočit", ACTION_SKIP)
+                cb_action.addItem(tr("✗ Přeskočit"), ACTION_SKIP)
             else:
-                cb_action.addItem("✓ Vytvořit novou", ACTION_CREATE)
-                cb_action.addItem("✗ Přeskočit", ACTION_SKIP)
+                cb_action.addItem(tr("✓ Vytvořit novou"), ACTION_CREATE)
+                cb_action.addItem(tr("✗ Přeskočit"), ACTION_SKIP)
             self.table.setCellWidget(row_idx, 9, cb_action)
 
             self.row_widgets.append({
@@ -1129,9 +1130,9 @@ class StagImportDialog(QDialog):
         if cb_obor.currentData() == "__keep__":
             cb_obor.setStyleSheet(amber)
             cb_obor.setToolTip(
-                "⚠ STAG obor není namapovaný na žádný evidovaný obor. "
+                tr("⚠ STAG obor není namapovaný na žádný evidovaný obor. "
                 'Vyber existující obor, nebo zvol „Nový obor…" — předvyplní se '
-                "STAG kód, takže příště se namapuje automaticky."
+                "STAG kód, takže příště se namapuje automaticky.")
             )
         else:
             cb_obor.setStyleSheet(neutral)
@@ -1200,7 +1201,7 @@ class StagImportDialog(QDialog):
             cb_obor.addItem(f"⚠ Nemapováno — uložit jako '{stag}'", "__keep__")
             for o in all_obory:
                 cb_obor.addItem(o.name, o.name)
-            cb_obor.addItem("➕ Nový obor…", "__new__")
+            cb_obor.addItem(tr("➕ Nový obor…"), "__new__")
             if prefer_name:
                 idx = cb_obor.findData(prefer_name)
                 if idx >= 0:
@@ -1417,10 +1418,10 @@ class StagImportDialog(QDialog):
 
         # Vlastní dialog s rich textem (QMessageBox omezuje formatting)
         dlg = QDialog(self)
-        dlg.setWindowTitle("Souhrn před importem")
+        dlg.setWindowTitle(tr("Souhrn před importem"))
         dlg.setMinimumSize(640, 480)
         outer = QVBoxLayout(dlg)
-        header = QLabel("📋 Souhrn před importem")
+        header = QLabel(tr("📋 Souhrn před importem"))
         header.setStyleSheet("font-weight:bold;font-size:14px;")
         outer.addWidget(header)
         body = QTextBrowser()
@@ -1429,9 +1430,9 @@ class StagImportDialog(QDialog):
         outer.addWidget(body, stretch=1)
 
         btn_row = QHBoxLayout()
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(dlg.reject)
-        btn_go = QPushButton("✓ Provést import")
+        btn_go = QPushButton(tr("✓ Provést import"))
         f = btn_go.font()
         f.setBold(True)
         btn_go.setFont(f)
@@ -1540,9 +1541,9 @@ class StagImportDialog(QDialog):
         if not active_rows:
             QMessageBox.information(
                 self,
-                "Nic k importu",
-                'Všechny řádky mají akci „Přeskočit". Nastav alespoň jeden řádek '
-                "na *Vytvořit* nebo *Aktualizovat*.",
+                tr("Nic k importu"),
+                tr('Všechny řádky mají akci „Přeskočit". Nastav alespoň jeden řádek '
+                "na *Vytvořit* nebo *Aktualizovat*."),
             )
             return
 
@@ -1683,9 +1684,9 @@ class StagImportDialog(QDialog):
                 # Restartuj batch BEZ chyb — vše už bylo zahozeno, jen dej vědět uživateli
                 QMessageBox.warning(
                     self,
-                    "Import zrušen",
-                    "Žádné změny nebyly uloženy. Pokud chceš, můžeš upravit data "
-                    "v náhledu a zkusit znovu, nebo zavřít dialog.",
+                    tr("Import zrušen"),
+                    tr("Žádné změny nebyly uloženy. Pokud chceš, můžeš upravit data "
+                    "v náhledu a zkusit znovu, nebo zavřít dialog."),
                 )
                 # Reset focus + counters
                 self.imported_thesis_ids = []
@@ -1704,7 +1705,7 @@ class StagImportDialog(QDialog):
             # Jakákoli jiná neočekávaná chyba — rollback už proběhl
             QMessageBox.critical(
                 self,
-                "Import selhal",
+                tr("Import selhal"),
                 f"Při importu došlo k neočekávané chybě, žádné změny nebyly "
                 f"uloženy:\n\n{exc}",
             )
@@ -1797,7 +1798,7 @@ class StagImportDialog(QDialog):
         """
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("Při importu nastaly chyby")
+        msg.setWindowTitle(tr("Při importu nastaly chyby"))
         msg.setText(
             f"Při importu nastalo {len(errors)} "
             f"{self._cs_plural(len(errors), 'chyba', 'chyby', 'chyb')}."
@@ -1810,10 +1811,10 @@ class StagImportDialog(QDialog):
             "Žádná data zatím nebyla uložena. Co chceš udělat?"
         )
         btn_rollback = msg.addButton(
-            "↩ Zrušit import (rollback)", QMessageBox.ButtonRole.RejectRole
+            tr("↩ Zrušit import (rollback)"), QMessageBox.ButtonRole.RejectRole
         )
         btn_keep = msg.addButton(
-            "✓ Uložit i tak (jen úspěšné řádky)", QMessageBox.ButtonRole.AcceptRole
+            tr("✓ Uložit i tak (jen úspěšné řádky)"), QMessageBox.ButtonRole.AcceptRole
         )
         msg.setDefaultButton(btn_rollback)
         msg.exec()
@@ -1975,10 +1976,10 @@ class StagImportDialog(QDialog):
             )
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Import dokončen")
+        dlg.setWindowTitle(tr("Import dokončen"))
         dlg.setMinimumSize(560, 420)
         outer = QVBoxLayout(dlg)
-        header = QLabel("📥 Import ze STAG dokončen")
+        header = QLabel(tr("📥 Import ze STAG dokončen"))
         header.setStyleSheet("font-weight:bold;font-size:14px;")
         outer.addWidget(header)
         body = QTextBrowser()
@@ -1986,7 +1987,7 @@ class StagImportDialog(QDialog):
         outer.addWidget(body, stretch=1)
 
         btn_row = QHBoxLayout()
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(dlg.accept)
 
         # Pokud byl importován pouze jeden záznam, nabídni „Přepnout na práci".
@@ -1995,10 +1996,10 @@ class StagImportDialog(QDialog):
 
         # Záchranná brzda — vrátit celý import ze zálohy před importem.
         if self._preimport_backup_file and self._preimport_data_dir:
-            btn_revert = QPushButton("↩ Vrátit celý import zpět")
+            btn_revert = QPushButton(tr("↩ Vrátit celý import zpět"))
             btn_revert.setToolTip(
-                "Obnoví stav databáze ze zálohy pořízené TĚSNĚ PŘED tímto "
-                "importem — odstraní vše, co tento import přidal/změnil."
+                tr("Obnoví stav databáze ze zálohy pořízené TĚSNĚ PŘED tímto "
+                "importem — odstraní vše, co tento import přidal/změnil.")
             )
             btn_revert.clicked.connect(lambda: self._revert_import(dlg))
             btn_row.addWidget(btn_revert)
@@ -2006,7 +2007,7 @@ class StagImportDialog(QDialog):
         btn_row.addStretch()
         btn_row.addWidget(btn_close)
         if has_focus:
-            btn_focus = QPushButton("👁 Zobrazit práci")
+            btn_focus = QPushButton(tr("👁 Zobrazit práci"))
             btn_focus.setDefault(True)
             f = btn_focus.font()
             f.setBold(True)
@@ -2030,13 +2031,13 @@ class StagImportDialog(QDialog):
             return
         confirm = QMessageBox.question(
             self,
-            "Vrátit celý import?",
-            "Obnoví se stav databáze ze zálohy pořízené těsně před tímto "
+            tr("Vrátit celý import?"),
+            tr("Obnoví se stav databáze ze zálohy pořízené těsně před tímto "
             "importem. <b>Vše, co tento import přidal nebo změnil, zmizí.</b>"
             "<br><br>Aktuální (importovaný) stav se předtím ještě zazálohuje "
             "(<code>before-restore</code>), takže krok jde i vrátit.<br><br>"
             "<small>Pozn.: soubory zkopírované do složky dokumentů zůstanou na "
-            "disku jako osiřelé (bez vazby v DB) — neškodí.</small>",
+            "disku jako osiřelé (bez vazby v DB) — neškodí.</small>"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -2049,7 +2050,7 @@ class StagImportDialog(QDialog):
             self.service.reload()
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Vrácení selhalo",
+                self, tr("Vrácení selhalo"),
                 f"Obnovu ze zálohy se nepodařilo provést:\n{exc}",
             )
             return
@@ -2060,8 +2061,8 @@ class StagImportDialog(QDialog):
         self.imported_opposing_ids = []
         self.reverted = True
         QMessageBox.information(
-            self, "Import vrácen",
-            "Stav databáze byl obnoven do podoby před importem.",
+            self, tr("Import vrácen"),
+            tr("Stav databáze byl obnoven do podoby před importem."),
         )
         summary_dlg.accept()
 
@@ -2263,10 +2264,10 @@ class StagImportDialog(QDialog):
             else:
                 choice = QMessageBox.question(
                     self,
-                    "Přeskočit revizi?",
-                    "Revize tohoto studenta byla zrušena.\n\n"
+                    tr("Přeskočit revizi?"),
+                    tr("Revize tohoto studenta byla zrušena.\n\n"
                     "Pokračovat v importu s automaticky vyplněnými údaji "
-                    "(jméno, obor, osobní číslo)?",
+                    "(jméno, obor, osobní číslo)?"),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
                     QMessageBox.StandardButton.Yes,
                 )
@@ -2365,14 +2366,14 @@ class StagFilesPreviewDialog(QDialog):
         super().__init__(parent)
         self._rows: list[tuple[_DownloadedStagFile, QComboBox, int]] = []
 
-        self.setWindowTitle("Soubory ke stažení ze STAG")
+        self.setWindowTitle(tr("Soubory ke stažení ze STAG"))
         self.setMinimumSize(720, 460)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        title = QLabel("📎 Soubory práce ze STAG")
+        title = QLabel(tr("📎 Soubory práce ze STAG"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
@@ -2444,16 +2445,16 @@ class StagFilesPreviewDialog(QDialog):
 
         # ── Tlačítka (zaškrtnout/odznačit vše + potvrzení) ──────────────────
         row = QHBoxLayout()
-        btn_all = QPushButton("☑ Vše")
+        btn_all = QPushButton(tr("☑ Vše"))
         btn_all.clicked.connect(lambda: self._set_all(True))
-        btn_none = QPushButton("☐ Nic")
+        btn_none = QPushButton(tr("☐ Nic"))
         btn_none.clicked.connect(lambda: self._set_all(False))
         row.addWidget(btn_all)
         row.addWidget(btn_none)
         row.addStretch()
-        btn_skip = QPushButton("Přeskočit soubory")
+        btn_skip = QPushButton(tr("Přeskočit soubory"))
         btn_skip.clicked.connect(self.reject)
-        btn_ok = QPushButton("✓ Importovat vybrané")
+        btn_ok = QPushButton(tr("✓ Importovat vybrané"))
         bf = btn_ok.font()
         bf.setBold(True)
         btn_ok.setFont(bf)
@@ -2513,7 +2514,7 @@ class StagDownloadDialog(QDialog):
         self.focus_thesis_id: str | None = None
         self.focus_opposing_id: str | None = None
 
-        self.setWindowTitle("Stáhnout práci ze STAG")
+        self.setWindowTitle(tr("Stáhnout práci ze STAG"))
         # Vyšší a širší — u hromadného stažení bývá výsledků hodně a sloupec
         # „Práce" (student + dlouhý název) potřebuje šířku dle obsahu.
         self.setMinimumSize(1000, 980)
@@ -2523,17 +2524,17 @@ class StagDownloadDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        title = QLabel("🌐 Stáhnout práci ze STAG")
+        title = QLabel(tr("🌐 Stáhnout práci ze STAG"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
         intro = QLabel(
-            "Vyhledá veřejné záznamy kvalifikačních prací na "
+            tr("Vyhledá veřejné záznamy kvalifikačních prací na "
             "<a href='https://stag.utb.cz'>stag.utb.cz</a> a stáhne jejich CSV. "
             "Hledat můžeš podle <b>příjmení studenta</b> (+ upřesnění vedoucím/"
             "oponentem), nebo <b>jen podle vedoucího/oponenta</b> — pak najde "
             "<b>všechny jeho práce</b> (historické i aktuální) a můžeš jich "
-            "naimportovat víc najednou."
+            "naimportovat víc najednou.")
         )
         intro.setTextFormat(Qt.TextFormat.RichText)
         intro.setOpenExternalLinks(True)
@@ -2545,15 +2546,15 @@ class StagDownloadDialog(QDialog):
         form = QFormLayout()
 
         self.ed_student = QLineEdit()
-        self.ed_student.setPlaceholderText("např. Pohanka (nepovinné při hledání dle vedoucího)")
+        self.ed_student.setPlaceholderText(tr("např. Pohanka (nepovinné při hledání dle vedoucího)"))
         self.ed_student.returnPressed.connect(self._do_search)
-        form.addRow("Příjmení studenta", self.ed_student)
+        form.addRow(tr("Příjmení studenta"), self.ed_student)
 
         self.ed_person = QLineEdit(default_person_surname)
-        self.ed_person.setPlaceholderText("např. Žáček (tvoje příjmení) — bez studenta najde VŠE")
+        self.ed_person.setPlaceholderText(tr("např. Žáček (tvoje příjmení) — bez studenta najde VŠE"))
         self.ed_person.returnPressed.connect(self._do_search)
 
-        self.rb_supervisor = QRadioButton("Vedoucí")
+        self.rb_supervisor = QRadioButton(tr("Vedoucí"))
         self.rb_opponent = QRadioButton("Oponent")
         self.rb_supervisor.setChecked(True)
         role_group = QButtonGroup(self)
@@ -2562,18 +2563,18 @@ class StagDownloadDialog(QDialog):
         person_row = QHBoxLayout()
         person_row.setContentsMargins(0, 0, 0, 0)
         person_row.addWidget(self.ed_person, stretch=1)
-        self._role_label = QLabel("role:")
+        self._role_label = QLabel(tr("role:"))
         person_row.addWidget(self._role_label)
         person_row.addWidget(self.rb_supervisor)
         person_row.addWidget(self.rb_opponent)
         person_widget = QWidget()
         person_widget.setLayout(person_row)
-        self._person_form_label = QLabel("Příjmení vedoucího/oponenta")
+        self._person_form_label = QLabel(tr("Příjmení vedoucího/oponenta"))
         form.addRow(self._person_form_label, person_widget)
 
         outer.addLayout(form)
 
-        self.btn_search = QPushButton("🔍 Vyhledat ve STAG")
+        self.btn_search = QPushButton(tr("🔍 Vyhledat ve STAG"))
         self.btn_search.clicked.connect(self._do_search)
         bf = self.btn_search.font()
         bf.setBold(True)
@@ -2581,7 +2582,7 @@ class StagDownloadDialog(QDialog):
         outer.addWidget(self.btn_search)
 
         # ── Výsledky ────────────────────────────────────────────────────────
-        self.lbl_status = QLabel("Zadej příjmení a klikni na „Vyhledat ve STAG\".")
+        self.lbl_status = QLabel(tr("Zadej příjmení a klikni na „Vyhledat ve STAG\"."))
         self.lbl_status.setStyleSheet("color:#888;")
         self.lbl_status.setWordWrap(True)
         outer.addWidget(self.lbl_status)
@@ -2589,7 +2590,7 @@ class StagDownloadDialog(QDialog):
         # Lišta nad seznamem: seskupení + filtr „jen moje".
         toolbar = QHBoxLayout()
         toolbar.setContentsMargins(0, 0, 0, 0)
-        toolbar.addWidget(QLabel("Seskupit podle:"))
+        toolbar.addWidget(QLabel(tr("Seskupit podle:")))
         self.cmb_group = QComboBox()
         for label, key in _GROUP_MODES:
             self.cmb_group.addItem(label, key)
@@ -2599,11 +2600,11 @@ class StagDownloadDialog(QDialog):
         toolbar.addStretch()
 
         # Filtr „jen moje práce" (dle celého jména) — past s více jmenovci.
-        self.chk_only_mine = QCheckBox("Jen moje práce (filtrovat dle celého jména)")
+        self.chk_only_mine = QCheckBox(tr("Jen moje práce (filtrovat dle celého jména)"))
         self.chk_only_mine.setChecked(bool(auto_role))
         self.chk_only_mine.setToolTip(
-            "Příjmení nemusí být jednoznačné (víc vedoucích stejného příjmení). "
-            "Zaškrtnuté = ponechá jen práce, kde je tvé celé jméno z profilu."
+            tr("Příjmení nemusí být jednoznačné (víc vedoucích stejného příjmení). "
+            "Zaškrtnuté = ponechá jen práce, kde je tvé celé jméno z profilu.")
         )
         self.chk_only_mine.setVisible(bool(auto_role))
         self.chk_only_mine.stateChanged.connect(self._on_filter_changed)
@@ -2635,34 +2636,34 @@ class StagDownloadDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_files_only = QPushButton("📎 Stáhnout jen soubory")
+        self.btn_files_only = QPushButton(tr("📎 Stáhnout jen soubory"))
         self.btn_files_only.setEnabled(False)
         self.btn_files_only.setToolTip(
-            "Stáhne jen soubory (text, přílohy, posudky) a připojí je k "
+            tr("Stáhne jen soubory (text, přílohy, posudky) a připojí je k "
             "odpovídající práci, kterou už máš v databázi (CSV se neimportuje). "
-            "Pokud práce v databázi není, upozorní."
+            "Pokud práce v databázi není, upozorní.")
         )
         self.btn_files_only.clicked.connect(self._download_files_only)
-        self.btn_status_only = QPushButton("🏷 Aktualizovat jen stavy")
+        self.btn_status_only = QPushButton(tr("🏷 Aktualizovat jen stavy"))
         self.btn_status_only.setEnabled(False)
         self.btn_status_only.setToolTip(
-            "Aktualizuje jen STAV prací ze STAG (bez stahování souborů) u prací, "
+            tr("Aktualizuje jen STAV prací ze STAG (bez stahování souborů) u prací, "
             "které už máš v databázi. Vedené práce: stav "
             "(Obhájeno / Neobhájeno / Nedokončeno / …); oponentury: stav práce ve "
-            "STAG. Rychlé — vyřeší i přeřazení Nedokončeno → Neobhájeno."
+            "STAG. Rychlé — vyřeší i přeřazení Nedokončeno → Neobhájeno.")
         )
         self.btn_status_only.clicked.connect(self._update_statuses_only)
-        self.btn_download = QPushButton("⬇ Stáhnout vybrané")
+        self.btn_download = QPushButton(tr("⬇ Stáhnout vybrané"))
         self.btn_download.setEnabled(False)
         self.btn_download.setDefault(True)
         df = self.btn_download.font()
         df.setBold(True)
         self.btn_download.setFont(df)
         self.btn_download.setToolTip(
-            "Stáhne CSV s prací i její soubory — v dalším kroku zvolíš, "
-            "co naimportovat."
+            tr("Stáhne CSV s prací i její soubory — v dalším kroku zvolíš, "
+            "co naimportovat.")
         )
         self.btn_download.clicked.connect(self._download_selected)
         row.addStretch()
@@ -2694,7 +2695,7 @@ class StagDownloadDialog(QDialog):
             self.rb_supervisor.setVisible(False)
             self.rb_opponent.setVisible(False)
             self._person_form_label.setText(f"Příjmení {role_word} (= tvoje)")
-            self.ed_person.setPlaceholderText("tvé příjmení z profilu")
+            self.ed_person.setPlaceholderText(tr("tvé příjmení z profilu"))
             QTimer.singleShot(0, self._do_search)
 
     # --- akce ----------------------------------------------------------------
@@ -2704,9 +2705,9 @@ class StagDownloadDialog(QDialog):
         person = self.ed_person.text().strip()
         if not student and not person:
             QMessageBox.warning(
-                self, "Chybí příjmení",
-                "Zadej příjmení studenta, nebo příjmení vedoucího/oponenta "
-                "(hromadné vyhledání všech jeho prací).",
+                self, tr("Chybí příjmení"),
+                tr("Zadej příjmení studenta, nebo příjmení vedoucího/oponenta "
+                "(hromadné vyhledání všech jeho prací)."),
             )
             self.ed_student.setFocus()
             return
@@ -2721,7 +2722,7 @@ class StagDownloadDialog(QDialog):
         self._enriched_adip = set()
         self._attach_info = {}
         self.btn_download.setEnabled(False)
-        self.lbl_status.setText("⏳ Hledám ve STAG…")
+        self.lbl_status.setText(tr("⏳ Hledám ve STAG…"))
         self.btn_search.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
@@ -2730,13 +2731,13 @@ class StagDownloadDialog(QDialog):
         except stag_api.StagError as exc:
             QApplication.restoreOverrideCursor()
             self.btn_search.setEnabled(True)
-            self.lbl_status.setText("⚠ Vyhledávání se nezdařilo.")
+            self.lbl_status.setText(tr("⚠ Vyhledávání se nezdařilo."))
             QMessageBox.warning(self, "STAG", str(exc))
             return
         except Exception as exc:  # noqa: BLE001
             QApplication.restoreOverrideCursor()
             self.btn_search.setEnabled(True)
-            self.lbl_status.setText("⚠ Neočekávaná chyba.")
+            self.lbl_status.setText(tr("⚠ Neočekávaná chyba."))
             QMessageBox.critical(
                 self, "STAG", f"Neočekávaná chyba při vyhledávání:\n{exc}"
             )
@@ -2804,7 +2805,7 @@ class StagDownloadDialog(QDialog):
         if not self._results:
             tree.blockSignals(False)
             self.lbl_status.setText(
-                "Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku)."
+                tr("Nenalezena žádná práce. Zkontroluj příjmení (i diakritiku).")
             )
             self._update_download_btn()
             return
@@ -2948,7 +2949,7 @@ class StagDownloadDialog(QDialog):
         progress = QProgressDialog(
             "Načítám akademický rok a obor prací…", "Přerušit", 0, len(todo), self
         )
-        progress.setWindowTitle("STAG — detaily prací")
+        progress.setWindowTitle(tr("STAG — detaily prací"))
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setValue(0)
@@ -3140,7 +3141,7 @@ class StagDownloadDialog(QDialog):
             progress = QProgressDialog(
                 "Zjišťuji přílohy zaškrtnutých prací…", "Přerušit", 0, len(todo), self
             )
-            progress.setWindowTitle("STAG — přílohy")
+            progress.setWindowTitle(tr("STAG — přílohy"))
             progress.setWindowModality(Qt.WindowModality.WindowModal)
             progress.setMinimumDuration(400)  # ukaž jen když to chvíli trvá
             progress.setValue(0)
@@ -3214,7 +3215,7 @@ class StagDownloadDialog(QDialog):
         progress = QProgressDialog(
             "Stahuji práce ze STAG…", "Přerušit", 0, len(results), self
         )
-        progress.setWindowTitle("Stahování ze STAG")
+        progress.setWindowTitle(tr("Stahování ze STAG"))
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setMinimumWidth(460)
@@ -3297,7 +3298,7 @@ class StagDownloadDialog(QDialog):
         if to_download and total_bytes > _BIG_TOTAL_BYTES:
             box = QMessageBox(self)
             box.setIcon(QMessageBox.Icon.Question)
-            box.setWindowTitle("Velké stahování příloh")
+            box.setWindowTitle(tr("Velké stahování příloh"))
             box.setText(
                 f"Přílohy zaberou celkem ~{_fmt_size(total_bytes)} "
                 f"({len(to_download)} souborů napříč {len(items)} pracemi)."
@@ -3305,11 +3306,11 @@ class StagDownloadDialog(QDialog):
             box.setInformativeText(
                 "Stáhnout přílohy, nebo naimportovat jen data prací (bez příloh)?"
             )
-            box.addButton("⬇ Stáhnout přílohy", QMessageBox.ButtonRole.AcceptRole)
+            box.addButton(tr("⬇ Stáhnout přílohy"), QMessageBox.ButtonRole.AcceptRole)
             btn_data = box.addButton(
-                "Jen data (bez příloh)", QMessageBox.ButtonRole.DestructiveRole
+                tr("Jen data (bez příloh)"), QMessageBox.ButtonRole.DestructiveRole
             )
-            btn_cancel = box.addButton("Zrušit", QMessageBox.ButtonRole.RejectRole)
+            btn_cancel = box.addButton(tr("Zrušit"), QMessageBox.ButtonRole.RejectRole)
             box.setDefaultButton(btn_data)
             box.exec()
             clicked = box.clickedButton()
@@ -3317,7 +3318,7 @@ class StagDownloadDialog(QDialog):
                 progress.close()
                 self._cleanup_temp_files(temp_files)
                 self._update_download_btn()
-                self.lbl_status.setText("Stahování zrušeno.")
+                self.lbl_status.setText(tr("Stahování zrušeno."))
                 return
             if clicked == btn_data:
                 to_download = []  # přeskoč přílohy, importuj jen CSV data
@@ -3330,7 +3331,7 @@ class StagDownloadDialog(QDialog):
         steps = 1000
         progress.setRange(0, steps if use_bytes else max(1, total_files))
         progress.setValue(0)
-        progress.setLabelText("Stahuji přílohy…")
+        progress.setLabelText(tr("Stahuji přílohy…"))
         if total_files:
             progress.show()
         QApplication.processEvents()
@@ -3427,12 +3428,12 @@ class StagDownloadDialog(QDialog):
             # Uživatel přerušil → ukliď VŠE dočasně stažené (CSV i přílohy).
             self._cleanup_temp_files(temp_files)
             self._update_download_btn()
-            self.lbl_status.setText("⚠ Stahování přerušeno, dočasné soubory uklizeny.")
+            self.lbl_status.setText(tr("⚠ Stahování přerušeno, dočasné soubory uklizeny."))
             return
 
         if failed:
             QMessageBox.warning(
-                self, "STAG — některé přílohy se nestáhly",
+                self, tr("STAG — některé přílohy se nestáhly"),
                 "Tyto přílohy se nepodařilo stáhnout (přeskočeny):\n\n"
                 + "\n".join(f"• {x}" for x in failed),
             )
@@ -3504,7 +3505,7 @@ class StagDownloadDialog(QDialog):
             QApplication.restoreOverrideCursor()
         if dl_errors:
             QMessageBox.warning(
-                self, "STAG — některé soubory se nestáhly",
+                self, tr("STAG — některé soubory se nestáhly"),
                 "Tyto soubory se nepodařilo stáhnout:\n\n"
                 + "\n".join(f"• {e}" for e in dl_errors),
             )
@@ -3521,7 +3522,7 @@ class StagDownloadDialog(QDialog):
             if no_files:
                 names = ", ".join(r.student_full for r in no_files)
                 msg += f"\n\nU těchto prací STAG nenabízí žádné soubory:\n{names}"
-            QMessageBox.warning(self, "STAG — jen soubory", msg)
+            QMessageBox.warning(self, tr("STAG — jen soubory"), msg)
             return
 
         # Náhled výběru souborů (jen práce, kde se nějaké soubory stáhly)
@@ -3569,8 +3570,8 @@ class StagDownloadDialog(QDialog):
         if attached == 0 and not attach_errors:
             self._update_download_btn()
             QMessageBox.information(
-                self, "STAG — jen soubory",
-                "Žádné soubory nebyly vybrány k importu.",
+                self, tr("STAG — jen soubory"),
+                tr("Žádné soubory nebyly vybrány k importu."),
             )
             return
 
@@ -3586,7 +3587,7 @@ class StagDownloadDialog(QDialog):
             )
         if attach_errors:
             summary.append("⚠ Chyby:\n" + "\n".join(attach_errors))
-        QMessageBox.information(self, "STAG — jen soubory", "\n\n".join(summary))
+        QMessageBox.information(self, tr("STAG — jen soubory"), "\n\n".join(summary))
 
         self.files_only_done = True
         self.focus_thesis_id = last_thesis_id
@@ -3668,7 +3669,7 @@ class StagDownloadDialog(QDialog):
         if errors:
             summary.append("⚠ Nešlo aktualizovat:\n" + "\n".join(errors))
         QMessageBox.information(
-            self, "STAG — jen stavy",
+            self, tr("STAG — jen stavy"),
             "\n\n".join(summary) or "Nebylo co aktualizovat.",
         )
 
@@ -3707,16 +3708,16 @@ class StagDownloadDialog(QDialog):
         total = sum(sf.size_hint for sf in big)
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("Velké přílohy ze STAG")
+        msg.setWindowTitle(tr("Velké přílohy ze STAG"))
         msg.setText(
             f"{len(big)} "
             f"{StagImportDialog._cs_plural(len(big), 'příloha je velká', 'přílohy jsou velké', 'příloh je velkých')} "
             f"(celkem ~{_fmt_size(total)}):"
         )
         msg.setInformativeText(lines + "\n\nStáhnout je i tak?")
-        btn_dl = msg.addButton("⬇ Stáhnout i tak", QMessageBox.ButtonRole.AcceptRole)
+        btn_dl = msg.addButton(tr("⬇ Stáhnout i tak"), QMessageBox.ButtonRole.AcceptRole)
         btn_skip = msg.addButton(
-            "Přeskočit velké", QMessageBox.ButtonRole.RejectRole
+            tr("Přeskočit velké"), QMessageBox.ButtonRole.RejectRole
         )
         msg.setDefaultButton(btn_dl)
         msg.exec()
@@ -3828,7 +3829,7 @@ class StagDownloadDialog(QDialog):
             except OSError:
                 pass
         ans = QMessageBox.question(
-            self, "Dočasné soubory ze STAG",
+            self, tr("Dočasné soubory ze STAG"),
             f"Ve složce dočasných souborů je {len(leftover)} "
             f"{StagImportDialog._cs_plural(len(leftover), 'soubor', 'soubory', 'souborů')}"
             f" ({_fmt_size(total)}) z dřívějšího stahování ze STAG "

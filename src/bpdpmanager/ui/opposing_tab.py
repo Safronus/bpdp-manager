@@ -421,8 +421,8 @@ class OpposingTab(QWidget):
         ]
         if not have:
             QMessageBox.information(
-                self, "Tisk posudku",
-                "Vybrané práce nemají PDF oponentského posudku k tisku.",
+                self, tr("Tisk posudku"),
+                tr("Vybrané práce nemají PDF oponentského posudku k tisku."),
             )
             return
         dlg = MyQPrintDialog(self.service, self, only_opposing_ids=have)
@@ -445,8 +445,8 @@ class OpposingTab(QWidget):
             f"📄 Export PDF mých posudků ({len(selected_ops)})…", self.tree
         )
         act_export_pdf.setToolTip(
-            "Zkopíruje nejnovější PDF oponentského posudku pro vybrané práce do "
-            "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí."
+            tr("Zkopíruje nejnovější PDF oponentského posudku pro vybrané práce do "
+            "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí.")
         )
         act_export_pdf.triggered.connect(
             lambda _checked=False: self._export_my_review_pdfs()
@@ -457,8 +457,8 @@ class OpposingTab(QWidget):
             f"🖨 Tisk posudku ({len(selected_ops)})…", self.tree
         )
         act_print.setToolTip(
-            "Otevře tisk posudků jen s vybranými pracemi (posudek oponenta). "
-            "Práce bez PDF posudku se přeskočí."
+            tr("Otevře tisk posudků jen s vybranými pracemi (posudek oponenta). "
+            "Práce bez PDF posudku se přeskočí.")
         )
         print_ids = [it.data(0, ROLE_ID) for it in selected_ops if it.data(0, ROLE_ID)]
         act_print.triggered.connect(
@@ -473,10 +473,10 @@ class OpposingTab(QWidget):
             return menu
 
         # Aktualizace jedné oponentury ze STAG (stav + dohrání souborů).
-        act_update = QAction("🔄 Aktualizace práce ze STAG…", self.tree)
+        act_update = QAction(tr("🔄 Aktualizace práce ze STAG…"), self.tree)
         act_update.setToolTip(
-            "Porovná tuto oponenturu se STAG a nabídne dohrání chybějících "
-            "souborů (a aktualizaci stavu); ukáže, co se aktualizuje."
+            tr("Porovná tuto oponenturu se STAG a nabídne dohrání chybějících "
+            "souborů (a aktualizaci stavu); ukáže, co se aktualizuje.")
         )
         act_update.triggered.connect(
             lambda _c=False, oid=op_id: self._on_update_from_stag(oid)
@@ -487,7 +487,7 @@ class OpposingTab(QWidget):
         # Napsat (oponentský) posudek — výběr šablony + vyplnění, v roli oponenta.
         act_write = QAction("📝 Napsat posudek…", self.tree)
         act_write.setToolTip(
-            "Vyber šablonu a napiš oponentský posudek k této práci (role oponent)."
+            tr("Vyber šablonu a napiš oponentský posudek k této práci (role oponent).")
         )
         act_write.setEnabled(op is not None)
         if op is not None:
@@ -508,7 +508,7 @@ class OpposingTab(QWidget):
             self.service.opposing_document_absolute_path(op_id, sup_att)
             if sup_att is not None else None
         )
-        act_open_sup = QAction("📘 Otevřít posudek vedoucího", self.tree)
+        act_open_sup = QAction(tr("📘 Otevřít posudek vedoucího"), self.tree)
         act_open_sup.setEnabled(
             op is not None and op.academic_year == current_year
             and sup_path is not None and sup_path.exists()
@@ -527,7 +527,7 @@ class OpposingTab(QWidget):
             self.service.opposing_document_absolute_path(op_id, opp_att)
             if opp_att is not None else None
         )
-        act_open_opp = QAction("📕 Otevřít posudek oponenta (můj)", self.tree)
+        act_open_opp = QAction(tr("📕 Otevřít posudek oponenta (můj)"), self.tree)
         act_open_opp.setEnabled(opp_path is not None and opp_path.exists())
         if act_open_opp.isEnabled():
             act_open_opp.triggered.connect(lambda _c=False, p=opp_path: open_path(p))
@@ -543,7 +543,7 @@ class OpposingTab(QWidget):
             self.service.opposing_document_absolute_path(op_id, text_att)
             if text_att is not None else None
         )
-        act_open_text = QAction("📄 Otevřít text práce", self.tree)
+        act_open_text = QAction(tr("📄 Otevřít text práce"), self.tree)
         act_open_text.setEnabled(text_path is not None and text_path.exists())
         if act_open_text.isEnabled():
             act_open_text.triggered.connect(lambda _c=False, p=text_path: open_path(p))
@@ -587,9 +587,9 @@ class OpposingTab(QWidget):
                 menu.addAction(act_printed)
             menu.addSeparator()
 
-        act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self.tree)
+        act_rollback = QAction(tr("🗑 Roll-back — smazat kompletně…"), self.tree)
         act_rollback.setToolTip(
-            "Nenávratně smaže posudek z databáze a všechny jeho soubory."
+            tr("Nenávratně smaže posudek z databáze a všechny jeho soubory.")
         )
 
         def _do_rollback() -> None:
@@ -655,17 +655,17 @@ class OpposingTab(QWidget):
         menu.addAction(act_rev)
         menu.addSeparator()
 
-        act_sent = QAction("✉ Označit posudky za odeslané", self.tree)
+        act_sent = QAction(tr("✉ Označit posudky za odeslané"), self.tree)
         act_sent.triggered.connect(lambda _c=False, v=ids: self._mark_many_sent(v, True))
         menu.addAction(act_sent)
-        act_unsent = QAction("✉ Zrušit označení odeslání", self.tree)
+        act_unsent = QAction(tr("✉ Zrušit označení odeslání"), self.tree)
         act_unsent.triggered.connect(lambda _c=False, v=ids: self._mark_many_sent(v, False))
         menu.addAction(act_unsent)
 
-        act_pr = QAction("🖨 Označit posudky za vytištěné", self.tree)
+        act_pr = QAction(tr("🖨 Označit posudky za vytištěné"), self.tree)
         act_pr.triggered.connect(lambda _c=False, v=ids: self._mark_many_printed(v, True))
         menu.addAction(act_pr)
-        act_unpr = QAction("🖨 Zrušit označení vytištění", self.tree)
+        act_unpr = QAction(tr("🖨 Zrušit označení vytištění"), self.tree)
         act_unpr.triggered.connect(lambda _c=False, v=ids: self._mark_many_printed(v, False))
         menu.addAction(act_unpr)
         menu.addSeparator()
@@ -725,7 +725,7 @@ class OpposingTab(QWidget):
             names.append(f"• {nm} ({o.type.value})")
         more = f"\n… a další {len(ids) - 12}" if len(ids) > 12 else ""
         resp = QMessageBox.warning(
-            self, "Roll-back více posudků",
+            self, tr("Roll-back více posudků"),
             f"Nenávratně smazat {len(ids)} oponentur z databáze včetně jejich "
             f"souborů?\n\n" + "\n".join(names) + more,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -748,7 +748,7 @@ class OpposingTab(QWidget):
         self.refresh()
         self.changed.emit()
         QMessageBox.information(
-            self, "Roll-back hotov", f"Smazáno {deleted} z {len(ids)} oponentur."
+            self, tr("Roll-back hotov"), f"Smazáno {deleted} z {len(ids)} oponentur."
         )
 
     # --- akce ---------------------------------------------------------------

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..services import ProfileManager
 
 
@@ -42,11 +43,11 @@ class ImportIntoCurrentDialog(QDialog):
         active = pm.active
         if active is None:
             # Pro jistotu — UI by neměl tento dialog otevřít bez aktivního profilu
-            self.setWindowTitle("Žádný aktivní profil")
-            QVBoxLayout(self).addWidget(QLabel("Není otevřený žádný profil."))
+            self.setWindowTitle(tr("Žádný aktivní profil"))
+            QVBoxLayout(self).addWidget(QLabel(tr("Není otevřený žádný profil.")))
             return
 
-        self.setWindowTitle("Import dat do aktuálního profilu")
+        self.setWindowTitle(tr("Import dat do aktuálního profilu"))
         self.setMinimumWidth(620)
 
         outer = QVBoxLayout(self)
@@ -54,7 +55,7 @@ class ImportIntoCurrentDialog(QDialog):
         outer.setSpacing(12)
 
         # Hlavička s cílem
-        title = QLabel("📥 Import dat do aktuálního profilu")
+        title = QLabel(tr("📥 Import dat do aktuálního profilu"))
         title.setStyleSheet("font-size: 16px; font-weight: bold;")
         outer.addWidget(title)
 
@@ -74,34 +75,34 @@ class ImportIntoCurrentDialog(QDialog):
         self.cb_source = QComboBox()
         other_profiles = [p for p in self.pm.all_profiles() if p.id != active.id]
         if not other_profiles:
-            self.cb_source.addItem("(žádný jiný profil neexistuje)", None)
+            self.cb_source.addItem(tr("(žádný jiný profil neexistuje)"), None)
             self.cb_source.setEnabled(False)
         else:
             for p in other_profiles:
                 self.cb_source.addItem(f"📦 {p.name}", p.id)
-        form.addRow("Zdroj (odkud importovat)", self.cb_source)
+        form.addRow(tr("Zdroj (odkud importovat)"), self.cb_source)
         outer.addLayout(form)
 
         # Co kopírovat
-        outer.addWidget(QLabel("Co naimportovat:"))
-        self.chk_db = QCheckBox("🗂  db.json (hlavní databáze) — PŘEPÍŠE aktuální obsah")
+        outer.addWidget(QLabel(tr("Co naimportovat:")))
+        self.chk_db = QCheckBox(tr("🗂  db.json (hlavní databáze) — PŘEPÍŠE aktuální obsah"))
         self.chk_db.setChecked(True)
         self.chk_db.setEnabled(False)  # zatím povinné — jádro akce
         outer.addWidget(self.chk_db)
-        self.chk_docs = QCheckBox("📎 Dokumenty (posudky, text práce, prezentace…)")
+        self.chk_docs = QCheckBox(tr("📎 Dokumenty (posudky, text práce, prezentace…)"))
         self.chk_docs.setChecked(True)
         outer.addWidget(self.chk_docs)
-        self.chk_harm = QCheckBox("📅 Naimportované PDF harmonogramy")
+        self.chk_harm = QCheckBox(tr("📅 Naimportované PDF harmonogramy"))
         self.chk_harm.setChecked(True)
         outer.addWidget(self.chk_harm)
 
         # Varovný panel
         warn = QLabel(
-            "<b>⚠ Pozor:</b> Aktuální data v cílovém profilu budou přepsána "
+            tr("<b>⚠ Pozor:</b> Aktuální data v cílovém profilu budou přepsána "
             "(db.json) nebo doplněna (dokumenty / harmonogramy). "
             "<b>Před přepsáním se automaticky vytvoří záloha aktuálního stavu</b> "
             'se značkou <code>before-import</code> ve složce <code>backups/</code> '
-            "— takže se dá vrátit přes <i>👤 → 💾 Zálohy</i>."
+            "— takže se dá vrátit přes <i>👤 → 💾 Zálohy</i>.")
         )
         warn.setTextFormat(Qt.TextFormat.RichText)
         warn.setWordWrap(True)
@@ -117,7 +118,7 @@ class ImportIntoCurrentDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         ok_btn = buttons.button(QDialogButtonBox.StandardButton.Ok)
-        ok_btn.setText("🔄 Importovat (přepsat aktuální data)")
+        ok_btn.setText(tr("🔄 Importovat (přepsat aktuální data)"))
         f: QFont = ok_btn.font()
         f.setBold(True)
         ok_btn.setFont(f)

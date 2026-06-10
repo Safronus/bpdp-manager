@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Obor
 from ..services import ThesisService
 
@@ -38,38 +39,38 @@ class OborDialog(QDialog):
         # Základní info
         base_form = QFormLayout()
         self.ed_name = QLineEdit(self.obor.name)
-        self.ed_name.setPlaceholderText("např. NSWI-P")
-        base_form.addRow("Název oboru", self.ed_name)
+        self.ed_name.setPlaceholderText(tr("např. NSWI-P"))
+        base_form.addRow(tr("Název oboru"), self.ed_name)
         self.ed_stag_code = QLineEdit(self.obor.stag_code or "")
         self.ed_stag_code.setPlaceholderText(
-            "STAG kód (pro import — např. knIT-KYB, volitelné)"
+            tr("STAG kód (pro import — např. knIT-KYB, volitelné)")
         )
-        base_form.addRow("STAG kód", self.ed_stag_code)
+        base_form.addRow(tr("STAG kód"), self.ed_stag_code)
         layout.addLayout(base_form)
 
         # Sekretářka
-        sec_box = QGroupBox("Sekretářka oboru (volitelné)")
+        sec_box = QGroupBox(tr("Sekretářka oboru (volitelné)"))
         sec_form = QFormLayout(sec_box)
         self.ed_sec_name = QLineEdit(self.obor.secretary_name or "")
-        self.ed_sec_name.setPlaceholderText("Jméno a příjmení")
+        self.ed_sec_name.setPlaceholderText(tr("Jméno a příjmení"))
         self.ed_sec_email = QLineEdit(self.obor.secretary_email or "")
         self.ed_sec_email.setPlaceholderText("email@utb.cz")
         self.ed_sec_phone = QLineEdit(self.obor.secretary_phone or "")
         self.ed_sec_phone.setPlaceholderText("+420 …")
         self.ed_sec_greeting = QLineEdit(self.obor.secretary_greeting or "")
         self.ed_sec_greeting.setPlaceholderText(
-            "např. Vážená paní Nováková  (prázdné = formální oslovení)"
+            tr("např. Vážená paní Nováková  (prázdné = formální oslovení)")
         )
-        sec_form.addRow("Jméno", self.ed_sec_name)
+        sec_form.addRow(tr("Jméno"), self.ed_sec_name)
         sec_form.addRow("Email", self.ed_sec_email)
-        sec_form.addRow("Telefon", self.ed_sec_phone)
-        sec_form.addRow("Oslovení v mailu", self.ed_sec_greeting)
+        sec_form.addRow(tr("Telefon"), self.ed_sec_phone)
+        sec_form.addRow(tr("Oslovení v mailu"), self.ed_sec_greeting)
         layout.addWidget(sec_box)
 
         # Poznámka
         self.ed_note = QPlainTextEdit(self.obor.note or "")
         self.ed_note.setMaximumHeight(80)
-        layout.addWidget(QLabel("Poznámka"))
+        layout.addWidget(QLabel(tr("Poznámka")))
         layout.addWidget(self.ed_note)
 
         buttons = QDialogButtonBox(

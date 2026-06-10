@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models.enums import AttachmentKind
 from ..services import BackupManager, stag_api
 from ..services.stag_api import is_defense_record_filename
@@ -63,31 +64,31 @@ class DefenseReclassifyDialog(QDialog):
         self.changed = False
         self._rows: list[tuple] = []  # (attachment, work_label, name)
 
-        self.setWindowTitle("Přeřadit průběh obhajoby (ze STAG)")
+        self.setWindowTitle(tr("Přeřadit průběh obhajoby (ze STAG)"))
         self.setMinimumSize(760, 560)
 
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(
-            "Dotáhnu ze STAG původní názvy příloh typu <b>Jiné</b> a nabídnu "
+            tr("Dotáhnu ze STAG původní názvy příloh typu <b>Jiné</b> a nabídnu "
             "přeřazení na <b>Soubor s průběhem obhajoby</b>. Soubory, které "
             "vypadají jako protokol/zápis o obhajobě, jsou předzaškrtnuté — "
-            "ostatní zkontroluj a případně zaškrtni.",
+            "ostatní zkontroluj a případně zaškrtni."),
             textFormat=Qt.TextFormat.RichText,
         ))
-        self.lbl_status = QLabel("⏳ Dotahuji seznam souborů ze STAG…")
+        self.lbl_status = QLabel(tr("⏳ Dotahuji seznam souborů ze STAG…"))
         self.lbl_status.setWordWrap(True)
         layout.addWidget(self.lbl_status)
 
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Práce", "Původní název souboru ze STAG"])
+        self.tree.setHeaderLabels([tr("Práce"), tr("Původní název souboru ze STAG")])
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
         layout.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(self.reject)
-        self.btn_apply = QPushButton("✓ Přeřadit zaškrtnuté")
+        self.btn_apply = QPushButton(tr("✓ Přeřadit zaškrtnuté"))
         self.btn_apply.setEnabled(False)
         self.btn_apply.clicked.connect(self._apply)
         row.addStretch()
@@ -130,7 +131,7 @@ class DefenseReclassifyDialog(QDialog):
         candidates = self._candidates()
         if not candidates:
             self.lbl_status.setText(
-                "Žádné práce s přílohou typu „Jiné“ a STAG ID — není co přeřadit."
+                tr("Žádné práce s přílohou typu „Jiné“ a STAG ID — není co přeřadit.")
             )
             return
 

@@ -12,9 +12,9 @@ from .obor import Obor
 from .opponent import Opponent
 from .opposing_thesis import OpposingThesis
 from .profile import Profile, ProfileRegistry, SmtpConfig
+from .rejected_student import RejectedStudent
 from .review import CriterionScore, Review
 from .review_template import ReviewTemplate, TemplateCriterion
-from .rejected_student import RejectedStudent
 from .student import Student
 from .supervisor import Supervisor
 from .thesis import Attachment, Deadline, Thesis

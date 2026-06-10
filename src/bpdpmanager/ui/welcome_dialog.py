@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Profile
 from ..services import ProfileError, ProfileManager
 
@@ -38,7 +39,7 @@ class WelcomeDialog(QDialog):
         self.pm = pm
         self.selected_profile: Profile | None = None
 
-        self.setWindowTitle("Vítejte v BPDPManager")
+        self.setWindowTitle(tr("Vítejte v BPDPManager"))
         self.setMinimumWidth(620)
 
         outer = QVBoxLayout(self)
@@ -46,81 +47,81 @@ class WelcomeDialog(QDialog):
         outer.setSpacing(14)
 
         # Nadpis
-        title = QLabel("Vítejte v BPDPManager 👋")
+        title = QLabel(tr("Vítejte v BPDPManager 👋"))
         title.setStyleSheet("font-size: 20px; font-weight: bold;")
         outer.addWidget(title)
         desc = QLabel(
-            "Aplikace si potřebuje vybrat, kde má uložená data. "
+            tr("Aplikace si potřebuje vybrat, kde má uložená data. "
             "Můžeš mít víc datových profilů (např. osobní, sdílený…) "
-            "a kdykoli mezi nimi přepínat."
+            "a kdykoli mezi nimi přepínat.")
         )
         desc.setWordWrap(True)
         outer.addWidget(desc)
 
         # Legacy detekce
         if pm.has_legacy_data():
-            legacy_box = QGroupBox("🔍 Nalezena stávající data")
+            legacy_box = QGroupBox(tr("🔍 Nalezena stávající data"))
             legacy_layout = QVBoxLayout(legacy_box)
             legacy_text = QLabel(
-                "V <code>~/.bpdpmanager/</code> jsem našel existující "
+                tr("V <code>~/.bpdpmanager/</code> jsem našel existující "
                 "<code>db.json</code> z předchozích verzí. Můžeme rovnou "
                 "vyrobit profil „Výchozí“, který bude ukazovat na tuto složku — "
-                "žádná data se nepřesouvají, jen se zaregistruje cesta."
+                "žádná data se nepřesouvají, jen se zaregistruje cesta.")
             )
             legacy_text.setWordWrap(True)
             legacy_text.setTextFormat(Qt.TextFormat.RichText)
             legacy_layout.addWidget(legacy_text)
-            btn_legacy = QPushButton("📦  Importovat jako profil „Výchozí“")
+            btn_legacy = QPushButton(tr("📦  Importovat jako profil „Výchozí“"))
             btn_legacy.setMinimumHeight(36)
             btn_legacy.clicked.connect(self._import_legacy)
             legacy_layout.addWidget(btn_legacy)
             outer.addWidget(legacy_box)
 
         # Nový profil
-        new_box = QGroupBox("🆕 Nový prázdný profil")
+        new_box = QGroupBox(tr("🆕 Nový prázdný profil"))
         new_layout = QVBoxLayout(new_box)
         new_layout.addWidget(
             QLabel(
-                "Vytvoří se nová prázdná databáze ve složce, kterou si vybereš."
+                tr("Vytvoří se nová prázdná databáze ve složce, kterou si vybereš.")
             )
         )
-        btn_new = QPushButton("➕  Vytvořit nový profil…")
+        btn_new = QPushButton(tr("➕  Vytvořit nový profil…"))
         btn_new.setMinimumHeight(36)
         btn_new.clicked.connect(self._new_profile)
         new_layout.addWidget(btn_new)
         outer.addWidget(new_box)
 
         # Otevřít existující
-        open_box = QGroupBox("📂 Otevřít existující profil")
+        open_box = QGroupBox(tr("📂 Otevřít existující profil"))
         open_layout = QVBoxLayout(open_box)
         open_layout.addWidget(
             QLabel(
-                "Pokud máš složku s <code>db.json</code> (např. ze "
-                "synchronizované složky), můžeš ji připojit jako profil."
+                tr("Pokud máš složku s <code>db.json</code> (např. ze "
+                "synchronizované složky), můžeš ji připojit jako profil.")
             )
         )
         for w in open_box.findChildren(QLabel):
             w.setWordWrap(True)
             w.setTextFormat(Qt.TextFormat.RichText)
-        btn_open = QPushButton("📁  Otevřít složku…")
+        btn_open = QPushButton(tr("📁  Otevřít složku…"))
         btn_open.setMinimumHeight(36)
         btn_open.clicked.connect(self._open_existing)
         open_layout.addWidget(btn_open)
         outer.addWidget(open_box)
 
         # Import ze ZIPu — typický flow pro nového uživatele na novém zařízení
-        zip_box = QGroupBox("📥 Importovat ze ZIP balíku")
+        zip_box = QGroupBox(tr("📥 Importovat ze ZIP balíku"))
         zip_layout = QVBoxLayout(zip_box)
         zip_text = QLabel(
-            "Máš na disku <code>.zip</code> exportovaný přes "
+            tr("Máš na disku <code>.zip</code> exportovaný přes "
             "<i>Export profilu</i> z jiného zařízení? Otevři ho zde — "
             "rozbalí se data + dokumenty + šablony do nového profilu "
-            "a aplikace ho rovnou aktivuje."
+            "a aplikace ho rovnou aktivuje.")
         )
         zip_text.setWordWrap(True)
         zip_text.setTextFormat(Qt.TextFormat.RichText)
         zip_layout.addWidget(zip_text)
-        btn_zip = QPushButton("📥  Importovat .zip…")
+        btn_zip = QPushButton(tr("📥  Importovat .zip…"))
         btn_zip.setMinimumHeight(36)
         btn_zip.clicked.connect(self._import_zip)
         zip_layout.addWidget(btn_zip)
@@ -129,7 +130,7 @@ class WelcomeDialog(QDialog):
         # Zrušit
         row = QHBoxLayout()
         row.addStretch()
-        btn_cancel = QPushButton("Zavřít")
+        btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
         row.addWidget(btn_cancel)
         outer.addLayout(row)
@@ -157,7 +158,7 @@ class WelcomeDialog(QDialog):
         try:
             profile = self.pm.import_legacy(name="Výchozí")
         except ProfileError as exc:
-            QMessageBox.critical(self, "Import selhal", str(exc))
+            QMessageBox.critical(self, tr("Import selhal"), str(exc))
             return
         self.selected_profile = profile
         self.accept()
@@ -182,7 +183,7 @@ class WelcomeDialog(QDialog):
         try:
             profile = self.pm.create(name=name, data_dir=Path(folder))
         except ProfileError as exc:
-            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
+            QMessageBox.critical(self, tr("Vytvoření selhalo"), str(exc))
             return
         self.selected_profile = profile
         self.accept()
@@ -200,7 +201,7 @@ class WelcomeDialog(QDialog):
         if not db_file.exists():
             confirm = QMessageBox.question(
                 self,
-                "Žádný db.json",
+                tr("Žádný db.json"),
                 f"Ve složce nebyl nalezen <code>db.json</code>. "
                 "Vytvořit zde nový prázdný profil?",
             )
@@ -215,7 +216,7 @@ class WelcomeDialog(QDialog):
             except (json.JSONDecodeError, ValueError, OSError) as exc:
                 QMessageBox.warning(
                     self,
-                    "Neplatný soubor",
+                    tr("Neplatný soubor"),
                     f"Soubor db.json ve složce nepatří BPDPManageru:\n{exc}",
                 )
                 return
@@ -233,7 +234,7 @@ class WelcomeDialog(QDialog):
         try:
             profile = self.pm.create(name=name, data_dir=folder_path)
         except ProfileError as exc:
-            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
+            QMessageBox.critical(self, tr("Vytvoření selhalo"), str(exc))
             return
         self.selected_profile = profile
         self.accept()

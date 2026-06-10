@@ -943,8 +943,8 @@ class ThesesTreeWidget(QTreeWidget):
                 f"📄 Export PDF mých posudků ({len(selected_theses)})…", self
             )
             act_export_pdf.setToolTip(
-                "Zkopíruje nejnovější PDF posudku vedoucího pro vybrané práce do "
-                "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí."
+                tr("Zkopíruje nejnovější PDF posudku vedoucího pro vybrané práce do "
+                "zvolené složky (pro tisk). Práce bez PDF posudku se přeskočí.")
             )
             act_export_pdf.triggered.connect(
                 lambda _checked=False: self._export_my_review_pdfs()
@@ -956,8 +956,8 @@ class ThesesTreeWidget(QTreeWidget):
                 f"🖨 Tisk posudku ({len(selected_theses)})…", self
             )
             act_print.setToolTip(
-                "Otevře tisk posudků jen s vybranými pracemi (posudek vedoucího). "
-                "Práce bez PDF posudku se přeskočí."
+                tr("Otevře tisk posudků jen s vybranými pracemi (posudek vedoucího). "
+                "Práce bez PDF posudku se přeskočí.")
             )
             print_ids = [
                 it.data(0, ROLE_THESIS_ID) for it in selected_theses
@@ -976,8 +976,8 @@ class ThesesTreeWidget(QTreeWidget):
 
         act_update = QAction(tr("🔄 Aktualizace práce ze STAG…"), self)
         act_update.setToolTip(
-            "Porovná tuto práci se STAG a nabídne změnu stavu a dohrání "
-            "chybějících souborů (ukáže, co se aktualizuje; lze vybrat)."
+            tr("Porovná tuto práci se STAG a nabídne změnu stavu a dohrání "
+            "chybějících souborů (ukáže, co se aktualizuje; lze vybrat).")
         )
         act_update.triggered.connect(
             lambda _checked=False, tid=thesis_id: self.update_from_stag_requested.emit(tid)
@@ -987,8 +987,8 @@ class ThesesTreeWidget(QTreeWidget):
 
         act_generate = QAction(tr("📝 Generovat posudek z šablony…"), self)
         act_generate.setToolTip(
-            "Vybere se šablona z knihovny, vyplní se daty z této práce "
-            "a připojí se jako příloha."
+            tr("Vybere se šablona z knihovny, vyplní se daty z této práce "
+            "a připojí se jako příloha.")
         )
         act_generate.triggered.connect(
             lambda _checked=False, tid=thesis_id: self.generate_review_requested.emit(tid)
@@ -997,7 +997,7 @@ class ThesesTreeWidget(QTreeWidget):
 
         # Otevřít posudek VEDOUCÍHO (můj), pokud je k dispozici.
         sup_path = self._review_path(thesis_id, thesis, AttachmentKind.SUPERVISOR_REVIEW)
-        act_open_sup = QAction("📘 Otevřít posudek vedoucího (můj)", self)
+        act_open_sup = QAction(tr("📘 Otevřít posudek vedoucího (můj)"), self)
         act_open_sup.setEnabled(sup_path is not None)
         if sup_path is not None:
             act_open_sup.triggered.connect(lambda _c=False, p=sup_path: open_path(p))
@@ -1013,7 +1013,7 @@ class ThesesTreeWidget(QTreeWidget):
             self.service.document_absolute_path(thesis_id, opp_att)
             if opp_att is not None else None
         )
-        act_open_opp = QAction("📕 Otevřít posudek oponenta", self)
+        act_open_opp = QAction(tr("📕 Otevřít posudek oponenta"), self)
         act_open_opp.setEnabled(opp_path is not None and opp_path.exists())
         if act_open_opp.isEnabled():
             act_open_opp.triggered.connect(
@@ -1031,7 +1031,7 @@ class ThesesTreeWidget(QTreeWidget):
             self.service.document_absolute_path(thesis_id, text_att)
             if text_att is not None else None
         )
-        act_open_text = QAction("📄 Otevřít text práce", self)
+        act_open_text = QAction(tr("📄 Otevřít text práce"), self)
         act_open_text.setEnabled(text_path is not None and text_path.exists())
         if act_open_text.isEnabled():
             act_open_text.triggered.connect(lambda _c=False, p=text_path: open_path(p))
@@ -1044,14 +1044,14 @@ class ThesesTreeWidget(QTreeWidget):
             and thesis.supervisor_review_state == "done"
         ):
             if thesis.supervisor_review_sent_at:
-                act_unsent = QAction("✉ Zrušit označení odeslání posudku", self)
+                act_unsent = QAction(tr("✉ Zrušit označení odeslání posudku"), self)
                 act_unsent.triggered.connect(
                     lambda _c=False, tid=thesis_id:
                     self.mark_review_sent_requested.emit(tid, False)
                 )
                 menu.addAction(act_unsent)
             else:
-                act_sent = QAction("✉ Označit posudek za odeslaný sekretářce", self)
+                act_sent = QAction(tr("✉ Označit posudek za odeslaný sekretářce"), self)
                 act_sent.triggered.connect(
                     lambda _c=False, tid=thesis_id:
                     self.mark_review_sent_requested.emit(tid, True)
@@ -1062,14 +1062,14 @@ class ThesesTreeWidget(QTreeWidget):
             # „Vytištěno" relevantní (= viditelný; záložka Aktuálně vedené).
             if not self.isColumnHidden(self.COL_PRINTED):
                 if thesis.supervisor_review_printed_at:
-                    act_unp = QAction("🖨 Zrušit označení vytištění posudku", self)
+                    act_unp = QAction(tr("🖨 Zrušit označení vytištění posudku"), self)
                     act_unp.triggered.connect(
                         lambda _c=False, tid=thesis_id:
                         self.mark_review_printed_requested.emit(tid, False)
                     )
                     menu.addAction(act_unp)
                 else:
-                    act_p = QAction("🖨 Označit posudek za vytištěný", self)
+                    act_p = QAction(tr("🖨 Označit posudek za vytištěný"), self)
                     act_p.triggered.connect(
                         lambda _c=False, tid=thesis_id:
                         self.mark_review_printed_requested.emit(tid, True)
@@ -1077,10 +1077,10 @@ class ThesesTreeWidget(QTreeWidget):
                     menu.addAction(act_p)
             menu.addSeparator()
 
-        act_export = QAction("📦 Exportovat práci do ZIP…", self)
+        act_export = QAction(tr("📦 Exportovat práci do ZIP…"), self)
         act_export.setToolTip(
-            "Uloží kompletní balík práce (data, stav, posudky, soubory) do ZIPu "
-            "— lze importovat na jiném zařízení / v jiném profilu."
+            tr("Uloží kompletní balík práce (data, stav, posudky, soubory) do ZIPu "
+            "— lze importovat na jiném zařízení / v jiném profilu.")
         )
         act_export.triggered.connect(
             lambda _checked=False, tid=thesis_id: self.export_thesis_requested.emit(tid)
@@ -1089,10 +1089,10 @@ class ThesesTreeWidget(QTreeWidget):
 
         menu.addSeparator()
 
-        act_rollback = QAction("🗑 Roll-back — smazat kompletně…", self)
+        act_rollback = QAction(tr("🗑 Roll-back — smazat kompletně…"), self)
         act_rollback.setToolTip(
-            "Nenávratně smaže záznam práce z databáze a všechny její soubory. "
-            "Vhodné po chybném importu nebo omylu při zakládání."
+            tr("Nenávratně smaže záznam práce z databáze a všechny její soubory. "
+            "Vhodné po chybném importu nebo omylu při zakládání.")
         )
         act_rollback.triggered.connect(
             lambda _checked=False, tid=thesis_id: self.rollback_requested.emit(tid)
@@ -1163,19 +1163,19 @@ class ThesesTreeWidget(QTreeWidget):
             lambda _c=False, v=ids: self.mark_reviews_sent_requested.emit(v, True)
         )
         menu.addAction(act_sent)
-        act_unsent = QAction("✉ Zrušit označení odeslání", self)
+        act_unsent = QAction(tr("✉ Zrušit označení odeslání"), self)
         act_unsent.triggered.connect(
             lambda _c=False, v=ids: self.mark_reviews_sent_requested.emit(v, False)
         )
         menu.addAction(act_unsent)
 
         if not self.isColumnHidden(self.COL_PRINTED):
-            act_pr = QAction("🖨 Označit posudky za vytištěné", self)
+            act_pr = QAction(tr("🖨 Označit posudky za vytištěné"), self)
             act_pr.triggered.connect(
                 lambda _c=False, v=ids: self.mark_reviews_printed_requested.emit(v, True)
             )
             menu.addAction(act_pr)
-            act_unpr = QAction("🖨 Zrušit označení vytištění", self)
+            act_unpr = QAction(tr("🖨 Zrušit označení vytištění"), self)
             act_unpr.triggered.connect(
                 lambda _c=False, v=ids: self.mark_reviews_printed_requested.emit(v, False)
             )

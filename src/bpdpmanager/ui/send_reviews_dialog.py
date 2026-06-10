@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models.enums import ThesisStatus
 from ..services import ProfileManager, ThesisService, email_sender
 
@@ -122,11 +123,11 @@ class SendReviewsDialog(QDialog):
         form = QFormLayout()
         self.cb_secretary = QComboBox()
         self.cb_secretary.currentIndexChanged.connect(self._on_secretary_changed)
-        form.addRow("Sekretářka", self.cb_secretary)
+        form.addRow(tr("Sekretářka"), self.cb_secretary)
 
         self.lbl_recipient = QLabel("—")
         self.lbl_recipient.setStyleSheet("color:#888;")
-        form.addRow("Příjemce", self.lbl_recipient)
+        form.addRow(tr("Příjemce"), self.lbl_recipient)
 
         profile = profile_manager.active
         self._user_email = (profile.user_email if profile else "") or ""
@@ -136,32 +137,32 @@ class SendReviewsDialog(QDialog):
         self.chk_cc.setChecked(bool(self._user_email))
         self.chk_cc.setEnabled(bool(self._user_email))
         self.chk_cc.setToolTip(
-            "Pošle kopii na tvůj e-mail, aby byla jistota, že se mail odeslal."
+            tr("Pošle kopii na tvůj e-mail, aby byla jistota, že se mail odeslal.")
         )
         form.addRow("", self.chk_cc)
 
-        self.chk_show_sent = QCheckBox("Zobrazit i už odeslané posudky")
+        self.chk_show_sent = QCheckBox(tr("Zobrazit i už odeslané posudky"))
         self.chk_show_sent.setChecked(False)
         self.chk_show_sent.stateChanged.connect(lambda _s: self._reload_table())
         form.addRow("", self.chk_show_sent)
 
-        self.chk_signature = QCheckBox("Připojit popisek o aplikaci (BPDPManager)")
+        self.chk_signature = QCheckBox(tr("Připojit popisek o aplikaci (BPDPManager)"))
         self.chk_signature.setChecked(False)
         self.chk_signature.setToolTip(
-            "Přidá do patičky e-mailu řádek o aplikaci BPDPManager s odkazem "
-            "na GitHub. Projeví se v náhledu textu."
+            tr("Přidá do patičky e-mailu řádek o aplikaci BPDPManager s odkazem "
+            "na GitHub. Projeví se v náhledu textu.")
         )
         self.chk_signature.stateChanged.connect(lambda _s: self._regenerate_body())
         form.addRow("", self.chk_signature)
 
         self.chk_other_obory = QCheckBox(
-            "Zobrazit i práce, jejichž obor neodpovídá sekretářce"
+            tr("Zobrazit i práce, jejichž obor neodpovídá sekretářce")
         )
         self.chk_other_obory.setChecked(False)
         self.chk_other_obory.setToolTip(
-            "Když obor práce nesedí na žádný obor sekretářky (typicky odlišný "
+            tr("Když obor práce nesedí na žádný obor sekretářky (typicky odlišný "
             "kód oboru), normálně se nenabídne. Zaškrtni pro zobrazení všech "
-            "připravených posudků — vybereš ručně, co poslat."
+            "připravených posudků — vybereš ručně, co poslat.")
         )
         self.chk_other_obory.stateChanged.connect(lambda _s: self._reload_table())
         form.addRow("", self.chk_other_obory)
@@ -189,9 +190,9 @@ class SendReviewsDialog(QDialog):
         outer.addWidget(self.table, stretch=1)
 
         sel_row = QHBoxLayout()
-        btn_all = QPushButton("☑ Vše")
+        btn_all = QPushButton(tr("☑ Vše"))
         btn_all.clicked.connect(lambda: self._set_all(True))
-        btn_none = QPushButton("☐ Nic")
+        btn_none = QPushButton(tr("☐ Nic"))
         btn_none.clicked.connect(lambda: self._set_all(False))
         self.lbl_count = QLabel("")
         self.lbl_count.setStyleSheet("color:#888;")
@@ -202,15 +203,15 @@ class SendReviewsDialog(QDialog):
         outer.addLayout(sel_row)
 
         # ── Předmět + tělo (náhled, editovatelné) ───────────────────────────
-        subj_lbl = QLabel("Předmět:")
+        subj_lbl = QLabel(tr("Předmět:"))
         outer.addWidget(subj_lbl)
         self.ed_subject = QLineEdit()
         outer.addWidget(self.ed_subject)
 
         body_head = QHBoxLayout()
-        body_lbl = QLabel("Text e-mailu (náhled — lze upravit):")
-        self.btn_regen = QPushButton("↻ Přegenerovat text")
-        self.btn_regen.setToolTip("Sestaví text znovu podle aktuálně vybraných prací.")
+        body_lbl = QLabel(tr("Text e-mailu (náhled — lze upravit):"))
+        self.btn_regen = QPushButton(tr("↻ Přegenerovat text"))
+        self.btn_regen.setToolTip(tr("Sestaví text znovu podle aktuálně vybraných prací."))
         self.btn_regen.clicked.connect(self._regenerate_body)
         body_head.addWidget(body_lbl)
         body_head.addStretch()
@@ -224,17 +225,17 @@ class SendReviewsDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
-        btn_settings = QPushButton("⚙ Nastavení e-mailu…")
+        btn_settings = QPushButton(tr("⚙ Nastavení e-mailu…"))
         btn_settings.clicked.connect(self._open_settings)
-        btn_cancel = QPushButton("Zavřít")
+        btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_test = QPushButton("🧪 Test — poslat jen sobě")
+        self.btn_test = QPushButton(tr("🧪 Test — poslat jen sobě"))
         self.btn_test.setToolTip(
-            "Pošle stejný e-mail (včetně PDF příloh) jen na tvůj e-mail — pro "
-            "kontrolu, než ho pošleš sekretářce. Posudky NEoznačí jako odeslané."
+            tr("Pošle stejný e-mail (včetně PDF příloh) jen na tvůj e-mail — pro "
+            "kontrolu, než ho pošleš sekretářce. Posudky NEoznačí jako odeslané.")
         )
         self.btn_test.clicked.connect(lambda: self._send(dry_run=True))
-        self.btn_send = QPushButton("✉ Odeslat…")
+        self.btn_send = QPushButton(tr("✉ Odeslat…"))
         f = self.btn_send.font()
         f.setBold(True)
         self.btn_send.setFont(f)
@@ -279,7 +280,7 @@ class SendReviewsDialog(QDialog):
         self.cb_secretary.blockSignals(True)
         self.cb_secretary.clear()
         if not self._secretaries:
-            self.cb_secretary.addItem("(žádná sekretářka s e-mailem)", None)
+            self.cb_secretary.addItem(tr("(žádná sekretářka s e-mailem)"), None)
         for s in self._secretaries:
             label = f"{s.name} <{s.email}>" if s.name else s.email
             self.cb_secretary.addItem(label, s.email)
@@ -410,7 +411,7 @@ class SendReviewsDialog(QDialog):
             obor_item = QTableWidgetItem(it.obor or "—")
             if not matches:
                 obor_item.setForeground(Qt.GlobalColor.red)
-                obor_item.setToolTip("Obor neodpovídá žádnému oboru sekretářky.")
+                obor_item.setToolTip(tr("Obor neodpovídá žádnému oboru sekretářky."))
             self.table.setItem(row, 5, obor_item)
             stav = f"✓ odesláno {it.sent_at_label}" if it.sent_at_label else "připraveno"
             stav_item = QTableWidgetItem(stav)
@@ -521,15 +522,15 @@ class SendReviewsDialog(QDialog):
     ) -> email_sender.MailDraft | None:
         sec = self._current_secretary()
         if sec is None:
-            QMessageBox.warning(self, "Sekretářka", "Vyber sekretářku.")
+            QMessageBox.warning(self, tr("Sekretářka"), tr("Vyber sekretářku."))
             return None
         profile = self.profile_manager.active
         from_addr = (profile.user_email if profile else "") or ""
         if not from_addr:
             QMessageBox.warning(
-                self, "Chybí e-mail",
-                "Nemáš vyplněný vlastní e-mail. Otevři „⚙ Nastavení e-mailu…“ "
-                "a doplň ho.",
+                self, tr("Chybí e-mail"),
+                tr("Nemáš vyplněný vlastní e-mail. Otevři „⚙ Nastavení e-mailu…“ "
+                "a doplň ho."),
             )
             return None
 
@@ -613,7 +614,7 @@ class SendReviewsDialog(QDialog):
             return
         except Exception as exc:  # noqa: BLE001
             QApplication.restoreOverrideCursor()
-            QMessageBox.critical(self, "Odeslání", f"Neočekávaná chyba:\n{exc}")
+            QMessageBox.critical(self, tr("Odeslání"), f"Neočekávaná chyba:\n{exc}")
             return
         finally:
             QApplication.restoreOverrideCursor()
@@ -622,7 +623,7 @@ class SendReviewsDialog(QDialog):
             if dry_run:
                 # Test — neoznačovat jako odeslané, nechat dialog otevřený.
                 QMessageBox.information(
-                    self, "Testovací e-mail odeslán",
+                    self, tr("Testovací e-mail odeslán"),
                     f"Testovací e-mail s {len(items)} posudky byl odeslán na "
                     f"{draft.to[0]} (jen tobě). Posudky nebyly označeny jako "
                     "odeslané — zkontroluj e-mail a pak pošli sekretářce.",
@@ -630,7 +631,7 @@ class SendReviewsDialog(QDialog):
                 return
             self._mark_sent(items)
             QMessageBox.information(
-                self, "Odesláno",
+                self, tr("Odesláno"),
                 f"E-mail s {len(items)} posudky byl odeslán na {draft.to[0]}.",
             )
             self.accept()
@@ -641,7 +642,7 @@ class SendReviewsDialog(QDialog):
     ) -> None:
         choice = QMessageBox.question(
             self,
-            "Odeslání přes SMTP selhalo",
+            tr("Odeslání přes SMTP selhalo"),
             f"{reason}\n\n"
             "Chceš místo toho vytvořit hotový e-mail a otevřít ho v mailovém "
             "klientovi (Outlook/Thunderbird)? Tam jsi přihlášen(a) a stačí "
@@ -656,22 +657,22 @@ class SendReviewsDialog(QDialog):
             target = Path(tempfile.gettempdir()) / f"posudky_{safe}.eml"
             email_sender.save_as_eml(draft, target)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Chyba", f"Nepodařilo se vytvořit .eml:\n{exc}")
+            QMessageBox.critical(self, tr("Chyba"), f"Nepodařilo se vytvořit .eml:\n{exc}")
             return
         _open_path(target)
         if dry_run:
             # Test — žádné označení odeslání, dialog zůstane otevřený.
             QMessageBox.information(
-                self, "Testovací e-mail otevřen",
-                "Otevřel jsem testovací e-mail (jen tobě) v mailovém klientovi. "
-                "Posudky nebyly označeny jako odeslané.",
+                self, tr("Testovací e-mail otevřen"),
+                tr("Otevřel jsem testovací e-mail (jen tobě) v mailovém klientovi. "
+                "Posudky nebyly označeny jako odeslané."),
             )
             return
         mark = QMessageBox.question(
             self,
-            "Otevřeno v mailu",
-            "Otevřel jsem připravený e-mail v tvém mailovém klientovi.\n\n"
-            "Až ho tam odešleš, mám tyto posudky označit jako odeslané?",
+            tr("Otevřeno v mailu"),
+            tr("Otevřel jsem připravený e-mail v tvém mailovém klientovi.\n\n"
+            "Až ho tam odešleš, mám tyto posudky označit jako odeslané?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
         )

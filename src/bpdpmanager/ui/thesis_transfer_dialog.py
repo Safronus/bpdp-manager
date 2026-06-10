@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models.enums import ATTACHMENT_KIND_LABELS, ThesisStatus
 from ..services.thesis_export import (
     ExportFileItem,
@@ -205,7 +206,7 @@ class ThesisExportDialog(QDialog, _CheckTreeMixin):
 
     def __init__(self, service, thesis_id: str, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Export práce do ZIP — co zahrnout")
+        self.setWindowTitle(tr("Export práce do ZIP — co zahrnout"))
         self.resize(560, 560)
         self.contents: ThesisContents = gather_thesis_contents(service, thesis_id)
 
@@ -219,8 +220,8 @@ class ThesisExportDialog(QDialog, _CheckTreeMixin):
         self._add_entity_nodes(self.contents, include_data=False)
 
         row = QHBoxLayout()
-        b_all = QPushButton("Vybrat vše")
-        b_none = QPushButton("Zrušit vše")
+        b_all = QPushButton(tr("Vybrat vše"))
+        b_none = QPushButton(tr("Zrušit vše"))
         b_all.clicked.connect(lambda: self._set_all(True))
         b_none.clicked.connect(lambda: self._set_all(False))
         row.addWidget(b_all)
@@ -231,7 +232,7 @@ class ThesisExportDialog(QDialog, _CheckTreeMixin):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Exportovat")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("Exportovat"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -274,7 +275,7 @@ class ThesisImportDialog(QDialog, _CheckTreeMixin):
 
     def __init__(self, service, source_zip, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Import práce ze ZIP")
+        self.setWindowTitle(tr("Import práce ze ZIP"))
         self.resize(560, 600)
         self.service = service
         self.contents: ThesisZipContents = read_thesis_zip(source_zip, service=service)
@@ -282,8 +283,8 @@ class ThesisImportDialog(QDialog, _CheckTreeMixin):
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(self._header_text()))
 
-        self.rb_new = QRadioButton("Vytvořit novou práci")
-        self.rb_update = QRadioButton("Aktualizovat existující práci")
+        self.rb_new = QRadioButton(tr("Vytvořit novou práci"))
+        self.rb_update = QRadioButton(tr("Aktualizovat existující práci"))
         self._group = QButtonGroup(self)
         self._group.addButton(self.rb_new)
         self._group.addButton(self.rb_update)
@@ -297,10 +298,10 @@ class ThesisImportDialog(QDialog, _CheckTreeMixin):
             self.rb_update.setChecked(True)
             layout.addWidget(self.rb_new)
             layout.addWidget(self.rb_update)
-            layout.addWidget(QLabel("<i>Co aktualizovat (přepsat z balíku):</i>"))
+            layout.addWidget(QLabel(tr("<i>Co aktualizovat (přepsat z balíku):</i>")))
         else:
             layout.addWidget(QLabel(
-                "<i>V databázi není odpovídající práce — bude vytvořena nová.</i>"
+                tr("<i>V databázi není odpovídající práce — bude vytvořena nová.</i>")
             ))
             self.rb_new.setChecked(True)
 
@@ -314,8 +315,8 @@ class ThesisImportDialog(QDialog, _CheckTreeMixin):
             self.tree.setVisible(False)
 
         row = QHBoxLayout()
-        b_all = QPushButton("Vybrat vše")
-        b_none = QPushButton("Zrušit vše")
+        b_all = QPushButton(tr("Vybrat vše"))
+        b_none = QPushButton(tr("Zrušit vše"))
         b_all.clicked.connect(lambda: self._set_all(True))
         b_none.clicked.connect(lambda: self._set_all(False))
         row.addWidget(b_all)
@@ -329,7 +330,7 @@ class ThesisImportDialog(QDialog, _CheckTreeMixin):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Importovat")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("Importovat"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

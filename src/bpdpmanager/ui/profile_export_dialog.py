@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import Profile
 from ..services import ProfileError, ProfileManager
 from ..services.profile_export import (
@@ -96,7 +97,7 @@ class ExportProfileDialog(QDialog):
         outer.setContentsMargins(16, 16, 16, 16)
         outer.setSpacing(10)
 
-        header = QLabel("📤 Export profilu do ZIP balíku")
+        header = QLabel(tr("📤 Export profilu do ZIP balíku"))
         header.setStyleSheet("font-size:15px;font-weight:bold;")
         outer.addWidget(header)
 
@@ -111,16 +112,16 @@ class ExportProfileDialog(QDialog):
 
         # ── Co zahrnout ─────────────────────────────────────────────────
         form = QFormLayout()
-        self.chk_docs = QCheckBox("📎 Dokumenty (přílohy k pracem)")
+        self.chk_docs = QCheckBox(tr("📎 Dokumenty (přílohy k pracem)"))
         self.chk_docs.setChecked(True)
-        self.chk_harm = QCheckBox("📅 Naimportované PDF harmonogramy")
+        self.chk_harm = QCheckBox(tr("📅 Naimportované PDF harmonogramy"))
         self.chk_harm.setChecked(True)
-        self.chk_templates = QCheckBox("📝 Šablony posudků (XLSX knihovna)")
+        self.chk_templates = QCheckBox(tr("📝 Šablony posudků (XLSX knihovna)"))
         self.chk_templates.setChecked(True)
-        self.chk_bak = QCheckBox("💾 Krátkodobá záloha db.json.bak")
+        self.chk_bak = QCheckBox(tr("💾 Krátkodobá záloha db.json.bak"))
         self.chk_bak.setChecked(True)
         self.chk_backups = QCheckBox(
-            "🔄 Rotující 10× zálohy (typicky netřeba — pojistka)"
+            tr("🔄 Rotující 10× zálohy (typicky netřeba — pojistka)")
         )
         self.chk_backups.setChecked(False)
 
@@ -131,9 +132,9 @@ class ExportProfileDialog(QDialog):
         # ── Cesta cílového ZIPu ─────────────────────────────────────────
         path_row = QHBoxLayout()
         self.ed_path = QLineEdit()
-        self.ed_path.setPlaceholderText("cesta k cílovému .zip souboru")
+        self.ed_path.setPlaceholderText(tr("cesta k cílovému .zip souboru"))
         self._set_default_target_path()
-        btn_browse = QPushButton("Procházet…")
+        btn_browse = QPushButton(tr("Procházet…"))
         btn_browse.clicked.connect(self._browse)
         path_row.addWidget(self.ed_path, stretch=1)
         path_row.addWidget(btn_browse)
@@ -159,9 +160,9 @@ class ExportProfileDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────
         btn_row = QHBoxLayout()
-        btn_cancel = QPushButton("Zavřít")
+        btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_export = QPushButton("📤 Exportovat")
+        self.btn_export = QPushButton(tr("📤 Exportovat"))
         self.btn_export.setDefault(True)
         bf = self.btn_export.font()
         bf.setBold(True)
@@ -258,7 +259,7 @@ class ExportProfileDialog(QDialog):
     def _do_export(self) -> None:
         target_str = self.ed_path.text().strip()
         if not target_str:
-            QMessageBox.warning(self, "Chybí cesta", "Vyber cílový .zip soubor.")
+            QMessageBox.warning(self, tr("Chybí cesta"), tr("Vyber cílový .zip soubor."))
             return
         target = Path(target_str).expanduser()
         if not str(target).lower().endswith(".zip"):
@@ -267,7 +268,7 @@ class ExportProfileDialog(QDialog):
         if target.exists():
             confirm = QMessageBox.question(
                 self,
-                "Cílový soubor existuje",
+                tr("Cílový soubor existuje"),
                 f"Soubor <code>{escape(str(target))}</code> už existuje. Přepsat?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -287,11 +288,11 @@ class ExportProfileDialog(QDialog):
                 include_templates=opts.include_templates,
             )
         except ProfileError as exc:
-            QMessageBox.critical(self, "Export selhal", str(exc))
+            QMessageBox.critical(self, tr("Export selhal"), str(exc))
             return
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Neočekávaná chyba", f"Export skončil chybou:\n{exc}"
+                self, tr("Neočekávaná chyba"), f"Export skončil chybou:\n{exc}"
             )
             return
 
@@ -319,11 +320,11 @@ class ExportProfileDialog(QDialog):
         """
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Export dokončen")
+        msg.setWindowTitle(tr("Export dokončen"))
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(body)
         btn_reveal = msg.addButton(
-            "📂 Ukázat ve Finderu", QMessageBox.ButtonRole.ActionRole
+            tr("📂 Ukázat ve Finderu"), QMessageBox.ButtonRole.ActionRole
         )
         msg.addButton(QMessageBox.StandardButton.Close)
         msg.exec()
@@ -344,23 +345,23 @@ class ImportProfileDialog(QDialog):
         self.created: Profile | None = None
         self.target_data_dir: Path | None = None
 
-        self.setWindowTitle("Importovat profil ze ZIPu")
+        self.setWindowTitle(tr("Importovat profil ze ZIPu"))
         self.setMinimumSize(680, 580)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 16, 16, 16)
         outer.setSpacing(10)
 
-        header = QLabel("📥 Importovat profil ze ZIPu")
+        header = QLabel(tr("📥 Importovat profil ze ZIPu"))
         header.setStyleSheet("font-size:15px;font-weight:bold;")
         outer.addWidget(header)
 
         # ── Zdroj (.zip) ────────────────────────────────────────────────
         zip_row = QHBoxLayout()
         self.ed_zip = QLineEdit()
-        self.ed_zip.setPlaceholderText("vyber .zip vytvořený přes Export profilu")
+        self.ed_zip.setPlaceholderText(tr("vyber .zip vytvořený přes Export profilu"))
         self.ed_zip.textChanged.connect(self._on_zip_changed)
-        btn_browse = QPushButton("Procházet…")
+        btn_browse = QPushButton(tr("Procházet…"))
         btn_browse.clicked.connect(self._browse_zip)
         zip_row.addWidget(self.ed_zip, stretch=1)
         zip_row.addWidget(btn_browse)
@@ -375,15 +376,15 @@ class ImportProfileDialog(QDialog):
         outer.addWidget(self.manifest_view, stretch=1)
 
         # ── Cíl importu: nový profil VS sloučit s existujícím ───────────
-        target_box = QGroupBox("Cíl importu")
+        target_box = QGroupBox(tr("Cíl importu"))
         target_layout = QVBoxLayout(target_box)
 
         self.rb_new = QRadioButton(
-            "🆕 Vytvořit nový profil"
+            tr("🆕 Vytvořit nový profil")
         )
         self.rb_new.setChecked(True)
         self.rb_merge = QRadioButton(
-            "🔀 Sloučit s existujícím profilem (add-only merge)"
+            tr("🔀 Sloučit s existujícím profilem (add-only merge)")
         )
         self._target_group = QButtonGroup(self)
         self._target_group.addButton(self.rb_new)
@@ -394,22 +395,22 @@ class ImportProfileDialog(QDialog):
         new_form = QFormLayout()
         self.ed_name = QLineEdit()
         self.ed_name.setPlaceholderText(
-            "Název profilu v registry — předvyplní se z manifestu"
+            tr("Název profilu v registry — předvyplní se z manifestu")
         )
-        new_form.addRow("    Název profilu", self.ed_name)
+        new_form.addRow(tr("    Název profilu"), self.ed_name)
 
         target_row = QHBoxLayout()
         self.ed_target = QLineEdit()
-        self.ed_target.setPlaceholderText("cílová složka, kam rozbalit data")
+        self.ed_target.setPlaceholderText(tr("cílová složka, kam rozbalit data"))
         self._set_default_target()
-        btn_target_browse = QPushButton("Procházet…")
+        btn_target_browse = QPushButton(tr("Procházet…"))
         btn_target_browse.clicked.connect(self._browse_target)
         target_row.addWidget(self.ed_target, stretch=1)
         target_row.addWidget(btn_target_browse)
-        new_form.addRow("    Cílová složka", target_row)
+        new_form.addRow(tr("    Cílová složka"), target_row)
 
         self.chk_overwrite = QCheckBox(
-            "⚠ Přepsat existující data v cílové složce"
+            tr("⚠ Přepsat existující data v cílové složce")
         )
         self.chk_overwrite.setStyleSheet("color:#c62828;")
         new_form.addRow("", self.chk_overwrite)
@@ -421,13 +422,13 @@ class ImportProfileDialog(QDialog):
         merge_form = QFormLayout()
         self.cb_target_profile = QComboBox()
         self._populate_target_combo()
-        merge_form.addRow("    Cílový profil", self.cb_target_profile)
+        merge_form.addRow(tr("    Cílový profil"), self.cb_target_profile)
         self.lbl_merge_help = QLabel(
-            "<small><i>Add-only: do cílového profilu se přidají entity "
+            tr("<small><i>Add-only: do cílového profilu se přidají entity "
             "(studenti / oponenti / práce / šablony…), které tam nejsou; "
             "existující se <b>nemění</b>. Soubory se zkopírují, pokud cílový "
             "název ještě neexistuje. Před zápisem uvidíš preview, co se "
-            "přidá a co se přeskočí.</i></small>"
+            "přidá a co se přeskočí.</i></small>")
         )
         self.lbl_merge_help.setWordWrap(True)
         self.lbl_merge_help.setTextFormat(Qt.TextFormat.RichText)
@@ -443,9 +444,9 @@ class ImportProfileDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────
         btn_row = QHBoxLayout()
-        btn_cancel = QPushButton("Zavřít")
+        btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_import = QPushButton("📥 Importovat")
+        self.btn_import = QPushButton(tr("📥 Importovat"))
         self.btn_import.setEnabled(False)
         bf = self.btn_import.font()
         bf.setBold(True)
@@ -478,8 +479,8 @@ class ImportProfileDialog(QDialog):
         self.rb_merge.setEnabled(has_any)
         if not has_any:
             self.rb_merge.setToolTip(
-                "Žádný profil v registru — nejdřív vytvoř profil "
-                'nebo zvol „Vytvořit nový profil".'
+                tr("Žádný profil v registru — nejdřív vytvoř profil "
+                'nebo zvol „Vytvořit nový profil".')
             )
 
     def _update_target_visibility(self) -> None:
@@ -596,12 +597,12 @@ class ImportProfileDialog(QDialog):
         target_str = self.ed_target.text().strip()
         if not target_str:
             QMessageBox.warning(
-                self, "Chybí cíl", "Vyber cílovou složku pro data profilu."
+                self, tr("Chybí cíl"), tr("Vyber cílovou složku pro data profilu.")
             )
             return
         name = self.ed_name.text().strip()
         if not name:
-            QMessageBox.warning(self, "Chybí název", "Zadej název profilu.")
+            QMessageBox.warning(self, tr("Chybí název"), tr("Zadej název profilu."))
             return
 
         try:
@@ -612,11 +613,11 @@ class ImportProfileDialog(QDialog):
                 overwrite_existing=self.chk_overwrite.isChecked(),
             )
         except ProfileError as exc:
-            QMessageBox.critical(self, "Import selhal", str(exc))
+            QMessageBox.critical(self, tr("Import selhal"), str(exc))
             return
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Neočekávaná chyba", f"Import skončil chybou:\n{exc}"
+                self, tr("Neočekávaná chyba"), f"Import skončil chybou:\n{exc}"
             )
             return
 
@@ -629,12 +630,12 @@ class ImportProfileDialog(QDialog):
         target_id = self.cb_target_profile.currentData()
         if not target_id:
             QMessageBox.warning(
-                self, "Chybí cíl", "Vyber cílový profil v combo boxu."
+                self, tr("Chybí cíl"), tr("Vyber cílový profil v combo boxu.")
             )
             return
         target_profile = self.pm.get(target_id)
         if target_profile is None:
-            QMessageBox.warning(self, "Chybí cíl", "Cílový profil neexistuje.")
+            QMessageBox.warning(self, tr("Chybí cíl"), tr("Cílový profil neexistuje."))
             return
 
         # 1) Spočti preview bez modifikace
@@ -643,7 +644,7 @@ class ImportProfileDialog(QDialog):
                 Path(zip_str), target_id
             )
         except ProfileError as exc:
-            QMessageBox.critical(self, "Preview selhalo", str(exc))
+            QMessageBox.critical(self, tr("Preview selhalo"), str(exc))
             return
 
         # 2) Confirmation dialog s preview
@@ -670,11 +671,11 @@ class ImportProfileDialog(QDialog):
                 target_profile_id=target_id,
             )
         except ProfileError as exc:
-            QMessageBox.critical(self, "Merge selhal", str(exc))
+            QMessageBox.critical(self, tr("Merge selhal"), str(exc))
             return
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Neočekávaná chyba", f"Merge skončil chybou:\n{exc}"
+                self, tr("Neočekávaná chyba"), f"Merge skončil chybou:\n{exc}"
             )
             return
 
@@ -753,10 +754,10 @@ class ImportProfileDialog(QDialog):
 
         # Vlastní dialog s rich textem
         dlg = QDialog(self)
-        dlg.setWindowTitle("Potvrdit merge")
+        dlg.setWindowTitle(tr("Potvrdit merge"))
         dlg.setMinimumSize(620, 520)
         outer = QVBoxLayout(dlg)
-        header = QLabel("🔀 Potvrdit merge")
+        header = QLabel(tr("🔀 Potvrdit merge"))
         header.setStyleSheet("font-size:14px;font-weight:bold;")
         outer.addWidget(header)
         body_view = QTextBrowser()
@@ -764,9 +765,9 @@ class ImportProfileDialog(QDialog):
         outer.addWidget(body_view, stretch=1)
 
         btn_row = QHBoxLayout()
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(dlg.reject)
-        btn_go = QPushButton("🔀 Provést merge")
+        btn_go = QPushButton(tr("🔀 Provést merge"))
         btn_go.setEnabled(total_new > 0)
         bf = btn_go.font()
         bf.setBold(True)
@@ -823,7 +824,7 @@ class ImportProfileDialog(QDialog):
         """
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Merge dokončen")
+        msg.setWindowTitle(tr("Merge dokončen"))
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(body)
         msg.addButton(QMessageBox.StandardButton.Close)
@@ -847,7 +848,7 @@ class ImportProfileDialog(QDialog):
         """
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Import dokončen")
+        msg.setWindowTitle(tr("Import dokončen"))
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(body)
         msg.addButton(QMessageBox.StandardButton.Close)

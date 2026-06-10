@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..services import email_sender
 
 
@@ -55,7 +56,7 @@ class SendFileDialog(QDialog):
         else:
             self.file_paths = [Path(p) for p in file_paths]
 
-        self.setWindowTitle("Odeslat soubor e-mailem")
+        self.setWindowTitle(tr("Odeslat soubor e-mailem"))
         self.setMinimumWidth(560)
 
         profile = profile_manager.active if profile_manager else None
@@ -65,21 +66,21 @@ class SendFileDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        title = QLabel("✉ Odeslat soubor e-mailem")
+        title = QLabel(tr("✉ Odeslat soubor e-mailem"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
         form = QFormLayout()
         self.lbl_from = QLabel(self._user_email or "— (doplň v Nastavení e-mailu)")
         self.lbl_from.setStyleSheet("color:#888;")
-        form.addRow("Odesílatel", self.lbl_from)
+        form.addRow(tr("Odesílatel"), self.lbl_from)
 
         self.ed_to = QLineEdit()
-        self.ed_to.setPlaceholderText("příjemce@example.cz")
-        form.addRow("Příjemce", self.ed_to)
+        self.ed_to.setPlaceholderText(tr("příjemce@example.cz"))
+        form.addRow(tr("Příjemce"), self.ed_to)
 
         self.ed_subject = QLineEdit(default_subject or self.file_paths[0].name)
-        form.addRow("Předmět", self.ed_subject)
+        form.addRow(tr("Předmět"), self.ed_subject)
 
         names = ", ".join(p.name for p in self.file_paths)
         self.lbl_attach = QLabel(f"📎 {names}")
@@ -89,7 +90,7 @@ class SendFileDialog(QDialog):
         outer.addLayout(form)
 
         word = "soubor" if len(self.file_paths) == 1 else "soubory"
-        outer.addWidget(QLabel("Text e-mailu:"))
+        outer.addWidget(QLabel(tr("Text e-mailu:")))
         self.ed_body = QPlainTextEdit(
             f"Dobrý den,\n\nv příloze zasílám {word}.\n\nS pozdravem"
         )
@@ -97,11 +98,11 @@ class SendFileDialog(QDialog):
         outer.addWidget(self.ed_body, stretch=1)
 
         row = QHBoxLayout()
-        btn_settings = QPushButton("⚙ Nastavení e-mailu…")
+        btn_settings = QPushButton(tr("⚙ Nastavení e-mailu…"))
         btn_settings.clicked.connect(self._open_settings)
-        btn_cancel = QPushButton("Zrušit")
+        btn_cancel = QPushButton(tr("Zrušit"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_send = QPushButton("✉ Odeslat…")
+        self.btn_send = QPushButton(tr("✉ Odeslat…"))
         f = self.btn_send.font()
         f.setBold(True)
         self.btn_send.setFont(f)
@@ -126,18 +127,18 @@ class SendFileDialog(QDialog):
     def _send(self) -> None:
         if not self._user_email:
             QMessageBox.warning(
-                self, "Chybí e-mail",
-                "Nemáš vyplněný vlastní e-mail. Otevři „⚙ Nastavení e-mailu…“.",
+                self, tr("Chybí e-mail"),
+                tr("Nemáš vyplněný vlastní e-mail. Otevři „⚙ Nastavení e-mailu…“."),
             )
             return
         recipient = self.ed_to.text().strip()
         if not recipient:
-            QMessageBox.warning(self, "Chybí příjemce", "Zadej e-mail příjemce.")
+            QMessageBox.warning(self, tr("Chybí příjemce"), tr("Zadej e-mail příjemce."))
             return
         missing = [p.name for p in self.file_paths if not p.is_file()]
         if missing:
             QMessageBox.warning(
-                self, "Soubor", "Neexistují soubory:\n" + "\n".join(missing)
+                self, tr("Soubor"), "Neexistují soubory:\n" + "\n".join(missing)
             )
             return
 
@@ -150,7 +151,7 @@ class SendFileDialog(QDialog):
             attachments=list(self.file_paths),
         )
         confirm = QMessageBox.question(
-            self, "Odeslat e-mail?",
+            self, tr("Odeslat e-mail?"),
             f"Komu: {recipient}\nPředmět: {draft.subject}\n"
             f"Příloh: {len(self.file_paths)}\n\nOdeslat nyní?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
@@ -179,17 +180,17 @@ class SendFileDialog(QDialog):
             return
         except Exception as exc:  # noqa: BLE001
             QApplication.restoreOverrideCursor()
-            QMessageBox.critical(self, "Odeslání", f"Neočekávaná chyba:\n{exc}")
+            QMessageBox.critical(self, tr("Odeslání"), f"Neočekávaná chyba:\n{exc}")
             return
         finally:
             QApplication.restoreOverrideCursor()
 
-        QMessageBox.information(self, "Odesláno", f"Soubor byl odeslán na {recipient}.")
+        QMessageBox.information(self, tr("Odesláno"), f"Soubor byl odeslán na {recipient}.")
         self.accept()
 
     def _offer_eml_fallback(self, draft: email_sender.MailDraft, reason: str) -> None:
         choice = QMessageBox.question(
-            self, "Odeslání přes SMTP selhalo",
+            self, tr("Odeslání přes SMTP selhalo"),
             f"{reason}\n\nVytvořit hotový e-mail a otevřít ho v mailovém klientovi?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Yes,
@@ -201,11 +202,11 @@ class SendFileDialog(QDialog):
             target = Path(tempfile.gettempdir()) / f"mail_{safe}.eml"
             email_sender.save_as_eml(draft, target)
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Chyba", f"Nepodařilo se vytvořit .eml:\n{exc}")
+            QMessageBox.critical(self, tr("Chyba"), f"Nepodařilo se vytvořit .eml:\n{exc}")
             return
         _open_path(target)
         QMessageBox.information(
-            self, "Otevřeno v mailu",
-            "Otevřel jsem připravený e-mail v tvém mailovém klientovi.",
+            self, tr("Otevřeno v mailu"),
+            tr("Otevřel jsem připravený e-mail v tvém mailovém klientovi."),
         )
         self.accept()

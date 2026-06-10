@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-06-11
+
+### Added
+- **Jazyk CZ/EN — vlna 3: všechny dialogy.** V EN režimu jsou nově přeložené
+  dialogy napříč aplikací: STAG import/sync/konzistence, tisk posudků (MyQ),
+  odesílání posudků, šablony a editor posudků, profily (správa/export/import/
+  merge), zálohy, e-mail (SMTP), správa studentů/oponentů/vedoucích/oborů,
+  odmítnutí zájemci, roll-backy, návrhy témat, harmonogram, exporty, welcome
+  dialog i kontextová menu. Slovník vzrostl na ~900 položek; pokryté jsou
+  i texty bez diakritiky a skupinové hlavičky.
+
 ## [2.0.1] - 2026-06-11
 
 ### Added

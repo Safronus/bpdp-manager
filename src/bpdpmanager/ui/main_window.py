@@ -7,8 +7,8 @@ from pathlib import Path
 from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QColor, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
-    QComboBox,
     QCheckBox,
+    QComboBox,
     QCompleter,
     QDialog,
     QDialogButtonBox,
@@ -34,8 +34,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..models import Thesis
 from ..i18n import tr
+from ..models import Thesis
 from ..models.enums import (
     GRADES_ORDER,
     REVIEW_STATE_STRONG,
@@ -56,7 +56,7 @@ from ..services import (
 from ..storage import JsonRepository
 from .backup_dialog import BackupBrowserDialog
 from .harmonogram_tab import HarmonogramTab
-from .stats_tab import StatsTab
+from .help_dialog import HelpDialog
 from .import_into_current_dialog import ImportIntoCurrentDialog
 from .manage_dialogs import (
     OboryManageDialog,
@@ -66,14 +66,14 @@ from .manage_dialogs import (
 )
 from .new_profile_dialog import NewProfileDialog
 from .opposing_tab import OpposingTab
-from .proposals_tab import ProposalsTab
-from .help_dialog import HelpDialog
 from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
+from .proposals_tab import ProposalsTab
 from .review_templates_dialog import GenerateReviewDialog, ReviewTemplatesDialog
 from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
 from .stag_consistency_dialog import StagConsistencyDialog
 from .stag_import_dialog import StagImportDialog
+from .stats_tab import StatsTab
 from .theses_tree import OBOR_FILTER_GROUPS, ThesesTreeWidget, obor_filter_group
 from .thesis_detail import (
     YEAR_MODE_ALL,
@@ -218,7 +218,7 @@ class _ThesesTab(QWidget):
             if self._profile_manager and self._status_filter_pref_key:
                 saved = self._profile_manager.get_ui_pref(self._status_filter_pref_key)
             saved_set = set(saved) if isinstance(saved, list) else None
-            row.addWidget(QLabel("Zobrazit:"))
+            row.addWidget(QLabel(tr("Zobrazit:")))
             for status in self._status_filter_choices:
                 cb = QCheckBox(STATUS_LABELS.get(status, status.value))
                 # Bez uloženého nastavení je vše zaškrtnuté; jinak dle uložené volby.
@@ -235,9 +235,9 @@ class _ThesesTab(QWidget):
             self._cb_opponent.currentIndexChanged.connect(self._on_extra_filter_changed)
             row.addWidget(self._cb_opponent)
             row.addSpacing(8)
-            row.addWidget(QLabel("Známka:"))
+            row.addWidget(QLabel(tr("Známka:")))
             self._cb_grade = QComboBox()
-            self._cb_grade.addItem("Všechny známky", userData=None)
+            self._cb_grade.addItem(tr("Všechny známky"), userData=None)
             for g in GRADES_ORDER:
                 self._cb_grade.addItem(g, userData=g)
             self._cb_grade.currentIndexChanged.connect(self._on_extra_filter_changed)
@@ -245,7 +245,7 @@ class _ThesesTab(QWidget):
             row.addSpacing(8)
             row.addWidget(QLabel("Obor:"))
             self._cb_obor = QComboBox()
-            self._cb_obor.addItem("Všechny obory", userData=None)
+            self._cb_obor.addItem(tr("Všechny obory"), userData=None)
             for grp in OBOR_FILTER_GROUPS:
                 self._cb_obor.addItem(grp, userData=grp)
             self._cb_obor.currentIndexChanged.connect(self._on_extra_filter_changed)
@@ -253,7 +253,7 @@ class _ThesesTab(QWidget):
             row.addSpacing(8)
             row.addWidget(QLabel("Typ:"))
             self._cb_type = QComboBox()
-            self._cb_type.addItem("BP i DP", userData=None)
+            self._cb_type.addItem(tr("BP i DP"), userData=None)
             self._cb_type.addItem("BP", userData="BP")
             self._cb_type.addItem("DP", userData="DP")
             self._cb_type.currentIndexChanged.connect(self._on_extra_filter_changed)
@@ -286,7 +286,7 @@ class _ThesesTab(QWidget):
         self._populating_filters = True
         try:
             self._cb_opponent.clear()
-            self._cb_opponent.addItem("Všichni oponenti", userData=None)
+            self._cb_opponent.addItem(tr("Všichni oponenti"), userData=None)
             for oid, name in ordered:
                 self._cb_opponent.addItem(name, userData=oid)
             # Obnov předchozí výběr, pokud tam pořád je.
@@ -421,7 +421,7 @@ class _ThesesTab(QWidget):
         try:
             dlg = ThesisExportDialog(self.service, thesis_id, self)
         except ThesisExportError as exc:
-            QMessageBox.critical(self, "Export", f"Export selhal:\n{exc}")
+            QMessageBox.critical(self, tr("Export"), f"Export selhal:\n{exc}")
             return
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
@@ -444,10 +444,10 @@ class _ThesesTab(QWidget):
                 self.service, thesis_id, Path(path_str), selection=selection
             )
         except (ThesisExportError, OSError) as exc:
-            QMessageBox.critical(self, "Export", f"Export selhal:\n{exc}")
+            QMessageBox.critical(self, tr("Export"), f"Export selhal:\n{exc}")
             return
         QMessageBox.information(
-            self, "Export hotov",
+            self, tr("Export hotov"),
             f"Práce byla vyexportována do:\n{path_str}\n\nSouborů: {stats['files']}",
         )
 
@@ -514,8 +514,8 @@ class _ThesesTab(QWidget):
         ]
         if not have:
             QMessageBox.information(
-                self, "Tisk posudku",
-                "Vybrané práce nemají PDF posudku vedoucího k tisku.",
+                self, tr("Tisk posudku"),
+                tr("Vybrané práce nemají PDF posudku vedoucího k tisku."),
             )
             return
         dlg = MyQPrintDialog(self.service, self, only_thesis_ids=have)
@@ -554,7 +554,7 @@ class _ThesesTab(QWidget):
                          f"({t.type.value})")
         more = f"\n… a další {len(ids) - 12}" if len(ids) > 12 else ""
         resp = QMessageBox.warning(
-            self, "Roll-back více prací",
+            self, tr("Roll-back více prací"),
             f"Nenávratně smazat {len(ids)} prací z databáze včetně všech jejich "
             f"souborů?\n\n" + "\n".join(names) + more,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -577,7 +577,7 @@ class _ThesesTab(QWidget):
         self.tree.refresh()
         self.data_changed.emit()
         QMessageBox.information(
-            self, "Roll-back hotov", f"Smazáno {deleted} z {len(ids)} prací."
+            self, tr("Roll-back hotov"), f"Smazáno {deleted} z {len(ids)} prací."
         )
 
     def refresh(self) -> None:
@@ -824,10 +824,10 @@ class MainWindow(QMainWindow):
         self._stag_banner_label.setTextFormat(Qt.TextFormat.RichText)
         self._stag_banner_label.setWordWrap(True)
         lay.addWidget(self._stag_banner_label, stretch=1)
-        self._stag_banner_btn = QPushButton("🔎 Detaily…")
+        self._stag_banner_btn = QPushButton(tr("🔎 Detaily…"))
         self._stag_banner_btn.setToolTip(
-            "Náhled kontroly: co je nové/změněné + seznam zkontrolovaných "
-            "a aktuálních prací (pro ověření, že kontrola proběhla)."
+            tr("Náhled kontroly: co je nové/změněné + seznam zkontrolovaných "
+            "a aktuálních prací (pro ověření, že kontrola proběhla).")
         )
         self._stag_banner_btn.setStyleSheet(btn_qss)
         self._stag_banner_btn.clicked.connect(self._show_stag_changes)
@@ -835,7 +835,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self._stag_banner_btn)
         btn_close = QToolButton()
         btn_close.setText("✕")
-        btn_close.setToolTip("Skrýt proužek")
+        btn_close.setToolTip(tr("Skrýt proužek"))
         btn_close.setStyleSheet(
             "QToolButton { color:#212121; border:none; padding:2px 6px; } "
             "QToolButton:hover { background:#e0e0e0; border-radius:4px; }"
@@ -1310,8 +1310,8 @@ class MainWindow(QMainWindow):
         """Otevře dialog pro odeslání oponentských posudků sekretářce."""
         if self.profile_manager is None:
             QMessageBox.information(
-                self, "Profil",
-                "Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem.",
+                self, tr("Profil"),
+                tr("Odesílání e-mailem vyžaduje aktivní profil s vyplněným e-mailem."),
             )
             return
         from .send_reviews_dialog import SendReviewsDialog
@@ -1351,11 +1351,11 @@ class MainWindow(QMainWindow):
                 lambda _checked=False, pid=p.id: self._switch_profile(pid)
             )
         menu.addSeparator()
-        act_new = menu.addAction("➕ Nový profil…")
+        act_new = menu.addAction(tr("➕ Nový profil…"))
         act_new.triggered.connect(self._action_new_profile)
-        act_open = menu.addAction("📂 Otevřít existující složku…")
+        act_open = menu.addAction(tr("📂 Otevřít existující složku…"))
         act_open.triggered.connect(self._action_open_existing_profile)
-        act_import = menu.addAction("📥 Importovat z jiného profilu do aktuálního…")
+        act_import = menu.addAction(tr("📥 Importovat z jiného profilu do aktuálního…"))
         act_import.triggered.connect(self._action_import_into_current)
         # Disable pokud není jiný profil
         other_count = sum(
@@ -1365,34 +1365,34 @@ class MainWindow(QMainWindow):
         )
         act_import.setEnabled(other_count > 0 and active is not None)
         menu.addSeparator()
-        act_export = menu.addAction("📤 Exportovat aktuální profil do ZIPu…")
+        act_export = menu.addAction(tr("📤 Exportovat aktuální profil do ZIPu…"))
         act_export.setToolTip(
-            "Vytvoří přenosný ZIP balík profilu — db.json + dokumenty + "
-            'harmonogramy. Lze otevřít na jiném zařízení přes „Importovat profil ze ZIPu…".'
+            tr("Vytvoří přenosný ZIP balík profilu — db.json + dokumenty + "
+            'harmonogramy. Lze otevřít na jiném zařízení přes „Importovat profil ze ZIPu…".')
         )
         act_export.triggered.connect(self._action_export_profile_zip)
         act_export.setEnabled(active is not None)
-        act_import_zip = menu.addAction("📥 Importovat profil ze ZIPu…")
+        act_import_zip = menu.addAction(tr("📥 Importovat profil ze ZIPu…"))
         act_import_zip.setToolTip(
-            "Otevře ZIP s exportem z jiného zařízení a vytvoří nový profil."
+            tr("Otevře ZIP s exportem z jiného zařízení a vytvoří nový profil.")
         )
         act_import_zip.triggered.connect(self._action_import_profile_zip)
         menu.addSeparator()
-        act_email = menu.addAction("✉ Nastavení e-mailu (SMTP)…")
+        act_email = menu.addAction(tr("✉ Nastavení e-mailu (SMTP)…"))
         act_email.setToolTip(
-            "E-mail odesílatele a SMTP server pro odesílání posudků sekretářkám "
-            "(s testem spojení). Heslo se neukládá."
+            tr("E-mail odesílatele a SMTP server pro odesílání posudků sekretářkám "
+            "(s testem spojení). Heslo se neukládá.")
         )
         act_email.triggered.connect(self._open_email_settings)
         act_email.setEnabled(active is not None)
         menu.addSeparator()
-        act_manage = menu.addAction("🗂 Správa profilů…")
+        act_manage = menu.addAction(tr("🗂 Správa profilů…"))
         act_manage.triggered.connect(self._action_manage_profiles)
-        act_backup_now = menu.addAction("💾 Zálohovat teď")
-        act_backup_now.setToolTip("Rychlá ruční záloha aktuálního stavu databáze.")
+        act_backup_now = menu.addAction(tr("💾 Zálohovat teď"))
+        act_backup_now.setToolTip(tr("Rychlá ruční záloha aktuálního stavu databáze."))
         act_backup_now.triggered.connect(self._action_backup_now)
         act_backup_now.setEnabled(active is not None)
-        act_backups = menu.addAction("💾 Zálohy…")
+        act_backups = menu.addAction(tr("💾 Zálohy…"))
         act_backups.triggered.connect(self._action_show_backups)
         self._profile_button.setMenu(menu)
         # Update label
@@ -1426,7 +1426,7 @@ class MainWindow(QMainWindow):
         try:
             result = self.profile_manager.open(profile_id, force=force)
         except ProfileError as exc:
-            QMessageBox.critical(self, "Přepnutí profilu", str(exc))
+            QMessageBox.critical(self, tr("Přepnutí profilu"), str(exc))
             return
 
         # Vytvoř nový repository nad novou data_dir + bind do existující service
@@ -1449,7 +1449,7 @@ class MainWindow(QMainWindow):
         info = check.existing
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("Profil je otevřený jinde")
+        msg.setWindowTitle(tr("Profil je otevřený jinde"))
         text = (
             "Profil je zřejmě otevřený na jiném zařízení nebo uživatelem.\n\n"
             f"Zařízení: {info.hostname if info else '?'}\n"
@@ -1461,7 +1461,7 @@ class MainWindow(QMainWindow):
             "synchronizaci, aby si vy a druhé zařízení vzájemně nepřepsali změny."
         )
         msg.setText(text)
-        btn_ignore = msg.addButton("Otevřít stejně", QMessageBox.ButtonRole.DestructiveRole)
+        btn_ignore = msg.addButton(tr("Otevřít stejně"), QMessageBox.ButtonRole.DestructiveRole)
         msg.addButton(QMessageBox.StandardButton.Cancel)
         msg.exec()
         return msg.clickedButton() == btn_ignore
@@ -1493,7 +1493,7 @@ class MainWindow(QMainWindow):
         try:
             profile = self.profile_manager.create(name.strip(), Path(folder))
         except ProfileError as exc:
-            QMessageBox.critical(self, "Vytvoření selhalo", str(exc))
+            QMessageBox.critical(self, tr("Vytvoření selhalo"), str(exc))
             return
         self._switch_profile(profile.id)
 
@@ -1540,7 +1540,7 @@ class MainWindow(QMainWindow):
                 overwrite=True,
             )
         except ProfileError as exc:
-            QMessageBox.critical(self, "Import selhal", str(exc))
+            QMessageBox.critical(self, tr("Import selhal"), str(exc))
             return
 
         # 4) Reload service nad přepsanou DB + refresh UI
@@ -1549,7 +1549,7 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(
             self,
-            "Import dokončen",
+            tr("Import dokončen"),
             f"Data importována z profilu „{self.profile_manager.get(dlg.source_id).name}“ "
             f"do „{active.name}“.\n\n"
             f"db.json: {stats['db']}\n"
@@ -1616,18 +1616,18 @@ class MainWindow(QMainWindow):
         data_dir = self.profile_manager.active_data_dir()
         db_path = data_dir / "db.json"
         if not db_path.exists():
-            QMessageBox.warning(self, "Záloha", "Databáze zatím neexistuje.")
+            QMessageBox.warning(self, tr("Záloha"), tr("Databáze zatím neexistuje."))
             return
         try:
             info = BackupManager(data_dir).create_backup(
                 db_path, suffix="manual", dedupe=False
             )
         except OSError as exc:
-            QMessageBox.critical(self, "Záloha selhala", str(exc))
+            QMessageBox.critical(self, tr("Záloha selhala"), str(exc))
             return
         name = info.path.name if info else "(záloha)"
         QMessageBox.information(
-            self, "Záloha vytvořena", f"Vytvořena ruční záloha:\n{name}"
+            self, tr("Záloha vytvořena"), f"Vytvořena ruční záloha:\n{name}"
         )
 
     def _action_show_backups(self) -> None:
@@ -1690,7 +1690,7 @@ class MainWindow(QMainWindow):
         """Dialog nové budoucí práce — volitelně předvyplní studenta, obor,
         název a anotaci. Nic není povinné; stav default *Vypsané téma*."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Nová budoucí práce")
+        dialog.setWindowTitle(tr("Nová budoucí práce"))
         dialog.setMinimumWidth(500)
         layout = QVBoxLayout(dialog)
         form = QFormLayout()
@@ -1705,11 +1705,11 @@ class MainWindow(QMainWindow):
             cb_status.addItem(s.label, s.value)
 
         cb_student = QComboBox()
-        cb_student.addItem("(bez studenta)", None)
+        cb_student.addItem(tr("(bez studenta)"), None)
         for st in self.service.list_students():
             cb_student.addItem(st.full_name, st.id)
-        btn_new_student = QPushButton("+ Nový")
-        btn_new_student.setToolTip("Založit nového studenta (vč. oboru).")
+        btn_new_student = QPushButton(tr("+ Nový"))
+        btn_new_student.setToolTip(tr("Založit nového studenta (vč. oboru)."))
         student_row = QHBoxLayout()
         student_row.setContentsMargins(0, 0, 0, 0)
         student_row.addWidget(cb_student, stretch=1)
@@ -1724,7 +1724,7 @@ class MainWindow(QMainWindow):
         cb_obor.addItem("")
         for o in self.service.list_obor_objects():
             cb_obor.addItem(o.name)
-        cb_obor.lineEdit().setPlaceholderText("Obor (nepovinné)")
+        cb_obor.lineEdit().setPlaceholderText(tr("Obor (nepovinné)"))
 
         def _on_student() -> None:
             sid = cb_student.currentData()
@@ -1752,18 +1752,18 @@ class MainWindow(QMainWindow):
         ed_anot = QPlainTextEdit()
         ed_anot.setMaximumHeight(110)
 
-        form.addRow("Typ", cb_type)
-        form.addRow("Akademický rok", ed_year)
+        form.addRow(tr("Typ"), cb_type)
+        form.addRow(tr("Akademický rok"), ed_year)
         form.addRow("Stav", cb_status)
-        form.addRow("Student", student_widget)
+        form.addRow(tr("Student"), student_widget)
         form.addRow("Obor", cb_obor)
-        form.addRow("Název", ed_title)
+        form.addRow(tr("Název"), ed_title)
         form.addRow("Anotace", ed_anot)
         layout.addLayout(form)
 
         hint = QLabel(
-            "Nepovinné — co nevyplníš, zůstane prázdné. Obor se ukládá "
-            "ke zvolenému studentovi (jen pokud je zvolen)."
+            tr("Nepovinné — co nevyplníš, zůstane prázdné. Obor se ukládá "
+            "ke zvolenému studentovi (jen pokud je zvolen).")
         )
         hint.setStyleSheet("color:#888;")
         hint.setWordWrap(True)
@@ -1801,14 +1801,14 @@ class MainWindow(QMainWindow):
     def _new_past_thesis(self) -> None:
         """Dialog pro přidání historické práce — libovolný rok, typ, stav."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Přidat minulou práci")
+        dialog.setWindowTitle(tr("Přidat minulou práci"))
         dialog.setMinimumWidth(420)
 
         layout = QVBoxLayout(dialog)
         form = QFormLayout()
 
         ed_year = QLineEdit(ThesisService.previous_academic_year())
-        ed_year.setPlaceholderText("např. 2024/2025")
+        ed_year.setPlaceholderText(tr("např. 2024/2025"))
 
         cb_type = QComboBox()
         for t in ThesisType:
@@ -1823,8 +1823,8 @@ class MainWindow(QMainWindow):
         for s in past_statuses:
             cb_status.addItem(s.label, s.value)
 
-        form.addRow("Akademický rok", ed_year)
-        form.addRow("Typ", cb_type)
+        form.addRow(tr("Akademický rok"), ed_year)
+        form.addRow(tr("Typ"), cb_type)
         form.addRow("Stav", cb_status)
         layout.addLayout(form)
 
@@ -1902,7 +1902,7 @@ class MainWindow(QMainWindow):
         try:
             dlg = ThesisImportDialog(self.service, Path(path_str), self)
         except (ThesisExportError, OSError) as exc:
-            QMessageBox.critical(self, "Import", f"Import selhal:\n{exc}")
+            QMessageBox.critical(self, tr("Import"), f"Import selhal:\n{exc}")
             return
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
@@ -1919,11 +1919,11 @@ class MainWindow(QMainWindow):
                 thesis_id = import_thesis_from_zip(self.service, Path(path_str))
                 done_msg = "Práce byla naimportována jako nová."
         except (ThesisExportError, OSError) as exc:
-            QMessageBox.critical(self, "Import", f"Import selhal:\n{exc}")
+            QMessageBox.critical(self, tr("Import"), f"Import selhal:\n{exc}")
             return
         self._refresh_all()
         self._focus_thesis(thesis_id)
-        QMessageBox.information(self, "Import hotov", done_msg)
+        QMessageBox.information(self, tr("Import hotov"), done_msg)
 
     def _cleanup_duplicate_appendices(self) -> None:
         """Najde a nabídne smazání duplicitních příloh (shodný obsah)."""

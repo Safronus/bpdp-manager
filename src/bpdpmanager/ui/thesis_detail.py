@@ -32,7 +32,7 @@ def _format_numbered(text: str | None) -> str:
     items = _split_items(text)
     return "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items))
 
-from PySide6.QtCore import Qt, QLocale, QTimer, QUrl, Signal
+from PySide6.QtCore import QLocale, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QCursor, QDoubleValidator
 from PySide6.QtWidgets import (
     QApplication,
@@ -223,9 +223,9 @@ class ThesisDetail(QWidget):
         # potvrzení rovnou otevře v Excelu).
         self.btn_generate_review = QPushButton(tr("📝 Napsat posudek…"))
         self.btn_generate_review.setToolTip(
-            "Vybere se šablona z knihovny (auto-filtr dle typu a oboru), "
+            tr("Vybere se šablona z knihovny (auto-filtr dle typu a oboru), "
             "vyplní se daty z této práce a otevře se v Excelu k vyplnění "
-            "bodů hodnocení. Posudek se připojí jako příloha."
+            "bodů hodnocení. Posudek se připojí jako příloha.")
         )
         self.btn_generate_review.clicked.connect(self._generate_review)
         header.addWidget(self.btn_generate_review)
@@ -329,7 +329,7 @@ class ThesisDetail(QWidget):
         if self._year_mode == YEAR_MODE_CURRENT:
             # Aktuální tab — rok je vždy aktuální a nelze měnit
             self.cb_year.setEnabled(False)
-            self.cb_year.setToolTip("Aktuální akademický rok — zamčeno")
+            self.cb_year.setToolTip(tr("Aktuální akademický rok — zamčeno"))
         elif self._year_mode == YEAR_MODE_ALL:
             # Vše tab — editovatelné, kdyby uživatel chtěl ojedinělý rok
             self.cb_year.setEditable(True)
@@ -350,7 +350,7 @@ class ThesisDetail(QWidget):
         self.cb_student.setMinimumWidth(180)
         _setup_searchable_combo(self.cb_student)
         if self.cb_student.lineEdit() is not None:
-            self.cb_student.lineEdit().setPlaceholderText("(bez studenta)")
+            self.cb_student.lineEdit().setPlaceholderText(tr("(bez studenta)"))
         self.btn_new_student = QPushButton("+")
         self.btn_new_student.setFixedWidth(28)
         self.btn_new_student.clicked.connect(self._new_student)
@@ -369,8 +369,8 @@ class ThesisDetail(QWidget):
         if self.cb_thesis_obor.lineEdit() is not None:
             self.cb_thesis_obor.lineEdit().setPlaceholderText("Obor")
         self.cb_thesis_obor.setToolTip(
-            "Obor studenta — uloží se ke studentovi. Dropdown nabízí evidované "
-            "obory (manažer Obory)."
+            tr("Obor studenta — uloží se ke studentovi. Dropdown nabízí evidované "
+            "obory (manažer Obory).")
         )
         row.addWidget(self.cb_thesis_obor)
         row.addSpacing(12)
@@ -384,7 +384,7 @@ class ThesisDetail(QWidget):
         self.cb_opponent.setMinimumWidth(180)
         _setup_searchable_combo(self.cb_opponent)
         if self.cb_opponent.lineEdit() is not None:
-            self.cb_opponent.lineEdit().setPlaceholderText("(bez oponenta)")
+            self.cb_opponent.lineEdit().setPlaceholderText(tr("(bez oponenta)"))
         self.btn_new_opponent = QPushButton("+")
         self.btn_new_opponent.setFixedWidth(28)
         self.btn_new_opponent.clicked.connect(self._new_opponent)
@@ -399,8 +399,8 @@ class ThesisDetail(QWidget):
         stag_row.addWidget(QLabel("STAG:"))
         self.ed_stag_url = QLineEdit()
         self.ed_stag_url.setPlaceholderText(
-            "odkaz na práci v IS/STAG (volitelné, např. "
-            "https://stag.utb.cz/portal/studium/prohlizeni.html?…)"
+            tr("odkaz na práci v IS/STAG (volitelné, např. "
+            "https://stag.utb.cz/portal/studium/prohlizeni.html?…)")
         )
         stag_row.addWidget(self.ed_stag_url, stretch=1)
         layout.addLayout(stag_row)
@@ -460,18 +460,18 @@ class ThesisDetail(QWidget):
         layout.setContentsMargins(8, 12, 8, 8)
 
         lbl_obj = QLabel(
-            "Body zadání  —  každý bod na nové řádce, číslování se přidá "
-            "automaticky v Souhrnu."
+            tr("Body zadání  —  každý bod na nové řádce, číslování se přidá "
+            "automaticky v Souhrnu.")
         )
         lbl_obj.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_obj)
         self.ed_objectives = QPlainTextEdit()
         self.ed_objectives.setMinimumHeight(120)
         self.ed_objectives.setPlaceholderText(
-            "Nastudujte a popište problematiku testování softwaru.\n"
+            tr("Nastudujte a popište problematiku testování softwaru.\n"
             "Prozkoumejte možnosti testování pomocí umělé inteligence.\n"
             "Rozeberte vhodné nástroje AI využitelné pro testování softwaru.\n"
-            "…"
+            "…")
         )
         self.ed_objectives.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -479,8 +479,8 @@ class ThesisDetail(QWidget):
         layout.addWidget(self.ed_objectives, stretch=1)
 
         lbl_ref = QLabel(
-            "Literární zdroje  —  každá citace na nové řádce, číslování se "
-            "přidá automaticky v Souhrnu."
+            tr("Literární zdroje  —  každá citace na nové řádce, číslování se "
+            "přidá automaticky v Souhrnu.")
         )
         lbl_ref.setContentsMargins(8, 4, 8, 0)
         layout.addWidget(lbl_ref)
@@ -548,9 +548,9 @@ class ThesisDetail(QWidget):
 
         # Shoda %
         perc_row = QHBoxLayout()
-        perc_row.addWidget(QLabel("Procento shody:"))
+        perc_row.addWidget(QLabel(tr("Procento shody:")))
         self.ed_plag_pct = QLineEdit()
-        self.ed_plag_pct.setPlaceholderText("např. 12.3")
+        self.ed_plag_pct.setPlaceholderText(tr("např. 12.3"))
         validator = QDoubleValidator(0.0, 100.0, 2, self)
         validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         # akceptuj tečku i čárku jako desetinnou
@@ -566,7 +566,7 @@ class ThesisDetail(QWidget):
 
         # Verdikt — 3 radio buttony + barevný badge
         verdict_row = QHBoxLayout()
-        verdict_row.addWidget(QLabel("Verdikt:"))
+        verdict_row.addWidget(QLabel(tr("Verdikt:")))
         self.rb_verdict_na = QRadioButton(PlagiarismVerdict.NOT_ASSESSED.label)
         self.rb_verdict_pl = QRadioButton(PlagiarismVerdict.PLAGIARISM.label)
         self.rb_verdict_np = QRadioButton(PlagiarismVerdict.NOT_PLAGIARISM.label)
@@ -600,8 +600,8 @@ class ThesisDetail(QWidget):
         self.btn_plag_suggest = QToolButton()
         self.btn_plag_suggest.setText(tr("💡 Doporučený komentář"))
         self.btn_plag_suggest.setToolTip(
-            "Vloží doporučené znění podle verdiktu a procenta shody. "
-            "Lze libovolně upravit. Rozbalovací šipka nabízí konkrétní varianty."
+            tr("Vloží doporučené znění podle verdiktu a procenta shody. "
+            "Lze libovolně upravit. Rozbalovací šipka nabízí konkrétní varianty.")
         )
         self.btn_plag_suggest.setPopupMode(
             QToolButton.ToolButtonPopupMode.MenuButtonPopup
@@ -617,7 +617,7 @@ class ThesisDetail(QWidget):
 
         self.ed_plag_comment = QPlainTextEdit()
         self.ed_plag_comment.setPlaceholderText(
-            "Např. „Drobné shody v citacích a standardních formulacích, žádné podezření.\""
+            tr("Např. „Drobné shody v citacích a standardních formulacích, žádné podezření.\"")
         )
         self.ed_plag_comment.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -634,7 +634,7 @@ class ThesisDetail(QWidget):
         self.lbl_plag_pdf.setStyleSheet("color: #888;")
         pdf_row.addWidget(self.lbl_plag_pdf, stretch=1)
 
-        self.btn_plag_upload = QPushButton("📎 Vybrat PDF…")
+        self.btn_plag_upload = QPushButton(tr("📎 Vybrat PDF…"))
         self.btn_plag_upload.clicked.connect(self._plag_upload)
         pdf_row.addWidget(self.btn_plag_upload)
 
@@ -642,7 +642,7 @@ class ThesisDetail(QWidget):
         self.btn_plag_open.clicked.connect(self._plag_open)
         pdf_row.addWidget(self.btn_plag_open)
 
-        self.btn_plag_remove = QPushButton("🗑 Odebrat")
+        self.btn_plag_remove = QPushButton(tr("🗑 Odebrat"))
         self.btn_plag_remove.clicked.connect(self._plag_remove)
         pdf_row.addWidget(self.btn_plag_remove)
 
@@ -690,8 +690,8 @@ class ThesisDetail(QWidget):
             return
         if self.thesis.status == ThesisStatus.IN_PROGRESS:
             self.btn_generate_review.setToolTip(
-                "Otevře editor posudku (auto-filtr šablon dle typu a oboru), "
-                "vyplní body hodnocení a vygeneruje XLSX + PDF jako přílohu."
+                tr("Otevře editor posudku (auto-filtr šablon dle typu a oboru), "
+                "vyplní body hodnocení a vygeneruje XLSX + PDF jako přílohu.")
             )
         else:
             self.btn_generate_review.setToolTip(
@@ -1571,9 +1571,9 @@ class ThesisDetail(QWidget):
         if verdict == PlagiarismVerdict.NOT_ASSESSED:
             QMessageBox.information(
                 self,
-                "Doporučený komentář",
-                "Nejdřív zvol verdikt (Posouzen — je / není plagiát). "
-                "Pro „Neposouzen\" se komentář negeneruje.",
+                tr("Doporučený komentář"),
+                tr("Nejdřív zvol verdikt (Posouzen — je / není plagiát). "
+                "Pro „Neposouzen\" se komentář negeneruje."),
             )
             return
         text = suggest_comment(verdict, self._plag_pct_value())
@@ -1596,8 +1596,8 @@ class ThesisDetail(QWidget):
         if current and current != text:
             confirm = QMessageBox.question(
                 self,
-                "Přepsat komentář",
-                "Komentář už obsahuje text. Přepsat doporučeným zněním?",
+                tr("Přepsat komentář"),
+                tr("Komentář už obsahuje text. Přepsat doporučeným zněním?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.Yes,
             )
@@ -1635,7 +1635,7 @@ class ThesisDetail(QWidget):
             self.service.set_plagiarism_pdf(self.thesis.id, Path(path_str))
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Chyba", f"Nepodařilo se uložit PDF:\n{exc}"
+                self, tr("Chyba"), f"Nepodařilo se uložit PDF:\n{exc}"
             )
             return
         fresh = self.service.get_thesis(self.thesis.id)
@@ -1652,7 +1652,7 @@ class ThesisDetail(QWidget):
         path = self.service.plagiarism_pdf_path(self.thesis.id)
         if path is None or not path.exists():
             QMessageBox.information(
-                self, "Otevřít PDF", "Žádné PDF není nahrané."
+                self, tr("Otevřít PDF"), tr("Žádné PDF není nahrané.")
             )
             return
         self._open_path_in_os(path)
@@ -1662,7 +1662,7 @@ class ThesisDetail(QWidget):
             return
         confirm = QMessageBox.question(
             self,
-            "Odebrat PDF",
+            tr("Odebrat PDF"),
             f'Odebrat protokol „{self.thesis.plagiarism_pdf_filename}"?\n\n'
             f"Smazat i samotný soubor ze složky?",
             QMessageBox.StandardButton.Yes
@@ -1709,7 +1709,7 @@ class ThesisDetail(QWidget):
             return
         confirm = QMessageBox.question(
             self,
-            "Smazat práci",
+            tr("Smazat práci"),
             f"Opravdu smazat „{self.thesis.display_title}“?\nTuto akci nelze vrátit.",
         )
         if confirm == QMessageBox.StandardButton.Yes:
@@ -1735,7 +1735,7 @@ class ThesisDetail(QWidget):
         try:
             self.service.transition(self.thesis.id, target)
         except TransitionError as exc:
-            QMessageBox.warning(self, "Přechod stavu", str(exc))
+            QMessageBox.warning(self, tr("Přechod stavu"), str(exc))
             return
         self.set_thesis(self.service.get_thesis(self.thesis.id))
         self.saved.emit(self.thesis.id)

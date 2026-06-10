@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import CriterionScore, OpposingThesis, Review, ReviewTemplate, Thesis
 from ..models.enums import ThesisType
 from ..services import ThesisService
@@ -88,18 +89,18 @@ class ReviewTemplateEditDialog(QDialog):
         if self.is_new:
             src_row = QHBoxLayout()
             self.ed_source = QLineEdit()
-            self.ed_source.setPlaceholderText("vyber XLSX šablonu posudku")
+            self.ed_source.setPlaceholderText(tr("vyber XLSX šablonu posudku"))
             self.ed_source.setReadOnly(True)
-            btn_browse = QPushButton("Procházet…")
+            btn_browse = QPushButton(tr("Procházet…"))
             btn_browse.clicked.connect(self._browse_source)
             src_row.addWidget(self.ed_source, stretch=1)
             src_row.addWidget(btn_browse)
-            form.addRow("Zdrojový XLSX", src_row)
+            form.addRow(tr("Zdrojový XLSX"), src_row)
 
         # Název
         self.ed_name = QLineEdit(template.name if template else "")
-        self.ed_name.setPlaceholderText("např. Vedoucí DP — SWI 2025/2026")
-        form.addRow("Název", self.ed_name)
+        self.ed_name.setPlaceholderText(tr("např. Vedoucí DP — SWI 2025/2026"))
+        form.addRow(tr("Název"), self.ed_name)
 
         # Typ
         self.cb_type = QComboBox()
@@ -109,27 +110,27 @@ class ReviewTemplateEditDialog(QDialog):
             idx = self.cb_type.findData(template.type.value)
             if idx >= 0:
                 self.cb_type.setCurrentIndex(idx)
-        form.addRow("Typ práce", self.cb_type)
+        form.addRow(tr("Typ práce"), self.cb_type)
 
         # Role
         self.cb_role = QComboBox()
-        self.cb_role.addItem("🎓 Vedoucí", "supervisor")
-        self.cb_role.addItem("🧐 Oponent", "opponent")
+        self.cb_role.addItem(tr("🎓 Vedoucí"), "supervisor")
+        self.cb_role.addItem(tr("🧐 Oponent"), "opponent")
         if template:
             idx = self.cb_role.findData(template.role)
             if idx >= 0:
                 self.cb_role.setCurrentIndex(idx)
-        form.addRow("Role", self.cb_role)
+        form.addRow(tr("Role"), self.cb_role)
 
         # Jazyk
         self.cb_lang = QComboBox()
-        self.cb_lang.addItem("🇨🇿 Čeština (CZ)", "cs")
+        self.cb_lang.addItem(tr("🇨🇿 Čeština (CZ)"), "cs")
         self.cb_lang.addItem("🇬🇧 English (EN)", "en")
         if template:
             idx = self.cb_lang.findData(template.language)
             if idx >= 0:
                 self.cb_lang.setCurrentIndex(idx)
-        form.addRow("Jazyk", self.cb_lang)
+        form.addRow(tr("Jazyk"), self.cb_lang)
 
         # Obor (editable combobox)
         self.cb_obor = QComboBox()
@@ -143,7 +144,7 @@ class ReviewTemplateEditDialog(QDialog):
             idx = self.cb_obor.findData(template.obor)
             if idx >= 0:
                 self.cb_obor.setCurrentIndex(idx)
-        form.addRow("Obor / specializace", self.cb_obor)
+        form.addRow(tr("Obor / specializace"), self.cb_obor)
         self.lbl_obor_hint = QLabel("")
         self.lbl_obor_hint.setStyleSheet("color:#888;font-size:11px;")
         self.lbl_obor_hint.setWordWrap(True)
@@ -153,26 +154,26 @@ class ReviewTemplateEditDialog(QDialog):
         # (po výběru XLSX), aby šlo vybrat z platných hodnot, ne psát ručně.
         self.cb_year = QComboBox()
         self.cb_year.setEditable(True)
-        self.cb_year.setPlaceholderText("např. 2025/2026 (volitelné)")
+        self.cb_year.setPlaceholderText(tr("např. 2025/2026 (volitelné)"))
         if template and template.academic_year:
             self.cb_year.addItem(template.academic_year, template.academic_year)
             self.cb_year.setCurrentText(template.academic_year)
-        form.addRow("Akademický rok", self.cb_year)
+        form.addRow(tr("Akademický rok"), self.cb_year)
 
         # Poznámka
         self.ed_note = QPlainTextEdit(template.note if template else "")
-        self.ed_note.setPlaceholderText("Volitelná poznámka — např. zdroj, datum verze…")
+        self.ed_note.setPlaceholderText(tr("Volitelná poznámka — např. zdroj, datum verze…"))
         self.ed_note.setMaximumHeight(70)
-        form.addRow("Poznámka", self.ed_note)
+        form.addRow(tr("Poznámka"), self.ed_note)
 
         outer.addLayout(form)
 
         # Pomocná hint zóna
         if self.is_new:
             hint = QLabel(
-                "<small><i>Šablona se zkopíruje do <code>profile_dir/templates/</code>. "
+                tr("<small><i>Šablona se zkopíruje do <code>profile_dir/templates/</code>. "
                 "Originál zůstane nedotčený. Stejný XLSX lze přidat víckrát "
-                "s různými metadaty (např. CZ + EN varianta, nebo BP + DP).</i></small>"
+                "s různými metadaty (např. CZ + EN varianta, nebo BP + DP).</i></small>")
             )
             hint.setStyleSheet("color: #888;")
             hint.setTextFormat(Qt.TextFormat.RichText)
@@ -231,7 +232,7 @@ class ReviewTemplateEditDialog(QDialog):
             meta = extract_template_metadata(xlsx_path)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.warning(
-                self, "Skenování šablony",
+                self, tr("Skenování šablony"),
                 f"Šablona se nepodařilo proskenovat:\n{exc}\n\n"
                 "Vyplň pole ručně.",
             )
@@ -295,8 +296,8 @@ class ReviewTemplateEditDialog(QDialog):
             self.lbl_obor_hint.setText("")
         elif avail_specs:
             self.lbl_obor_hint.setText(
-                "⚠ Specializace nebyla v šabloně vyplněna. Vyber obor z nabídky "
-                "(odvozeno z listu Konfigurace) nebo nech prázdné."
+                tr("⚠ Specializace nebyla v šabloně vyplněna. Vyber obor z nabídky "
+                "(odvozeno z listu Konfigurace) nebo nech prázdné.")
             )
         else:
             self.lbl_obor_hint.setText("")
@@ -330,7 +331,7 @@ class ReviewTemplateEditDialog(QDialog):
         if n_crit:
             bits.append(f"{n_crit} kritérií (max {max_pts:g} b.)")
         QMessageBox.information(
-            self, "Auto-detekce",
+            self, tr("Auto-detekce"),
             f"✓ Šablonu se podařilo proskenovat.\n\nDetekováno: "
             + ", ".join(bits)
             + ".\n\nMůžeš upravit pole ručně, pokud bys něco chtěl změnit.",
@@ -339,7 +340,7 @@ class ReviewTemplateEditDialog(QDialog):
     def _on_accept(self) -> None:
         name = self.ed_name.text().strip()
         if not name:
-            QMessageBox.warning(self, "Chybí název", "Zadej název šablony.")
+            QMessageBox.warning(self, tr("Chybí název"), tr("Zadej název šablony."))
             return
 
         thesis_type = ThesisType(self.cb_type.currentData())
@@ -360,7 +361,7 @@ class ReviewTemplateEditDialog(QDialog):
 
         if self.is_new:
             if self.selected_source is None or not self.selected_source.is_file():
-                QMessageBox.warning(self, "Chybí soubor", "Vyber XLSX šablonu.")
+                QMessageBox.warning(self, tr("Chybí soubor"), tr("Vyber XLSX šablonu."))
                 return
             try:
                 tmpl = self.service.register_review_template(
@@ -369,7 +370,7 @@ class ReviewTemplateEditDialog(QDialog):
                     note=note,
                 )
             except Exception as exc:  # noqa: BLE001
-                QMessageBox.critical(self, "Přidání selhalo", str(exc))
+                QMessageBox.critical(self, tr("Přidání selhalo"), str(exc))
                 return
             # Eager schema cache — pokud máme metadata z předskenu, uložíme je
             # přímo (vyhneme se druhému scan). Jinak ensure_template_schema
@@ -409,7 +410,7 @@ class ReviewTemplatesDialog(QDialog):
         super().__init__(parent)
         self.service = service
         self.profile_manager = profile_manager
-        self.setWindowTitle("Šablony posudků")
+        self.setWindowTitle(tr("Šablony posudků"))
         self.setMinimumSize(900, 540)
 
         outer = QVBoxLayout(self)
@@ -417,10 +418,10 @@ class ReviewTemplatesDialog(QDialog):
         outer.setSpacing(10)
 
         outer.addWidget(QLabel(
-            "Knihovna XLSX šablon posudků v rámci profilu. Šablony se kopírují "
+            tr("Knihovna XLSX šablon posudků v rámci profilu. Šablony se kopírují "
             "do <code>profile_dir/templates/</code> a jdou s profilem v ZIP exportu. "
             "Z kontextu konkrétní práce (pravý klik) → <i>Generovat posudek "
-            "z šablony…</i> šablonu vyplní daty z práce a připojí jako přílohu."
+            "z šablony…</i> šablonu vyplní daty z práce a připojí jako přílohu.")
         ))
         outer.itemAt(outer.count() - 1).widget().setWordWrap(True)
         outer.itemAt(outer.count() - 1).widget().setTextFormat(Qt.TextFormat.RichText)
@@ -428,7 +429,7 @@ class ReviewTemplatesDialog(QDialog):
         # Strom: BP/DP → obor → jednotlivé šablony (s ikonou role + jazyk).
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Šablona", "Role", "Ak. rok"])
+        self.tree.setHeaderLabels([tr("Šablona"), tr("Role"), tr("Ak. rok")])
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.itemDoubleClicked.connect(self._edit)
@@ -439,23 +440,23 @@ class ReviewTemplatesDialog(QDialog):
         outer.addWidget(self.tree, stretch=1)
 
         row = QHBoxLayout()
-        btn_new = QPushButton("+ Přidat šablonu…")
-        btn_edit = QPushButton("Upravit…")
-        btn_open = QPushButton("📂 Otevřít v Excelu")
-        btn_reveal = QPushButton("🔍 Ukázat ve Finderu")
+        btn_new = QPushButton(tr("+ Přidat šablonu…"))
+        btn_edit = QPushButton(tr("Upravit…"))
+        btn_open = QPushButton(tr("📂 Otevřít v Excelu"))
+        btn_reveal = QPushButton(tr("🔍 Ukázat ve Finderu"))
         btn_delete = QPushButton("Smazat")
-        btn_defaults = QPushButton("⭐ Defaultní…")
+        btn_defaults = QPushButton(tr("⭐ Defaultní…"))
         btn_defaults.setToolTip(
-            "Doplní výchozí šablony posudků FAI UTB (BP/DP, vedoucí/oponent, "
-            "CZ/EN, podle oboru). Existující nechá být; volitelně přepíše."
+            tr("Doplní výchozí šablony posudků FAI UTB (BP/DP, vedoucí/oponent, "
+            "CZ/EN, podle oboru). Existující nechá být; volitelně přepíše.")
         )
-        btn_dedupe = QPushButton("🧹 Uklidit duplicity")
+        btn_dedupe = QPushButton(tr("🧹 Uklidit duplicity"))
         btn_dedupe.setToolTip(
-            "Sjednotí form-varianty šablon (prezenční -P / kombinovaná -K téhož "
+            tr("Sjednotí form-varianty šablon (prezenční -P / kombinovaná -K téhož "
             "oboru): sloučí duplicity a přejmenuje šablony na form-neutrální "
-            "názvy (bez -P/-K). Ukáže náhled."
+            "názvy (bez -P/-K). Ukáže náhled.")
         )
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_new.clicked.connect(self._add)
         btn_edit.clicked.connect(self._edit)
         btn_open.clicked.connect(self._open_in_app)
@@ -612,7 +613,7 @@ class ReviewTemplatesDialog(QDialog):
             return
         fp = self.service.review_template_file_path(tmpl)
         if fp is None or not fp.is_file():
-            QMessageBox.warning(self, "Soubor chybí", f"Soubor šablony nenalezen:\n{fp}")
+            QMessageBox.warning(self, tr("Soubor chybí"), f"Soubor šablony nenalezen:\n{fp}")
             return
         _open_in_app(fp)
 
@@ -622,7 +623,7 @@ class ReviewTemplatesDialog(QDialog):
             return
         fp = self.service.review_template_file_path(tmpl)
         if fp is None or not fp.is_file():
-            QMessageBox.warning(self, "Soubor chybí", f"Soubor šablony nenalezen:\n{fp}")
+            QMessageBox.warning(self, tr("Soubor chybí"), f"Soubor šablony nenalezen:\n{fp}")
             return
         _reveal_in_filemanager(fp)
 
@@ -632,7 +633,7 @@ class ReviewTemplatesDialog(QDialog):
             return
         confirm = QMessageBox.question(
             self,
-            "Smazat šablonu",
+            tr("Smazat šablonu"),
             f'Smazat šablonu „{tmpl.name}"?\n\n'
             f"Soubor v profile_dir/templates/ se rovněž odstraní.\n"
             f"Posudky, které z této šablony byly v minulosti vygenerovány "
@@ -649,26 +650,26 @@ class ReviewTemplatesDialog(QDialog):
         missing, present = self.service.default_templates_seed_status()
         if missing + present == 0:
             QMessageBox.information(
-                self, "Defaultní šablony",
-                "V balíčku nejsou žádné výchozí šablony.",
+                self, tr("Defaultní šablony"),
+                tr("V balíčku nejsou žádné výchozí šablony."),
             )
             return
 
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
-        box.setWindowTitle("Defaultní šablony")
+        box.setWindowTitle(tr("Defaultní šablony"))
         box.setText(
             "Výchozí šablony posudků FAI UTB (BP/DP, vedoucí/oponent, CZ/EN).\n\n"
             f"Chybí: {missing}  ·  už existuje: {present}\n\n"
             "Doplnit chybějící do knihovny, nebo smazat všechny šablony "
             "a nahradit je výchozí sadou?"
         )
-        chk = QCheckBox("Při doplnění přepsat i stejnojmenné existující")
+        chk = QCheckBox(tr("Při doplnění přepsat i stejnojmenné existující"))
         if present:
             box.setCheckBox(chk)
-        btn_add = box.addButton("Doplnit chybějící", QMessageBox.ButtonRole.AcceptRole)
+        btn_add = box.addButton(tr("Doplnit chybějící"), QMessageBox.ButtonRole.AcceptRole)
         btn_wipe = box.addButton(
-            "Smazat vše a nahradit", QMessageBox.ButtonRole.DestructiveRole
+            tr("Smazat vše a nahradit"), QMessageBox.ButtonRole.DestructiveRole
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
         box.exec()
@@ -678,10 +679,10 @@ class ReviewTemplatesDialog(QDialog):
 
         wipe = clicked == btn_wipe
         if wipe and QMessageBox.question(
-            self, "Smazat vše a nahradit",
-            "Opravdu smazat VŠECHNY šablony (vč. jejich XLSX souborů) a "
+            self, tr("Smazat vše a nahradit"),
+            tr("Opravdu smazat VŠECHNY šablony (vč. jejich XLSX souborů) a "
             "nahradit je výchozí sadou?\n\nUž vygenerované posudky u prací "
-            "zůstávají nedotčené.",
+            "zůstávají nedotčené."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         ) != QMessageBox.StandardButton.Yes:
@@ -702,7 +703,7 @@ class ReviewTemplatesDialog(QDialog):
             QGuiApplication.restoreOverrideCursor()
         self._refresh()
         QMessageBox.information(
-            self, "Defaultní šablony",
+            self, tr("Defaultní šablony"),
             f"Přidáno: {res['added']} · přepsáno: {res['replaced']} · "
             f"ponecháno: {res['skipped']}.",
         )
@@ -714,9 +715,9 @@ class ReviewTemplatesDialog(QDialog):
         renamed = res["renamed"]
         if not merged and not renamed:
             QMessageBox.information(
-                self, "Uklidit duplicity",
-                "Žádné form-duplicity ani názvy se značkou -P/-K — knihovna "
-                "je čistá.",
+                self, tr("Uklidit duplicity"),
+                tr("Žádné form-duplicity ani názvy se značkou -P/-K — knihovna "
+                "je čistá."),
             )
             return
 
@@ -738,7 +739,7 @@ class ReviewTemplatesDialog(QDialog):
             parts.append(f"<b>Přejmenovat na form-neutrální ({len(renamed)}):</b>\n{lines}")
 
         confirm = QMessageBox.question(
-            self, "Uklidit duplicity",
+            self, tr("Uklidit duplicity"),
             "Sjednotit šablony na form-neutrální (prezenční -P i kombinovaná -K "
             "sdílí jednu šablonu)?\n\n"
             + "\n\n".join(parts)
@@ -752,7 +753,7 @@ class ReviewTemplatesDialog(QDialog):
         applied = self.service.dedupe_review_templates(dry_run=False)
         self._refresh()
         QMessageBox.information(
-            self, "Uklidit duplicity",
+            self, tr("Uklidit duplicity"),
             f"Sloučeno (odebráno): {len(applied['merged'])} · "
             f"přejmenováno: {len(applied['renamed'])} šablon.",
         )
@@ -822,7 +823,7 @@ class GenerateReviewDialog(QDialog):
             )
             self._plag_justification = self.work.plagiarism_comment or ""
 
-        self.setWindowTitle("Generovat posudek z šablony")
+        self.setWindowTitle(tr("Generovat posudek z šablony"))
         self.setMinimumSize(820, 580)
 
         outer = QVBoxLayout(self)
@@ -830,7 +831,7 @@ class GenerateReviewDialog(QDialog):
         outer.setSpacing(10)
 
         # ── Hlavička ────────────────────────────────────────────────────
-        header = QLabel("📝 Generovat posudek z šablony")
+        header = QLabel(tr("📝 Generovat posudek z šablony"))
         header.setStyleSheet("font-size:15px;font-weight:bold;")
         outer.addWidget(header)
 
@@ -861,8 +862,8 @@ class GenerateReviewDialog(QDialog):
                 f"upraveno {last_review.updated_at.strftime('%d.%m.%Y %H:%M')})"
             )
             self.btn_continue_last.setToolTip(
-                "Otevře editor s naposledy uloženými daty posudku — "
-                "navážeš tam, kde jsi přestal."
+                tr("Otevře editor s naposledy uloženými daty posudku — "
+                "navážeš tam, kde jsi přestal.")
             )
             bf2 = self.btn_continue_last.font()
             bf2.setBold(True)
@@ -875,7 +876,7 @@ class GenerateReviewDialog(QDialog):
         # Typ (BP/DP) a role (vedoucí u vedené práce / oponent u oponentury)
         # se filtrují VŽDY — logicky nemá smysl nabízet DP u BP nebo posudek
         # oponenta u vedené práce. Tenhle přepínač uvolní jen filtr OBORU.
-        self.chk_all = QCheckBox("Zobrazit i šablony jiných oborů")
+        self.chk_all = QCheckBox(tr("Zobrazit i šablony jiných oborů"))
         self.chk_all.setChecked(True)
         self.chk_all.toggled.connect(self._refresh_list)
         outer.addWidget(self.chk_all)
@@ -883,7 +884,7 @@ class GenerateReviewDialog(QDialog):
         # ── Strom šablon (seskupeno podle oboru) ────────────────────────
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Šablona / Obor", "Jazyk", "Akad. rok"])
+        self.tree.setHeaderLabels([tr("Šablona / Obor"), tr("Jazyk"), tr("Akad. rok")])
         self.tree.setAlternatingRowColors(True)
         self.tree.setRootIsDecorated(True)
         self.tree.itemSelectionChanged.connect(self._update_button_state)
@@ -895,9 +896,9 @@ class GenerateReviewDialog(QDialog):
 
         # ── Tlačítka ───────────────────────────────────────────────────
         row = QHBoxLayout()
-        btn_cancel = QPushButton("Zavřít")
+        btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
-        self.btn_generate = QPushButton("📝 Vyplnit a připojit k práci")
+        self.btn_generate = QPushButton(tr("📝 Vyplnit a připojit k práci"))
         bf = self.btn_generate.font()
         bf.setBold(True)
         self.btn_generate.setFont(bf)
@@ -1078,7 +1079,7 @@ class GenerateReviewDialog(QDialog):
             return
         tmpl = self.service.get_review_template(template_id)
         if tmpl is None:
-            QMessageBox.warning(self, "Šablona", "Šablona nebyla nalezena.")
+            QMessageBox.warning(self, tr("Šablona"), tr("Šablona nebyla nalezena."))
             return
 
         # Doplň schema (lazy) — kritéria + speciální pole
@@ -1108,7 +1109,7 @@ class GenerateReviewDialog(QDialog):
             max_pts = existing.max_points
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Icon.Question)
-            msg.setWindowTitle("Rozpracovaný posudek")
+            msg.setWindowTitle(tr("Rozpracovaný posudek"))
             msg.setText(
                 f"Pro tuto práci už existuje uložený posudek "
                 f"({'vedoucího' if tmpl.role == 'supervisor' else 'oponenta'}).\n\n"
@@ -1118,10 +1119,10 @@ class GenerateReviewDialog(QDialog):
                 f"{existing.updated_at.strftime('%d.%m.%Y %H:%M')}"
             )
             btn_continue = msg.addButton(
-                "✏ Pokračovat v datech", QMessageBox.ButtonRole.AcceptRole
+                tr("✏ Pokračovat v datech"), QMessageBox.ButtonRole.AcceptRole
             )
             btn_fresh = msg.addButton(
-                "🆕 Začít znovu", QMessageBox.ButtonRole.DestructiveRole
+                tr("🆕 Začít znovu"), QMessageBox.ButtonRole.DestructiveRole
             )
             msg.addButton(QMessageBox.StandardButton.Cancel)
             msg.setDefaultButton(btn_continue)
@@ -1198,12 +1199,12 @@ class GenerateReviewDialog(QDialog):
         """
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Posudek vygenerován")
+        msg.setWindowTitle(tr("Posudek vygenerován"))
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(body)
-        btn_open = msg.addButton("📄 Otevřít v Excelu", QMessageBox.ButtonRole.ActionRole)
+        btn_open = msg.addButton(tr("📄 Otevřít v Excelu"), QMessageBox.ButtonRole.ActionRole)
         btn_reveal = msg.addButton(
-            "📂 Ukázat ve Finderu", QMessageBox.ButtonRole.ActionRole
+            tr("📂 Ukázat ve Finderu"), QMessageBox.ButtonRole.ActionRole
         )
         msg.addButton(QMessageBox.StandardButton.Close)
         msg.exec()

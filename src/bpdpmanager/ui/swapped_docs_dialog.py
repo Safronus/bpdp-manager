@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..services import ThesisService
 
 _ROLE_FIX = Qt.ItemDataRole.UserRole + 1  # ("swap", SwappedDocs) | ("bundle", TextBundle)
@@ -40,31 +41,31 @@ class SwappedDocsDialog(QDialog):
         super().__init__(parent)
         self.service = service
         self.profile_manager = profile_manager
-        self.setWindowTitle("Náprava zařazení textu a příloh")
+        self.setWindowTitle(tr("Náprava zařazení textu a příloh"))
         self.setMinimumSize(780, 480)
         self._reload()
 
         outer = QVBoxLayout(self)
         intro = QLabel(
-            "Náprava staršího zařazení souborů ze STAG. <b>Prohození</b>: archiv "
+            tr("Náprava staršího zařazení souborů ze STAG. <b>Prohození</b>: archiv "
             "(zip) je veden jako <i>Text práce</i> a PDF jako <i>Příloha</i> — "
             "oprava druh prohodí. <b>Balík</b>: archiv jako <i>Text práce</i> bez "
             "samostatného PDF (text i přílohy v jednom zipu) — přeřadí se na "
             "<i>Text práce + přílohy</i>. Obsah souborů se nemění; před zápisem se "
-            "vytvoří záloha."
+            "vytvoří záloha.")
         )
         intro.setWordWrap(True)
         outer.addWidget(intro)
 
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Práce / dokument", "Nyní", "Bude"])
+        self.tree.setHeaderLabels([tr("Práce / dokument"), tr("Nyní"), tr("Bude")])
         self.tree.setColumnWidth(0, 440)
         outer.addWidget(self.tree, stretch=1)
         self._populate()
 
         row = QHBoxLayout()
-        btn_all = QPushButton("Vybrat vše")
-        btn_none = QPushButton("Zrušit vše")
+        btn_all = QPushButton(tr("Vybrat vše"))
+        btn_none = QPushButton(tr("Zrušit vše"))
         btn_all.clicked.connect(lambda: self._set_all(True))
         btn_none.clicked.connect(lambda: self._set_all(False))
         row.addWidget(btn_all)
@@ -78,7 +79,7 @@ class SwappedDocsDialog(QDialog):
 
         buttons = QDialogButtonBox()
         self.btn_fix = buttons.addButton(
-            "🔧 Opravit vybrané", QDialogButtonBox.ButtonRole.AcceptRole
+            tr("🔧 Opravit vybrané"), QDialogButtonBox.ButtonRole.AcceptRole
         )
         buttons.addButton(QDialogButtonBox.StandardButton.Close).clicked.connect(
             self.reject
@@ -169,7 +170,7 @@ class SwappedDocsDialog(QDialog):
             else:
                 bundle_items.append((fix.work_id, fix.is_opposing, fix.url))
         if not swap_items and not bundle_items:
-            self.status.setText("Nic není vybráno k opravě.")
+            self.status.setText(tr("Nic není vybráno k opravě."))
             return
         self._make_backup()
         n_swap = self.service.repair_swapped_documents(swap_items) if swap_items else 0

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
+from ..i18n import tr
 
 
 def _napoveda_path() -> Path:
@@ -66,12 +67,12 @@ class HelpDialog(QDialog):
 
         # ── Hledání ─────────────────────────────────────────────────────
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel("🔍 Hledat:"))
+        search_row.addWidget(QLabel(tr("🔍 Hledat:")))
         self.ed_search = QLineEdit()
-        self.ed_search.setPlaceholderText("napiš výraz a stiskni Enter…")
+        self.ed_search.setPlaceholderText(tr("napiš výraz a stiskni Enter…"))
         self.ed_search.returnPressed.connect(self._find_next)
         search_row.addWidget(self.ed_search, stretch=1)
-        btn_next = QPushButton("Další")
+        btn_next = QPushButton(tr("Další"))
         btn_next.clicked.connect(self._find_next)
         # „Další" je výchozí tlačítko, aby Enter hledal a NEzavíral okno.
         btn_next.setDefault(True)
@@ -87,11 +88,11 @@ class HelpDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────
         btn_row = QHBoxLayout()
-        btn_top = QPushButton("↑ Nahoru")
+        btn_top = QPushButton(tr("↑ Nahoru"))
         btn_top.clicked.connect(
             lambda: self.view.verticalScrollBar().setValue(0)
         )
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         # NE-default + NE-autodefault, jinak by Enter v hledání zavřel okno.
         btn_close.setDefault(False)
         btn_close.setAutoDefault(False)
@@ -137,7 +138,7 @@ class FirstRunDialog(QDialog):
         self.open_full_help = False  # nastaví se, když uživatel chce plnou nápovědu
         self.dont_show_again = True  # default: po zavření už neukazovat
 
-        self.setWindowTitle("Vítej v BPDPManageru — Začínáme")
+        self.setWindowTitle(tr("Vítej v BPDPManageru — Začínáme"))
         self.setMinimumSize(720, 640)
         self.resize(780, 720)
 
@@ -145,7 +146,7 @@ class FirstRunDialog(QDialog):
         outer.setContentsMargins(16, 16, 16, 16)
         outer.setSpacing(10)
 
-        header = QLabel("👋 Vítej! Pár kroků, než začneš")
+        header = QLabel(tr("👋 Vítej! Pár kroků, než začneš"))
         header.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(header)
 
@@ -154,14 +155,14 @@ class FirstRunDialog(QDialog):
         outer.addWidget(self.view, stretch=1)
         self._load_getting_started()
 
-        self.chk_dont_show = QCheckBox("Příště nezobrazovat tento průvodce")
+        self.chk_dont_show = QCheckBox(tr("Příště nezobrazovat tento průvodce"))
         self.chk_dont_show.setChecked(True)
         outer.addWidget(self.chk_dont_show)
 
         btn_row = QHBoxLayout()
-        btn_help = QPushButton("📖 Otevřít plnou nápovědu")
+        btn_help = QPushButton(tr("📖 Otevřít plnou nápovědu"))
         btn_help.clicked.connect(self._on_open_help)
-        btn_ok = QPushButton("Rozumím, jdeme na to")
+        btn_ok = QPushButton(tr("Rozumím, jdeme na to"))
         btn_ok.setDefault(True)
         btn_ok.clicked.connect(self._on_ok)
         btn_row.addWidget(btn_help)

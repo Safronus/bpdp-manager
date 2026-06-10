@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..i18n import tr
 from ..models import ThesisProposal
 from ..models.enums import ThesisType
 from ..services import ThesisService
@@ -57,7 +58,7 @@ class ProposalsTab(QWidget):
         outer = QVBoxLayout(self)
 
         top = QHBoxLayout()
-        btn_new = QPushButton("➕ Nový návrh")
+        btn_new = QPushButton(tr("➕ Nový návrh"))
         btn_new.clicked.connect(self._new_proposal)
         top.addWidget(btn_new)
         self.lbl_count = QLabel("")
@@ -69,7 +70,7 @@ class ProposalsTab(QWidget):
         splitter = QSplitter(Qt.Orientation.Vertical)
 
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Téma", "Obor", "Rezervace"])
+        self.tree.setHeaderLabels([tr("Téma"), "Obor", tr("Rezervace")])
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
@@ -113,48 +114,48 @@ class ProposalsTab(QWidget):
         row_type.addWidget(self.cmb_obor, stretch=1)
         form.addLayout(row_type)
 
-        form.addWidget(QLabel("Název tématu:"))
+        form.addWidget(QLabel(tr("Název tématu:")))
         self.ed_title = QLineEdit()
         form.addWidget(self.ed_title)
 
-        form.addWidget(QLabel("Popis:"))
+        form.addWidget(QLabel(tr("Popis:")))
         self.ed_desc = QPlainTextEdit()
         self.ed_desc.setMinimumHeight(60)
         form.addWidget(self.ed_desc)
 
-        form.addWidget(QLabel("Body zadání (1 řádek = 1 bod):"))
+        form.addWidget(QLabel(tr("Body zadání (1 řádek = 1 bod):")))
         self.ed_obj = QPlainTextEdit()
         self.ed_obj.setMinimumHeight(60)
         form.addWidget(self.ed_obj)
 
-        form.addWidget(QLabel("Literatura:"))
+        form.addWidget(QLabel(tr("Literatura:")))
         self.ed_refs = QPlainTextEdit()
         self.ed_refs.setMinimumHeight(50)
         form.addWidget(self.ed_refs)
 
         row_res = QHBoxLayout()
-        self.chk_reserved = QCheckBox("Zarezervováno")
+        self.chk_reserved = QCheckBox(tr("Zarezervováno"))
         self.chk_reserved.toggled.connect(
             lambda on: self.ed_reserved_for.setEnabled(on)
         )
         row_res.addWidget(self.chk_reserved)
-        row_res.addWidget(QLabel("Komu:"))
+        row_res.addWidget(QLabel(tr("Komu:")))
         self.ed_reserved_for = QLineEdit()
-        self.ed_reserved_for.setPlaceholderText("jméno / poznámka (volný text)")
+        self.ed_reserved_for.setPlaceholderText(tr("jméno / poznámka (volný text)"))
         self.ed_reserved_for.setEnabled(False)
         row_res.addWidget(self.ed_reserved_for, stretch=1)
         form.addLayout(row_res)
 
         buttons = QHBoxLayout()
-        self.btn_save = QPushButton("💾 Uložit")
+        self.btn_save = QPushButton(tr("💾 Uložit"))
         self.btn_save.clicked.connect(self._save)
-        self.btn_convert = QPushButton("🎓 Převést na vedenou práci")
+        self.btn_convert = QPushButton(tr("🎓 Převést na vedenou práci"))
         self.btn_convert.setToolTip(
-            "Z návrhu založí novou vedenou práci (název, popis, body, typ) "
-            "a návrh odebere. Obor přiřadíš až se studentem."
+            tr("Z návrhu založí novou vedenou práci (název, popis, body, typ) "
+            "a návrh odebere. Obor přiřadíš až se studentem.")
         )
         self.btn_convert.clicked.connect(self._convert)
-        self.btn_delete = QPushButton("🗑 Smazat návrh")
+        self.btn_delete = QPushButton(tr("🗑 Smazat návrh"))
         self.btn_delete.clicked.connect(self._delete)
         buttons.addWidget(self.btn_save)
         buttons.addWidget(self.btn_convert)
@@ -162,7 +163,7 @@ class ProposalsTab(QWidget):
         buttons.addWidget(self.btn_delete)
         form.addLayout(buttons)
 
-        self.detail_tabs.addTab(editor, "✏ Detail")
+        self.detail_tabs.addTab(editor, tr("✏ Detail"))
         return self.detail_tabs
 
     # --- načtení / refresh ---------------------------------------------------
@@ -321,7 +322,7 @@ class ProposalsTab(QWidget):
             return
         title = p.title_cs or "(bez názvu)"
         if QMessageBox.question(
-            self, "Smazat návrh", f"Smazat návrh „{title}“?",
+            self, tr("Smazat návrh"), f"Smazat návrh „{title}“?",
         ) != QMessageBox.StandardButton.Yes:
             return
         self.service.delete_proposal(self.current_id)
@@ -337,7 +338,7 @@ class ProposalsTab(QWidget):
             return
         title = p.title_cs or "(bez názvu)"
         if QMessageBox.question(
-            self, "Převést na vedenou práci",
+            self, tr("Převést na vedenou práci"),
             f"Z návrhu „{title}“ založit novou vedenou práci "
             "(stav „Zájemce s tématem“, aktuální akademický rok) a návrh "
             "odebrat?\n\nObor se nepřenese — přiřadíš ho až se studentem.",

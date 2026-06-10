@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models import RejectedStudent
 from ..services import ThesisService
 
@@ -27,21 +28,21 @@ class RejectedStudentsDialog(QDialog):
     def __init__(self, service: ThesisService, parent=None) -> None:
         super().__init__(parent)
         self.service = service
-        self.setWindowTitle("Odmítnutí zájemci")
+        self.setWindowTitle(tr("Odmítnutí zájemci"))
         self.setMinimumSize(620, 460)
 
         layout = QVBoxLayout(self)
         layout.addWidget(
             QLabel(
-                "Evidence zájemců, které jsi <b>odmítl(a)</b> vést (souvisí "
-                "s kapacitou vedení). Promítá se do <b>Statistik</b>.",
+                tr("Evidence zájemců, které jsi <b>odmítl(a)</b> vést (souvisí "
+                "s kapacitou vedení). Promítá se do <b>Statistik</b>."),
                 textFormat=Qt.TextFormat.RichText,
             )
         )
 
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Jméno", "Obor", "Akademický rok"])
+        self.tree.setHeaderLabels([tr("Jméno"), "Obor", tr("Akademický rok")])
         # Seskupeno podle akademického roku → zobraz rozbalovací šipky.
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(True)
@@ -54,7 +55,7 @@ class RejectedStudentsDialog(QDialog):
         # ── Přidat ──────────────────────────────────────────────────────────
         add_row = QHBoxLayout()
         self.ed_name = QLineEdit()
-        self.ed_name.setPlaceholderText("Jméno a příjmení")
+        self.ed_name.setPlaceholderText(tr("Jméno a příjmení"))
         self.cb_obor = QComboBox()
         self.cb_obor.setEditable(True)
         self.cb_obor.addItem("")
@@ -66,7 +67,7 @@ class RejectedStudentsDialog(QDialog):
         self.ed_year.setPlaceholderText("2026/2027")
         self.ed_year.setMaximumWidth(110)
         self.ed_name.returnPressed.connect(self._add)
-        btn_add = QPushButton("+ Přidat")
+        btn_add = QPushButton(tr("+ Přidat"))
         btn_add.clicked.connect(self._add)
         add_row.addWidget(self.ed_name, stretch=2)
         add_row.addWidget(self.cb_obor, stretch=1)
@@ -76,9 +77,9 @@ class RejectedStudentsDialog(QDialog):
 
         # ── Tlačítka ────────────────────────────────────────────────────────
         row = QHBoxLayout()
-        btn_remove = QPushButton("Odebrat vybrané")
+        btn_remove = QPushButton(tr("Odebrat vybrané"))
         btn_remove.clicked.connect(self._remove)
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(self.accept)
         row.addWidget(btn_remove)
         row.addStretch()
@@ -116,7 +117,7 @@ class RejectedStudentsDialog(QDialog):
     def _add(self) -> None:
         name = self.ed_name.text().strip()
         if not name:
-            QMessageBox.information(self, "Odmítnutí zájemci", "Zadej alespoň jméno.")
+            QMessageBox.information(self, tr("Odmítnutí zájemci"), tr("Zadej alespoň jméno."))
             return
         self.service.upsert_rejected_student(
             RejectedStudent(

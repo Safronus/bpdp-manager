@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..i18n import tr
 from ..models.enums import AttachmentKind, ThesisStatus
 from ..services import stag_api
 from .stag_import_dialog import (
@@ -214,7 +215,7 @@ class StagChangesPreviewDialog(QDialog):
         super().__init__(parent)
         self.result = result
         self.open_import = False
-        self.setWindowTitle("Změny ve STAG — náhled")
+        self.setWindowTitle(tr("Změny ve STAG — náhled"))
         self.setMinimumSize(620, 460)
 
         layout = QVBoxLayout(self)
@@ -224,9 +225,9 @@ class StagChangesPreviewDialog(QDialog):
         layout.addWidget(view, stretch=1)
 
         row = QHBoxLayout()
-        btn_close = QPushButton("Zavřít")
+        btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(self.reject)
-        self.btn_import = QPushButton("📥 Otevřít Import ze STAG…")
+        self.btn_import = QPushButton(tr("📥 Otevřít Import ze STAG…"))
         self.btn_import.clicked.connect(self._go_import)
         self.btn_import.setEnabled(result.total_changes > 0)
         row.addStretch()

@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import harmonograms_dir
+from ..i18n import tr
 from ..models import AcademicYearInfo, KeyDate, KeyDateCategory
 from ..services import ThesisService
 
@@ -46,31 +47,31 @@ class HarmonogramTab(QWidget):
 
         # horní lišta: výběr roku + akce
         top = QHBoxLayout()
-        top.addWidget(QLabel("Akademický rok:"))
+        top.addWidget(QLabel(tr("Akademický rok:")))
         self.cb_year = QComboBox()
         self.cb_year.currentTextChanged.connect(self._on_year_change)
         top.addWidget(self.cb_year)
 
-        self.btn_add_year = QPushButton("+ Přidat rok")
+        self.btn_add_year = QPushButton(tr("+ Přidat rok"))
         self.btn_add_year.clicked.connect(self._add_year)
         top.addWidget(self.btn_add_year)
 
         top.addSpacing(20)
-        self.btn_import = QPushButton("📄 Importovat PDF…")
+        self.btn_import = QPushButton(tr("📄 Importovat PDF…"))
         self.btn_import.clicked.connect(self._import_pdf)
         top.addWidget(self.btn_import)
 
-        self.btn_open_pdf = QPushButton("Otevřít PDF")
+        self.btn_open_pdf = QPushButton(tr("Otevřít PDF"))
         self.btn_open_pdf.clicked.connect(self._open_pdf)
         top.addWidget(self.btn_open_pdf)
 
         top.addStretch()
 
-        self.btn_add_kd = QPushButton("+ Termín")
+        self.btn_add_kd = QPushButton(tr("+ Termín"))
         self.btn_add_kd.clicked.connect(self._add_keydate)
         top.addWidget(self.btn_add_kd)
 
-        self.btn_edit_kd = QPushButton("Upravit")
+        self.btn_edit_kd = QPushButton(tr("Upravit"))
         self.btn_edit_kd.clicked.connect(self._edit_keydate)
         top.addWidget(self.btn_edit_kd)
 
@@ -82,11 +83,11 @@ class HarmonogramTab(QWidget):
 
         # filtr
         filter_row = QHBoxLayout()
-        self.chk_only_important = QCheckBox("Jen důležité")
+        self.chk_only_important = QCheckBox(tr("Jen důležité"))
         self.chk_only_important.toggled.connect(self._refresh_table)
         filter_row.addWidget(self.chk_only_important)
 
-        self.chk_hide_past = QCheckBox("Skrýt už uplynulé")
+        self.chk_hide_past = QCheckBox(tr("Skrýt už uplynulé"))
         self.chk_hide_past.toggled.connect(self._refresh_table)
         filter_row.addWidget(self.chk_hide_past)
 
@@ -155,14 +156,14 @@ class HarmonogramTab(QWidget):
         self.table.setRowCount(0)
         if info is None:
             self.lbl_pdf_info.setText("")
-            self.upcoming_label.setText("Žádný vybraný rok.")
+            self.upcoming_label.setText(tr("Žádný vybraný rok."))
             return
 
         # PDF info
         if info.pdf_filename:
             self.lbl_pdf_info.setText(f"PDF: {info.pdf_filename}")
         else:
-            self.lbl_pdf_info.setText("(žádné PDF naimportované)")
+            self.lbl_pdf_info.setText(tr("(žádné PDF naimportované)"))
 
         # filtrování
         today = date.today()
@@ -233,7 +234,7 @@ class HarmonogramTab(QWidget):
         try:
             self.service.get_or_create_year_info(text.strip())
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.warning(self, "Neplatný rok", str(exc))
+            QMessageBox.warning(self, tr("Neplatný rok"), str(exc))
             return
         self._refresh_year_combo()
         idx = self.cb_year.findText(text.strip())
@@ -243,7 +244,7 @@ class HarmonogramTab(QWidget):
     def _import_pdf(self) -> None:
         label = self.cb_year.currentText()
         if not label:
-            QMessageBox.information(self, "Import PDF", "Nejdřív vyber akademický rok.")
+            QMessageBox.information(self, tr("Import PDF"), tr("Nejdřív vyber akademický rok."))
             return
         path_str, _ = QFileDialog.getOpenFileName(
             self,
@@ -256,11 +257,11 @@ class HarmonogramTab(QWidget):
         try:
             info = self.service.import_harmonogram_pdf(label, Path(path_str))
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Chyba importu", f"Nepodařilo se importovat PDF:\n{exc}")
+            QMessageBox.critical(self, tr("Chyba importu"), f"Nepodařilo se importovat PDF:\n{exc}")
             return
         QMessageBox.information(
             self,
-            "Import dokončen",
+            tr("Import dokončen"),
             f"Naimportováno {len(info.key_dates)} klíčových termínů.",
         )
         self._refresh_table()
@@ -268,11 +269,11 @@ class HarmonogramTab(QWidget):
     def _open_pdf(self) -> None:
         info = self.current_info()
         if info is None or not info.pdf_filename:
-            QMessageBox.information(self, "Otevřít PDF", "Pro tento rok není naimportované žádné PDF.")
+            QMessageBox.information(self, tr("Otevřít PDF"), tr("Pro tento rok není naimportované žádné PDF."))
             return
         target = harmonograms_dir() / info.pdf_filename
         if not target.exists():
-            QMessageBox.warning(self, "Otevřít PDF", f"PDF neexistuje: {target}")
+            QMessageBox.warning(self, tr("Otevřít PDF"), f"PDF neexistuje: {target}")
             return
         # otevři PDF v defaultní aplikaci OS
         import os
@@ -327,7 +328,7 @@ class HarmonogramTab(QWidget):
         kd = info.key_dates[idx]
         confirm = QMessageBox.question(
             self,
-            "Smazat termín",
+            tr("Smazat termín"),
             f"Smazat „{kd.description}“?",
         )
         if confirm == QMessageBox.StandardButton.Yes:
@@ -340,14 +341,14 @@ class KeyDateDialog(QDialog):
 
     def __init__(self, parent, existing: KeyDate | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Termín v harmonogramu")
+        self.setWindowTitle(tr("Termín v harmonogramu"))
         self.setMinimumWidth(480)
         self._existing = existing
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        self.chk_has_date = QCheckBox("Konkrétní datum")
+        self.chk_has_date = QCheckBox(tr("Konkrétní datum"))
         self.chk_has_date.setChecked(True)
         form.addRow(self.chk_has_date)
 
@@ -355,9 +356,9 @@ class KeyDateDialog(QDialog):
         self.de_start.setCalendarPopup(True)
         self.de_start.setDisplayFormat("dd.MM.yyyy")
         self.de_start.setDate(existing.date_start if existing and existing.date_start else date.today())
-        form.addRow("Od", self.de_start)
+        form.addRow(tr("Od"), self.de_start)
 
-        self.chk_range = QCheckBox("Interval (do)")
+        self.chk_range = QCheckBox(tr("Interval (do)"))
         form.addRow(self.chk_range)
 
         self.de_end = QDateEdit()
@@ -368,14 +369,14 @@ class KeyDateDialog(QDialog):
             self.chk_range.setChecked(True)
         else:
             self.de_end.setDate(date.today())
-        form.addRow("Do", self.de_end)
+        form.addRow(tr("Do"), self.de_end)
 
         self.ed_fuzzy = QLineEdit(existing.fuzzy_label if existing and existing.fuzzy_label else "")
-        self.ed_fuzzy.setPlaceholderText("např. květen-červen 2027")
-        form.addRow("Volný popis data", self.ed_fuzzy)
+        self.ed_fuzzy.setPlaceholderText(tr("např. květen-červen 2027"))
+        form.addRow(tr("Volný popis data"), self.ed_fuzzy)
 
         self.ed_desc = QLineEdit(existing.description if existing else "")
-        form.addRow("Popis", self.ed_desc)
+        form.addRow(tr("Popis"), self.ed_desc)
 
         self.cb_cat = QComboBox()
         for c in KeyDateCategory:
@@ -384,9 +385,9 @@ class KeyDateDialog(QDialog):
             idx = self.cb_cat.findData(existing.category.value)
             if idx >= 0:
                 self.cb_cat.setCurrentIndex(idx)
-        form.addRow("Kategorie", self.cb_cat)
+        form.addRow(tr("Kategorie"), self.cb_cat)
 
-        self.chk_important = QCheckBox("Označit jako důležitý termín")
+        self.chk_important = QCheckBox(tr("Označit jako důležitý termín"))
         self.chk_important.setChecked(existing.important if existing else False)
         form.addRow(self.chk_important)
 
