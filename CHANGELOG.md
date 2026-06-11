@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-06-11
+
+### Fixed
+- **Tutorial (první spuštění) v EN režimu.** Texty tutorialu byly přeložené už
+  od vlny 3, ale sekce „Začínáme" se z nápovědy vytahovala podle českého
+  nadpisu — v EN režimu se proto zobrazila celá nápověda místo úvodní sekce.
+  Nově se hledá i anglický nadpis „Getting started". Přeložen i titulek okna
+  plné nápovědy („Help — BPDPManager …").
+
 ## [2.1.0] - 2026-06-11
 
 ### Added

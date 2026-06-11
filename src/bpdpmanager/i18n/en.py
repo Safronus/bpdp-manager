@@ -1104,4 +1104,5 @@ EN: dict[str, str] = {
     '🧐 Posudky oponenta': "🧐 Opponent's reviews",
     '🖨 K tisku — nevytištěné': '🖨 To print — not printed yet',
     '✓ Již vytištěné (pro opětovný tisk)': '✓ Already printed (for reprint)',
+    "Nápověda": "Help",
 }

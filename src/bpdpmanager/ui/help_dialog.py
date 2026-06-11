@@ -67,7 +67,7 @@ class HelpDialog(QDialog):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle(f"Nápověda — BPDPManager {__version__}")
+        self.setWindowTitle(tr("Nápověda") + f" — BPDPManager {__version__}")
         self.setMinimumSize(820, 720)
         self.resize(900, 860)
 
@@ -186,7 +186,11 @@ class FirstRunDialog(QDialog):
         except OSError:
             self.view.setPlainText("Průvodce se nepodařilo načíst.")
             return
-        section = _extract_section(md, "Začínáme")
+        # Nadpis sekce se liší dle jazyka nápovědy (CZ/EN soubor).
+        section = (
+            _extract_section(md, "Začínáme")
+            or _extract_section(md, "Getting started")
+        )
         self.view.setMarkdown(section or md)
 
     def _on_open_help(self) -> None:

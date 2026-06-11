@@ -115,3 +115,22 @@ def test_thesis_detail_english(tmp_path: Path) -> None:
     assert "📋 Overview" in titles and "Notes" in titles
     assert w.btn_save.text() == "Save changes"
     assert w.btn_delete.text() == "Delete"
+
+
+def test_first_run_tutorial_english() -> None:
+    """Tutorial v EN režimu ukáže anglickou sekci Getting started (jen ji)."""
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+
+    from bpdpmanager.ui.help_dialog import FirstRunDialog
+
+    set_language("en")
+    d = FirstRunDialog()
+    assert d.windowTitle() == "Welcome to BPDPManager — Getting started"
+    md = d.view.toMarkdown()
+    assert "Getting started" in md
+    assert "Screen overview" not in md      # jen jedna sekce, ne celá nápověda
+    set_language("cs")
+    d2 = FirstRunDialog()
+    assert "Začínáme" in d2.view.toMarkdown()
