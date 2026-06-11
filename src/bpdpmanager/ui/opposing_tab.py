@@ -49,6 +49,8 @@ from .theses_tree import (
     ReviewsBadgeDelegate,
     SentBadgeDelegate,
     StatusBadgeDelegate,
+    _open_stag_link,
+    _stag_link,
 )
 
 ROLE_ID = Qt.ItemDataRole.UserRole + 1
@@ -543,6 +545,13 @@ class OpposingTab(QWidget):
             self.service.opposing_document_absolute_path(op_id, text_att)
             if text_att is not None else None
         )
+        act_stag = QAction(tr("🌐 Otevřít ve STAG"), self.tree)
+        act_stag.setToolTip(tr("Otevře detail práce ve STAG v prohlížeči."))
+        act_stag.setEnabled(bool(_stag_link(op)))
+        if act_stag.isEnabled():
+            act_stag.triggered.connect(lambda _c=False, o=op: _open_stag_link(o))
+        menu.addAction(act_stag)
+
         act_open_text = QAction(tr("📄 Otevřít text práce"), self.tree)
         act_open_text.setEnabled(text_path is not None and text_path.exists())
         if act_open_text.isEnabled():

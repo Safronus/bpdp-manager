@@ -2723,6 +2723,30 @@ class ThesisService:
         r"(?:_archiv_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?)+"
     )
 
+    def ensure_stag_urls(self) -> int:
+        """Doplní chybějící odkaz na STAG u prací se známým STAG ID.
+
+        Odkaz je deterministicky odvozený z ``adipidno``
+        (:func:`stag_api.thesis_detail_url`), takže ho lze doplnit **bez sítě**
+        — i zpětně u dříve naimportovaných prací. Plní jen **prázdné** pole
+        (ručně zadaný odkaz se nepřepisuje). Idempotentní; běží při startu.
+        Vrací počet doplněných odkazů (vedené + oponované).
+        """
+        from . import stag_api
+
+        filled = 0
+        for thesis in self.list_theses():
+            if thesis.adipidno and not (thesis.stag_url or "").strip():
+                thesis.stag_url = stag_api.thesis_detail_url(thesis.adipidno)
+                self.upsert_thesis(thesis)
+                filled += 1
+        for op in self.list_opposing_theses():
+            if op.adipidno and not (op.stag_url or "").strip():
+                op.stag_url = stag_api.thesis_detail_url(op.adipidno)
+                self.upsert_opposing_thesis(op)
+                filled += 1
+        return filled
+
     def repair_review_archive_names(self) -> int:
         """Jednorázová oprava názvů archivních posudků.
 

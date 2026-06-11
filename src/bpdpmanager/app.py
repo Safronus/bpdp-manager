@@ -140,6 +140,13 @@ def run() -> int:
     except Exception:  # noqa: BLE001
         pass
 
+    # Doplnění odkazů na STAG u prací se známým STAG ID (bez sítě; zpětně
+    # i pro dříve naimportované práce). Idempotentní.
+    try:
+        service.ensure_stag_urls()
+    except Exception:
+        pass
+
     window = MainWindow(service, profile_manager=pm)
     if icon_path is not None:
         window.setWindowIcon(QIcon(str(icon_path)))

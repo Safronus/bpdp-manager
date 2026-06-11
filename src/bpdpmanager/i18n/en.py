@@ -1105,4 +1105,7 @@ EN: dict[str, str] = {
     '🖨 K tisku — nevytištěné': '🖨 To print — not printed yet',
     '✓ Již vytištěné (pro opětovný tisk)': '✓ Already printed (for reprint)',
     "Nápověda": "Help",
+    "🌐 Otevřít ve STAG": "🌐 Open in STAG",
+    "Otevře detail práce ve STAG v prohlížeči.":
+        "Opens the thesis detail in STAG in your browser.",
 }

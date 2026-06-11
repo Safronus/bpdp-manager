@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-06-11
+
+### Added
+- **Odkaz na práci ve STAG — automaticky a pro všechny.** Práce stažené nebo
+  aktualizované ze STAG dostávají **automaticky vyplněný odkaz** na svůj detail
+  ve STAG (deterministicky odvozený ze STAG ID,
+  `…CleanUrl?urlid=prohlizeni-prace-detail&praceIdno=…`) — bez zásahu
+  uživatele. **Existující práce** se STAG ID dostanou odkaz **zpětně při
+  startu aplikace** (tichá idempotentní migrace, bez sítě). Ručně zadaný
+  odkaz se nikdy nepřepisuje.
+- **Kontextová akce „🌐 Otevřít ve STAG"** — pravý klik na práci (vedené
+  všech záložek i oponentury) otevře detail práce ve STAG v prohlížeči.
+  Aktivní, když má práce odkaz nebo STAG ID.
+- STAG sync (Aktualizovat ze STAG) nově **ukládá dohledané STAG ID** (dle
+  příjmení) i odkaz k práci — dřív se dohledání zahodilo.
+
 ## [2.1.1] - 2026-06-11
 
 ### Fixed

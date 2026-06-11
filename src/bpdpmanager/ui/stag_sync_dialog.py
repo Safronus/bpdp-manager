@@ -350,6 +350,32 @@ class StagSyncDialog(QDialog):
             executor.shutdown(wait=False, cancel_futures=True)
             progress.close()
 
+        # Backfill STAG ID + odkazu — když se práce dohledala dle příjmení
+        # (nebo má ID, ale chybí odkaz), doplníme tiše obojí. Odkaz je
+        # deterministický z adipidno, takže ho má mít každá práce ze STAG.
+        for tgt in targets:
+            if not tgt.adipidno:
+                continue
+            obj = (
+                self.service.get_opposing_thesis(tgt.obj_id)
+                if tgt.is_opposing else self.service.get_thesis(tgt.obj_id)
+            )
+            if obj is None:
+                continue
+            dirty = False
+            if not obj.adipidno:
+                obj.adipidno = tgt.adipidno
+                dirty = True
+            if not (obj.stag_url or "").strip():
+                obj.stag_url = stag_api.thesis_detail_url(tgt.adipidno)
+                dirty = True
+            if dirty:
+                if tgt.is_opposing:
+                    self.service.upsert_opposing_thesis(obj)
+                else:
+                    self.service.upsert_thesis(obj)
+                self.changed = True
+
         # Backfill STAG stavu u oponentur — oponentury nemají vlastní stav, ale
         # ukládáme STAG kód (DUO/ND/…) pro sloupec „Stav". Je to autoritativní
         # metadata ze STAG, doplníme je tiše (uživatel sync vyvolal záměrně).

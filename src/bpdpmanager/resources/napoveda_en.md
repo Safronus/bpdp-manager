@@ -1004,6 +1004,10 @@ between devices. The lock file guards concurrent access. The bytecode cache
   opponent's review*, on a **current-year opposed thesis** *📘 Open
   supervisor's review*.
 - **📄 Open thesis text** — right-click opens the full text, if available.
+- **🌐 Open in STAG** — right-click a thesis (supervised or opposed) to open
+  its STAG detail in the browser. The link is **filled automatically** for
+  STAG theses (derived from the STAG ID) — retroactively too, via a silent
+  startup migration. A manually entered *STAG* link is never overwritten.
 - **📄 Export my review PDFs…** — right-click (in *Currently supervised* and
   *Opposed theses*). Select **multiple theses** first (Ctrl/Shift) to bulk
   copy the latest PDFs of **your** review into a chosen folder — supervisor's

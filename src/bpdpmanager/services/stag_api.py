@@ -33,6 +33,18 @@ from pathlib import Path
 
 BASE_URL = "https://stag.utb.cz"
 PROHLIZENI_URL = f"{BASE_URL}/portal/studium/prohlizeni.html"
+
+
+def thesis_detail_url(adipidno: str) -> str:
+    """Trvalý veřejný odkaz na detail kvalifikační práce ve STAG.
+
+    Jednoznačně odvozený ze STAG ID práce (``adipIdno``) — stejný formát
+    generuje STAG portál („CleanUrl").
+    """
+    return (
+        f"{BASE_URL}/StagPortletsJSR168/CleanUrl"
+        f"?urlid=prohlizeni-prace-detail&praceIdno={adipidno}"
+    )
 # Veřejný export jedné práce do CSV (funguje i bez session, dle adipIdno).
 CSV_EXPORT_URL = (
     f"{BASE_URL}/StagPortletsJSR168/ProhlizeniPrint"

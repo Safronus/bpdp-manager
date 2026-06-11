@@ -2110,6 +2110,8 @@ class StagImportDialog(QDialog):
         thesis.references = record.references_text or thesis.references
         if record.adipidno:
             thesis.adipidno = record.adipidno
+            if not (thesis.stag_url or "").strip():
+                thesis.stag_url = stag_api.thesis_detail_url(record.adipidno)
 
         self.service.upsert_thesis(thesis)
         if is_new:
@@ -2158,6 +2160,8 @@ class StagImportDialog(QDialog):
         op.stag_state_code = record.stag_state_code or op.stag_state_code
         if record.adipidno:
             op.adipidno = record.adipidno
+            if not (op.stag_url or "").strip():
+                op.stag_url = stag_api.thesis_detail_url(record.adipidno)
 
         self.service.upsert_opposing_thesis(op)
         if is_new:

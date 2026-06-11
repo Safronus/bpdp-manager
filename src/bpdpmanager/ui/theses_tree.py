@@ -122,6 +122,28 @@ _REVIEW_NONE_BG = "#e53935"  # červená — chybí
 _NO_GRADE = "–"  # noqa: RUF001
 
 
+def _stag_link(obj) -> str:
+    """Odkaz na práci ve STAG: uložený, jinak odvozený ze STAG ID; '' = žádný."""
+    url = (getattr(obj, "stag_url", "") or "").strip()
+    if url:
+        return url
+    adip = (getattr(obj, "adipidno", "") or "").strip()
+    if adip:
+        from ..services import stag_api
+
+        return stag_api.thesis_detail_url(adip)
+    return ""
+
+
+def _open_stag_link(obj) -> None:
+    from PySide6.QtCore import QUrl
+    from PySide6.QtGui import QDesktopServices
+
+    url = _stag_link(obj)
+    if url:
+        QDesktopServices.openUrl(QUrl(url))
+
+
 def _grade_badges(gs: str, go: str) -> list[str]:
     """Dvojice popisků pro sloupec V/O — prázdná známka jako pomlčka."""
     return [
@@ -1031,6 +1053,13 @@ class ThesesTreeWidget(QTreeWidget):
             self.service.document_absolute_path(thesis_id, text_att)
             if text_att is not None else None
         )
+        act_stag = QAction(tr("🌐 Otevřít ve STAG"), self)
+        act_stag.setToolTip(tr("Otevře detail práce ve STAG v prohlížeči."))
+        act_stag.setEnabled(bool(_stag_link(thesis)))
+        if act_stag.isEnabled():
+            act_stag.triggered.connect(lambda _c=False, o=thesis: _open_stag_link(o))
+        menu.addAction(act_stag)
+
         act_open_text = QAction(tr("📄 Otevřít text práce"), self)
         act_open_text.setEnabled(text_path is not None and text_path.exists())
         if act_open_text.isEnabled():

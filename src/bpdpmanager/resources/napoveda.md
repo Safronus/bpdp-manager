@@ -1142,6 +1142,10 @@ synchronizací.
   vedoucího* (otevře PDF; když posudek není, je akce neaktivní).
 - **📄 Otevřít text práce** — pravý klik na práci (vedenou i oponovanou) otevře
   plný text práce, je-li k dispozici (jinak neaktivní).
+- **🌐 Otevřít ve STAG** — pravý klik na práci (vedenou i oponovanou) otevře
+  její detail ve STAG v prohlížeči. Odkaz se u prací ze STAG **doplňuje
+  automaticky** (odvozený ze STAG ID) — i zpětně u dříve stažených prací
+  (tichá migrace při startu). Ručně zadaný odkaz v poli *STAG* se nepřepisuje.
 - **📄 Export PDF mých posudků…** — pravý klik na práci (v *Aktuálně vedené
   práce* i *Oponované práce*). Ve stromu lze předem **označit více prací**
   (Ctrl/Shift klik) a hromadně **zkopírovat nejnovější PDF mého posudku** do
