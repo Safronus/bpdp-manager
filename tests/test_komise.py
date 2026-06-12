@@ -284,6 +284,8 @@ def test_pdf_descriptive_name() -> None:
 
 def test_store_pdf_renames_into_subfolder(service, tmp_path) -> None:
     """komise_store_pdf přejmenuje a uloží do komise/<rok>/<kind>/."""
+    from bpdpmanager import config
+    config.set_active_data_dir(tmp_path)  # izoluj komise_dir() do tmp
     src = tmp_path / "puvodni nazev!.pdf"
     src.write_bytes(b"%PDF-1.4 test")
     rel = service.komise_store_pdf(src, "2025/2026", name="rozpis_Bc_SWI_2025-2026.pdf",
@@ -293,6 +295,54 @@ def test_store_pdf_renames_into_subfolder(service, tmp_path) -> None:
     # Bezpečné jméno z divného názvu (bez name).
     rel2 = service.komise_store_pdf(src, "2025/2026", kind="slozeni")
     assert rel2.startswith("2025-2026/slozeni/") and rel2.endswith(".pdf")
+
+
+def test_pdf_inventory_includes_shipped_and_local(service, tmp_path) -> None:
+    """Inventář PDF: 3 dodaná složení z gitu + lokálně uložené rozpisy."""
+    from bpdpmanager import config
+    config.set_active_data_dir(tmp_path)
+    src = tmp_path / "r.pdf"
+    src.write_bytes(b"%PDF-1.4")
+    service.komise_store_pdf(src, "2025/2026",
+                             name="rozpis-studentu_Bc_SWI_2025-2026.pdf", kind="rozpisy")
+    inv = service.komise_pdf_inventory()
+    assert "2025/2026" in inv
+    slozeni = {p.name for p in inv["2025/2026"]["slozeni"]}
+    assert "slozeni-komisi_Bc_SWI.pdf" in slozeni          # dodané v gitu
+    assert len(inv["2025/2026"]["slozeni"]) == 3
+    assert any(p.name == "rozpis-studentu_Bc_SWI_2025-2026.pdf"
+               for p in inv["2025/2026"]["rozpisy"])
+
+
+def test_pdf_panel_lists_and_opens(service, tmp_path, monkeypatch) -> None:
+    """Panel PDF vypíše soubory a kontextové „Otevřít" je otevře (více najednou)."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager import config
+    from bpdpmanager.ui.komise_tab import ROLE_PDF_PATH, KomiseTab
+
+    QApplication.instance() or QApplication([])
+    config.set_active_data_dir(tmp_path)
+    tab = KomiseTab(service)
+    leaves = []
+
+    def walk(it):
+        if it.data(0, ROLE_PDF_PATH):
+            leaves.append(it)
+        for i in range(it.childCount()):
+            walk(it.child(i))
+
+    for i in range(tab.pdf_tree.topLevelItemCount()):
+        walk(tab.pdf_tree.topLevelItem(i))
+    assert len(leaves) >= 3          # aspoň 3 dodaná složení
+    for lf in leaves[:2]:
+        lf.setSelected(True)
+    opened = []
+    monkeypatch.setattr("bpdpmanager.ui.komise_tab.Path.exists", lambda self: True)
+    import bpdpmanager.ui._os_actions as osa
+    monkeypatch.setattr(osa, "open_path", lambda p: opened.append(str(p)))
+    tab._open_selected_pdfs()
+    assert len(opened) == 2          # otevřely se oba vybrané
 
 
 def test_komise_student_roles(service) -> None:

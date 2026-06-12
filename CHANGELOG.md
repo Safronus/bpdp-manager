@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.6] - 2026-06-12
+
+### Added
+- **Komise — seznam PDF souborů + PDF složení v gitu.** Pod stromem je nový
+  panel **📎 PDF souborů komisí** po akademických rocích, rozdělený na
+  **Složení komisí** a **Rozpisy studentů**. Pravý klik → **📂 Otevřít**
+  otevře vybrané PDF (i **více najednou**), dvojklik jedno. PDF **složení
+  komisí** pro 2025/2026 jsou nově **součástí aplikace** (veřejná data v gitu,
+  `resources/komise_pdfs/`) — načtou se do seznamu samy, bez importu.
+
 ## [2.5.5] - 2026-06-12
 
 ### Changed

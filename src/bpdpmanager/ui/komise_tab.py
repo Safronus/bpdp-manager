@@ -41,6 +41,8 @@ from ..services import ThesisService
 ROLE_COMMITTEE_ID = Qt.ItemDataRole.UserRole + 1
 #: (vedené, oponované) počty studentů komise — pro StudentsVODelegate.
 ROLE_VO = Qt.ItemDataRole.UserRole + 2
+#: Absolutní cesta k PDF v seznamu souborů (otevření z kontextového menu).
+ROLE_PDF_PATH = Qt.ItemDataRole.UserRole + 3
 
 #: Stupeň → pořadí a popisek skupiny ve stromu (Bc před Mgr).
 _LEVEL_ORDER = {"Bc": 0, "Mgr": 1}
@@ -192,8 +194,10 @@ class KomiseTab(QWidget):
         top.addWidget(self.lbl_legend)
         outer.addLayout(top)
 
-        # ── splitter: strom vlevo, detail vpravo ─────────────────────────
+        # ── splitter: vlevo strom komisí + seznam PDF, vpravo detail ──────
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        left = QSplitter(Qt.Orientation.Vertical)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels([tr("Komise"), tr("Studenti V/O"), tr("Termíny")])
         self.tree.setRootIsDecorated(True)
@@ -206,7 +210,28 @@ class KomiseTab(QWidget):
         self.tree.itemSelectionChanged.connect(self._on_selected)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
-        self.splitter.addWidget(self.tree)
+        left.addWidget(self.tree)
+
+        # Seznam PDF souborů (rok → Složení / Rozpisy), otevíratelné z menu.
+        pdf_box = QWidget()
+        pv = QVBoxLayout(pdf_box)
+        pv.setContentsMargins(0, 6, 0, 0)
+        pv.setSpacing(2)
+        pv.addWidget(QLabel("📎 " + tr("PDF souborů komisí")))
+        self.pdf_tree = QTreeWidget()
+        self.pdf_tree.setHeaderHidden(True)
+        self.pdf_tree.setRootIsDecorated(True)
+        self.pdf_tree.setSelectionMode(
+            QTreeWidget.SelectionMode.ExtendedSelection
+        )
+        self.pdf_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pdf_tree.customContextMenuRequested.connect(self._on_pdf_context_menu)
+        self.pdf_tree.itemDoubleClicked.connect(lambda *_: self._open_selected_pdfs())
+        pv.addWidget(self.pdf_tree)
+        left.addWidget(pdf_box)
+        left.setStretchFactor(0, 3)
+        left.setStretchFactor(1, 1)
+        self.splitter.addWidget(left)
 
         self.detail = QTextBrowser()
         self.detail.setOpenExternalLinks(True)
@@ -296,7 +321,81 @@ class KomiseTab(QWidget):
         elif self.tree.topLevelItemCount():
             self._select_first_leaf()
         self._on_selected()
+        self._refresh_pdf_list()
         self._fit_left_pane()
+
+    def _refresh_pdf_list(self) -> None:
+        """Naplní seznam PDF: rok → Složení komisí / Rozpisy studentů → soubory."""
+        self.pdf_tree.clear()
+        inv = self.service.komise_pdf_inventory()
+        groups = (("slozeni", "📋 " + tr("Složení komisí")),
+                  ("rozpisy", "👥 " + tr("Rozpisy studentů")))
+        for year in sorted(inv, reverse=True):
+            data = inv[year]
+            if not (data["slozeni"] or data["rozpisy"]):
+                continue
+            yitem = QTreeWidgetItem([f"📅 {year}"])
+            f = yitem.font(0)
+            f.setBold(True)
+            yitem.setFont(0, f)
+            self.pdf_tree.addTopLevelItem(yitem)
+            for key, label in groups:
+                files = data[key]
+                if not files:
+                    continue
+                kitem = QTreeWidgetItem([f"{label} ({len(files)})"])
+                yitem.addChild(kitem)
+                for pdf in files:
+                    leaf = QTreeWidgetItem([pdf.name])
+                    leaf.setData(0, ROLE_PDF_PATH, str(pdf))
+                    leaf.setToolTip(0, str(pdf))
+                    kitem.addChild(leaf)
+                kitem.setExpanded(True)
+            yitem.setExpanded(True)
+
+    def _selected_pdf_paths(self) -> list[str]:
+        out = []
+        for it in self.pdf_tree.selectedItems():
+            p = it.data(0, ROLE_PDF_PATH)
+            if p:
+                out.append(p)
+        return out
+
+    def _open_selected_pdfs(self) -> None:
+        from ._os_actions import open_path
+
+        paths = self._selected_pdf_paths()
+        missing = []
+        for p in paths:
+            if Path(p).exists():
+                open_path(Path(p))
+            else:
+                missing.append(p)
+        if missing:
+            QMessageBox.warning(
+                self, tr("Otevřít"),
+                tr("Některé soubory neexistují:") + "\n" + "\n".join(missing),
+            )
+
+    def _on_pdf_context_menu(self, pos) -> None:
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QMenu
+
+        paths = self._selected_pdf_paths()
+        # Pravý klik mimo výběr → vezmi položku pod kurzorem.
+        if not paths:
+            item = self.pdf_tree.itemAt(pos)
+            if item is not None and item.data(0, ROLE_PDF_PATH):
+                item.setSelected(True)
+                paths = [item.data(0, ROLE_PDF_PATH)]
+        if not paths:
+            return
+        menu = QMenu(self.pdf_tree)
+        act = QAction(tr("📂 Otevřít") + (f" ({len(paths)})" if len(paths) > 1 else ""),
+                      self.pdf_tree)
+        act.triggered.connect(lambda _c=False: self._open_selected_pdfs())
+        menu.addAction(act)
+        menu.exec(self.pdf_tree.viewport().mapToGlobal(pos))
 
     def _iter_leaves(self):
         """Projde všechny komise-listy (rok → stupeň → komise)."""

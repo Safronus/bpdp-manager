@@ -1187,6 +1187,7 @@ EN: dict[str, str] = {
     "Položka": "Item",
     "Detail": "Detail",
     "Složení komisí": "Committee compositions",
+    "PDF souborů komisí": "Committee PDF files",
     "Rozpisy studentů": "Student schedules",
     "🗑 Smazat komisi": "🗑 Delete committee",
     "Smazat komisi {name} ({year})? Zdrojová PDF na disku "

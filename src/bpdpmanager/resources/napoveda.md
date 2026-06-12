@@ -1075,6 +1075,11 @@ badge). Šířka sloupců i panelu se přizpůsobí obsahu.
   (rozpisy) a `komise/<rok>/slozeni/` (složení) ve složce profilu; odkazy na
   zdrojová PDF jsou v detailu komise. Pravý klik na komisi → *Smazat komisi*
   (PDF na disku zůstanou).
+- **📎 Seznam PDF souborů komisí** (pod stromem) ukazuje PDF po akademických
+  rocích, rozdělené na **Složení komisí** a **Rozpisy studentů**. PDF složení
+  pro nadcházející rok jsou **součástí aplikace** (veřejná data v gitu); další
+  můžeš dohrát importem. Pravý klik → **📂 Otevřít** otevře vybrané PDF (klidně
+  **více najednou**), dvojklik otevře jedno.
 
 > **Zvýraznění vedených/oponovaných zůstává beze změny** — pracuje nad
 > rozpisem (sloty studentů), takže funguje hned, jakmile rozpis naimportuješ

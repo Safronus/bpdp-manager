@@ -948,7 +948,13 @@ many you **oppose** (red badge). Column and panel widths fit the content.
   schedule PDF…* (they attach to the right committees).
 - PDFs are stored **structured and renamed** in `komise/<year>/rozpisy/`
   (schedules) and `komise/<year>/slozeni/` (composition) inside the profile
-  folder; links to source PDFs are in the committee detail. Right-click a
+  folder; links to source PDFs are in the committee detail.
+- **📎 Committee PDF files list** (below the tree) shows PDFs by academic year,
+  split into **Committee compositions** and **Student schedules**. Composition
+  PDFs for the upcoming year **ship with the app** (public data in git); you
+  can add more by import. Right-click → **📂 Open** opens the selected PDFs
+  (even **several at once**); double-click opens one.
+- Right-click a
   committee → *Delete committee* (PDFs stay on disk).
 
 > **Supervised/opposed highlighting is unchanged** — it works on the schedule

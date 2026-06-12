@@ -2867,6 +2867,56 @@ class ThesisService:
 
         return komise_dir() / rel_path
 
+    @staticmethod
+    def _komise_seed_pdf_dir() -> Path:
+        """Složka s PDF složení komisí dodanými v gitu (veřejná data)."""
+        return Path(__file__).resolve().parent.parent / "resources" / "komise_pdfs"
+
+    def komise_pdf_inventory(self) -> dict:
+        """Seznam PDF komisí po akademických rocích → {rok: {slozeni, rozpisy}}.
+
+        Slučuje **PDF složení dodaná v gitu** (``resources/komise_pdfs/<rok>/``)
+        s **lokálně nahranými** (``komise/<rok>/slozeni|rozpisy/``; starší PDF
+        přímo v ``komise/<rok>/`` se berou jako rozpisy). Hodnoty jsou seznamy
+        absolutních cest, deduplikované podle názvu souboru.
+        """
+        from ..config import komise_dir
+
+        inv: dict[str, dict[str, list[Path]]] = {}
+
+        def slot(year: str) -> dict[str, list[Path]]:
+            return inv.setdefault(year, {"slozeni": [], "rozpisy": []})
+
+        def add(year: str, key: str, pdf: Path) -> None:
+            bucket = slot(year)[key]
+            if pdf.name not in {p.name for p in bucket}:
+                bucket.append(pdf)
+
+        # 1) Složení dodané v gitu.
+        seed = self._komise_seed_pdf_dir()
+        if seed.exists():
+            for ydir in sorted(seed.iterdir()):
+                if ydir.is_dir():
+                    year = ydir.name.replace("-", "/")
+                    for pdf in sorted(ydir.glob("*.pdf")):
+                        add(year, "slozeni", pdf)
+        # 2) Lokálně nahraná PDF.
+        kd = komise_dir()
+        if kd.exists():
+            for ydir in sorted(kd.iterdir()):
+                if not ydir.is_dir():
+                    continue
+                year = ydir.name.replace("-", "/")
+                for sub, key in (("slozeni", "slozeni"), ("rozpisy", "rozpisy")):
+                    subdir = ydir / sub
+                    if subdir.exists():
+                        for pdf in sorted(subdir.glob("*.pdf")):
+                            add(year, key, pdf)
+                # Starší PDF přímo v komise/<rok>/ (před 2.5.5) = rozpisy.
+                for pdf in sorted(ydir.glob("*.pdf")):
+                    add(year, "rozpisy", pdf)
+        return inv
+
     def apply_komise_import(self, committees, schedules,
                             source_rel_paths: list[str]) -> dict:
         """Zapíše naparsované komise a rozpisy do databáze (s merge).
