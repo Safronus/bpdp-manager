@@ -52,12 +52,17 @@ _LEVEL_LABEL = {"Bc": "Bakalářské (Bc)", "Mgr": "Magisterské (Mgr)"}
 _VO_LED_BG = "#1e88e5"
 _VO_OPP_BG = "#e53935"
 
-#: Barvy „pilulky" role člena komise (světlé pozadí, tmavý text).
+#: Barvy „rámečku" role člena komise (světlé pozadí, tmavý text/okraj).
 _ROLE_COLORS = {
     "předseda": ("#ede7f6", "#4a148c"),       # fialová — předseda
     "místopředseda": ("#e3f2fd", "#0d47a1"),  # modrá — místopředseda
     "tajemník": ("#e8f5e9", "#1b5e20"),       # zelená — tajemník
     "člen": ("#eceff1", "#455a64"),           # šedá — člen
+}
+#: Kanonický popisek role (sjednotí „Členové" → „Člen").
+_ROLE_LABEL = {
+    "předseda": "Předseda", "místopředseda": "Místopředseda",
+    "tajemník": "Tajemník", "člen": "Člen",
 }
 
 
@@ -500,6 +505,50 @@ class KomiseTab(QWidget):
             return
         self.detail.setHtml(self._committee_html(committee))
 
+    #: Pevná šířka/výška rámečku role (px) — všechny role stejně široké.
+    _ROLE_BADGE_W = 116
+    _ROLE_BADGE_H = 18
+
+    def _role_badge_img(self, key: str) -> str:
+        """``<img>`` se zaobleným barevným rámečkem role (cache dle klíče)."""
+        cache = getattr(self, "_role_badge_cache", None)
+        if cache is None:
+            cache = self._role_badge_cache = {}
+        if key in cache:
+            return cache[key]
+        import base64
+
+        from PySide6.QtCore import QBuffer, QByteArray, QIODevice
+        from PySide6.QtGui import QPainter, QPen, QPixmap
+
+        bg, fg = _ROLE_COLORS.get(key, _ROLE_COLORS["člen"])
+        label = _ROLE_LABEL.get(key, key)
+        w, h, scale = self._ROLE_BADGE_W, self._ROLE_BADGE_H, 2
+        pm = QPixmap(w * scale, h * scale)
+        pm.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.scale(scale, scale)
+        p.setPen(QPen(QColor(fg), 1))
+        p.setBrush(QColor(bg))
+        p.drawRoundedRect(QRectF(0.5, 0.5, w - 1, h - 1), 6, 6)
+        p.setPen(QColor(fg))
+        f = p.font()
+        f.setBold(True)
+        f.setPointSizeF(9)
+        p.setFont(f)
+        p.drawText(QRectF(0, 0, w, h), Qt.AlignmentFlag.AlignCenter, label)
+        p.end()
+        ba = QByteArray()
+        buf = QBuffer(ba)
+        buf.open(QIODevice.OpenModeFlag.WriteOnly)
+        pm.save(buf, "PNG")
+        b64 = base64.b64encode(bytes(ba)).decode("ascii")
+        img = (f'<img src="data:image/png;base64,{b64}" '
+               f'width="{w}" height="{h}">')
+        cache[key] = img
+        return img
+
     def _committee_html(self, c) -> str:
         from html import escape
 
@@ -514,20 +563,17 @@ class KomiseTab(QWidget):
             + (" &nbsp;·&nbsp; " + escape(", ".join(c.dates)) if c.dates else "")
             + "</p>"
         )
-        # Složení — role barevně odlišené (předseda/místopředseda/tajemník/člen).
+        # Složení — role jako zaoblené rámečky stejné šířky (PNG, protože
+        # border-radius v QTextBrowser HTML nefunguje); text na střed.
         rows = ""
         for m in c.members:
             mine = me and me in _fold(m.name)
             name = escape(m.name)
             if mine:
                 name = f"<b>⭐ {name}</b>"
-            bg, fg = _ROLE_COLORS.get(_role_key(m.role), _ROLE_COLORS["člen"])
-            role_pill = (
-                f"<span style='background:{bg};color:{fg};padding:1px 7px;"
-                f"border-radius:7px;white-space:nowrap;'>{escape(m.role)}</span>"
-            )
+            badge = self._role_badge_img(_role_key(m.role))
             rows += (
-                f"<tr><td style='padding:2px 12px 2px 0;'>{role_pill}</td>"
+                f"<tr><td style='padding:2px 12px 2px 0;'>{badge}</td>"
                 f"<td style='padding:2px 0;'>{name}</td></tr>"
             )
         members_html = (

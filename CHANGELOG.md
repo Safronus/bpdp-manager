@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.9] - 2026-06-13
+
+### Changed
+- **Komise — role členů jako zaoblené rámečky.** Role ve složení (předseda /
+  místopředseda / tajemník / člen) jsou nově **barevné zaoblené rámečky
+  stejné šířky** s textem na střed (jako badge známek u prací).
+
 ## [2.5.8] - 2026-06-12
 
 ### Fixed

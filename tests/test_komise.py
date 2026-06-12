@@ -401,6 +401,7 @@ def test_komise_tab_smoke(service, tmp_path) -> None:
     assert len(leaves) == 1
     assert "žlutá" in leaves[0].text(0)               # komise = barva
     assert "Komise žlutá" in tab.detail.toPlainText()
-    # Role ve složení jsou barevně odlišené (pilulka s pozadím dle role).
+    # Role ve složení jsou zaoblené rámečky (PNG badge, stejná šířka).
     html = tab._committee_html(service.list_committees()[0])
-    assert "#ede7f6" in html      # předseda — fialové pozadí pilulky
+    assert "data:image/png;base64" in html
+    assert "předseda" in tab._role_badge_cache  # badge se vygeneroval
