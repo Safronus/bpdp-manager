@@ -7,6 +7,25 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-06-12
+
+### Fixed
+- **Aplikace hlásila špatnou verzi (zaseklá na 2.3.0).** Konstanta
+  ``__version__`` v ``src/bpdpmanager/__init__.py`` se při vydáních 2.3.1,
+  2.3.2 a 2.4.0 nebumpovala (měnil se jen ``pyproject.toml``), takže okno
+  nápovědy, kontrola aktualizací, zámek profilu i exporty hlásily 2.3.0.
+  Tichá kontrola pak donekonečna nabízela „aktualizaci na 2.4.0", která ale
+  jen narážela na varování o rozpracovaných změnách. **Verze má teď jediný
+  zdroj pravdy** — ``__version__`` v ``__init__.py`` (``pyproject.toml`` ji
+  čte přes ``[tool.hatch.version]``), takže se aplikace a balíček nemůžou
+  rozejít. README i okno nápovědy ukazují správné číslo.
+- **Tichá Qt varování o fontech v terminálu.** „OpenType support missing
+  for .AppleSystemUIFont…" (systémová písma macOS) se ztišují přes
+  ``qt.text.font.db.warning=false``. „Populating font family aliases…
+  Menlo, Monaco, …" zmizelo opravou v přehledu oborů: CSS-style seznam
+  rodin se předával do ``QFont.setFamily()`` (kam nepatří) — nahrazeno
+  ``setFamilies([...])`` + ``StyleHint.Monospace``.
+
 ## [2.4.0] - 2026-06-12
 
 ### Added

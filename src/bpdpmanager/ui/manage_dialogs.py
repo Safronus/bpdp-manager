@@ -6,7 +6,7 @@ import re
 import unicodedata
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -936,9 +936,13 @@ class OboryManageDialog(QDialog):
                     [obor.name, stag, str(count), "", ""]
                 )
                 child.setData(0, Qt.ItemDataRole.UserRole, obor)
-                # STAG kód v monospace pro lepší čitelnost
+                # STAG kód v monospace pro lepší čitelnost. CSS-style seznam
+                # rodin do setFamily() nepatří — Qt by hledal neexistující
+                # rodinu „Menlo, Monaco, …" a stavěl kvůli ní aliasy fontů
+                # (pomalé + warning). setFamilies() řeší fallback správně.
                 stag_font = child.font(1)
-                stag_font.setFamily("Menlo, Monaco, Courier New, monospace")
+                stag_font.setFamilies(["Menlo", "Monaco", "Courier New"])
+                stag_font.setStyleHint(QFont.StyleHint.Monospace)
                 child.setFont(1, stag_font)
                 parent.addChild(child)
 

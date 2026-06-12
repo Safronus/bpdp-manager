@@ -95,10 +95,17 @@ def _bootstrap_profile(pm: ProfileManager) -> bool:
 
 
 def run() -> int:
-    # Ztiš neškodné Qt hlášky z accessibility bridge (macOS VoiceOver se ptá
-    # stromů/tabulek během jejich přestavby, kdy mají 0 řádků) — jen tato
-    # konkrétní kategorie, ostatní Qt varování zůstávají.
-    QLoggingCategory.setFilterRules("qt.accessibility.table.warning=false")
+    # Ztiš neškodné Qt hlášky — jen tyto konkrétní kategorie, ostatní Qt
+    # varování zůstávají:
+    # - accessibility bridge (macOS VoiceOver se ptá stromů/tabulek během
+    #   jejich přestavby, kdy mají 0 řádků),
+    # - font databáze („OpenType support missing for .AppleSystemUIFont,
+    #   script N" — systémová písma macOS bez OpenType tabulek pro exotická
+    #   písma; z aplikace to nejde ovlivnit).
+    QLoggingCategory.setFilterRules(
+        "qt.accessibility.table.warning=false\n"
+        "qt.text.font.db.warning=false"
+    )
 
     app = QApplication(sys.argv)
     app.setApplicationName("BPDPManager")
