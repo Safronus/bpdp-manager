@@ -253,8 +253,15 @@ def test_highlighting_works_on_seed_committee(service) -> None:
                    if c.color == "červená" and c.level == "Bc")
     assert any(s_.personal_number == "A55501" for s_ in cervena.slots)
     # Tab se vykreslí se seed komisemi (rok → Bc/Mgr → 11 komisí celkem).
+    from bpdpmanager.ui.komise_tab import ROLE_VO
     tab = KomiseTab(service)
     assert sum(1 for _ in tab._iter_leaves()) == 11
+    # Sloupec „Studenti V/O" nese počty (1 vedený, 0 oponovaných) u Bc červené.
+    cervena_leaf = next(
+        lf for lf in tab._iter_leaves()
+        if "červená" in lf.text(0) and "📚 Bakalářské" in lf.parent().text(0)
+    )
+    assert cervena_leaf.data(1, ROLE_VO) == (1, 0)
 
 
 def test_komise_student_roles(service) -> None:

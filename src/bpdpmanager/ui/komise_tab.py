@@ -12,7 +12,7 @@ from __future__ import annotations
 import unicodedata
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -25,6 +25,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSplitter,
+    QStyle,
+    QStyledItemDelegate,
     QTextBrowser,
     QTreeWidget,
     QTreeWidgetItem,
@@ -37,15 +39,90 @@ from ..models.komise import committee_color_hex
 from ..services import ThesisService
 
 ROLE_COMMITTEE_ID = Qt.ItemDataRole.UserRole + 1
+#: (vedené, oponované) počty studentů komise — pro StudentsVODelegate.
+ROLE_VO = Qt.ItemDataRole.UserRole + 2
 
 #: Stupeň → pořadí a popisek skupiny ve stromu (Bc před Mgr).
 _LEVEL_ORDER = {"Bc": 0, "Mgr": 1}
 _LEVEL_LABEL = {"Bc": "Bakalářské (Bc)", "Mgr": "Magisterské (Mgr)"}
 
+#: Barvy badge ve sloupci „Studenti V/O" (vedené modře, oponované červeně).
+_VO_LED_BG = "#1e88e5"
+_VO_OPP_BG = "#e53935"
+
 
 def _fold(s: str) -> str:
     nfd = unicodedata.normalize("NFD", s or "")
     return "".join(c for c in nfd if not unicodedata.combining(c)).lower().strip()
+
+
+class StudentsVODelegate(QStyledItemDelegate):
+    """Sloupec „Studenti V/O": vedené číslo v modrém a oponované v červeném
+    zaobleném badge vedle sebe (styl jako známky u prací). Prázdné = beze
+    studentů; badge se ukáže jen pro nenulový počet."""
+
+    _GAP = 6
+    _PAD = 7
+    _MIN_W = 22
+    _BADGE_H = 18
+
+    @staticmethod
+    def _counts(index):
+        v = index.data(ROLE_VO)
+        return v if isinstance(v, (tuple, list)) and len(v) == 2 else None
+
+    def _badges(self, led: int, opp: int):
+        out = []
+        if led:
+            out.append((str(led), _VO_LED_BG))
+        if opp:
+            out.append((str(opp), _VO_OPP_BG))
+        return out
+
+    def _width(self, fm, badges) -> int:
+        if not badges:
+            return 0
+        w = sum(max(self._MIN_W, fm.horizontalAdvance(t) + 2 * self._PAD)
+                for t, _ in badges)
+        return w + self._GAP * (len(badges) - 1)
+
+    def paint(self, painter, option, index) -> None:
+        counts = self._counts(index)
+        if counts is None:
+            super().paint(painter, option, index)
+            return
+        led, opp = counts
+        badges = self._badges(led, opp)
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        fm = option.fontMetrics
+        total = self._width(fm, badges)
+        rect = option.rect
+        x = rect.x() + max(4, (rect.width() - total) // 2)
+        y = rect.y() + (rect.height() - self._BADGE_H) // 2
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        for text, bg in badges:
+            w = max(self._MIN_W, fm.horizontalAdvance(text) + 2 * self._PAD)
+            br = QRectF(x, y, w, self._BADGE_H)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(bg))
+            painter.drawRoundedRect(br, 4, 4)
+            painter.setPen(QColor("white"))
+            painter.drawText(br, Qt.AlignmentFlag.AlignCenter, text)
+            x += w + self._GAP
+        painter.restore()
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: N802 (Qt API)
+        counts = self._counts(index)
+        if counts is None:
+            return super().sizeHint(option, index)
+        badges = self._badges(*counts)
+        base = super().sizeHint(option, index)
+        return QSize(self._width(option.fontMetrics, badges) + 12,
+                     max(base.height(), self._BADGE_H + 6))
 
 
 class KomiseTab(QWidget):
@@ -98,8 +175,9 @@ class KomiseTab(QWidget):
         # ── splitter: strom vlevo, detail vpravo ─────────────────────────
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels([tr("Komise"), tr("Moji studenti"), tr("Termíny")])
+        self.tree.setHeaderLabels([tr("Komise"), tr("Studenti V/O"), tr("Termíny")])
         self.tree.setRootIsDecorated(True)
+        self.tree.setItemDelegateForColumn(1, StudentsVODelegate(self.tree))
         hdr = self.tree.header()
         # Šířka sloupců dle dat; levý panel se přizpůsobí v _fit_left_pane.
         for col in range(self.tree.columnCount()):
@@ -178,10 +256,13 @@ class KomiseTab(QWidget):
                     star = "⭐ " if self._is_my_committee(c) else ""
                     obor = f" ({c.obor})" if c.obor else ""
                     label = f"{star}● {tr('Komise')} {c.color}{obor}"
-                    mine_txt = str(led + opp) if (led or opp) else "—"
-                    leaf = QTreeWidgetItem([label, mine_txt, ", ".join(c.dates)])
+                    leaf = QTreeWidgetItem([label, "", ", ".join(c.dates)])
                     leaf.setForeground(0, QBrush(QColor(committee_color_hex(c.color))))
                     leaf.setData(0, ROLE_COMMITTEE_ID, c.id)
+                    leaf.setData(1, ROLE_VO, (led, opp))
+                    leaf.setToolTip(
+                        1, tr("Vedení: {led} · Oponované: {opp}").format(led=led, opp=opp)
+                    )
                     if led or opp:
                         f2 = leaf.font(0)
                         f2.setBold(True)

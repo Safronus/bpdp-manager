@@ -1161,6 +1161,8 @@ EN: dict[str, str] = {
     "tvoje komise": "your committee",
     "Komise": "Committee",
     "Moji studenti": "My students",
+    "Studenti V/O": "Students S/O",
+    "Vedení: {led} · Oponované: {opp}": "Supervised: {led} · Opposed: {opp}",
     "Termíny": "Dates",
     "Bakalářské (Bc)": "Bachelor (Bc)",
     "Magisterské (Mgr)": "Master (Mgr)",

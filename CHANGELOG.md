@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.3] - 2026-06-12
+
+### Added
+- **Komise — sloupec „Studenti V/O" s počty.** U každé komise je hned vidět,
+  kolik v ní **vedeš** (číslo v modrém zaobleném badge) a kolik **oponuješ**
+  (číslo v červeném badge) — stejný styl jako známky u prací.
+
 ## [2.5.2] - 2026-06-12
 
 ### Changed

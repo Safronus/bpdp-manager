@@ -915,8 +915,9 @@ and detail show them in their colour. Each committee is linked to an app
 the same colour and level (e.g. *Mgr purple* is both **NKYB** and **NUI**).
 
 The left tree is grouped **academic year → level (Bc / Mgr) → committee
-(colour)**; the **Dates** column shows the days the committee sits. Column and
-panel widths fit the content.
+(colour)**; the **Dates** column shows the days the committee sits. The
+**Students S/O** column shows how many you **supervise** (blue badge) and how
+many you **oppose** (red badge). Column and panel widths fit the content.
 
 - **Composition is pre-loaded** — **public data** (colour, programme, level,
   members, dates) ships with the app in `resources/komise_szz.json` and

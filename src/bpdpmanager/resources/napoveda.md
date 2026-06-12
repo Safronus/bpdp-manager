@@ -1041,8 +1041,9 @@ mají **fakultní barevné označení** (červená, modrá, žlutá, zelená, fi
 barvy a stupně (např. *Mgr fialová* je zároveň **NKYB** i **NUI**).
 
 Strom vlevo je členěný **akademický rok → stupeň (Bc / Mgr) → komise (barva)**;
-sloupec **Termíny** ukazuje dny, kdy komise zasedá. Šířka sloupců i panelu se
-přizpůsobí obsahu.
+sloupec **Termíny** ukazuje dny, kdy komise zasedá. Sloupec **Studenti V/O**
+ukazuje, kolik v komisi **vedeš** (modrý badge) a kolik **oponuješ** (červený
+badge). Šířka sloupců i panelu se přizpůsobí obsahu.
 
 - **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
   stupeň, členové, termíny) jsou součástí aplikace v souboru
