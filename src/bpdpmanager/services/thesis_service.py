@@ -2823,6 +2823,17 @@ class ThesisService:
         self.save()
         return stats
 
+    def reset_committees_from_seed(self) -> dict:
+        """Smaže všechny komise a načte je znovu z kurátorovaného JSONu.
+
+        Úklid starých (před 2.5.0) lokálně naimportovaných komisí, které
+        „nesedí" (chybí obor, duplicity, zmíchané barvy). **Sloty studentů
+        z dříve nahraných PDF se ztratí** — rozpisy je potřeba naimportovat
+        znovu (napojí se už na správné komise). Vrací statistiku seedu.
+        """
+        self._db.committees = []
+        return self.load_komise_seed()
+
     def komise_store_pdf(self, source: Path, academic_year: str) -> str:
         """Zkopíruje PDF do ``komise/<rok>/`` (strukturované uložení).
 

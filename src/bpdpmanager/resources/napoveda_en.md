@@ -931,9 +931,19 @@ the same colour and level (e.g. *Mgr purple* is both **NKYB** and **NUI**).
 - **⭐ Your committees:** committees where you are a member (by your profile
   name) get a star in the tree, the detail title and next to your name.
 - **🌐 Open the schedules website** — link to the official FAI page.
+- **🔄 Reload committees** — deletes all committees and loads the clean
+  composition shipped with the app. Handy to **clean up older imported
+  committees** (from versions before 2.5.0) that don't match (missing
+  programme, duplicates, mixed colours). Student schedules from previously
+  uploaded PDFs disappear — just **import them again** via *📄 Import
+  committee PDFs…* (they attach to the right committees).
 - PDFs are stored **structured** in `komise/<year>/` inside the profile
   folder; links to source PDFs are in the committee detail. Right-click a
   committee → *Delete committee* (PDFs stay on disk).
+
+> **Supervised/opposed highlighting is unchanged** — it works on the schedule
+> (student slots), so it kicks in as soon as you import the schedule (personal
+> number Axxxxx for supervised, name for opposed).
 
 ---
 

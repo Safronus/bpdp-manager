@@ -78,6 +78,15 @@ class KomiseTab(QWidget):
         btn_web.setToolTip(tr("Otevře stránku FAI se složením komisí a rozpisy SZZ."))
         btn_web.clicked.connect(self._open_web)
         top.addWidget(btn_web)
+        btn_reset = QPushButton(tr("🔄 Načíst komise znovu"))
+        btn_reset.setToolTip(tr(
+            "Smaže všechny komise a načte čisté složení z aplikace. Použij na "
+            "úklid starých naimportovaných komisí, které nesedí (chybí obor, "
+            "duplicity). Rozpisy studentů z dříve nahraných PDF zmizí — nahraj "
+            "je znovu."
+        ))
+        btn_reset.clicked.connect(self._reset_committees)
+        top.addWidget(btn_reset)
         self.chk_mine = QCheckBox(tr("Jen komise s mými studenty"))
         self.chk_mine.toggled.connect(self.refresh)
         top.addWidget(self.chk_mine)
@@ -284,6 +293,30 @@ class KomiseTab(QWidget):
         from PySide6.QtGui import QDesktopServices
 
         QDesktopServices.openUrl(QUrl(FAI_KOMISE_URL))
+
+    def _reset_committees(self) -> None:
+        """Smaže všechny komise a načte čistý seed z JSONu (úklid starých dat)."""
+        resp = QMessageBox.question(
+            self, tr("Načíst komise znovu"),
+            tr("Smaže VŠECHNY komise a načte čisté složení z aplikace.\n\n"
+               "Použij na úklid starších naimportovaných komisí, které nesedí "
+               "(chybí obor, duplicity, zmíchané barvy).\n\n"
+               "⚠ Rozpisy studentů z dříve nahraných PDF zmizí — nahraj je "
+               "potom znovu přes Importovat PDF komisí (napojí se už na "
+               "správné komise).\n\nPokračovat?"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if resp != QMessageBox.StandardButton.Yes:
+            return
+        stats = self.service.reset_committees_from_seed()
+        self.refresh()
+        self.changed.emit()
+        QMessageBox.information(
+            self, tr("Hotovo"),
+            tr("Načteno {n} komisí z aplikace. Teď nahraj PDF rozpisů studentů.")
+            .format(n=stats.get("created", 0)),
+        )
 
     def _import_pdfs(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(

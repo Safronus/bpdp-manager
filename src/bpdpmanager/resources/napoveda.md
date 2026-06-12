@@ -1058,9 +1058,18 @@ barvy a stupně (např. *Mgr fialová* je zároveň **NKYB** i **NUI**).
 - **⭐ Tvoje komise:** komise, kde jsi členem (dle jména z profilu), mají
   hvězdičku ve stromu, v titulku detailu i u tvého jména ve složení.
 - **🌐 Otevřít web s rozpisy** — odkaz na oficiální stránku FAI.
+- **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
+  z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
+  před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).
+  Rozpisy studentů z dříve nahraných PDF zmizí — stačí je **nahrát znovu**
+  přes *📄 Importovat PDF komisí…* (napojí se už na správné komise).
 - PDF se ukládají **strukturovaně** do `komise/<rok>/` ve složce profilu;
   odkazy na zdrojová PDF jsou v detailu komise. Pravý klik na komisi →
   *Smazat komisi* (PDF na disku zůstanou).
+
+> **Zvýraznění vedených/oponovaných zůstává beze změny** — pracuje nad
+> rozpisem (sloty studentů), takže funguje hned, jakmile rozpis naimportuješ
+> (osobní číslo Axxxxx pro vedené, jméno pro oponované).
 
 ---
 

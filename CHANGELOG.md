@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-06-12
+
+### Added
+- **Komise: tlačítko „🔄 Načíst komise znovu" (úklid starých dat).** Po
+  upgradu na 2.5.0 mohou v profilu zůstat **starší naimportované komise**
+  (z verzí 2.3–2.4) bez oboru — duplicity nebo zmíchané barvy vedle nových
+  předpřipravených komisí. Tlačítko smaže všechny komise a načte čistý seed
+  z aplikace; rozpisy studentů se pak naimportují znovu z PDF (napojí se už
+  na správné komise). **Zvýraznění vedených/oponovaných studentů zůstává
+  beze změny** — pracuje nad rozpisem, takže funguje hned po importu.
+
 ## [2.5.0] - 2026-06-12
 
 ### Added

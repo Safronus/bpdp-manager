@@ -206,6 +206,57 @@ def test_schedule_attaches_by_obor_not_just_color(service) -> None:
     assert by["NUI"].slots[0].personal_number == "A90002"
 
 
+def test_reset_committees_clears_old_and_reloads_seed(service) -> None:
+    """Reset smaže staré (bez oboru) komise a načte čistý seed; sloty zmizí."""
+    # Stará pre-2.5.0 komise bez oboru + slot (simulace „nesedících" dat).
+    service.apply_komise_import(
+        [],
+        [ParsedSchedule(color="fialová", academic_year="2025/2026", level="Mgr",
+                        program_label="cosi",
+                        slots=[("19. 6. 2026", "08:00", "A99999", "Old")])],
+        ["old.pdf"],
+    )
+    assert any(not c.obor for c in service.list_committees())
+    stats = service.reset_committees_from_seed()
+    cs = service.list_committees()
+    assert stats["created"] == 11 and len(cs) == 11
+    assert all(c.from_seed and c.obor for c in cs)
+    assert sum(len(c.slots) for c in cs) == 0   # rozpisy se musí naimportovat znovu
+
+
+def test_highlighting_works_on_seed_committee(service) -> None:
+    """Po resetu + importu rozpisu se vedený student zvýrazní (🎓) na seed komisi."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.ui.komise_tab import KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    s = Student(first_name="Marko", last_name="Test", university_id="A55501")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2025/2026",
+                                 student_id=s.id, status=ThesisStatus.IN_PROGRESS))
+    # Rozpis Bc SWI červená se napojí na seed komisi.
+    service.apply_komise_import(
+        [],
+        [ParsedSchedule(color="červená", academic_year="2025/2026", level="Bc",
+                        obor="SWI", program_label="Softwarové inženýrství",
+                        dates=["15. 6. 2026"],
+                        slots=[("15. 6. 2026", "09:00", "A55501", "Marko Test")])],
+        ["rozpis.pdf"],
+    )
+    roles = service.komise_student_roles()
+    assert roles.get("A55501") == "led"      # zvýraznění funguje dál
+    cervena = next(c for c in service.list_committees()
+                   if c.color == "červená" and c.level == "Bc")
+    assert any(s_.personal_number == "A55501" for s_ in cervena.slots)
+    # Tab se vykreslí se seed komisemi (1 rok, 11 komisí) — bez pádu.
+    tab = KomiseTab(service)
+    assert tab.tree.topLevelItem(0).childCount() == 11
+
+
 def test_komise_student_roles(service) -> None:
     from bpdpmanager.models import OpposingThesis, Student, Thesis
     from bpdpmanager.models.enums import ThesisStatus, ThesisType

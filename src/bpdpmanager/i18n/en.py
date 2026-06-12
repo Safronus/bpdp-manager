@@ -1131,6 +1131,30 @@ EN: dict[str, str] = {
     "🌐 Otevřít web s rozpisy": "🌐 Open the schedules website",
     "Otevře stránku FAI se složením komisí a rozpisy SZZ.":
         "Opens the FAI page with committee compositions and SZZ schedules.",
+    "🔄 Načíst komise znovu": "🔄 Reload committees",
+    "Načíst komise znovu": "Reload committees",
+    "Smaže všechny komise a načte čisté složení z aplikace. Použij na "
+    "úklid starých naimportovaných komisí, které nesedí (chybí obor, "
+    "duplicity). Rozpisy studentů z dříve nahraných PDF zmizí — nahraj "
+    "je znovu.":
+        "Deletes all committees and loads the clean composition shipped with "
+        "the app. Use it to clean up old imported committees that don't match "
+        "(missing programme, duplicates). Student schedules from previously "
+        "uploaded PDFs disappear — import them again.",
+    "Smaže VŠECHNY komise a načte čisté složení z aplikace.\n\n"
+    "Použij na úklid starších naimportovaných komisí, které nesedí "
+    "(chybí obor, duplicity, zmíchané barvy).\n\n"
+    "⚠ Rozpisy studentů z dříve nahraných PDF zmizí — nahraj je "
+    "potom znovu přes Importovat PDF komisí (napojí se už na "
+    "správné komise).\n\nPokračovat?":
+        "Deletes ALL committees and loads the clean composition shipped with "
+        "the app.\n\nUse it to clean up older imported committees that don't "
+        "match (missing programme, duplicates, mixed colours).\n\n⚠ Student "
+        "schedules from previously uploaded PDFs disappear — import them again "
+        "via Import committee PDFs (they will attach to the right committees).\n"
+        "\nContinue?",
+    "Načteno {n} komisí z aplikace. Teď nahraj PDF rozpisů studentů.":
+        "Loaded {n} committees from the app. Now import the student schedule PDFs.",
     "Jen komise s mými studenty": "Only committees with my students",
     "vedený student": "supervised student",
     "oponovaný student": "opposed student",
