@@ -325,14 +325,15 @@ class KomiseTab(QWidget):
         self._fit_left_pane()
 
     def _refresh_pdf_list(self) -> None:
-        """Naplní seznam PDF: rok → Složení komisí / Rozpisy studentů → soubory."""
+        """Naplní seznam PDF: rok → Složení / Rozpisy / Nezařazené → soubory."""
         self.pdf_tree.clear()
         inv = self.service.komise_pdf_inventory()
         groups = (("slozeni", "📋 " + tr("Složení komisí")),
-                  ("rozpisy", "👥 " + tr("Rozpisy studentů")))
+                  ("rozpisy", "👥 " + tr("Rozpisy studentů")),
+                  ("nezarazene", "⚠ " + tr("Nezařazené (starší import)")))
         for year in sorted(inv, reverse=True):
             data = inv[year]
-            if not (data["slozeni"] or data["rozpisy"]):
+            if not any(data.get(k) for k, _ in groups):
                 continue
             yitem = QTreeWidgetItem([f"📅 {year}"])
             f = yitem.font(0)
@@ -340,10 +341,12 @@ class KomiseTab(QWidget):
             yitem.setFont(0, f)
             self.pdf_tree.addTopLevelItem(yitem)
             for key, label in groups:
-                files = data[key]
+                files = data.get(key) or []
                 if not files:
                     continue
                 kitem = QTreeWidgetItem([f"{label} ({len(files)})"])
+                if key == "nezarazene":
+                    kitem.setForeground(0, QBrush(QColor("#e65100")))
                 yitem.addChild(kitem)
                 for pdf in files:
                     leaf = QTreeWidgetItem([pdf.name])
@@ -391,11 +394,50 @@ class KomiseTab(QWidget):
         if not paths:
             return
         menu = QMenu(self.pdf_tree)
-        act = QAction(tr("📂 Otevřít") + (f" ({len(paths)})" if len(paths) > 1 else ""),
-                      self.pdf_tree)
-        act.triggered.connect(lambda _c=False: self._open_selected_pdfs())
-        menu.addAction(act)
+        n = len(paths)
+        act_open = QAction(tr("📂 Otevřít") + (f" ({n})" if n > 1 else ""),
+                           self.pdf_tree)
+        act_open.triggered.connect(lambda _c=False: self._open_selected_pdfs())
+        menu.addAction(act_open)
+        # Mazat lze jen lokální PDF (ne dodaná v gitu).
+        deletable = [p for p in paths if self._is_local_pdf(p)]
+        if deletable:
+            menu.addSeparator()
+            act_del = QAction(
+                tr("🗑 Smazat soubor z disku")
+                + (f" ({len(deletable)})" if len(deletable) > 1 else ""),
+                self.pdf_tree,
+            )
+            act_del.triggered.connect(lambda _c=False: self._delete_pdfs(deletable))
+            menu.addAction(act_del)
         menu.exec(self.pdf_tree.viewport().mapToGlobal(pos))
+
+    def _is_local_pdf(self, path: str) -> bool:
+        """True, když PDF leží ve složce profilu komise/ (lze ho mazat)."""
+        from ..config import komise_dir
+
+        try:
+            Path(path).resolve().relative_to(komise_dir().resolve())
+            return True
+        except (ValueError, OSError):
+            return False
+
+    def _delete_pdfs(self, paths: list[str]) -> None:
+        n = len(paths)
+        resp = QMessageBox.question(
+            self, tr("Smazat soubor"),
+            tr("Smazat {n} PDF souborů z disku? Tuto akci nelze vrátit.")
+            .format(n=n) if n > 1 else
+            tr("Smazat soubor {name} z disku? Tuto akci nelze vrátit.")
+            .format(name=Path(paths[0]).name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if resp != QMessageBox.StandardButton.Yes:
+            return
+        for p in paths:
+            self.service.komise_delete_pdf(p)
+        self._refresh_pdf_list()
 
     def _iter_leaves(self):
         """Projde všechny komise-listy (rok → stupeň → komise)."""

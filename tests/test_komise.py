@@ -299,8 +299,8 @@ def test_store_pdf_renames_into_subfolder(service, tmp_path) -> None:
 
 def test_pdf_inventory_includes_shipped_and_local(service, tmp_path) -> None:
     """Inventář PDF: 3 dodaná složení z gitu + lokálně uložené rozpisy."""
-    from bpdpmanager import config
-    config.set_active_data_dir(tmp_path)
+    from bpdpmanager.config import komise_dir
+
     src = tmp_path / "r.pdf"
     src.write_bytes(b"%PDF-1.4")
     service.komise_store_pdf(src, "2025/2026",
@@ -312,6 +312,25 @@ def test_pdf_inventory_includes_shipped_and_local(service, tmp_path) -> None:
     assert len(inv["2025/2026"]["slozeni"]) == 3
     assert any(p.name == "rozpis-studentu_Bc_SWI_2025-2026.pdf"
                for p in inv["2025/2026"]["rozpisy"])
+    # Starší PDF přímo v komise/<rok>/ → skupina „nezařazené" (ne rozpisy).
+    (komise_dir() / "2025-2026" / "stary_nazev.pdf").write_bytes(b"%PDF")
+    inv2 = service.komise_pdf_inventory()
+    assert any(p.name == "stary_nazev.pdf"
+               for p in inv2["2025/2026"]["nezarazene"])
+
+
+def test_delete_pdf_protects_shipped(service, tmp_path) -> None:
+    """komise_delete_pdf smaže lokální PDF; dodaná v gitu nesmí (vrátí False)."""
+    from bpdpmanager.config import komise_dir
+
+    local = komise_dir() / "2025-2026" / "rozpisy" / "r.pdf"
+    local.parent.mkdir(parents=True)
+    local.write_bytes(b"%PDF")
+    assert service.komise_delete_pdf(str(local)) is True
+    assert not local.exists()
+    shipped = service._komise_seed_pdf_dir() / "2025-2026" / "slozeni-komisi_Bc_SWI.pdf"
+    assert service.komise_delete_pdf(str(shipped)) is False
+    assert shipped.exists()
 
 
 def test_pdf_panel_lists_and_opens(service, tmp_path, monkeypatch) -> None:

@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.7] - 2026-06-12
+
+### Fixed
+- **Komise — úklid seznamu PDF.** Stará PDF z první verze importu (uložená
+  přímo v `komise/<rok>/`, často se špatným názvem) se už nemíchají mezi
+  rozpisy — jsou ve vlastní skupině **⚠ Nezařazené (starší import)**. Pravý
+  klik → **🗑 Smazat soubor z disku** (i více najednou) je odstraní; PDF
+  dodaná v gitu smazat nelze.
+
 ## [2.5.6] - 2026-06-12
 
 ### Added

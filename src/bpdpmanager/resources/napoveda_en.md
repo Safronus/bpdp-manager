@@ -950,10 +950,12 @@ many you **oppose** (red badge). Column and panel widths fit the content.
   (schedules) and `komise/<year>/slozeni/` (composition) inside the profile
   folder; links to source PDFs are in the committee detail.
 - **📎 Committee PDF files list** (below the tree) shows PDFs by academic year,
-  split into **Committee compositions** and **Student schedules**. Composition
-  PDFs for the upcoming year **ship with the app** (public data in git); you
-  can add more by import. Right-click → **📂 Open** opens the selected PDFs
-  (even **several at once**); double-click opens one.
+  split into **Committee compositions**, **Student schedules** and
+  **Uncategorised (older import)** — PDFs from the first import version (often
+  badly named); feel free to delete them. Composition PDFs for the upcoming
+  year **ship with the app** (public data in git); you can add more by import.
+  Right-click → **📂 Open** (even **several at once**, double-click opens one)
+  or **🗑 Delete file from disk** (git-shipped files can't be deleted).
 - Right-click a
   committee → *Delete committee* (PDFs stay on disk).
 

@@ -1188,6 +1188,13 @@ EN: dict[str, str] = {
     "Detail": "Detail",
     "Složení komisí": "Committee compositions",
     "PDF souborů komisí": "Committee PDF files",
+    "Nezařazené (starší import)": "Uncategorised (older import)",
+    "🗑 Smazat soubor z disku": "🗑 Delete file from disk",
+    "Smazat soubor": "Delete file",
+    "Smazat {n} PDF souborů z disku? Tuto akci nelze vrátit.":
+        "Delete {n} PDF files from disk? This cannot be undone.",
+    "Smazat soubor {name} z disku? Tuto akci nelze vrátit.":
+        "Delete the file {name} from disk? This cannot be undone.",
     "Rozpisy studentů": "Student schedules",
     "🗑 Smazat komisi": "🗑 Delete committee",
     "Smazat komisi {name} ({year})? Zdrojová PDF na disku "

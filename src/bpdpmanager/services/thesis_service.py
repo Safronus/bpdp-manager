@@ -2885,7 +2885,9 @@ class ThesisService:
         inv: dict[str, dict[str, list[Path]]] = {}
 
         def slot(year: str) -> dict[str, list[Path]]:
-            return inv.setdefault(year, {"slozeni": [], "rozpisy": []})
+            return inv.setdefault(
+                year, {"slozeni": [], "rozpisy": [], "nezarazene": []}
+            )
 
         def add(year: str, key: str, pdf: Path) -> None:
             bucket = slot(year)[key]
@@ -2907,15 +2909,36 @@ class ThesisService:
                 if not ydir.is_dir():
                     continue
                 year = ydir.name.replace("-", "/")
-                for sub, key in (("slozeni", "slozeni"), ("rozpisy", "rozpisy")):
+                for sub in ("slozeni", "rozpisy"):
                     subdir = ydir / sub
                     if subdir.exists():
                         for pdf in sorted(subdir.glob("*.pdf")):
-                            add(year, key, pdf)
-                # Starší PDF přímo v komise/<rok>/ (před 2.5.5) = rozpisy.
+                            add(year, sub, pdf)
+                # Starší PDF přímo v komise/<rok>/ (před 2.5.5) — nezařazené
+                # (z první verze importu, často se špatným názvem). Uživatel je
+                # smaže z panelu nebo nahradí novým importem.
                 for pdf in sorted(ydir.glob("*.pdf")):
-                    add(year, "rozpisy", pdf)
+                    add(year, "nezarazene", pdf)
         return inv
+
+    def komise_delete_pdf(self, abs_path) -> bool:
+        """Smaže PDF soubor z disku — jen pokud leží ve složce ``komise/``.
+
+        PDF dodaná v gitu (``resources/komise_pdfs/``) se mazat nedají (vrátí
+        ``False``). Vrací ``True`` při úspěšném smazání.
+        """
+        from ..config import komise_dir
+
+        p = Path(abs_path).resolve()
+        try:
+            p.relative_to(komise_dir().resolve())
+        except ValueError:
+            return False   # není v komise/ (např. dodané v gitu) → nemazat
+        try:
+            p.unlink(missing_ok=True)
+            return True
+        except OSError:
+            return False
 
     def apply_komise_import(self, committees, schedules,
                             source_rel_paths: list[str]) -> dict:

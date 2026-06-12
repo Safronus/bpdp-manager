@@ -1076,10 +1076,12 @@ badge). Šířka sloupců i panelu se přizpůsobí obsahu.
   zdrojová PDF jsou v detailu komise. Pravý klik na komisi → *Smazat komisi*
   (PDF na disku zůstanou).
 - **📎 Seznam PDF souborů komisí** (pod stromem) ukazuje PDF po akademických
-  rocích, rozdělené na **Složení komisí** a **Rozpisy studentů**. PDF složení
-  pro nadcházející rok jsou **součástí aplikace** (veřejná data v gitu); další
-  můžeš dohrát importem. Pravý klik → **📂 Otevřít** otevře vybrané PDF (klidně
-  **více najednou**), dvojklik otevře jedno.
+  rocích, rozdělené na **Složení komisí**, **Rozpisy studentů** a **Nezařazené
+  (starší import)** — to jsou PDF z první verze načítání (často se špatným
+  názvem); klidně je smaž. PDF složení pro nadcházející rok jsou **součástí
+  aplikace** (veřejná data v gitu); další můžeš dohrát importem. Pravý klik →
+  **📂 Otevřít** (i **více najednou**, dvojklik otevře jedno) nebo **🗑 Smazat
+  soubor z disku** (dodaná v gitu smazat nelze).
 
 > **Zvýraznění vedených/oponovaných zůstává beze změny** — pracuje nad
 > rozpisem (sloty studentů), takže funguje hned, jakmile rozpis naimportuješ
