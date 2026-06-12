@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.8] - 2026-06-12
+
+### Fixed
+- **Komise — levý panel se vejde na obsah.** Šířka levé sekce (strom +
+  termíny) se teď spočítá z obsahu sloupců a dopočítá při prvním zobrazení,
+  takže sloupec **Termíny** je vidět celý bez vodorovného posuvníku.
+
 ## [2.5.7] - 2026-06-12
 
 ### Fixed

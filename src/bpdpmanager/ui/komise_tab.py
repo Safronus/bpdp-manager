@@ -464,12 +464,28 @@ class KomiseTab(QWidget):
                 return
 
     def _fit_left_pane(self) -> None:
-        """Šířka levého panelu podle obsahu stromu (sloupce + odsazení)."""
+        """Šířka levého panelu podle obsahu stromu (sloupce + odsazení).
+
+        Sčítá obsahové šířky sloupců (``sizeHintForColumn`` funguje i hned po
+        naplnění, na rozdíl od ještě nezměřené hlavičky) + odsazení stromu na
+        zanoření rok→stupeň→komise + rezervu na scrollbar/rámeček.
+        """
         self.tree.expandAll()
-        width = self.tree.header().length() + self.tree.indentation() * 2 + 28
-        total = self.splitter.size().width() or 1100
-        left = max(280, min(width, int(total * 0.62)))
-        self.splitter.setSizes([left, max(total - left, 320)])
+        cols = sum(
+            max(self.tree.sizeHintForColumn(c), self.tree.columnWidth(c))
+            for c in range(self.tree.columnCount())
+        )
+        width = cols + self.tree.indentation() * 3 + 44
+        total = self.splitter.size().width() or 1200
+        left = max(300, min(width, int(total * 0.78)))
+        self.splitter.setSizes([left, max(total - left, 300)])
+
+    def showEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        # První zobrazení s reálnou velikostí → dopočítej šířku levého panelu.
+        super().showEvent(event)
+        if not getattr(self, "_did_fit", False):
+            self._did_fit = True
+            self._fit_left_pane()
 
     # ── detail ───────────────────────────────────────────────────────────
     def _on_selected(self) -> None:
