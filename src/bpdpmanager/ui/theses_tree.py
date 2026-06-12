@@ -558,6 +558,10 @@ class ThesesTreeWidget(QTreeWidget):
         self.color_year_groups = False
         # U budoucích prací nezobrazovat sloupec Posudky — jen v záložce „Vše".
         self.blank_future_reviews = False
+        # Poznámka u skupiny aktuálního roku („letošní hotové práce") — jen
+        # v záložce „Historie": obhájené/ukončené práce letošního roku tam
+        # přibývají průběžně, ať je hned jasné, proč jsou nahoře.
+        self.mark_current_year_done = False
 
         self.setColumnCount(len(self.HEADERS))
         self.setHeaderLabels([tr(h) for h in self.HEADERS])
@@ -641,9 +645,10 @@ class ThesesTreeWidget(QTreeWidget):
             current_year = self.service.current_academic_year()
             for year in sorted(groups.keys(), reverse=True):
                 total = sum(len(v) for v in groups[year].values())
-                year_item = QTreeWidgetItem(
-                    [f"📅 {year}    ({total})", "", "", "", ""]
-                )
+                title = f"📅 {year}    ({total})"
+                if self.mark_current_year_done and year == current_year:
+                    title = f"📅 {year} · {tr('letošní hotové práce')}    ({total})"
+                year_item = QTreeWidgetItem([title, "", "", "", ""])
                 year_item.setData(0, ROLE_KIND, "year")
                 year_item.setData(0, Qt.ItemDataRole.UserRole + 3, year)
                 font = year_item.font(0)

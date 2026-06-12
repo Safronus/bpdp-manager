@@ -179,6 +179,9 @@ grey *Profile / Refresh / Help*), a **🔍 search field** below it and then the
   the list: **status checkboxes** (remembered across restarts), **Opponent**,
   **Grade** (matches supervisor **or** opponent), **Programme** (aggregated)
   and **Type** (BP/DP). Filters combine. Irrelevant columns are hidden.
+  Theses move to History **immediately after a status change**
+  (defended/failed/not completed) — even mid-year; the **current academic
+  year** group therefore carries the note **"this year's completed theses"**.
 - **All** — all supervised theses. **Academic year headers** are coloured:
   **future** (blue), **current** (green), **past** (grey).
 - **🧐 Opposed theses** — theses where you are the opponent. The tab title
@@ -657,9 +660,14 @@ a **banner above the tabs**. You can also run it manually via
 The banner always shows a result — even **"✓ everything up to date"**. On
 changes, a **🔄 badge** lights up on the *Currently supervised* and
 *🧐 Opposed theses* tabs. **🔎 Details…** opens a **quick preview** — which
-theses changed, which new theses STAG offers, and (for verification) the
-list of **checked, up-to-date** theses; from there you continue to **Import
-from STAG**. The check is **read-only**; offline it reports quietly.
+theses changed (status, thesis text, reviews, **defence record**), which new
+theses STAG offers, and (for verification) the list of **checked,
+up-to-date** theses. From the preview you continue directly: **🔄 Update
+supervised (N)…** / **🔄 Update opposed (N)…** open the **STAG update with
+the affected theses only** — proposals (status change, missing files) come
+pre-filled and pre-checked, just confirm. **📥 Import from STAG** remains
+for **new theses** you don't have in the app yet. The check is
+**read-only**; offline it reports quietly.
 
 ### 🔍 STAG consistency (what's missing)
 

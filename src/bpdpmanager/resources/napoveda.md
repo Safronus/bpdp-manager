@@ -206,7 +206,10 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   *BTSM* = jakákoli BTSM varianta, *SWI*, *NSWI*, *NKYB*, *IRT*, *ITA*, *NUI*,
   *Jiné*) a **Typ** (BP/DP). Filtry se kombinují. U hotových prací jsou
   sloupce *Posudky* a *Odesláno* irelevantní, proto se v Historii **nezobrazují**.
-  V titulku záložky je **počet prací v historii**.
+  V titulku záložky je **počet prací v historii**. Práce se do Historie
+  přesouvají **hned po změně stavu** (obhájeno/neobhájeno/nedokončeno) —
+  i během roku; skupina **aktuálního akademického roku** proto nese poznámku
+  **„letošní hotové práce"**.
 - **Vše** — všechny vedené práce; v titulku záložky je jejich **počet**.
   Hlavičky **akademických roků** jsou barevně odlišené podle období: **budoucí**
   (modře), **aktuální** (zeleně), **minulé** (šedě). U prací v **budoucích
@@ -762,9 +765,14 @@ hlídá:
 Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
 práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuálně vedené práce*
 a *🧐 Oponované práce*. Tlačítkem **🔎 Detaily…** otevřeš **rychlý
-náhled** — jmenovitě, které práce mají změnu, které nové práce STAG nabízí,
-a (pro kontrolu/debug) i seznam **zkontrolovaných a aktuálních** prací; teprve
-odtud přejdeš na **Import ze STAG**. Tlačítko **Detaily…** je dostupné i když
+náhled** — jmenovitě, které práce mají změnu (stav, text práce, posudky i
+**průběh obhajoby**), které nové práce STAG nabízí, a (pro kontrolu/debug)
+i seznam **zkontrolovaných a aktuálních** prací. Z náhledu pokračuješ rovnou
+dál: tlačítka **🔄 Aktualizovat vedené (N)…** / **🔄 Aktualizovat oponované
+(N)…** otevřou **Aktualizaci ze STAG jen s dotčenými pracemi** — návrhy
+(změna stavu, chybějící soubory) jsou předpřipravené a předzaškrtnuté, stačí
+potvrdit. **📥 Import ze STAG** zůstává pro **nové práce**, které ještě
+v aplikaci nemáš. Tlačítko **Detaily…** je dostupné i když
 je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze kdykoli **ručně
 zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
 Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.

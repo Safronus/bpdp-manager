@@ -65,6 +65,9 @@ def test_detects_status_change_and_new_works(service, monkeypatch) -> None:
     # Jen 999 (111 už máš; 888 je jmenovec Pavel → odfiltrován dle celého jména).
     assert r.new_works == 1
     assert r.total_changes == 3
+    # ID dotčených prací — pro tlačítka „Aktualizovat…" v náhledu (subset).
+    assert r.supervised_ids == [led.id]
+    assert r.opposing_ids == [op.id]
 
 
 def test_no_changes_all_aktualni(service, monkeypatch) -> None:
@@ -103,6 +106,43 @@ def test_missing_file_detail_names_kind(service, monkeypatch) -> None:
     assert r.supervised_changes == 1
     assert "Posudek oponenta" in r.supervised[0]
     assert "nový soubor" in r.supervised[0]
+
+
+def test_missing_defense_record_offered(service, monkeypatch) -> None:
+    """Kontrola hlásí i chybějící „Soubor s průběhem obhajoby" (defense_record)."""
+    from bpdpmanager.services.stag_api import StagFile
+
+    s = Student(first_name="A", last_name="B")
+    service.upsert_student(s)
+    led = Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                 academic_year="2024/2025", student_id=s.id, adipidno="111")
+    service.upsert_thesis(led)
+    record = StagFile(soubidno="7", filename="prubeh_obhajoby.pdf",
+                      download_path="/p", section="defense_record")
+    _patch(monkeypatch, fetch_map={"111": ("R", [record], "")}, search_results=[])
+    r = chk.compute_stag_check(service, "")
+    assert r.supervised_changes == 1
+    assert "Soubor s průběhem obhajoby" in r.supervised[0]
+
+
+def test_preview_dialog_buttons(service) -> None:
+    """Tlačítka náhledu: Aktualizovat vedené/oponované dle změn, Import jen pro nové."""
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+
+    r = chk.StagCheckResult(
+        ok=True, checked=3,
+        supervised=["X — BP · změna stavu"], supervised_ids=["t1"],
+        opposing=[], opposing_ids=[],
+        new=[],
+    )
+    dlg = chk.StagChangesPreviewDialog(r)
+    assert dlg.btn_sync_sup.isEnabled()
+    assert not dlg.btn_sync_opp.isEnabled()
+    assert not dlg.btn_import.isEnabled()   # žádné nové práce → import nedává smysl
+    dlg.btn_sync_sup.click()
+    assert dlg.open_sync_supervised and not dlg.open_sync_opposing
 
 
 def test_offline_marks_not_ok(service, monkeypatch) -> None:

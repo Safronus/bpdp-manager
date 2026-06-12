@@ -130,6 +130,10 @@ class _ThesesTab(QWidget):
 
     # Emitne se, když se mohla změnit data ovlivňující souhrn (posudek, uložení).
     data_changed = Signal()
+    # Emitne se po aplikované aktualizaci ze STAG — změna stavu může práci
+    # přesunout mezi záložkami (V řešení → Obhájeno = z Aktuálních do
+    # Historie), takže hlavní okno musí obnovit VŠECHNY záložky, ne jen tuto.
+    stag_synced = Signal()
 
     def __init__(
         self,
@@ -404,6 +408,7 @@ class _ThesesTab(QWidget):
             self.tree.refresh()
             self.detail.set_thesis(self.service.get_thesis(thesis_id))
             self.data_changed.emit()
+            self.stag_synced.emit()
 
     def _on_export_thesis(self, thesis_id: str) -> None:
         """Exportuje práci do ZIP balíku (s výběrem, co zahrnout)."""
@@ -488,6 +493,7 @@ class _ThesesTab(QWidget):
             if self.detail.thesis is not None:
                 self.detail.set_thesis(self.service.get_thesis(self.detail.thesis.id))
             self.data_changed.emit()
+            self.stag_synced.emit()
 
     def _on_mark_reviews_sent(self, ids: list, sent: bool) -> None:
         """Hromadně přepne příznak odeslání posudku vedoucího u vybraných prací."""
@@ -658,6 +664,9 @@ class MainWindow(QMainWindow):
             # V Historii nepotřebuješ panel „Přechod do stavu".
             show_transitions=False,
         )
+        # Hotové práce letošního roku jsou v Historii nahoře — skupina
+        # aktuálního roku nese poznámku „letošní hotové práce".
+        self.tab_history.tree.mark_current_year_done = True
         self.tab_all = _ThesesTab(
             service, lambda t: True, year_mode=YEAR_MODE_ALL, profile_manager=pm,
             # „Plagiát" i „Vytištěno" jsou relevantní jen v Aktuálně vedených.
@@ -751,6 +760,10 @@ class MainWindow(QMainWindow):
         # Souhrn posudků v dolní liště přepočítej při změně dat i přepnutí tabu.
         for tab in (self.tab_current, self.tab_future, self.tab_history, self.tab_all):
             tab.data_changed.connect(self._update_status)
+            # Po aktualizaci ze STAG obnov všechny záložky — změna stavu
+            # (např. Obhájeno) přesouvá práci mezi záložkami a bez obnovy by
+            # Historie/Vše ukazovaly starý stav až do restartu.
+            tab.stag_synced.connect(self._refresh_all)
         self.tab_opposing.changed.connect(self._update_status)
         self.tabs.currentChanged.connect(lambda _: self._update_status())
         self.tabs.currentChanged.connect(self._on_tab_changed)
@@ -775,9 +788,11 @@ class MainWindow(QMainWindow):
         """Tichá kontrola nové verze na GitHubu (lze vypnout v dialogu updatu)."""
         from .update_dialog import UpdateChecker
 
-        if self.profile_manager and (
-            self.profile_manager.get_ui_pref("update_check_enabled", True) is False
-        ):
+        if self.profile_manager is None:
+            # Bez profilu (např. v testech) se tichá kontrola nespouští —
+            # výsledkový dialog je modální a nikdo by ho nezavřel.
+            return
+        if self.profile_manager.get_ui_pref("update_check_enabled", True) is False:
             return
         from .. import __version__
 
@@ -872,6 +887,8 @@ class MainWindow(QMainWindow):
 
         if getattr(self, "_stag_checker", None) is not None:
             return  # už běží
+        if auto and self.profile_manager is None:
+            return  # bez profilu (např. v testech) auto-kontrolu nespouštěj
         if auto and self._stag_checked_today():
             return  # dnes už proběhla automatická kontrola
         user_name = ""
@@ -959,7 +976,12 @@ class MainWindow(QMainWindow):
         )
 
     def _show_stag_changes(self) -> None:
-        """Otevře rychlý náhled změn ze STAG; odtud lze přejít na Import."""
+        """Otevře rychlý náhled změn ze STAG; odtud lze přejít na Import.
+
+        U existujících prací se změnou vede rovnou do *Aktualizace ze STAG*
+        (stejný dialog jako kontextová akce, jen s dotčenými pracemi) —
+        Import ze STAG zůstává pro stažení nových prací.
+        """
         from .stag_check import StagChangesPreviewDialog
 
         result = getattr(self, "_last_stag_result", None)
@@ -968,8 +990,30 @@ class MainWindow(QMainWindow):
             return
         dlg = StagChangesPreviewDialog(result, self)
         dlg.exec()
-        if dlg.open_import:
+        if dlg.open_sync_supervised and result.supervised_ids:
+            self._open_stag_sync_subset(result.supervised_ids, opposing=False)
+        elif dlg.open_sync_opposing and result.opposing_ids:
+            self._open_stag_sync_subset(result.opposing_ids, opposing=True)
+        elif dlg.open_import:
             self._import_from_stag()
+
+    def _open_stag_sync_subset(self, ids: list, *, opposing: bool) -> None:
+        """Aktualizace ze STAG jen pro práce z tiché kontroly (subset)."""
+        from .stag_sync_dialog import ROLE_OPPONENT, ROLE_SUPERVISOR, StagSyncDialog
+
+        dlg = StagSyncDialog(
+            self.service,
+            ROLE_OPPONENT if opposing else ROLE_SUPERVISOR,
+            self,
+            profile_manager=self.profile_manager,
+            subset=list(ids),
+        )
+        dlg.exec()
+        if dlg.changed:
+            self._refresh_all()
+            # Po aplikaci změn přepočítej tichou kontrolu — banner a odznaky
+            # 🔄 na záložkách by jinak hlásily už neexistující změny.
+            self._start_stag_check()
 
     def _refresh_tab_labels(self) -> None:
         """Doplní k titulkům záložek počty prací (+ STAG odznak 🔄) a barvu.
