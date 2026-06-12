@@ -657,9 +657,14 @@ a **banner above the tabs**. You can also run it manually via
 The banner always shows a result — even **"✓ everything up to date"**. On
 changes, a **🔄 badge** lights up on the *Currently supervised* and
 *🧐 Opposed theses* tabs. **🔎 Details…** opens a **quick preview** — which
-theses changed, which new theses STAG offers, and (for verification) the
-list of **checked, up-to-date** theses; from there you continue to **Import
-from STAG**. The check is **read-only**; offline it reports quietly.
+theses changed (status, thesis text, reviews, **defence record**), which new
+theses STAG offers, and (for verification) the list of **checked,
+up-to-date** theses. From the preview you continue directly: **🔄 Update
+supervised (N)…** / **🔄 Update opposed (N)…** open the **STAG update with
+the affected theses only** — proposals (status change, missing files) come
+pre-filled and pre-checked, just confirm. **📥 Import from STAG** remains
+for **new theses** you don't have in the app yet. The check is
+**read-only**; offline it reports quietly.
 
 ### 🔍 STAG consistency (what's missing)
 
