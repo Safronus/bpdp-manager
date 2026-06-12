@@ -41,10 +41,18 @@ _FIELD_LABEL_RE = re.compile(
 # „rozhodí" mimo popisek (typicky generované FAI posudky).
 _STANDALONE_GRADE_RE = re.compile(rf"^[ \t]*{_GRADE}[ \t]*$", re.MULTILINE)
 # Orientační závěrová fráze — fallback jen pro posudky BEZ strukturovaného pole.
+# EN šablony FAI UTB nemají strukturované pole „Navržená známka"; známka je jen
+# v závěrové větě „…suggest the following evaluation: B - Very Good" (vedoucí
+# i oponent) nebo „…suggest classification with grade B". Hodnota může být i na
+# dalším řádku (oponent: „…evaluation:\nB - Very Good"). Kotvíme na „suggest/
+# propose", aby se nechytly boilerplate zmínky „F" („In the case of an
+# evaluation grade of F - Insufficient...", „Grade F also means...").
 _CONCLUSION_RE = re.compile(
     r"(?:navrhuji\s+hodnocení"
     r"|navrhuji\s+(?:klasifikovat\s+stupněm|známku|hodnotit\s+stupněm)"
-    r"|doporučuji\s+hodnotit\s+stupněm|hodnotit\s+stupněm|s\s+hodnocením)"
+    r"|doporučuji\s+hodnotit\s+stupněm|hodnotit\s+stupněm|s\s+hodnocením"
+    r"|(?:suggest|propose)(?:s|ed|d)?\s+(?:the\s+following\s+)?"
+    r"(?:evaluation|classification|grade)(?:\s+with\s+grade)?)"
     rf"\s*[:\-]?\s*{_GRADE}\b",
     re.IGNORECASE,
 )

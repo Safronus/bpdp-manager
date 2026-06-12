@@ -467,7 +467,9 @@ secretary), grades, documents, a generated overview. **The Overview also
 shows the written review** (points, percentages, suggested grade, criteria,
 comments). **Grades fill themselves:** the *opponent* grade from the written
 review, the *supervisor* grade is read from the uploaded **supervisor review
-PDF**. Overview sections: Objectives → Grades → Written review → Documents.
+PDF** — **Czech and English** (Czech "Navržená známka: D", English "suggest
+the following evaluation: B" / "suggest classification with grade B").
+Overview sections: Objectives → Grades → Written review → Documents.
 **The document list is exactly the same as for supervised theses** —
 aggregated tree by type, versioning, **📂 In Finder**, right-click menu,
 missing-file indication and **🧹 Clean up missing**. Review archiving works

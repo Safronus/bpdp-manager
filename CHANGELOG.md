@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-06-12
+
+### Fixed
+- **Načítání známky z anglických posudků.** Vedoucí i oponentský posudek
+  v **anglické šabloně FAI UTB** uvádí navrženou známku jen v závěrové větě
+  („…suggest the following evaluation: B - Very Good", „…suggest
+  classification with grade B"), případně s hodnotou na dalším řádku
+  (oponent). Parser znal jen české fráze a „Proposed/suggested grade", takže
+  u EN posudků známku **nenačetl** (zůstala prázdná). Nově rozpozná i tyto
+  anglické fráze — kotveno na „suggest/propose", aby se nechytly boilerplate
+  zmínky „F" („In the case of an evaluation grade of F – Insufficient…",
+  „Grade F also means…") ani legenda ECTS škály.
+
 ## [2.4.1] - 2026-06-12
 
 ### Fixed

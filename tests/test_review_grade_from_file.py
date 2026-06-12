@@ -53,6 +53,16 @@ def _make_docx(path: Path, text: str) -> None:
         ("doporučuji ji k obhajobě s hodnocením B-C", "B"),
         ("v případě hodnocení stupněm F – nedostatečně", None),  # boilerplate
         ("žádná navržená známka tu není", None),
+        # EN šablony FAI UTB (vedoucí i oponent) — známka v závěrové větě.
+        ("I recommend the thesis and suggest the following evaluation: B - Very Good.", "B"),
+        ("suggest the following evaluation:\nB - Very Good", "B"),  # hodnota na dalším řádku
+        ("I recommend the thesis and suggest classification with grade B - Very Good", "B"),
+        ("Proposed grade D - Satisfactory", "D"),
+        # EN boilerplate / legenda / hlavička tabulky — NESMÍ se chytit.
+        ('In the case of an evaluation grade of "F - Insufficient", please supply', None),
+        ('Grade F also means "I do not recommend this thesis for defence."', None),
+        ("grant a mark according to the ECTS classification scale: A - Excellent, B - Very Good", None),
+        ("Evaluation: A B C D E F", None),
     ],
 )
 def test_parse_grade_from_text(text: str, expected: str | None) -> None:
