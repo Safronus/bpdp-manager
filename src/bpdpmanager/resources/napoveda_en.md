@@ -910,14 +910,20 @@ The **🏛 Committees** tab shows **state final exam committees** by academic
 year: **composition** (chair, vice-chairs, secretary, members) and the
 **student schedule** (when each student defends). Committees use the
 faculty's **colour coding** (red, blue, yellow, green, purple…) — the tree
-and detail show them in their colour.
+and detail show them in their colour. Each committee is linked to an app
+**programme** (SWI / NSWI / NKYB / NUI …), which disambiguates committees of
+the same colour and level (e.g. *Mgr purple* is both **NKYB** and **NUI**).
 
-- **📄 Import committee PDFs…** — loads faculty PDFs: **committee
-  composition** and **student schedules**. The document kind is **detected
-  automatically**; for schedules the committee is recognised **by the heading
-  colour** of the page. A **checkbox preview** is shown before saving. Data
-  merges by **year + colour + level** (Bc/Mgr) — composition and schedule of
-  the same committee combine; re-imports create no duplicates.
+- **Composition is pre-loaded** — **public data** (colour, programme, level,
+  members, dates) ships with the app in `resources/komise_szz.json` and
+  **loads on startup**. No student names live there; those come only from
+  local PDF import (below). The file is in git, so it updates with the app.
+- **📄 Import committee PDFs…** — loads faculty PDFs, typically the **student
+  schedule** (names + personal numbers). The committee is recognised by the
+  **heading colour** and **programme** (from the programme/specialization
+  text), and students attach to the right pre-loaded committee. Composition
+  PDFs work too (merge by year + level + **programme** + colour). A **checkbox
+  preview** is shown before saving; re-imports create no duplicates.
 - **Highlighting your students:** in the schedule, **🎓 supervised** students
   (matched via the **personal number** Axxxxx, name as fallback) are green
   and **🧐 opposed** ones (by name) purple. The *My students* column shows

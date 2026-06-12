@@ -28,7 +28,9 @@ APP_NAME = "bpdpmanager"
 #      default "", bez datové migrace).
 # v14: *_review_printed_at u Thesis i OpposingThesis (indikátor „Vytištěno";
 #      default None, bez datové migrace — stará data se načtou jako None).
-SCHEMA_VERSION = 15
+# v16 (2.5.0): Committee.obor (rodina oboru aplikace) — odlišuje komise stejné
+#      barvy/stupně; default "", bez datové migrace (stará data dostanou "").
+SCHEMA_VERSION = 16
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

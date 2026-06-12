@@ -119,11 +119,33 @@ _RE_LEVEL_LINE = re.compile(
 _RE_DATE = re.compile(r"\d{1,2}\.\s*\d{1,2}\.\s*\d{4}|\d{2}\.\d{2}\.\d{4}")
 
 
+def obor_from_program(program_label: str, level: str) -> str:
+    """Z textu programu/specializace odvodí rodinu oboru aplikace.
+
+    Bc → SWI/ITA, Mgr → NSWI/NKYB/NUI (prefix N = navazující). Slouží ke
+    spárování rozpisu (i staršího importu složení) se správnou komisí —
+    sama barva nestačí, protože např. Mgr fialová je NKYB i NUI.
+    """
+    t = (program_label or "").lower()
+    mgr = "mgr" in (level or "").lower()
+    toks = set(re.split(r"[^a-z]+", t))
+    if "kybernet" in t or "kyb" in toks or "cyber" in t:
+        return "NKYB"
+    if "učitelstv" in t or "ucitelstv" in t or "ui" in toks:
+        return "NUI"
+    if "softwar" in t or "engineering" in t or "swi" in toks or "swe" in toks:
+        return "NSWI" if mgr else "SWI"
+    if "administrativ" in t or "ita" in toks:
+        return "ITA"
+    return ""
+
+
 @dataclass
 class ParsedCommittee:
     color: str = ""
     academic_year: str = ""
     level: str = ""
+    obor: str = ""
     program_label: str = ""
     dates: list[str] = field(default_factory=list)
     members: list[tuple[str, str]] = field(default_factory=list)  # (role, jméno)
@@ -202,6 +224,7 @@ def parse_composition(text: str) -> list[ParsedCommittee]:
             elif current_role and _looks_like_name(line):
                 c.members.append(("Člen" if current_role == "Člen" else current_role,
                                   line))
+        c.obor = obor_from_program(c.program_label, c.level)
         if c.members:
             out.append(c)
     return out
@@ -248,6 +271,7 @@ class ParsedSchedule:
     color: str = ""
     academic_year: str = ""
     level: str = ""
+    obor: str = ""
     program_label: str = ""
     dates: list[str] = field(default_factory=list)
     slots: list[tuple[str, str, str, str]] = field(default_factory=list)
@@ -286,6 +310,7 @@ def parse_schedule_page(text: str, heading_color: str) -> ParsedSchedule | None:
         ps.level = "Mgr"
     elif "(bc" in low or "bakalářsk" in low:
         ps.level = "Bc"
+    ps.obor = obor_from_program(f"{program} {spec}", ps.level)
 
     # Data: řádky hlavičky pod „Časový rozvrh" obsahují jen data (1-2 sloupce).
     rozvrh_idx = next(

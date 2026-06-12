@@ -2746,6 +2746,83 @@ class ThesisService:
         db.committees = [c for c in db.committees if c.id != committee_id]
         self.save()
 
+    @staticmethod
+    def _komise_seed_path() -> Path:
+        """Cesta ke kurátorovanému JSONu komisí (veřejná data v gitu)."""
+        return (
+            Path(__file__).resolve().parent.parent / "resources" / "komise_szz.json"
+        )
+
+    def load_komise_seed(self) -> dict:
+        """Načte komise z kurátorovaného JSONu a sloučí je do databáze.
+
+        Složení komisí (barva, obor, stupeň, členové, data) je *veřejné* a
+        verzované v gitu (``resources/komise_szz.json``). Sloty studentů
+        (jména/osobní čísla) v JSONu NEJSOU — ty se plní jen lokálně z PDF
+        rozpisů. Funkce je idempotentní; volá se při startu aplikace.
+
+        Slučovací klíč: (rok, stupeň, obor, barva). Když starší lokálně
+        naimportovaná komise nemá obor (data před 2.5.0), doplní se z JSONu
+        (match dle rok+stupeň+barva, právě jeden kandidát bez oboru) — místo
+        vytvoření duplikátu. Sloty, source_files ani uživatelské poznámky se
+        nepřepisují; složení (členové, data, program, obor) se aktualizuje.
+        """
+        import json
+
+        from ..models import Committee, CommitteeMember
+
+        path = self._komise_seed_path()
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {"created": 0, "updated": 0}
+
+        db = self._db
+        stats = {"created": 0, "updated": 0}
+
+        def find(year: str, level: str, obor: str, color: str):
+            # 1) přesná shoda vč. oboru
+            for c in db.committees:
+                if (c.academic_year == year and c.level == level
+                        and c.obor == obor and c.color == color):
+                    return c
+            # 2) starší komise bez oboru (rok+stupeň+barva) — právě jedna
+            cands = [
+                c for c in db.committees
+                if c.academic_year == year and c.level == level
+                and c.color == color and not c.obor
+            ]
+            return cands[0] if len(cands) == 1 else None
+
+        for entry in data.get("committees", []):
+            year = entry.get("academic_year", "")
+            level = entry.get("level", "")
+            obor = entry.get("obor", "")
+            color = entry.get("color", "")
+            members = [
+                CommitteeMember(role=m.get("role", "Člen"), name=m.get("name", ""))
+                for m in entry.get("members", [])
+            ]
+            c = find(year, level, obor, color)
+            if c is None:
+                c = Committee(academic_year=year, level=level, color=color)
+                db.committees.append(c)
+                stats["created"] += 1
+            else:
+                stats["updated"] += 1
+            # Složení je z JSONu autoritativní — přepiš ho; sloty/zdroje nech být.
+            c.obor = obor
+            c.program_label = entry.get("program_label", "")
+            c.members = members
+            c.note = entry.get("note", "")
+            c.from_seed = True
+            for d in entry.get("dates", []):
+                if d not in c.dates:
+                    c.dates.append(d)
+
+        self.save()
+        return stats
+
     def komise_store_pdf(self, source: Path, academic_year: str) -> str:
         """Zkopíruje PDF do ``komise/<rok>/`` (strukturované uložení).
 
@@ -2772,23 +2849,43 @@ class ThesisService:
                             source_rel_paths: list[str]) -> dict:
         """Zapíše naparsované komise a rozpisy do databáze (s merge).
 
-        - Komise se slučují podle (akademický rok, barva, stupeň): členové
+        - Komise se slučují podle (rok, stupeň, OBOR, barva): členové
           sjednocení podle jména, data sjednocená, delší program label vyhrává.
-        - Rozpis se připojí ke komisi stejného klíče (vytvoří ji, když chybí);
-          sloty stejného (datum, čas, os. číslo) se nepřidají podruhé.
+          Obor je v klíči nutný — sama barva nestačí (Mgr fialová je NKYB i NUI).
+        - Rozpis se připojí ke komisi stejného klíče (typicky seed komise
+          z JSONu); sloty stejného (datum, čas, os. číslo) se nepřidají podruhé.
         """
         from ..models import Committee, CommitteeMember, DefenseSlot
 
         db = self._db
         stats = {"created": 0, "updated": 0, "slots": 0}
 
-        def find(year: str, color: str, level: str):
-            return next(
-                (c for c in db.committees
-                 if c.academic_year == year and c.color == color
-                 and (c.level == level or not c.level or not level)),
-                None,
-            )
+        def find(year: str, level: str, obor: str, color: str):
+            def lvl_ok(c) -> bool:
+                return c.level == level or not c.level or not level
+            # 1) Přesná shoda včetně oboru (typicky seed komise z JSONu).
+            if obor:
+                for c in db.committees:
+                    if (c.academic_year == year and c.color == color
+                            and lvl_ok(c) and c.obor == obor):
+                        return c
+            # 2) Starší komise bez oboru (data před 2.5.0) — právě jedna.
+            no_obor = [
+                c for c in db.committees
+                if c.academic_year == year and c.color == color
+                and lvl_ok(c) and not c.obor
+            ]
+            if len(no_obor) == 1:
+                return no_obor[0]
+            # 3) Obor se nepodařilo určit → shoda dle rok+stupeň+barva, je-li jediná.
+            if not obor:
+                any_match = [
+                    c for c in db.committees
+                    if c.academic_year == year and c.color == color and lvl_ok(c)
+                ]
+                if len(any_match) == 1:
+                    return any_match[0]
+            return None
 
         def touch_sources(c) -> None:
             for rp in source_rel_paths:
@@ -2796,36 +2893,47 @@ class ThesisService:
                     c.source_files.append(rp)
 
         for pc in committees:
-            c = find(pc.academic_year, pc.color, pc.level)
+            obor = getattr(pc, "obor", "")
+            c = find(pc.academic_year, pc.level, obor, pc.color)
             if c is None:
                 c = Committee(academic_year=pc.academic_year, color=pc.color,
-                              level=pc.level)
+                              level=pc.level, obor=obor)
                 db.committees.append(c)
                 stats["created"] += 1
             else:
                 stats["updated"] += 1
-            if len(pc.program_label) > len(c.program_label):
-                c.program_label = pc.program_label
-            if not c.level and pc.level:
-                c.level = pc.level
+            if not c.obor and obor:
+                c.obor = obor
             for d in pc.dates:
                 if d not in c.dates:
                     c.dates.append(d)
-            existing = {m.name for m in c.members}
-            for role, name in pc.members:
-                if name not in existing:
-                    c.members.append(CommitteeMember(role=role, name=name))
-                    existing.add(name)
+            # Seed komise (z JSONu) má složení autoritativní — z PDF jen sloty
+            # a zdroje; program/členy/úroveň nepřepisuj.
+            if not c.from_seed:
+                if len(pc.program_label) > len(c.program_label):
+                    c.program_label = pc.program_label
+                if not c.level and pc.level:
+                    c.level = pc.level
+                existing = {m.name for m in c.members}
+                for role, name in pc.members:
+                    if name not in existing:
+                        c.members.append(CommitteeMember(role=role, name=name))
+                        existing.add(name)
             touch_sources(c)
 
         for ps in schedules:
-            c = find(ps.academic_year, ps.color, ps.level)
+            obor = getattr(ps, "obor", "")
+            c = find(ps.academic_year, ps.level, obor, ps.color)
             if c is None:
                 c = Committee(academic_year=ps.academic_year, color=ps.color,
-                              level=ps.level, program_label=ps.program_label)
+                              level=ps.level, obor=obor,
+                              program_label=ps.program_label)
                 db.committees.append(c)
                 stats["created"] += 1
-            if len(ps.program_label) > len(c.program_label):
+            if not c.obor and obor:
+                c.obor = obor
+            # Seed komise má program label z JSONu — z rozpisu ho nepřepisuj.
+            if not c.from_seed and len(ps.program_label) > len(c.program_label):
                 c.program_label = ps.program_label
             for d in ps.dates:
                 if d not in c.dates:

@@ -1,0 +1,201 @@
+{
+  "_comment": "Kurátorované složení komisí SZZ FAI UTB — veřejná data z fakultního webu (slozeni-komisi-szz). NEOBSAHUJE studenty (jména/osobní čísla) — ta se načítají jen lokálně z PDF rozpisů. Klíč komise = academic_year + level + obor + color. obor odkazuje na rodiny oborů aplikace (SWI/NSWI/NKYB/NUI/...).",
+  "version": 1,
+  "committees": [
+    {
+      "academic_year": "2025/2026",
+      "level": "Bc",
+      "obor": "SWI",
+      "color": "červená",
+      "program_label": "Softwarové inženýrství (SWI, SWE)",
+      "dates": ["15. 6. 2026", "16. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "prof. Ing. Jan Mareš, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Bc. Bronislav Chramcov, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Radek Šilhavý, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Petr Dostálek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Jiří Korbel, Ph.D."},
+        {"role": "Člen", "name": "Ing. Peter Janků, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Vogeltanz, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Kadavý, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Bc",
+      "obor": "SWI",
+      "color": "modrá",
+      "program_label": "Softwarové inženýrství (SWI, SWE)",
+      "dates": ["15. 6. 2026", "16. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "doc. Ing. Petr Čermák, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Zdenka Prokopová, CSc."},
+        {"role": "Místopředseda", "name": "doc. Ing. Martin Sysel, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Dušan Fojtů, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Dulík, Ph.D."},
+        {"role": "Člen", "name": "Ing. Miroslav Matýsek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Adam Viktorin, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Bc",
+      "obor": "SWI",
+      "color": "žlutá",
+      "program_label": "Softwarové inženýrství (SWI, SWE)",
+      "dates": ["15. 6. 2026", "16. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "prof. RNDr. PaedDr. Eva Volná, PhD."},
+        {"role": "Místopředseda", "name": "prof. Ing. Zuzana Komínková Oplatková, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Petr Šilhavý, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Karel Perůtka, Ph.D."},
+        {"role": "Člen", "name": "Ing. et Ing. Erik Král, Ph.D."},
+        {"role": "Člen", "name": "Ing. Petr Žáček, Ph.D."},
+        {"role": "Člen", "name": "Ing. Pavel Pokorný, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Bc",
+      "obor": "SWI",
+      "color": "fialová",
+      "program_label": "Softwarové inženýrství (SWI, SWE)",
+      "dates": ["15. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "prof. Ing. Radomil Matoušek, Ph.D."},
+        {"role": "Místopředseda", "name": "prof. Mgr. Roman Jašek, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Jiří Vojtěšek, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. David Šaur, Ph.D."},
+        {"role": "Člen", "name": "Ing. Ladislav Dorotík"},
+        {"role": "Člen", "name": "Ing. David Malaník, Ph.D."},
+        {"role": "Člen", "name": "Mgr. Jan Krňávek, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Bc",
+      "obor": "SWI",
+      "color": "zelená",
+      "program_label": "Softwarové inženýrství (SWI, SWE)",
+      "dates": ["15. 6. 2026", "16. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "doc. RNDr. Martin Kotyrba, Ph.D."},
+        {"role": "Místopředseda", "name": "prof. Ing. Roman Šenkeřík, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Zuzana Pátíková, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Tomáš Martínek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Pavel Vařacha, Ph.D."},
+        {"role": "Člen", "name": "Ing. Radek Vala, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Sysala, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Mgr",
+      "obor": "NSWI",
+      "color": "červená",
+      "program_label": "Informační technologie — specializace Softwarové inženýrství",
+      "dates": ["17. 6. 2026", "18. 6. 2026", "19. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "prof. Ing. Pavel Krömer, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Bc. Bronislav Chramcov, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Radek Šilhavý, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Jiří Korbel, Ph.D."},
+        {"role": "Člen", "name": "Ing. Petr Dostálek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Peter Janků, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Vogeltanz, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Kadavý, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Mgr",
+      "obor": "NSWI",
+      "color": "modrá",
+      "program_label": "Informační technologie — specializace Softwarové inženýrství",
+      "dates": ["17. 6. 2026", "18. 6. 2026", "19. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "doc. Ing. Petr Čermák, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Zdenka Prokopová, CSc."},
+        {"role": "Místopředseda", "name": "doc. Ing. Martin Sysel, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Dušan Fojtů, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Dulík, Ph.D."},
+        {"role": "Člen", "name": "Ing. Miroslav Matýsek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Adam Viktorin, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Mgr",
+      "obor": "NSWI",
+      "color": "žlutá",
+      "program_label": "Informační technologie — specializace Softwarové inženýrství",
+      "dates": ["17. 6. 2026", "18. 6. 2026", "19. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "prof. RNDr. PaedDr. Eva Volná, PhD."},
+        {"role": "Místopředseda", "name": "prof. Ing. Zuzana Komínková Oplatková, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Petr Šilhavý, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Karel Perůtka, Ph.D."},
+        {"role": "Člen", "name": "Ing. et Ing. Erik Král, Ph.D."},
+        {"role": "Člen", "name": "Ing. Petr Žáček, Ph.D."},
+        {"role": "Člen", "name": "Ing. Michal Bližňák, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Urbánek, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Mgr",
+      "obor": "NSWI",
+      "color": "zelená",
+      "program_label": "Informační technologie — specializace Softwarové inženýrství",
+      "dates": ["17. 6. 2026", "18. 6. 2026", "19. 6. 2026"],
+      "note": "Složení se 19. 6. liší (předseda prof. Ing. Radomil Matoušek, Ph.D.).",
+      "members": [
+        {"role": "Předseda", "name": "doc. RNDr. Petr Bujok, Ph.D."},
+        {"role": "Místopředseda", "name": "prof. Ing. Roman Šenkeřík, Ph.D."},
+        {"role": "Místopředseda", "name": "prof. Ing. Marek Kubalčík, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. Tomáš Martínek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Pavel Vařacha, Ph.D."},
+        {"role": "Člen", "name": "Ing. Radek Vala, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Sysala, Ph.D."},
+        {"role": "Člen", "name": "Ing. Petr Černý"}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Mgr",
+      "obor": "NKYB",
+      "color": "fialová",
+      "program_label": "Informační technologie — specializace Kybernetická bezpečnost",
+      "dates": ["16. 6. 2026", "17. 6. 2026", "18. 6. 2026"],
+      "note": "Složení se 18. 6. liší (předseda prof. Ing. Radomil Matoušek, Ph.D.).",
+      "members": [
+        {"role": "Předseda", "name": "prof. RNDr. Štěpán Hubálovský, Ph.D."},
+        {"role": "Místopředseda", "name": "prof. Mgr. Roman Jašek, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. Ing. Jiří Vojtěšek, Ph.D."},
+        {"role": "Tajemník", "name": "Ing. David Šaur, Ph.D."},
+        {"role": "Člen", "name": "Ing. Ladislav Dorotík"},
+        {"role": "Člen", "name": "Ing. David Malaník, Ph.D."},
+        {"role": "Člen", "name": "Mgr. Jan Krňávek, Ph.D."},
+        {"role": "Člen", "name": "Ing. Lukáš Králík, Ph.D."}
+      ]
+    },
+    {
+      "academic_year": "2025/2026",
+      "level": "Mgr",
+      "obor": "NUI",
+      "color": "fialová",
+      "program_label": "Učitelství informatiky pro základní a střední školy",
+      "dates": ["19. 6. 2026"],
+      "members": [
+        {"role": "Předseda", "name": "PaedDr. Patrik Voštinár, PhD. (FPV UMB Banská Bystrica)"},
+        {"role": "Místopředseda", "name": "doc. Ing. Jiří Vojtěšek, Ph.D."},
+        {"role": "Místopředseda", "name": "doc. PhDr. Mgr. Marcela Janíková, Ph.D. (FHS, UTB)"},
+        {"role": "Tajemník", "name": "Ing. Tomáš Kadavý, Ph.D."},
+        {"role": "Člen", "name": "Ing. Tomáš Sysala, Ph.D."},
+        {"role": "Člen", "name": "Mgr. Ilona Kočvarová, Ph.D. (FHS, UTB)"},
+        {"role": "Člen", "name": "Mgr. Juraj Obonya, PhD. (FHS, UTB)"},
+        {"role": "Člen", "name": "PhDr. Hana Včelařová, Ph.D. (FHS, UTB)"}
+      ]
+    }
+  ]
+}

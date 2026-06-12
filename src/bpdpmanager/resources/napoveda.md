@@ -1036,14 +1036,21 @@ Záložka **🏛 Komise** ukazuje **komise státních závěrečných zkoušek**
 akademických rocích: **složení** (předseda, místopředsedové, tajemník,
 členové) a **rozpis studentů** (kdy jde který student k obhajobě). Komise
 mají **fakultní barevné označení** (červená, modrá, žlutá, zelená, fialová…)
-— strom i detail je zobrazují příslušnou barvou.
+— strom i detail je zobrazují příslušnou barvou. Každá komise je navázaná na
+**obor** aplikace (SWI / NSWI / NKYB / NUI …), což odlišuje komise stejné
+barvy a stupně (např. *Mgr fialová* je zároveň **NKYB** i **NUI**).
 
-- **📄 Importovat PDF komisí…** — načte fakultní PDF: **složení komisí**
-  i **rozpis studentů**. Druh dokumentu se **rozpozná automaticky**; u rozpisů
-  se komise pozná **podle barvy nadpisů** stránky (v textu jméno komise není).
-  Před uložením se ukáže **náhled s checkboxy**. Data se slučují podle
-  **roku + barvy + stupně** (Bc/Mgr) — složení a rozpis téže komise se spojí,
-  opakovaný import nevytváří duplicity.
+- **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
+  stupeň, členové, termíny) jsou součástí aplikace v souboru
+  `resources/komise_szz.json` a **načtou se samy po startu**. Žádné jméno
+  studenta tu není; ta se plní jen lokálně z PDF (níže). Soubor je v gitu,
+  takže se aktualizuje se zdrojem aplikace.
+- **📄 Importovat PDF komisí…** — načte fakultní PDF, typicky **rozpis
+  studentů** (jména + osobní čísla). U rozpisu se komise pozná **podle barvy
+  nadpisů** stránky a **oboru** (z názvu programu/specializace) a studenti se
+  napojí na správnou předpřipravenou komisi. Lze načíst i **složení** (pak se
+  sloučí dle roku + stupně + **oboru** + barvy). Před uložením **náhled
+  s checkboxy**; opakovaný import nevytváří duplicity.
 - **Zvýraznění tvých studentů:** v rozpisu jsou **🎓 vedení** (spárování přes
   **osobní číslo** Axxxxx, záložně přes jméno) zeleně a **🧐 oponovaní**
   (přes jméno) fialově. Sloupec *Moji studenti* ve stromu ukazuje počty;

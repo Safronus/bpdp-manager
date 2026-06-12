@@ -59,12 +59,20 @@ class Committee(BaseModel):
     academic_year: str = ""    # "2025/2026"
     color: str = ""            # "červená" (lowercase)
     level: str = ""            # "Bc" / "Mgr" / ""
+    # v16 (2.5.0): rodina oboru aplikace (SWI/NSWI/NKYB/NUI/ITA/…) — odlišuje
+    # komise stejné barvy a stupně (Mgr fialová je NKYB i NUI). Plní se
+    # z kurátorovaného JSONu (komise_szz.json), u rozpisů se odvodí z programu.
+    obor: str = ""
     program_label: str = ""    # "SWI, SWE" / "Informační technologie — SWI"
     dates: list[str] = Field(default_factory=list)   # ["15. 6. 2026", …]
     members: list[CommitteeMember] = Field(default_factory=list)
     slots: list[DefenseSlot] = Field(default_factory=list)
     source_files: list[str] = Field(default_factory=list)  # rel. cesty v komise/
     note: str = ""
+    # v16 (2.5.0): True = složení pochází z kurátorovaného JSONu v gitu
+    # (komise_szz.json), ne z lokálního importu PDF. Slouží jen k odlišení
+    # v UI; sloty (studenti) se i u seed komisí plní lokálně z PDF.
+    from_seed: bool = False
 
     @property
     def color_hex(self) -> str:

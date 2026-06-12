@@ -154,6 +154,13 @@ def run() -> int:
     except Exception:
         pass
 
+    # Načtení kurátorovaných komisí SZZ z gitu (veřejná data — složení komisí
+    # a obory). Sloty studentů se plní zvlášť lokálním importem PDF. Idempotentní.
+    try:
+        service.load_komise_seed()
+    except Exception:
+        pass
+
     window = MainWindow(service, profile_manager=pm)
     if icon_path is not None:
         window.setWindowIcon(QIcon(str(icon_path)))

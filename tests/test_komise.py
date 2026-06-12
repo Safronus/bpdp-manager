@@ -16,6 +16,7 @@ from bpdpmanager.services.komise_parser import (
     academic_year_from_date,
     canonical_date,
     classify_color,
+    obor_from_program,
     parse_composition,
     parse_schedule_page,
 )
@@ -142,6 +143,67 @@ def test_apply_import_merges_by_year_color_level(service) -> None:
     assert stats2["created"] == 0 and stats2["slots"] == 0
     assert len(service.list_committees()) == 1
     assert len(service.list_committees()[0].slots) == 1
+
+
+@pytest.mark.parametrize(
+    "program,level,expected",
+    [
+        ("Softwarové inženýrství", "Bc", "SWI"),
+        ("SWI, SWE", "Bc", "SWI"),
+        ("Informační technologie — specializace Softwarové inženýrství", "Mgr", "NSWI"),
+        ("Information Technologies - specialization Software Engineering", "Mgr", "NSWI"),
+        ("Informační technologie — specializace Kybernetická bezpečnost", "Mgr", "NKYB"),
+        ("Učitelství informatiky pro základní a střední školy", "Mgr", "NUI"),
+        ("UI", "Mgr", "NUI"),
+        ("něco úplně jiného", "Bc", ""),
+    ],
+)
+def test_obor_from_program(program, level, expected) -> None:
+    assert obor_from_program(program, level) == expected
+
+
+def test_load_komise_seed_from_json(service) -> None:
+    """Kurátorovaný JSON v gitu se načte; idempotentní; obě Mgr fialová zvlášť."""
+    stats = service.load_komise_seed()
+    assert stats["created"] == 11 and stats["updated"] == 0
+    # Druhé načtení nepřidá duplicity (jen aktualizuje).
+    stats2 = service.load_komise_seed()
+    assert stats2["created"] == 0 and stats2["updated"] == 11
+    cs = service.list_committees()
+    assert len(cs) == 11
+    assert all(c.from_seed for c in cs)
+    # Klíčová kolize: Mgr fialová je NKYB i NUI — dvě různé komise.
+    mgr_fialova = sorted(
+        c.obor for c in cs if c.level == "Mgr" and c.color == "fialová"
+    )
+    assert mgr_fialova == ["NKYB", "NUI"]
+    # Petr Žáček je v Bc žluté i Mgr žluté.
+    zluta = [c for c in cs if c.color == "žlutá"]
+    assert all(any("Žáček" in m.name for m in c.members) for c in zluta)
+
+
+def test_schedule_attaches_by_obor_not_just_color(service) -> None:
+    """Rozpis fialová-NUI a fialová-NKYB se napojí na SPRÁVNÉ komise (ne zmíchané)."""
+    service.load_komise_seed()
+    before = len(service.list_committees())
+    nkyb = ParsedSchedule(
+        color="fialová", academic_year="2025/2026", level="Mgr", obor="NKYB",
+        program_label="Kybernetická bezpečnost", dates=["16. 6. 2026"],
+        slots=[("16. 6. 2026", "09:00", "A90001", "Kyb Student")],
+    )
+    nui = ParsedSchedule(
+        color="fialová", academic_year="2025/2026", level="Mgr", obor="NUI",
+        program_label="Učitelství informatiky", dates=["19. 6. 2026"],
+        slots=[("19. 6. 2026", "08:00", "A90002", "Uci Student")],
+    )
+    stats = service.apply_komise_import([], [nkyb, nui], ["x.pdf"])
+    # Žádná nová komise — obě se napojily na seed komise.
+    assert stats["created"] == 0 and stats["slots"] == 2
+    assert len(service.list_committees()) == before
+    by = {(c.obor): c for c in service.list_committees()
+          if c.level == "Mgr" and c.color == "fialová"}
+    assert by["NKYB"].slots[0].personal_number == "A90001"
+    assert by["NUI"].slots[0].personal_number == "A90002"
 
 
 def test_komise_student_roles(service) -> None:

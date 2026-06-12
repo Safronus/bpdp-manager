@@ -151,7 +151,7 @@ class KomiseTab(QWidget):
             font.setBold(True)
             year_item.setFont(0, font)
             self.tree.addTopLevelItem(year_item)
-            for c in sorted(by_year[year], key=lambda x: (x.level, x.color)):
+            for c in sorted(by_year[year], key=lambda x: (x.level, x.obor, x.color)):
                 mine = sum(1 for s in c.slots if self._slot_role(s, roles))
                 if self.chk_mine.isChecked() and not mine:
                     continue

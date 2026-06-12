@@ -7,6 +7,30 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-06-12
+
+### Added
+- **Komise SZZ: předpřipravené složení z gitu + navázání na obory.** Složení
+  komisí (barva, **obor**, stupeň, členové, termíny) je nově **veřejná data
+  v gitu** (`resources/komise_szz.json`) a **načte se samo po startu** —
+  bez parsování PDF a bez nutnosti cokoli importovat. Žádná jména studentů
+  tu nejsou (respektuje pravidlo „žádná reálná data studentů v gitu"). Pokrývá
+  ak. rok 2025/2026 (11 komisí: Bc SWI ×5, Mgr NSWI ×4, Mgr NKYB, Mgr NUI).
+
+### Fixed
+- **Komise/obory už „sedí".** Každá komise je navázaná na **obor** aplikace
+  (SWI/NSWI/NKYB/NUI). Slučovací klíč rozpisů je teď **(rok, stupeň, obor,
+  barva)** místo jen (rok, barva, stupeň) — to opravuje míchání komisí stejné
+  barvy: *Mgr fialová* je zároveň **NKYB** (kyber. bezpečnost) i **NUI**
+  (učitelství informatiky), dříve se rozpisy slévaly dohromady. Rozpis se
+  z PDF napojí na správnou komisi podle barvy nadpisů **a oboru** (z názvu
+  programu/specializace). Starší naimportované komise bez oboru se doplní,
+  ne zduplikují.
+
+### Changed
+- Schéma úložiště **v16**: `Committee.obor` + `Committee.from_seed`
+  (default „"/False, bez datové migrace).
+
 ## [2.4.3] - 2026-06-12
 
 ### Fixed
