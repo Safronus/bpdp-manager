@@ -181,6 +181,7 @@ EN: dict[str, str] = {
     "🔗 Přidat odkaz/URL…": "🔗 Add link/URL…",
     "🗑 Smazat originál po nahrání": "🗑 Delete original after upload",
     "Otevřít": "Open",
+    "Některé soubory neexistují:": "Some files do not exist:",
     "📂 Ve Finderu": "📂 Show in Finder",
     "Odebrat": "Remove",
     "🧹 Odklidit chybějící": "🧹 Clean up missing",

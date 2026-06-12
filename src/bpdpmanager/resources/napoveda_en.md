@@ -367,7 +367,8 @@ attachments and offers reclassification in a checkbox preview, with a backup).
     fallback is offered.
 
   > **Multiple files at once:** select several files (Cmd/Ctrl/Shift) and
-  > bulk **export**, **send in one e-mail** or **🗑 bulk remove** them.
+  > ***Open* all of them at once** (not just one), bulk **export**, **send in
+  > one e-mail** or **🗑 bulk remove** them.
 - **Missing files:** deleting a file outside the app doesn't break anything —
   the record stays, shown red with *⚠ missing file*. **🧹 Clean up missing**
   removes such dead records (existing files and links are kept).

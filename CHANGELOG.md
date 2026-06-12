@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.4.3] - 2026-06-12
+
+### Fixed
+- **„Otevřít" nad více vybranými dokumenty otevře všechny.** V dokumentech
+  práce šlo dokumenty multi-selectovat, ale kontextová akce *Otevřít*
+  (i tlačítko / dvojklik) otevřela jen jeden (aktivní řádek). Nově otevře
+  **všechny vybrané** soubory i odkazy; chybějící soubory se shrnou do
+  jednoho upozornění. Platí pro vedené práce i oponentury.
+
 ## [2.4.2] - 2026-06-12
 
 ### Fixed

@@ -103,3 +103,46 @@ def test_bulk_remove_and_column_stretch(qapp, service: ThesisService, tmp_path) 
     ):
         w._remove_many_selected()
     assert [a for a in service.get_thesis(t.id).attachments if a.is_file] == []
+
+
+def test_open_selected_opens_all_selected(qapp, service: ThesisService, tmp_path) -> None:
+    """Kontextová akce „Otevřít" otevře VŠECHNY vybrané dokumenty, ne jen jeden."""
+    from unittest import mock
+
+    from PySide6.QtCore import Qt
+
+    t = Thesis(type=ThesisType.BP, academic_year="2025/2026")
+    service.upsert_thesis(t)
+    for name in ("a.pdf", "b.pdf", "c.pdf"):
+        p = tmp_path / name
+        p.write_bytes(name.encode() * 50)
+        service.attach_document(t.id, p, kind=AttachmentKind.THESIS_APPENDIX, label=name)
+
+    w = DocumentsWidget(service)
+    w.set_thesis_id(t.id)
+
+    leaves: list = []
+
+    def walk(item):
+        for i in range(item.childCount()):
+            walk(item.child(i))
+        if isinstance(item.data(0, Qt.ItemDataRole.UserRole), int):
+            leaves.append(item)
+
+    walk(w.tree.invisibleRootItem())
+    assert len(leaves) == 3
+    for it in leaves:
+        it.setSelected(True)
+
+    opened: list = []
+    with mock.patch(
+        "bpdpmanager.ui.widgets.documents_widget.open_path",
+        side_effect=lambda p: opened.append(p),
+    ):
+        w._open_selected()
+
+    # Všechny tři soubory se otevřely (dříve jen jeden = currentItem) — tři
+    # různé existující cesty (názvy přejmenoval attach_document).
+    assert len(opened) == 3
+    assert len({str(p) for p in opened}) == 3
+    assert all(Path(p).exists() for p in opened)

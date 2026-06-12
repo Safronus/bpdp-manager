@@ -518,22 +518,36 @@ class DocumentsWidget(QWidget):
     def _open_selected(self, *_args) -> None:
         if not self.thesis_id:
             return
-        idx = self._selected_index()
-        if idx is None:
-            return
         thesis = self._get_work()
         if thesis is None:
             return
-        att = thesis.attachments[idx]
-
-        if att.is_file:
-            path = self._abs_path(att)
-            if path is None or not path.exists():
-                QMessageBox.warning(self, tr("Otevřít"), f"Soubor neexistuje:\n{path}")
+        # Otevři VŠECHNY vybrané dokumenty (soubory i odkazy) — multi-select.
+        # Fallback na aktivní řádek (otevření Enterem / dvojklikem bez výběru).
+        indices = self._selected_indices()
+        if not indices:
+            idx = self._selected_index()
+            if idx is None:
                 return
-            open_path(path)
-        else:
-            open_path(att.url_or_path)
+            indices = [idx]
+
+        missing: list[str] = []
+        for idx in indices:
+            att = thesis.attachments[idx]
+            if att.is_file:
+                path = self._abs_path(att)
+                if path is None or not path.exists():
+                    missing.append(str(path))
+                    continue
+                open_path(path)
+            else:
+                open_path(att.url_or_path)
+
+        if missing:
+            if len(missing) == 1:
+                msg = f"Soubor neexistuje:\n{missing[0]}"
+            else:
+                msg = tr("Některé soubory neexistují:") + "\n" + "\n".join(missing)
+            QMessageBox.warning(self, tr("Otevřít"), msg)
 
     def _selected_file_attachments(self) -> list[Attachment]:
         """Vrátí přílohy-soubory napříč aktuálním výběrem (ne odkazy/skupiny)."""
