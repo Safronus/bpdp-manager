@@ -126,8 +126,12 @@ EN: dict[str, str] = {
     "Počet souborů": "File count",
     "Velikost": "Size",
     # ── Vlna 2: detail práce / oponentury ────────────────────────────────
-    "Vyberte práci ve stromu vlevo, nebo přidejte novou.":
-        "Select a thesis in the tree on the left, or add a new one.",
+    "Vyberte práci v seznamu nahoře, nebo přidejte novou.":
+        "Select a thesis in the list above, or add a new one.",
+    "Detail práce": "Thesis detail",
+    "Detail oponované práce": "Opposed thesis detail",
+    "Sbalí/rozbalí detail práce — sbalený detail uvolní místo seznamu prací.":
+        "Collapses/expands the thesis detail — a collapsed detail frees space for the list.",
     "Přechod do stavu": "Transition to status",
     "📋 Souhrn": "📋 Overview",
     "📝 Téma zadání": "📝 Topic & assignment",
@@ -496,7 +500,7 @@ EN: dict[str, str] = {
     'Vyber cílový .zip soubor.': 'Select a target .zip file.',
     'Vyber cílový profil v combo boxu.': 'Select a target profile in the combo box.',
     'Vyber nejdřív CSV soubor.': 'Select a CSV file first.',
-    'Vyber posudek ze seznamu vlevo, nebo přidej nový.': 'Select a review from the list on the left, or add a new one.',
+    'Vyber posudek v seznamu nahoře, nebo přidej nový.': 'Select a review in the list above, or add a new one.',
     'Vyber sekretářku.': 'Select a secretary.',
     'Vyber složku pro data profilu.': 'Select a folder for profile data.',
     'Vyber systémovou tiskárnu.': 'Select a system printer.',

@@ -223,6 +223,18 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 > **Důležité:** zařazení práce do tabu se řídí **stavem**, ne rokem.
 > Rok ovlivňuje jen řazení a grupování uvnitř tabu.
 
+### 📑 Seznam + detail (sbalitelný)
+
+Každá záložka s pracemi (vedené, budoucí, Historie, *Vše* i 🧐 oponované) má
+**nahoře seznam** a **dole detail** vybrané práce:
+
+- **Bez vybrané práce je detail úplně skrytý** — seznam má celou výšku
+  záložky (žádný prázdný prostor s hláškou).
+- Po výběru práce se detail otevře. **Tenkou lištou „Detail práce"** nad ním
+  ho lze kdykoli **sbalit dolů** (zůstane jen lišta) — hodí se při listování
+  dlouhými seznamy (Historie, Vše). Dalším kliknutím na lištu se detail zase
+  rozbalí; **stav sbalení se drží** i při přepínání prací v seznamu.
+
 ### 🔍 Vyhledávání a navigace
 Do pole nad záložkami napiš **jméno studenta**, **název práce** nebo
 **osobní číslo (Axxxxx)** — hledá napříč vedenými pracemi i oponenturami.

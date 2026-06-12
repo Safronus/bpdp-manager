@@ -146,6 +146,9 @@ class ThesisDetail(QWidget):
     # Detail panel sám dialog neumí instancovat (kruhový import), proto
     # signal a MainWindow ho odchytí.
     generate_review_requested = Signal(str)  # thesis id
+    # True = zobrazená práce, False = prázdno — sbalitelný panel
+    # (CollapsibleDetailPane) podle toho skrývá celou sekci detailu.
+    content_changed = Signal(bool)
 
     AUTOSAVE_DEBOUNCE_MS = 1500
     AUTOSAVE_SAFETY_MS = 30_000
@@ -194,7 +197,7 @@ class ThesisDetail(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        self.placeholder = QLabel(tr("Vyberte práci ve stromu vlevo, nebo přidejte novou."))
+        self.placeholder = QLabel(tr("Vyberte práci v seznamu nahoře, nebo přidejte novou."))
         self.placeholder.setStyleSheet("color: #888; padding: 24px;")
         outer.addWidget(self.placeholder)
 
@@ -760,6 +763,7 @@ class ThesisDetail(QWidget):
         if thesis is None:
             self._show_empty()
             self._update_save_state_label(idle=True)
+            self.content_changed.emit(False)
             return
         # Doplň chybějící známky i zpětně (z in-app posudku / nahraného PDF) —
         # užitečné u historických prací s posudkem jen jako PDF.
@@ -767,6 +771,7 @@ class ThesisDetail(QWidget):
         if synced is not None:
             self.thesis = thesis = synced
         self._show_form()
+        self.content_changed.emit(True)
 
         self._loading = True
         try:
@@ -937,7 +942,7 @@ class ThesisDetail(QWidget):
         if self.thesis is None:
             self.summary_view.setHtml(
                 "<p style='color:#888;padding:24px;'>"
-                + tr("Vyberte práci ve stromu vlevo, nebo přidejte novou.")
+                + tr("Vyberte práci v seznamu nahoře, nebo přidejte novou.")
                 + "</p>"
             )
             return

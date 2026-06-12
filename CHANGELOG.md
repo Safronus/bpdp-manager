@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-06-12
+
+### Added
+- **Sbalitelný detail práce ve všech záložkách s pracemi** (vedené, budoucí,
+  Historie, Vše i 🧐 oponované). **Bez vybrané práce je detail úplně
+  skrytý** — seznam má celou výšku záložky (zmizel prázdný prostor s hláškou
+  „Vyberte práci…“). Po výběru práce se detail otevře a **tenkou lištou
+  „Detail práce“** ho lze kdykoli **sbalit dolů** (zůstane jen lišta) — hodí
+  se při listování dlouhými seznamy (Historie, Vše). Stav sbalení se drží
+  i při přepínání prací.
+
+### Changed
+- Texty prázdného detailu aktualizovány: „ve stromu vlevo“ → „v seznamu
+  nahoře“ (seznam je nad detailem).
+
 ## [2.3.2] - 2026-06-12
 
 ### Fixed

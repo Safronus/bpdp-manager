@@ -30,6 +30,7 @@ from ..models.enums import (
 )
 from ..services import ThesisService
 from ._os_actions import open_path
+from .collapsible_pane import CollapsibleDetailPane
 from .opposing_detail import OpposingDetail
 from .stag_import_dialog import (
     STAG_STATE_LABELS,
@@ -154,7 +155,13 @@ class OpposingTab(QWidget):
         self.detail.saved.connect(lambda _: (self.refresh(), self.changed.emit()))
         self.detail.deleted.connect(lambda _: (self.refresh(), self.changed.emit()))
         self.detail.generate_review_requested.connect(self._on_generate_review)
-        splitter.addWidget(self.detail)
+        # Sbalitelný spodní panel: bez vybrané oponentury skrytý, s výběrem
+        # jde lištou sbalit dolů — viz collapsible_pane.
+        self.detail_pane = CollapsibleDetailPane(
+            self.detail, title="Detail oponované práce"
+        )
+        self.detail.content_changed.connect(self.detail_pane.set_has_selection)
+        splitter.addWidget(self.detail_pane)
 
         splitter.setSizes([260, 640])
         splitter.setStretchFactor(0, 1)

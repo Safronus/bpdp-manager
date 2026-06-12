@@ -51,6 +51,9 @@ class OpposingDetail(QWidget):
     saved = Signal(str)  # opposing thesis id
     deleted = Signal(str)
     generate_review_requested = Signal(str)  # opposing thesis id
+    # True = zobrazená oponentura, False = prázdno — sbalitelný panel
+    # (CollapsibleDetailPane) podle toho skrývá celou sekci detailu.
+    content_changed = Signal(bool)
 
     def __init__(self, service: ThesisService, parent=None, *, profile_manager=None) -> None:
         super().__init__(parent)
@@ -76,7 +79,7 @@ class OpposingDetail(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
 
         self.placeholder = QLabel(
-            tr("Vyber posudek ze seznamu vlevo, nebo přidej nový.")
+            tr("Vyber posudek v seznamu nahoře, nebo přidej nový.")
         )
         self.placeholder.setStyleSheet("color: #888; padding: 24px;")
         outer.addWidget(self.placeholder)
@@ -221,12 +224,14 @@ class OpposingDetail(QWidget):
         if op is None:
             self.documents_widget.set_opposing_id(None)
             self._show_empty()
+            self.content_changed.emit(False)
             return
         # Doplň chybějící známky i zpětně (z napsaného posudku / nahraného PDF).
         synced = self.service.sync_opposing_grades(op.id)
         if synced is not None:
             self.op = op = synced
         self._show_form()
+        self.content_changed.emit(True)
 
         self._loading = True
         try:

@@ -190,6 +190,18 @@ grey *Profile / Refresh / Help*), a **🔍 search field** below it and then the
 
 > **Important:** the tab placement is driven by **status**, not year.
 
+### 📑 List + detail (collapsible)
+
+Every thesis tab (supervised, future, History, *All* and 🧐 opposed) has the
+**list on top** and the **detail of the selected thesis below**:
+
+- **With no thesis selected the detail is hidden entirely** — the list gets
+  the full tab height (no empty area with a hint message).
+- Selecting a thesis opens the detail. The thin **"Thesis detail" bar**
+  above it **collapses the detail downwards** (only the bar remains) —
+  handy when browsing long lists (History, All). Clicking the bar again
+  expands it; the collapsed state **persists** while switching theses.
+
 ### 🔍 Search and navigation
 Type a **student name**, **thesis title** or **personal number (Axxxxx)** into
 the field above the tabs — searches across supervised and opposed theses.

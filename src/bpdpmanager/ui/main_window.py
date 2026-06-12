@@ -55,6 +55,7 @@ from ..services import (
 )
 from ..storage import JsonRepository
 from .backup_dialog import BackupBrowserDialog
+from .collapsible_pane import CollapsibleDetailPane
 from .harmonogram_tab import HarmonogramTab
 from .help_dialog import HelpDialog
 from .import_into_current_dialog import ImportIntoCurrentDialog
@@ -174,9 +175,13 @@ class _ThesesTab(QWidget):
             show_transitions=show_transitions,
         )
         self.detail.setMinimumHeight(520)
+        # Sbalitelný spodní panel: bez vybrané práce skrytý (seznam má celou
+        # výšku), s výběrem jde lištou sbalit dolů — viz collapsible_pane.
+        self.detail_pane = CollapsibleDetailPane(self.detail)
+        self.detail.content_changed.connect(self.detail_pane.set_has_selection)
 
         splitter.addWidget(self.tree)
-        splitter.addWidget(self.detail)
+        splitter.addWidget(self.detail_pane)
         # Výchozí proporce: detail má dvojnásobek místa proti seznamu,
         # aby se formulářová pole vlezla bez vnitřního skrolování.
         splitter.setSizes([260, 640])
