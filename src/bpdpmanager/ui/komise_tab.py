@@ -50,6 +50,26 @@ _LEVEL_LABEL = {"Bc": "Bakalářské (Bc)", "Mgr": "Magisterské (Mgr)"}
 _VO_LED_BG = "#1e88e5"
 _VO_OPP_BG = "#e53935"
 
+#: Barvy „pilulky" role člena komise (světlé pozadí, tmavý text).
+_ROLE_COLORS = {
+    "předseda": ("#ede7f6", "#4a148c"),       # fialová — předseda
+    "místopředseda": ("#e3f2fd", "#0d47a1"),  # modrá — místopředseda
+    "tajemník": ("#e8f5e9", "#1b5e20"),       # zelená — tajemník
+    "člen": ("#eceff1", "#455a64"),           # šedá — člen
+}
+
+
+def _role_key(role: str) -> str:
+    """Normalizuje název role na klíč do :data:`_ROLE_COLORS`."""
+    r = _fold(role)
+    if "predsed" in r and "mist" not in r:
+        return "předseda"
+    if "mistopredsed" in r or "místopředsed" in r:
+        return "místopředseda"
+    if "tajemn" in r:
+        return "tajemník"
+    return "člen"
+
 
 def _fold(s: str) -> str:
     nfd = unicodedata.normalize("NFD", s or "")
@@ -337,16 +357,21 @@ class KomiseTab(QWidget):
             + (" &nbsp;·&nbsp; " + escape(", ".join(c.dates)) if c.dates else "")
             + "</p>"
         )
-        # Složení
+        # Složení — role barevně odlišené (předseda/místopředseda/tajemník/člen).
         rows = ""
         for m in c.members:
             mine = me and me in _fold(m.name)
             name = escape(m.name)
             if mine:
                 name = f"<b>⭐ {name}</b>"
+            bg, fg = _ROLE_COLORS.get(_role_key(m.role), _ROLE_COLORS["člen"])
+            role_pill = (
+                f"<span style='background:{bg};color:{fg};padding:1px 7px;"
+                f"border-radius:7px;white-space:nowrap;'>{escape(m.role)}</span>"
+            )
             rows += (
-                f"<tr><td style='padding:1px 14px 1px 0;color:#888;'>"
-                f"{escape(m.role)}</td><td style='padding:1px 0;'>{name}</td></tr>"
+                f"<tr><td style='padding:2px 12px 2px 0;'>{role_pill}</td>"
+                f"<td style='padding:2px 0;'>{name}</td></tr>"
             )
         members_html = (
             f"<h3 style='color:#ffa726;margin:10px 0 4px 0;'>{tr('Složení komise')}</h3>"

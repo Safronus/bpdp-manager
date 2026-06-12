@@ -935,6 +935,8 @@ many you **oppose** (red badge). Column and panel widths fit the content.
   counts; the *Only committees with my students* filter hides the rest.
 - **⭐ Your committees:** committees where you are a member (by your profile
   name) get a star in the tree, the detail title and next to your name.
+- **Committee composition** colour-codes the role: **chair** (purple),
+  **vice-chair** (blue), **secretary** (green), **member** (grey).
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

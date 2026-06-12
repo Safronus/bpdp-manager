@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.4] - 2026-06-12
+
+### Added
+- **Komise — barevné role ve složení.** V detailu komise je role každého
+  člena jako barevná „pilulka": **předseda** (fialová), **místopředseda**
+  (modrá), **tajemník** (zelená), **člen** (šedá).
+
 ## [2.5.3] - 2026-06-12
 
 ### Added

@@ -1062,6 +1062,8 @@ badge). Šířka sloupců i panelu se přizpůsobí obsahu.
   filtr *Jen komise s mými studenty* skryje ostatní.
 - **⭐ Tvoje komise:** komise, kde jsi členem (dle jména z profilu), mají
   hvězdičku ve stromu, v titulku detailu i u tvého jména ve složení.
+- **Složení komise** má role barevně odlišené: **předseda** (fialová),
+  **místopředseda** (modrá), **tajemník** (zelená), **člen** (šedá).
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

@@ -301,3 +301,6 @@ def test_komise_tab_smoke(service, tmp_path) -> None:
     assert len(leaves) == 1
     assert "žlutá" in leaves[0].text(0)               # komise = barva
     assert "Komise žlutá" in tab.detail.toPlainText()
+    # Role ve složení jsou barevně odlišené (pilulka s pozadím dle role).
+    html = tab._committee_html(service.list_committees()[0])
+    assert "#ede7f6" in html      # předseda — fialové pozadí pilulky
