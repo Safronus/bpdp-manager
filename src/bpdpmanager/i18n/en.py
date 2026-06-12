@@ -1108,4 +1108,47 @@ EN: dict[str, str] = {
     "🌐 Otevřít ve STAG": "🌐 Open in STAG",
     "Otevře detail práce ve STAG v prohlížeči.":
         "Opens the thesis detail in STAG in your browser.",
+    # ── Komise SZZ (2.3.0) ───────────────────────────────────────────────
+    "🏛 Komise": "🏛 Committees",
+    "📄 Importovat PDF komisí…": "📄 Import committee PDFs…",
+    "Načte fakultní PDF (složení komisí i rozpis studentů — druh se "
+    "rozpozná automaticky, rozpis i podle barvy nadpisů) a po náhledu "
+    "uloží. PDF se ukládají do komise/<rok>/.":
+        "Loads faculty PDFs (committee composition and student schedules — "
+        "the kind is detected automatically, schedules also by heading "
+        "colour) and saves after a preview. PDFs are stored in komise/<year>/.",
+    "🌐 Otevřít web s rozpisy": "🌐 Open the schedules website",
+    "Otevře stránku FAI se složením komisí a rozpisy SZZ.":
+        "Opens the FAI page with committee compositions and SZZ schedules.",
+    "Jen komise s mými studenty": "Only committees with my students",
+    "vedený student": "supervised student",
+    "oponovaný student": "opposed student",
+    "tvoje komise": "your committee",
+    "Komise": "Committee",
+    "Moji studenti": "My students",
+    "Vyber komisi vlevo, nebo importuj PDF s komisemi.":
+        "Select a committee on the left, or import committee PDFs.",
+    "Složení komise": "Committee members",
+    "Rozpis studentů": "Student schedule",
+    "Zdrojová PDF:": "Source PDFs:",
+    "Vyber PDF s komisemi / rozpisy": "Select committee / schedule PDFs",
+    "nerozpoznán formát (složení/rozpis)": "unrecognised format (composition/schedule)",
+    "Import komisí": "Committee import",
+    "Z vybraných PDF se nepodařilo nic načíst.":
+        "Nothing could be read from the selected PDFs.",
+    "Hotovo: {created} nových komisí, {updated} aktualizovaných, "
+    "{slots} slotů rozpisu.":
+        "Done: {created} new committees, {updated} updated, "
+        "{slots} schedule slots.",
+    "Import komisí — náhled": "Committee import — preview",
+    "Zaškrtni, co uložit (merge dle roku + barvy):":
+        "Tick what to save (merged by year + colour):",
+    "Položka": "Item",
+    "Detail": "Detail",
+    "Složení komisí": "Committee compositions",
+    "Rozpisy studentů": "Student schedules",
+    "🗑 Smazat komisi": "🗑 Delete committee",
+    "Smazat komisi {name} ({year})? Zdrojová PDF na disku "
+    "zůstanou.":
+        "Delete committee {name} ({year})? Source PDFs stay on disk.",
 }

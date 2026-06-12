@@ -2723,6 +2723,155 @@ class ThesisService:
         r"(?:_archiv_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?)+"
     )
 
+    # --- komise SZZ ---------------------------------------------------------
+
+    def list_committees(self) -> list:
+        return list(self._db.committees)
+
+    def get_committee(self, committee_id: str):
+        return next((c for c in self._db.committees if c.id == committee_id), None)
+
+    def upsert_committee(self, committee) -> None:
+        db = self._db
+        for i, c in enumerate(db.committees):
+            if c.id == committee.id:
+                db.committees[i] = committee
+                self.save()
+                return
+        db.committees.append(committee)
+        self.save()
+
+    def delete_committee(self, committee_id: str) -> None:
+        db = self._db
+        db.committees = [c for c in db.committees if c.id != committee_id]
+        self.save()
+
+    def komise_store_pdf(self, source: Path, academic_year: str) -> str:
+        """Zkopíruje PDF do ``komise/<rok>/`` (strukturované uložení).
+
+        Vrací relativní cestu (vůči složce komise). Stejnojmenný soubor se
+        přepíše (novější verze rozpisu nahradí starší).
+        """
+        import shutil
+
+        from ..config import komise_dir
+
+        safe_year = (academic_year or "ostatni").replace("/", "-")
+        target_dir = komise_dir() / safe_year
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / Path(source).name
+        shutil.copy2(source, target)
+        return f"{safe_year}/{target.name}"
+
+    def komise_pdf_path(self, rel_path: str) -> Path:
+        from ..config import komise_dir
+
+        return komise_dir() / rel_path
+
+    def apply_komise_import(self, committees, schedules,
+                            source_rel_paths: list[str]) -> dict:
+        """Zapíše naparsované komise a rozpisy do databáze (s merge).
+
+        - Komise se slučují podle (akademický rok, barva, stupeň): členové
+          sjednocení podle jména, data sjednocená, delší program label vyhrává.
+        - Rozpis se připojí ke komisi stejného klíče (vytvoří ji, když chybí);
+          sloty stejného (datum, čas, os. číslo) se nepřidají podruhé.
+        """
+        from ..models import Committee, CommitteeMember, DefenseSlot
+
+        db = self._db
+        stats = {"created": 0, "updated": 0, "slots": 0}
+
+        def find(year: str, color: str, level: str):
+            return next(
+                (c for c in db.committees
+                 if c.academic_year == year and c.color == color
+                 and (c.level == level or not c.level or not level)),
+                None,
+            )
+
+        def touch_sources(c) -> None:
+            for rp in source_rel_paths:
+                if rp not in c.source_files:
+                    c.source_files.append(rp)
+
+        for pc in committees:
+            c = find(pc.academic_year, pc.color, pc.level)
+            if c is None:
+                c = Committee(academic_year=pc.academic_year, color=pc.color,
+                              level=pc.level)
+                db.committees.append(c)
+                stats["created"] += 1
+            else:
+                stats["updated"] += 1
+            if len(pc.program_label) > len(c.program_label):
+                c.program_label = pc.program_label
+            if not c.level and pc.level:
+                c.level = pc.level
+            for d in pc.dates:
+                if d not in c.dates:
+                    c.dates.append(d)
+            existing = {m.name for m in c.members}
+            for role, name in pc.members:
+                if name not in existing:
+                    c.members.append(CommitteeMember(role=role, name=name))
+                    existing.add(name)
+            touch_sources(c)
+
+        for ps in schedules:
+            c = find(ps.academic_year, ps.color, ps.level)
+            if c is None:
+                c = Committee(academic_year=ps.academic_year, color=ps.color,
+                              level=ps.level, program_label=ps.program_label)
+                db.committees.append(c)
+                stats["created"] += 1
+            if len(ps.program_label) > len(c.program_label):
+                c.program_label = ps.program_label
+            for d in ps.dates:
+                if d not in c.dates:
+                    c.dates.append(d)
+            seen = {(s.date, s.time, s.personal_number) for s in c.slots}
+            for slot_date, slot_time, pnum, name in ps.slots:
+                if (slot_date, slot_time, pnum) not in seen:
+                    c.slots.append(DefenseSlot(date=slot_date, time=slot_time,
+                                               personal_number=pnum,
+                                               student_name=name))
+                    seen.add((slot_date, slot_time, pnum))
+                    stats["slots"] += 1
+            touch_sources(c)
+
+        self.save()
+        return stats
+
+    def komise_student_roles(self) -> dict[str, str]:
+        """Mapa pro zvýraznění v rozpisech: klíč → ``"led"``/``"opp"``.
+
+        Klíče: osobní číslo (Axxxxx, uppercase) vedených studentů a foldovaná
+        celá jména (vedení i oponovaní) — rozpis oponovaných nemá os. čísla
+        v DB, páruje se přes jméno.
+        """
+        import unicodedata
+
+        def fold(s: str) -> str:
+            nfd = unicodedata.normalize("NFD", s or "")
+            return "".join(ch for ch in nfd if not unicodedata.combining(ch)).lower().strip()
+
+        out: dict[str, str] = {}
+        for t in self.list_theses():
+            student = self.get_student(t.student_id) if t.student_id else None
+            if student is None:
+                continue
+            if student.university_id:
+                out[student.university_id.strip().upper()] = "led"
+            full = fold(f"{student.first_name} {student.last_name}")
+            if full.strip():
+                out.setdefault(full, "led")
+        for o in self.list_opposing_theses():
+            full = fold(f"{o.student_first_name} {o.student_last_name}")
+            if full.strip():
+                out.setdefault(full, "opp")
+        return out
+
     def ensure_stag_urls(self) -> int:
         """Doplní chybějící odkaz na STAG u prací se známým STAG ID.
 

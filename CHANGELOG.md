@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-06-11
+
+### Added
+- **Nová záložka 🏛 Komise (SZZ).** Komise státních závěrečných zkoušek po
+  akademických rocích — **složení** (role + jména) a **rozpis studentů**
+  (datum · čas · osobní číslo · jméno), vše v **fakultních barvách komisí**.
+  Import z fakultních PDF (**📄 Importovat PDF komisí…**): druh dokumentu se
+  rozpozná automaticky, u rozpisů se komise pozná **podle barvy nadpisů**
+  (extrakce barev z PDF content streamů). Náhled s checkboxy; merge dle
+  roku + barvy + stupně (bez duplicit). **Zvýraznění:** 🎓 vedení studenti
+  (přes osobní číslo, záložně jméno), 🧐 oponovaní (jméno), ⭐ komise, kde
+  jsi členem; filtr *Jen komise s mými studenty*. PDF se ukládají
+  strukturovaně do `komise/<rok>/`; tlačítko 🌐 otevře oficiální web FAI.
+  Schéma úložiště v15 (pole `committees`).
+
 ## [2.2.0] - 2026-06-11
 
 ### Added

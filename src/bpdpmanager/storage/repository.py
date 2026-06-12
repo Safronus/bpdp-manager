@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, model_validator
 from ..config import SCHEMA_VERSION
 from ..models import (
     AcademicYearInfo,
+    Committee,
     Obor,
     Opponent,
     OpposingThesis,
@@ -37,6 +38,8 @@ class Database(BaseModel):
     rejected_students: list[RejectedStudent] = Field(default_factory=list)
     # v12 (0.58.0): návrhy témat prací (nekompletní nápady bez studenta/stavu).
     proposals: list[ThesisProposal] = Field(default_factory=list)
+    # v15 (2.3.0): komise SZZ — složení + rozpis studentů z fakultních PDF.
+    committees: list[Committee] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod

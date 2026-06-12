@@ -1007,6 +1007,33 @@ v následujících 60 dnech.
 
 ---
 
+## Komise SZZ
+
+Záložka **🏛 Komise** ukazuje **komise státních závěrečných zkoušek** po
+akademických rocích: **složení** (předseda, místopředsedové, tajemník,
+členové) a **rozpis studentů** (kdy jde který student k obhajobě). Komise
+mají **fakultní barevné označení** (červená, modrá, žlutá, zelená, fialová…)
+— strom i detail je zobrazují příslušnou barvou.
+
+- **📄 Importovat PDF komisí…** — načte fakultní PDF: **složení komisí**
+  i **rozpis studentů**. Druh dokumentu se **rozpozná automaticky**; u rozpisů
+  se komise pozná **podle barvy nadpisů** stránky (v textu jméno komise není).
+  Před uložením se ukáže **náhled s checkboxy**. Data se slučují podle
+  **roku + barvy + stupně** (Bc/Mgr) — složení a rozpis téže komise se spojí,
+  opakovaný import nevytváří duplicity.
+- **Zvýraznění tvých studentů:** v rozpisu jsou **🎓 vedení** (spárování přes
+  **osobní číslo** Axxxxx, záložně přes jméno) zeleně a **🧐 oponovaní**
+  (přes jméno) fialově. Sloupec *Moji studenti* ve stromu ukazuje počty;
+  filtr *Jen komise s mými studenty* skryje ostatní.
+- **⭐ Tvoje komise:** komise, kde jsi členem (dle jména z profilu), mají
+  hvězdičku ve stromu, v titulku detailu i u tvého jména ve složení.
+- **🌐 Otevřít web s rozpisy** — odkaz na oficiální stránku FAI.
+- PDF se ukládají **strukturovaně** do `komise/<rok>/` ve složce profilu;
+  odkazy na zdrojová PDF jsou v detailu komise. Pravý klik na komisi →
+  *Smazat komisi* (PDF na disku zůstanou).
+
+---
+
 ## Jazyk aplikace (CZ / EN)
 
 Tlačítko **🌐** v toolbaru přepíná jazyk aplikace mezi **češtinou** (výchozí)

@@ -686,6 +686,10 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_opposing, tr("🧐 Oponované práce"))
         self.tabs.addTab(self.tab_proposals, tr("💡 Návrhy témat"))
         self.tabs.addTab(self.tab_harmonogram, tr("📅 Harmonogram"))
+        from .komise_tab import KomiseTab
+        self.tab_komise = KomiseTab(service, profile_manager=pm)
+        self.tab_komise.changed.connect(self._update_status)
+        self.tabs.addTab(self.tab_komise, tr("🏛 Komise"))
         self.tabs.addTab(self.tab_stats, tr("📊 Statistiky"))
 
         # Základní titulky záložek s počty (počet doplňuje _refresh_tab_labels);
@@ -2030,6 +2034,10 @@ class MainWindow(QMainWindow):
                 widget._refresh_year_combo()
             elif isinstance(widget, StatsTab):
                 widget.refresh()
+            else:
+                from .komise_tab import KomiseTab
+                if isinstance(widget, KomiseTab):
+                    widget.refresh()
         self._update_status()
         self._refresh_tab_labels()
         self._rebuild_search_model()

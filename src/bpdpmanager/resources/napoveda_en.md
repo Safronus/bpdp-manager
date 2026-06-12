@@ -881,6 +881,33 @@ period). A yellow panel shows important deadlines in the next 60 days.
 
 ---
 
+## SZZ committees
+
+The **🏛 Committees** tab shows **state final exam committees** by academic
+year: **composition** (chair, vice-chairs, secretary, members) and the
+**student schedule** (when each student defends). Committees use the
+faculty's **colour coding** (red, blue, yellow, green, purple…) — the tree
+and detail show them in their colour.
+
+- **📄 Import committee PDFs…** — loads faculty PDFs: **committee
+  composition** and **student schedules**. The document kind is **detected
+  automatically**; for schedules the committee is recognised **by the heading
+  colour** of the page. A **checkbox preview** is shown before saving. Data
+  merges by **year + colour + level** (Bc/Mgr) — composition and schedule of
+  the same committee combine; re-imports create no duplicates.
+- **Highlighting your students:** in the schedule, **🎓 supervised** students
+  (matched via the **personal number** Axxxxx, name as fallback) are green
+  and **🧐 opposed** ones (by name) purple. The *My students* column shows
+  counts; the *Only committees with my students* filter hides the rest.
+- **⭐ Your committees:** committees where you are a member (by your profile
+  name) get a star in the tree, the detail title and next to your name.
+- **🌐 Open the schedules website** — link to the official FAI page.
+- PDFs are stored **structured** in `komise/<year>/` inside the profile
+  folder; links to source PDFs are in the committee detail. Right-click a
+  committee → *Delete committee* (PDFs stay on disk).
+
+---
+
 ## Application language (CZ / EN)
 
 The **🌐** toolbar button switches the app language between **Czech**

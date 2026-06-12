@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 2.2.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 2.3.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -19,6 +19,7 @@ o budoucí témata.
 
 ## Funkce
 
+- **🏛 Komise SZZ** — záložka s komisemi státnic po akademických rocích: složení + rozpis studentů ve fakultních barvách komisí; import z PDF (druh i barva komise se rozpozná automaticky), zvýraznění 🎓 vedených / 🧐 oponovaných studentů a ⭐ komisí, kde jsi členem; PDF strukturovaně v `komise/<rok>/`
 - **Přepínání jazyka CZ / EN** — tlačítko 🌐 v toolbaru (volba v profilu, projeví se po restartu); čeština výchozí, v EN je přeložené celé UI i kompletní nápověda
 - **Automatická kontrola aktualizací** — tichá kontrola nové verze proti GitHubu po startu; dialog ukáže changelog všech verzí mezi nainstalovanou a nejnovější a po potvrzení provede `git pull` + `pip install -e .` a restart (lze vypnout, lokální změny v klonu se nikdy nepřepisují)
 - **Evidence prací** strukturovaná podle akademického roku, typu (BP/DP) a stavu

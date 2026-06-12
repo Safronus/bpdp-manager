@@ -28,7 +28,7 @@ APP_NAME = "bpdpmanager"
 #      default "", bez datové migrace).
 # v14: *_review_printed_at u Thesis i OpposingThesis (indikátor „Vytištěno";
 #      default None, bez datové migrace — stará data se načtou jako None).
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).
@@ -117,6 +117,13 @@ def db_backup_path() -> Path:
 
 def harmonograms_dir() -> Path:
     path = app_data_dir() / "harmonograms"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def komise_dir() -> Path:
+    """Složka pro PDF komisí SZZ (strukturovaně po akademických rocích)."""
+    path = app_data_dir() / "komise"
     path.mkdir(parents=True, exist_ok=True)
     return path
 

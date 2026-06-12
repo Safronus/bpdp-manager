@@ -8,6 +8,7 @@ from .enums import (
     ThesisType,
 )
 from .harmonogram import AcademicYearInfo, KeyDate, KeyDateCategory
+from .komise import Committee, CommitteeMember, DefenseSlot
 from .obor import Obor
 from .opponent import Opponent
 from .opposing_thesis import OpposingThesis
@@ -25,7 +26,11 @@ __all__ = [
     "AcademicYearInfo",
     "Attachment",
     "AttachmentKind",
+    "Committee",
+    "CommitteeMember",
+    "CriterionScore",
     "Deadline",
+    "DefenseSlot",
     "KeyDate",
     "KeyDateCategory",
     "Obor",
@@ -35,15 +40,14 @@ __all__ = [
     "PlagiarismVerdict",
     "Profile",
     "ProfileRegistry",
-    "SmtpConfig",
-    "CriterionScore",
+    "RejectedStudent",
     "Review",
     "ReviewTemplate",
-    "TemplateCriterion",
-    "RejectedStudent",
+    "SmtpConfig",
     "Student",
     "StudyForm",
     "Supervisor",
+    "TemplateCriterion",
     "Thesis",
     "ThesisProposal",
     "ThesisStatus",
