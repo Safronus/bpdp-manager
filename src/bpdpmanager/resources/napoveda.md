@@ -1040,6 +1040,10 @@ mají **fakultní barevné označení** (červená, modrá, žlutá, zelená, fi
 **obor** aplikace (SWI / NSWI / NKYB / NUI …), což odlišuje komise stejné
 barvy a stupně (např. *Mgr fialová* je zároveň **NKYB** i **NUI**).
 
+Strom vlevo je členěný **akademický rok → stupeň (Bc / Mgr) → komise (barva)**;
+sloupec **Termíny** ukazuje dny, kdy komise zasedá. Šířka sloupců i panelu se
+přizpůsobí obsahu.
+
 - **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
   stupeň, členové, termíny) jsou součástí aplikace v souboru
   `resources/komise_szz.json` a **načtou se samy po startu**. Žádné jméno
@@ -1057,7 +1061,6 @@ barvy a stupně (např. *Mgr fialová* je zároveň **NKYB** i **NUI**).
   filtr *Jen komise s mými studenty* skryje ostatní.
 - **⭐ Tvoje komise:** komise, kde jsi členem (dle jména z profilu), mají
   hvězdičku ve stromu, v titulku detailu i u tvého jména ve složení.
-- **🌐 Otevřít web s rozpisy** — odkaz na oficiální stránku FAI.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

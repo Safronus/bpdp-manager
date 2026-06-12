@@ -914,6 +914,10 @@ and detail show them in their colour. Each committee is linked to an app
 **programme** (SWI / NSWI / NKYB / NUI …), which disambiguates committees of
 the same colour and level (e.g. *Mgr purple* is both **NKYB** and **NUI**).
 
+The left tree is grouped **academic year → level (Bc / Mgr) → committee
+(colour)**; the **Dates** column shows the days the committee sits. Column and
+panel widths fit the content.
+
 - **Composition is pre-loaded** — **public data** (colour, programme, level,
   members, dates) ships with the app in `resources/komise_szz.json` and
   **loads on startup**. No student names live there; those come only from
@@ -930,7 +934,6 @@ the same colour and level (e.g. *Mgr purple* is both **NKYB** and **NUI**).
   counts; the *Only committees with my students* filter hides the rest.
 - **⭐ Your committees:** committees where you are a member (by your profile
   name) get a star in the tree, the detail title and next to your name.
-- **🌐 Open the schedules website** — link to the official FAI page.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

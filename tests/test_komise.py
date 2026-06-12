@@ -252,9 +252,9 @@ def test_highlighting_works_on_seed_committee(service) -> None:
     cervena = next(c for c in service.list_committees()
                    if c.color == "červená" and c.level == "Bc")
     assert any(s_.personal_number == "A55501" for s_ in cervena.slots)
-    # Tab se vykreslí se seed komisemi (1 rok, 11 komisí) — bez pádu.
+    # Tab se vykreslí se seed komisemi (rok → Bc/Mgr → 11 komisí celkem).
     tab = KomiseTab(service)
-    assert tab.tree.topLevelItem(0).childCount() == 11
+    assert sum(1 for _ in tab._iter_leaves()) == 11
 
 
 def test_komise_student_roles(service) -> None:
@@ -285,8 +285,12 @@ def test_komise_tab_smoke(service, tmp_path) -> None:
                          members=[("Předseda", "prof. Jan Vzor")])
     service.apply_komise_import([pc], [], [])
     tab = KomiseTab(service)
-    assert tab.tree.topLevelItemCount() == 1
+    assert tab.tree.topLevelItemCount() == 1          # 1 rok
     year_item = tab.tree.topLevelItem(0)
-    assert year_item.childCount() == 1
-    assert "žlutá" in year_item.child(0).text(0)
+    assert year_item.childCount() == 1                # skupina Bc
+    level_item = year_item.child(0)
+    assert "Bakalářské" in level_item.text(0)
+    leaves = list(tab._iter_leaves())
+    assert len(leaves) == 1
+    assert "žlutá" in leaves[0].text(0)               # komise = barva
     assert "Komise žlutá" in tab.detail.toPlainText()

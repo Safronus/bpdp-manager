@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-06-12
+
+### Changed
+- **Komise — přehlednější strom.** Levý strom je nově členěný **rok → stupeň
+  (Bc / Mgr) → komise (barva)**; přibyl sloupec **Termíny** (dny zasedání).
+  Šířka sloupců i levého panelu se přizpůsobí obsahu. Tlačítko *Otevřít web
+  s rozpisy* odebráno.
+
 ## [2.5.1] - 2026-06-12
 
 ### Added

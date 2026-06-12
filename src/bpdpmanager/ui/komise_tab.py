@@ -38,11 +38,9 @@ from ..services import ThesisService
 
 ROLE_COMMITTEE_ID = Qt.ItemDataRole.UserRole + 1
 
-#: Oficiální stránka FAI se složením komisí a rozpisy.
-FAI_KOMISE_URL = (
-    "https://fai.utb.cz/student/statni-zaverecne-zkousky/"
-    "statni-zaverecne-zkousky-szz/slozeni-komisi-szz-a-rozpis-studentu-na-szz/"
-)
+#: Stupeň → pořadí a popisek skupiny ve stromu (Bc před Mgr).
+_LEVEL_ORDER = {"Bc": 0, "Mgr": 1}
+_LEVEL_LABEL = {"Bc": "Bakalářské (Bc)", "Mgr": "Magisterské (Mgr)"}
 
 
 def _fold(s: str) -> str:
@@ -74,10 +72,6 @@ class KomiseTab(QWidget):
         ))
         btn_import.clicked.connect(self._import_pdfs)
         top.addWidget(btn_import)
-        btn_web = QPushButton(tr("🌐 Otevřít web s rozpisy"))
-        btn_web.setToolTip(tr("Otevře stránku FAI se složením komisí a rozpisy SZZ."))
-        btn_web.clicked.connect(self._open_web)
-        top.addWidget(btn_web)
         btn_reset = QPushButton(tr("🔄 Načíst komise znovu"))
         btn_reset.setToolTip(tr(
             "Smaže všechny komise a načte čisté složení z aplikace. Použij na "
@@ -102,24 +96,25 @@ class KomiseTab(QWidget):
         outer.addLayout(top)
 
         # ── splitter: strom vlevo, detail vpravo ─────────────────────────
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels([tr("Komise"), tr("Moji studenti")])
+        self.tree.setHeaderLabels([tr("Komise"), tr("Moji studenti"), tr("Termíny")])
         self.tree.setRootIsDecorated(True)
         hdr = self.tree.header()
-        hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        # Šířka sloupců dle dat; levý panel se přizpůsobí v _fit_left_pane.
+        for col in range(self.tree.columnCount()):
+            hdr.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setStretchLastSection(False)
         self.tree.itemSelectionChanged.connect(self._on_selected)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
-        splitter.addWidget(self.tree)
+        self.splitter.addWidget(self.tree)
 
         self.detail = QTextBrowser()
         self.detail.setOpenExternalLinks(True)
-        splitter.addWidget(self.detail)
-        splitter.setSizes([380, 720])
-        splitter.setStretchFactor(1, 2)
-        outer.addWidget(splitter, stretch=1)
+        self.splitter.addWidget(self.detail)
+        self.splitter.setStretchFactor(1, 2)
+        outer.addWidget(self.splitter, stretch=1)
 
         self.refresh()
 
@@ -154,48 +149,85 @@ class KomiseTab(QWidget):
         by_year: dict[str, list] = {}
         for c in committees:
             by_year.setdefault(c.academic_year or "(bez roku)", []).append(c)
+
+        def _bold(item: QTreeWidgetItem) -> None:
+            f = item.font(0)
+            f.setBold(True)
+            item.setFont(0, f)
+
         for year in sorted(by_year, reverse=True):
-            year_item = QTreeWidgetItem([f"📅 {year}", ""])
-            font = year_item.font(0)
-            font.setBold(True)
-            year_item.setFont(0, font)
+            year_item = QTreeWidgetItem([f"📅 {year}", "", ""])
+            _bold(year_item)
+            year_item.setFirstColumnSpanned(True)
             self.tree.addTopLevelItem(year_item)
-            for c in sorted(by_year[year], key=lambda x: (x.level, x.obor, x.color)):
-                mine = sum(1 for s in c.slots if self._slot_role(s, roles))
-                if self.chk_mine.isChecked() and not mine:
-                    continue
-                star = "⭐ " if self._is_my_committee(c) else ""
-                label = f"{star}● {c.display_name}"
-                leaf = QTreeWidgetItem([label, str(mine) if mine else "—"])
-                leaf.setForeground(0, QBrush(QColor(committee_color_hex(c.color))))
-                leaf.setData(0, ROLE_COMMITTEE_ID, c.id)
-                if mine:
-                    f2 = leaf.font(0)
-                    f2.setBold(True)
-                    leaf.setFont(0, f2)
-                year_item.addChild(leaf)
+            # Skupina podle stupně (Bc/Mgr) a uvnitř podle oboru + barvy.
+            by_level: dict[str, list] = {}
+            for c in by_year[year]:
+                by_level.setdefault(c.level or "", []).append(c)
+            for level in sorted(by_level, key=lambda lv: _LEVEL_ORDER.get(lv, 9)):
+                lvl_label = _LEVEL_LABEL.get(level, level or "(bez stupně)")
+                level_item = QTreeWidgetItem([f"📚 {tr(lvl_label)}", "", ""])
+                _bold(level_item)
+                level_item.setFirstColumnSpanned(True)
+                year_item.addChild(level_item)
+                for c in sorted(by_level[level], key=lambda x: (x.obor, x.color)):
+                    led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
+                    opp = sum(1 for s in c.slots if self._slot_role(s, roles) == "opp")
+                    if self.chk_mine.isChecked() and not (led or opp):
+                        continue
+                    star = "⭐ " if self._is_my_committee(c) else ""
+                    obor = f" ({c.obor})" if c.obor else ""
+                    label = f"{star}● {tr('Komise')} {c.color}{obor}"
+                    mine_txt = str(led + opp) if (led or opp) else "—"
+                    leaf = QTreeWidgetItem([label, mine_txt, ", ".join(c.dates)])
+                    leaf.setForeground(0, QBrush(QColor(committee_color_hex(c.color))))
+                    leaf.setData(0, ROLE_COMMITTEE_ID, c.id)
+                    if led or opp:
+                        f2 = leaf.font(0)
+                        f2.setBold(True)
+                        leaf.setFont(0, f2)
+                    level_item.addChild(leaf)
+                level_item.setExpanded(True)
             year_item.setExpanded(True)
         self.tree.blockSignals(False)
         if selected:
             self._select_id(selected)
         elif self.tree.topLevelItemCount():
-            first = self.tree.topLevelItem(0)
-            if first.childCount():
-                self.tree.setCurrentItem(first.child(0))
+            self._select_first_leaf()
         self._on_selected()
+        self._fit_left_pane()
+
+    def _iter_leaves(self):
+        """Projde všechny komise-listy (rok → stupeň → komise)."""
+        for i in range(self.tree.topLevelItemCount()):
+            year_item = self.tree.topLevelItem(i)
+            for j in range(year_item.childCount()):
+                level_item = year_item.child(j)
+                for k in range(level_item.childCount()):
+                    yield level_item.child(k)
+
+    def _select_first_leaf(self) -> None:
+        leaf = next(self._iter_leaves(), None)
+        if leaf is not None:
+            self.tree.setCurrentItem(leaf)
 
     def _selected_id(self) -> str | None:
         items = self.tree.selectedItems()
         return items[0].data(0, ROLE_COMMITTEE_ID) if items else None
 
     def _select_id(self, committee_id: str) -> None:
-        for i in range(self.tree.topLevelItemCount()):
-            year_item = self.tree.topLevelItem(i)
-            for j in range(year_item.childCount()):
-                leaf = year_item.child(j)
-                if leaf.data(0, ROLE_COMMITTEE_ID) == committee_id:
-                    self.tree.setCurrentItem(leaf)
-                    return
+        for leaf in self._iter_leaves():
+            if leaf.data(0, ROLE_COMMITTEE_ID) == committee_id:
+                self.tree.setCurrentItem(leaf)
+                return
+
+    def _fit_left_pane(self) -> None:
+        """Šířka levého panelu podle obsahu stromu (sloupce + odsazení)."""
+        self.tree.expandAll()
+        width = self.tree.header().length() + self.tree.indentation() * 2 + 28
+        total = self.splitter.size().width() or 1100
+        left = max(280, min(width, int(total * 0.62)))
+        self.splitter.setSizes([left, max(total - left, 320)])
 
     # ── detail ───────────────────────────────────────────────────────────
     def _on_selected(self) -> None:
@@ -288,12 +320,6 @@ class KomiseTab(QWidget):
         return head + members_html + sched_html + files_html
 
     # ── akce ─────────────────────────────────────────────────────────────
-    def _open_web(self) -> None:
-        from PySide6.QtCore import QUrl
-        from PySide6.QtGui import QDesktopServices
-
-        QDesktopServices.openUrl(QUrl(FAI_KOMISE_URL))
-
     def _reset_committees(self) -> None:
         """Smaže všechny komise a načte čistý seed z JSONu (úklid starých dat)."""
         resp = QMessageBox.question(
