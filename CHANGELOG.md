@@ -7,24 +7,6 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
-## [2.3.1] - 2026-06-12
-
-### Added
-- **Z detailů tiché kontroly STAG rovnou na aktualizaci.** Dialog **🔎
-  Detaily…** (proužek tiché kontroly) má nová tlačítka **🔄 Aktualizovat
-  vedené (N)…** a **🔄 Aktualizovat oponované (N)…** — otevřou dialog
-  *Aktualizace ze STAG* **jen s dotčenými pracemi** (subset jako u
-  kontextové akce) s **předpřipravenými a předzaškrtnutými návrhy** (změna
-  stavu, text práce, posudky, průběh obhajoby). Odpadá ruční výběr prací
-  v Importu ze STAG. Tlačítko **📥 Import ze STAG** zůstává pro **nové
-  práce** (aktivní jen, když kontrola nějaké našla). Po aplikaci změn se
-  obnoví všechny záložky a tichá kontrola se přepočítá (banner + odznaky 🔄).
-
-### Fixed
-- Kontrola i aktualizace **nabízejí také „Soubor s průběhem obhajoby“** —
-  ověřeno a pokryto testem: chybějící průběh obhajoby se v náhledu hlásí
-  jmenovitě a v aktualizaci je předzaškrtnutý.
-
 ## [2.3.0] - 2026-06-11
 
 ### Added

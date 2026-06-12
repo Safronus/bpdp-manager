@@ -49,9 +49,6 @@ class StagCheckResult:
     opposing: list[str] = field(default_factory=list)    # oponentury akt. roku se změnou
     new: list[str] = field(default_factory=list)         # nové práce ve STAG (nemáš)
     up_to_date: list[str] = field(default_factory=list)  # zkontrolováno, beze změn (debug)
-    # ID dotčených prací — z náhledu lze rovnou otevřít aktualizaci (subset).
-    supervised_ids: list[str] = field(default_factory=list)
-    opposing_ids: list[str] = field(default_factory=list)
 
     @property
     def supervised_changes(self) -> int:
@@ -131,7 +128,6 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         base = f"{name} — {t.type.value} {t.academic_year}"
         if status_changed or missing:
             r.supervised.append(f"{base} · {_change_note(status_changed, missing)}")
-            r.supervised_ids.append(t.id)
         else:
             r.up_to_date.append(f"{base} (vedená)")
 
@@ -152,7 +148,6 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         base = f"{name} — {o.type.value} {o.academic_year}"
         if code_changed or missing:
             r.opposing.append(f"{base} · {_change_note(code_changed, missing)}")
-            r.opposing_ids.append(o.id)
         else:
             r.up_to_date.append(f"{base} (oponentura)")
 
@@ -220,9 +215,6 @@ class StagChangesPreviewDialog(QDialog):
         super().__init__(parent)
         self.result = result
         self.open_import = False
-        # Rovnou na aktualizaci dotčených prací (subset) — viz main_window.
-        self.open_sync_supervised = False
-        self.open_sync_opposing = False
         self.setWindowTitle(tr("Změny ve STAG — náhled"))
         self.setMinimumSize(620, 460)
 
@@ -235,48 +227,16 @@ class StagChangesPreviewDialog(QDialog):
         row = QHBoxLayout()
         btn_close = QPushButton(tr("Zavřít"))
         btn_close.clicked.connect(self.reject)
-        self.btn_sync_sup = QPushButton(
-            tr("🔄 Aktualizovat vedené ({n})…").format(n=result.supervised_changes)
-        )
-        self.btn_sync_sup.setToolTip(tr(
-            "Otevře aktualizaci ze STAG jen pro vedené práce se zjištěnou "
-            "změnou — návrhy (stav, soubory) budou rovnou předpřipravené."
-        ))
-        self.btn_sync_sup.clicked.connect(self._go_sync_supervised)
-        self.btn_sync_sup.setEnabled(result.supervised_changes > 0)
-        self.btn_sync_opp = QPushButton(
-            tr("🔄 Aktualizovat oponované ({n})…").format(n=result.opposing_changes)
-        )
-        self.btn_sync_opp.setToolTip(tr(
-            "Otevře aktualizaci ze STAG jen pro oponované práce se zjištěnou "
-            "změnou — návrhy (stav, soubory) budou rovnou předpřipravené."
-        ))
-        self.btn_sync_opp.clicked.connect(self._go_sync_opposing)
-        self.btn_sync_opp.setEnabled(result.opposing_changes > 0)
         self.btn_import = QPushButton(tr("📥 Otevřít Import ze STAG…"))
-        self.btn_import.setToolTip(tr(
-            "Pro NOVÉ práce ze STAG, které ještě nemáš v aplikaci — otevře "
-            "plný import (vyhledání + stažení)."
-        ))
         self.btn_import.clicked.connect(self._go_import)
-        self.btn_import.setEnabled(result.new_works > 0)
+        self.btn_import.setEnabled(result.total_changes > 0)
         row.addStretch()
         row.addWidget(btn_close)
         row.addWidget(self.btn_import)
-        row.addWidget(self.btn_sync_opp)
-        row.addWidget(self.btn_sync_sup)
         layout.addLayout(row)
 
     def _go_import(self) -> None:
         self.open_import = True
-        self.accept()
-
-    def _go_sync_supervised(self) -> None:
-        self.open_sync_supervised = True
-        self.accept()
-
-    def _go_sync_opposing(self) -> None:
-        self.open_sync_opposing = True
         self.accept()
 
     @staticmethod
@@ -312,10 +272,6 @@ class StagChangesPreviewDialog(QDialog):
             + self._section("🔄 Oponované práce se změnou", r.opposing, "#ef6c00")
         )
         return (
-            "<p>Tohle STAG nabízí navíc oproti tvé databázi. Změny u "
-            "existujících prací aplikuješ rovnou tlačítkem "
-            "<b>🔄 Aktualizovat…</b> dole (otevře se jen s dotčenými pracemi "
-            "a předpřipravenými návrhy — stav, text práce, posudky i průběh "
-            "obhajoby). Nové práce stáhneš přes <b>📥 Import ze STAG</b>.</p>"
-            + body + checked_section
+            "<p>Tohle STAG nabízí navíc oproti tvé databázi. Detaily a stažení "
+            "provedeš v <b>Import ze STAG</b>.</p>" + body + checked_section
         )

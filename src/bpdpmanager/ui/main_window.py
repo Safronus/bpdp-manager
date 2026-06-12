@@ -959,12 +959,7 @@ class MainWindow(QMainWindow):
         )
 
     def _show_stag_changes(self) -> None:
-        """Otevře rychlý náhled změn ze STAG; odtud lze přejít na Import.
-
-        U existujících prací se změnou vede rovnou do *Aktualizace ze STAG*
-        (stejný dialog jako kontextová akce, jen s dotčenými pracemi) —
-        Import ze STAG zůstává pro stažení nových prací.
-        """
+        """Otevře rychlý náhled změn ze STAG; odtud lze přejít na Import."""
         from .stag_check import StagChangesPreviewDialog
 
         result = getattr(self, "_last_stag_result", None)
@@ -973,30 +968,8 @@ class MainWindow(QMainWindow):
             return
         dlg = StagChangesPreviewDialog(result, self)
         dlg.exec()
-        if dlg.open_sync_supervised and result.supervised_ids:
-            self._open_stag_sync_subset(result.supervised_ids, opposing=False)
-        elif dlg.open_sync_opposing and result.opposing_ids:
-            self._open_stag_sync_subset(result.opposing_ids, opposing=True)
-        elif dlg.open_import:
+        if dlg.open_import:
             self._import_from_stag()
-
-    def _open_stag_sync_subset(self, ids: list, *, opposing: bool) -> None:
-        """Aktualizace ze STAG jen pro práce z tiché kontroly (subset)."""
-        from .stag_sync_dialog import ROLE_OPPONENT, ROLE_SUPERVISOR, StagSyncDialog
-
-        dlg = StagSyncDialog(
-            self.service,
-            ROLE_OPPONENT if opposing else ROLE_SUPERVISOR,
-            self,
-            profile_manager=self.profile_manager,
-            subset=list(ids),
-        )
-        dlg.exec()
-        if dlg.changed:
-            self._refresh_all()
-            # Po aplikaci změn přepočítej tichou kontrolu — banner a odznaky
-            # 🔄 na záložkách by jinak hlásily už neexistující změny.
-            self._start_stag_check()
 
     def _refresh_tab_labels(self) -> None:
         """Doplní k titulkům záložek počty prací (+ STAG odznak 🔄) a barvu.
