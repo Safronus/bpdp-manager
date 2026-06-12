@@ -3075,6 +3075,53 @@ class ThesisService:
                 out.setdefault(full, "opp")
         return out
 
+    @staticmethod
+    def _komise_fold(s: str) -> str:
+        import unicodedata
+        nfd = unicodedata.normalize("NFD", s or "")
+        return "".join(ch for ch in nfd if not unicodedata.combining(ch)).lower().strip()
+
+    @staticmethod
+    def _sched_sort_key(date: str, time: str):
+        """Klíč pro chronologické řazení slotu (rok, měsíc, den, čas)."""
+        m = re.search(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})", date or "")
+        d = (int(m.group(3)), int(m.group(2)), int(m.group(1))) if m else (9999, 99, 99)
+        return (*d, time or "")
+
+    def my_defense_schedule(self) -> list[dict]:
+        """Chronologický harmonogram obhajob **mých** studentů (vedené + oponované).
+
+        Projde sloty všech komisí a vybere ty, kde je student vedený (``led``)
+        nebo oponovaný (``opp``) — spárováno přes osobní číslo / jméno
+        (:meth:`komise_student_roles`). Výsledek je seřazený podle data a času;
+        každá položka nese i komisi (kde) a barvu/obor. Slouží jako osobní
+        rozvrh „kdy a kde mám být".
+        """
+        roles = self.komise_student_roles()
+        out: list[dict] = []
+        for c in self.list_committees():
+            for s in c.slots:
+                pnum = (s.personal_number or "").strip().upper()
+                role = roles.get(pnum) if pnum else None
+                if not role:
+                    role = roles.get(self._komise_fold(s.student_name))
+                if role not in ("led", "opp"):
+                    continue
+                out.append({
+                    "date": s.date,
+                    "time": s.time,
+                    "personal_number": s.personal_number,
+                    "student_name": s.student_name,
+                    "role": role,
+                    "committee": c.display_name,
+                    "color": c.color,
+                    "obor": c.obor,
+                    "level": c.level,
+                    "academic_year": c.academic_year,
+                })
+        out.sort(key=lambda e: self._sched_sort_key(e["date"], e["time"]))
+        return out
+
     def ensure_stag_urls(self) -> int:
         """Doplní chybějící odkaz na STAG u prací se známým STAG ID.
 

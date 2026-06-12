@@ -941,6 +941,10 @@ many you **oppose** (red badge). Column and panel widths fit the content.
 - **Committee composition** shows the role in **coloured rounded boxes of
   equal width** (centred text): **chair** (purple), **vice-chair** (blue),
   **secretary** (green), **member** (grey).
+- **📅 My defence schedule** — a chronological overview (by day and time) of
+  **when and where** the students you **supervise** (🎓) and **oppose** (🧐)
+  defend. "Where" is the committee (colour + programme). Your personal
+  timetable of when and at which committee to be. Filled from imported schedules.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

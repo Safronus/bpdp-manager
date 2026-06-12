@@ -185,6 +185,13 @@ class KomiseTab(QWidget):
         ))
         btn_reset.clicked.connect(self._reset_committees)
         top.addWidget(btn_reset)
+        btn_sched = QPushButton(tr("📅 Můj harmonogram obhajob"))
+        btn_sched.setToolTip(tr(
+            "Chronologický přehled, kdy a kde obhajují studenti, které vedeš "
+            "nebo oponuješ — tvůj osobní rozvrh u komisí."
+        ))
+        btn_sched.clicked.connect(self._show_my_schedule)
+        top.addWidget(btn_sched)
         self.chk_mine = QCheckBox(tr("Jen komise s mými studenty"))
         self.chk_mine.toggled.connect(self.refresh)
         top.addWidget(self.chk_mine)
@@ -629,6 +636,11 @@ class KomiseTab(QWidget):
         return head + members_html + sched_html + files_html
 
     # ── akce ─────────────────────────────────────────────────────────────
+    def _show_my_schedule(self) -> None:
+        """Otevře dialog s osobním harmonogramem obhajob (vedené + oponované)."""
+        dlg = MyScheduleDialog(self.service.my_defense_schedule(), self)
+        dlg.exec()
+
     def _reset_committees(self) -> None:
         """Smaže všechny komise a načte čistý seed z JSONu (úklid starých dat)."""
         resp = QMessageBox.question(
@@ -768,6 +780,74 @@ def _date_key(d: str):
 
     m = re.search(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})", d)
     return (m.group(3), int(m.group(2)), int(m.group(1))) if m else ("9999", 99, 99)
+
+
+class MyScheduleDialog(QDialog):
+    """Osobní harmonogram obhajob — kdy a kde obhajují moji studenti."""
+
+    def __init__(self, entries: list[dict], parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(tr("📅 Můj harmonogram obhajob"))
+        self.setMinimumSize(680, 560)
+        lay = QVBoxLayout(self)
+        view = QTextBrowser()
+        view.setOpenExternalLinks(False)
+        view.setHtml(self._build_html(entries))
+        lay.addWidget(view, stretch=1)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject)
+        buttons.accepted.connect(self.accept)
+        lay.addWidget(buttons)
+
+    @staticmethod
+    def _build_html(entries: list[dict]) -> str:
+        from html import escape
+
+        if not entries:
+            return (
+                "<p style='color:#888;padding:18px;'>"
+                + tr("Zatím žádné obhajoby tvých studentů. Nahraj rozpisy "
+                     "studentů z PDF — vedené a oponované se sem doplní.")
+                + "</p>"
+            )
+        led = sum(1 for e in entries if e["role"] == "led")
+        opp = sum(1 for e in entries if e["role"] == "opp")
+        head = (
+            f"<h2 style='margin:4px 0;'>📅 {tr('Můj harmonogram obhajob')}</h2>"
+            f"<p style='color:#888;margin:2px 0 10px 0;'>"
+            f"{len(entries)} {tr('obhajob')} &nbsp;·&nbsp; "
+            f"<span style='color:#1b5e20;'>🎓 {tr('vedené')} {led}</span> &nbsp; "
+            f"<span style='color:#4a148c;'>🧐 {tr('oponované')} {opp}</span></p>"
+        )
+        # Seskupení po dnech (vstup je už chronologicky seřazený).
+        by_date: dict[str, list[dict]] = {}
+        for e in entries:
+            by_date.setdefault(e["date"] or "—", []).append(e)
+        body = ""
+        for date in sorted(by_date, key=_date_key):
+            body += f"<h3 style='color:#ffa726;margin:14px 0 4px 0;'>{escape(date)}</h3>"
+            body += "<table cellspacing='0'>"
+            for e in by_date[date]:
+                dot = committee_color_hex(e["color"])
+                obor = f" ({escape(e['obor'])})" if e["obor"] else ""
+                place = f"{tr('Komise')} {escape(e['color'])}{obor}"
+                if e["role"] == "led":
+                    badge, style = "🎓", "background:#c8e6c9;color:#1b5e20;"
+                else:
+                    badge, style = "🧐", "background:#e1bee7;color:#4a148c;"
+                pnum = (f" <span style='color:#999;'>{escape(e['personal_number'])}</span>"
+                        if e["personal_number"] else "")
+                body += (
+                    "<tr>"
+                    f"<td style='padding:2px 12px 2px 0;color:#555;'>{escape(e['time'])}</td>"
+                    f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
+                    f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
+                    f"<td style='padding:2px 4px;{style}'>{badge} "
+                    f"{escape(e['student_name'])}{pnum}</td>"
+                    "</tr>"
+                )
+            body += "</table>"
+        return head + body
 
 
 class KomiseImportPreviewDialog(QDialog):

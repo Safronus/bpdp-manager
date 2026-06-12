@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.10] - 2026-06-13
+
+### Added
+- **Komise — 📅 Můj harmonogram obhajob.** Nové tlačítko otevře chronologický
+  přehled (po dnech a časech), **kdy a kde** obhajují studenti, které **vedeš**
+  (🎓) i **oponuješ** (🧐) — osobní rozvrh, kdy a u které komise máš být.
+  „Kde" je komise (barva + obor). Naplní se z naimportovaných rozpisů.
+
 ## [2.5.9] - 2026-06-13
 
 ### Changed

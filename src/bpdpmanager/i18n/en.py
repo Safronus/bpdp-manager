@@ -1188,6 +1188,19 @@ EN: dict[str, str] = {
     "Detail": "Detail",
     "Složení komisí": "Committee compositions",
     "PDF souborů komisí": "Committee PDF files",
+    "📅 Můj harmonogram obhajob": "📅 My defence schedule",
+    "Můj harmonogram obhajob": "My defence schedule",
+    "Chronologický přehled, kdy a kde obhajují studenti, které vedeš "
+    "nebo oponuješ — tvůj osobní rozvrh u komisí.":
+        "A chronological overview of when and where the students you supervise "
+        "or oppose defend — your personal committee timetable.",
+    "Zatím žádné obhajoby tvých studentů. Nahraj rozpisy "
+    "studentů z PDF — vedené a oponované se sem doplní.":
+        "No defences of your students yet. Import student schedule PDFs — "
+        "supervised and opposed ones will appear here.",
+    "obhajob": "defences",
+    "vedené": "supervised",
+    "oponované": "opposed",
     "Nezařazené (starší import)": "Uncategorised (older import)",
     "🗑 Smazat soubor z disku": "🗑 Delete file from disk",
     "Smazat soubor": "Delete file",

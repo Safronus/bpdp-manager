@@ -264,6 +264,38 @@ def test_highlighting_works_on_seed_committee(service) -> None:
     assert cervena_leaf.data(1, ROLE_VO) == (1, 0)
 
 
+def test_my_defense_schedule(service) -> None:
+    """Harmonogram: vedené + oponované sloty chronologicky, s komisí (kde)."""
+    from bpdpmanager.models import OpposingThesis, Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+
+    service.load_komise_seed()
+    s = Student(first_name="Anna", last_name="Vedena", university_id="A10001")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2025/2026",
+                                 student_id=s.id, status=ThesisStatus.IN_PROGRESS))
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.DP, academic_year="2025/2026",
+        student_first_name="Karel", student_last_name="Oponovan"))
+    service.apply_komise_import([], [
+        # Oponovaný je dřív (15.6 09:00) a vedený později (17.6) — ověř řazení.
+        ParsedSchedule(color="modrá", academic_year="2025/2026", level="Mgr",
+                       obor="NSWI", program_label="SWI", dates=["17. 6. 2026"],
+                       slots=[("17. 6. 2026", "11:00", "A10001", "Anna Vedena")]),
+        ParsedSchedule(color="červená", academic_year="2025/2026", level="Mgr",
+                       obor="NSWI", program_label="SWI", dates=["15. 6. 2026"],
+                       slots=[("15. 6. 2026", "09:00", "A99", "Karel Oponovan")]),
+    ], ["x.pdf"])
+    sched = service.my_defense_schedule()
+    assert len(sched) == 2
+    # Chronologicky: 15. 6. (oponovaný) před 17. 6. (vedený).
+    assert sched[0]["date"] == "15. 6. 2026" and sched[0]["role"] == "opp"
+    assert sched[1]["date"] == "17. 6. 2026" and sched[1]["role"] == "led"
+    # „Kde" = komise (barva + obor).
+    assert sched[1]["color"] == "modrá" and sched[1]["obor"] == "NSWI"
+    assert sched[0]["personal_number"] == "A99"
+
+
 def test_pdf_descriptive_name() -> None:
     """Název PDF: prefix_<stupně>_<obory>_<rok>.pdf z naparsovaných položek."""
     from bpdpmanager.ui.komise_tab import KomiseTab

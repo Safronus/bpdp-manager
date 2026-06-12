@@ -1067,6 +1067,10 @@ badge). Šířka sloupců i panelu se přizpůsobí obsahu.
 - **Složení komise** má role v **barevných zaoblených rámečcích stejné
   šířky** (text na střed): **předseda** (fialová), **místopředseda** (modrá),
   **tajemník** (zelená), **člen** (šedá).
+- **📅 Můj harmonogram obhajob** — chronologický přehled (po dnech a časech),
+  **kdy a kde** obhajují studenti, které **vedeš** (🎓) i **oponuješ** (🧐).
+  „Kde" je komise (barva + obor). Tvůj osobní rozvrh, kdy a u které komise máš
+  být. Naplní se z naimportovaných rozpisů.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).
