@@ -923,12 +923,15 @@ many you **oppose** (red badge). Column and panel widths fit the content.
   members, dates) ships with the app in `resources/komise_szz.json` and
   **loads on startup**. No student names live there; those come only from
   local PDF import (below). The file is in git, so it updates with the app.
-- **📄 Import committee PDFs…** — loads faculty PDFs, typically the **student
-  schedule** (names + personal numbers). The committee is recognised by the
-  **heading colour** and **programme** (from the programme/specialization
-  text), and students attach to the right pre-loaded committee. Composition
-  PDFs work too (merge by year + level + **programme** + colour). A **checkbox
-  preview** is shown before saving; re-imports create no duplicates.
+- **📄 Import student schedule PDF…** — loads a faculty **student schedule**
+  PDF (names + personal numbers). The committee is recognised by the **heading
+  colour** and **programme** (from the programme/specialization text), and
+  students attach to the right pre-loaded committee. Composition PDFs work too
+  (merge by year + level + **programme** + colour). A **checkbox preview** is
+  shown before saving; re-imports create no duplicates. PDFs are **renamed**
+  (e.g. `rozpis-studentu_Bc_SWI_2025-2026.pdf`) and stored in
+  `komise/<year>/rozpisy/` (schedules) or `komise/<year>/slozeni/`
+  (composition).
 - **Highlighting your students:** in the schedule, **🎓 supervised** students
   (matched via the **personal number** Axxxxx, name as fallback) are green
   and **🧐 opposed** ones (by name) purple. The *My students* column shows
@@ -941,9 +944,10 @@ many you **oppose** (red badge). Column and panel widths fit the content.
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing
   programme, duplicates, mixed colours). Student schedules from previously
-  uploaded PDFs disappear — just **import them again** via *📄 Import
-  committee PDFs…* (they attach to the right committees).
-- PDFs are stored **structured** in `komise/<year>/` inside the profile
+  uploaded PDFs disappear — just **import them again** via *📄 Import student
+  schedule PDF…* (they attach to the right committees).
+- PDFs are stored **structured and renamed** in `komise/<year>/rozpisy/`
+  (schedules) and `komise/<year>/slozeni/` (composition) inside the profile
   folder; links to source PDFs are in the committee detail. Right-click a
   committee → *Delete committee* (PDFs stay on disk).
 

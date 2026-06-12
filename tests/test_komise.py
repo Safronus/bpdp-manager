@@ -264,6 +264,37 @@ def test_highlighting_works_on_seed_committee(service) -> None:
     assert cervena_leaf.data(1, ROLE_VO) == (1, 0)
 
 
+def test_pdf_descriptive_name() -> None:
+    """Název PDF: prefix_<stupně>_<obory>_<rok>.pdf z naparsovaných položek."""
+    from bpdpmanager.ui.komise_tab import KomiseTab
+
+    items = [
+        ParsedSchedule(color="červená", level="Bc", obor="SWI",
+                       academic_year="2025/2026"),
+    ]
+    assert (KomiseTab._pdf_name("2025/2026", items, "rozpis-studentu")
+            == "rozpis-studentu_Bc_SWI_2025-2026.pdf")
+    multi = [
+        ParsedSchedule(color="červená", level="Mgr", obor="NSWI"),
+        ParsedSchedule(color="fialová", level="Mgr", obor="NKYB"),
+    ]
+    assert (KomiseTab._pdf_name("2025/2026", multi, "rozpis-studentu")
+            == "rozpis-studentu_Mgr_NKYB-NSWI_2025-2026.pdf")
+
+
+def test_store_pdf_renames_into_subfolder(service, tmp_path) -> None:
+    """komise_store_pdf přejmenuje a uloží do komise/<rok>/<kind>/."""
+    src = tmp_path / "puvodni nazev!.pdf"
+    src.write_bytes(b"%PDF-1.4 test")
+    rel = service.komise_store_pdf(src, "2025/2026", name="rozpis_Bc_SWI_2025-2026.pdf",
+                                   kind="rozpisy")
+    assert rel == "2025-2026/rozpisy/rozpis_Bc_SWI_2025-2026.pdf"
+    assert service.komise_pdf_path(rel).exists()
+    # Bezpečné jméno z divného názvu (bez name).
+    rel2 = service.komise_store_pdf(src, "2025/2026", kind="slozeni")
+    assert rel2.startswith("2025-2026/slozeni/") and rel2.endswith(".pdf")
+
+
 def test_komise_student_roles(service) -> None:
     from bpdpmanager.models import OpposingThesis, Student, Thesis
     from bpdpmanager.models.enums import ThesisStatus, ThesisType

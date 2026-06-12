@@ -2834,22 +2834,33 @@ class ThesisService:
         self._db.committees = []
         return self.load_komise_seed()
 
-    def komise_store_pdf(self, source: Path, academic_year: str) -> str:
-        """Zkopíruje PDF do ``komise/<rok>/`` (strukturované uložení).
+    def komise_store_pdf(self, source: Path, academic_year: str, *,
+                         name: str | None = None, kind: str = "rozpisy") -> str:
+        """Zkopíruje PDF do ``komise/<rok>/<kind>/`` (strukturované uložení).
 
-        Vrací relativní cestu (vůči složce komise). Stejnojmenný soubor se
-        přepíše (novější verze rozpisu nahradí starší).
+        ``kind`` = ``"rozpisy"`` (rozpisy studentů) / ``"slozeni"`` (složení
+        komisí). ``name`` = cílový (přejmenovaný) název souboru; když chybí,
+        použije se původní. Vrací relativní cestu (vůči složce komise).
+        Stejnojmenný soubor se přepíše (novější verze nahradí starší).
         """
         import shutil
 
         from ..config import komise_dir
 
         safe_year = (academic_year or "ostatni").replace("/", "-")
-        target_dir = komise_dir() / safe_year
+        sub = kind if kind in ("rozpisy", "slozeni") else "rozpisy"
+        target_dir = komise_dir() / safe_year / sub
         target_dir.mkdir(parents=True, exist_ok=True)
-        target = target_dir / Path(source).name
+        fname = self._safe_pdf_name(name or Path(source).name)
+        target = target_dir / fname
         shutil.copy2(source, target)
-        return f"{safe_year}/{target.name}"
+        return f"{safe_year}/{sub}/{target.name}"
+
+    @staticmethod
+    def _safe_pdf_name(name: str) -> str:
+        """Bezpečný název PDF (bez cest/divných znaků), s příponou .pdf."""
+        stem = re.sub(r"[^0-9A-Za-zÀ-ž._+-]+", "-", Path(name).stem).strip("-._")
+        return (stem or "soubor") + ".pdf"
 
     def komise_pdf_path(self, rel_path: str) -> Path:
         from ..config import komise_dir

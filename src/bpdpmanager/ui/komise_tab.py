@@ -161,11 +161,11 @@ class KomiseTab(QWidget):
 
         # ── horní lišta ──────────────────────────────────────────────────
         top = QHBoxLayout()
-        btn_import = QPushButton(tr("📄 Importovat PDF komisí…"))
+        btn_import = QPushButton(tr("📄 Import PDF rozpisu studentů…"))
         btn_import.setToolTip(tr(
-            "Načte fakultní PDF (složení komisí i rozpis studentů — druh se "
-            "rozpozná automaticky, rozpis i podle barvy nadpisů) a po náhledu "
-            "uloží. PDF se ukládají do komise/<rok>/."
+            "Načte fakultní PDF rozpisu studentů (komise se pozná podle barvy "
+            "nadpisů a oboru, studenti se napojí na správnou komisi). Lze načíst "
+            "i složení komisí. PDF se přejmenují a uloží do komise/<rok>/."
         ))
         btn_import.clicked.connect(self._import_pdfs)
         top.addWidget(btn_import)
@@ -434,7 +434,7 @@ class KomiseTab(QWidget):
                "Použij na úklid starších naimportovaných komisí, které nesedí "
                "(chybí obor, duplicity, zmíchané barvy).\n\n"
                "⚠ Rozpisy studentů z dříve nahraných PDF zmizí — nahraj je "
-               "potom znovu přes Importovat PDF komisí (napojí se už na "
+               "potom znovu přes Import PDF rozpisu studentů (napojí se už na "
                "správné komise).\n\nPokračovat?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -452,7 +452,8 @@ class KomiseTab(QWidget):
 
     def _import_pdfs(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(
-            self, tr("Vyber PDF s komisemi / rozpisy"), "", "PDF (*.pdf)"
+            self, tr("Vyber PDF rozpisu studentů (nebo složení komisí)"), "",
+            "PDF (*.pdf)"
         )
         if not paths:
             return
@@ -461,7 +462,7 @@ class KomiseTab(QWidget):
         committees = []
         schedules = []
         errors = []
-        parsed_files = []
+        parsed: list[tuple[Path, object]] = []   # (cesta, ParsedPdf)
         for p in paths:
             try:
                 r = parse_pdf(Path(p))
@@ -475,11 +476,11 @@ class KomiseTab(QWidget):
                 continue
             committees.extend(r.committees)
             schedules.extend(r.schedules)
-            parsed_files.append(Path(p))
+            parsed.append((Path(p), r))
 
         if not committees and not schedules:
             QMessageBox.warning(
-                self, tr("Import komisí"),
+                self, tr("Import rozpisu studentů"),
                 tr("Z vybraných PDF se nepodařilo nic načíst.")
                 + ("\n\n" + "\n".join(errors) if errors else ""),
             )
@@ -490,21 +491,43 @@ class KomiseTab(QWidget):
             return
         committees, schedules = dlg.selected()
 
-        # Ulož PDF strukturovaně (rok z první naparsované položky souboru).
-        year = next(
-            (x.academic_year for x in [*committees, *schedules] if x.academic_year),
-            "",
-        )
-        rels = [self.service.komise_store_pdf(p, year) for p in parsed_files]
+        # Ulož každé PDF strukturovaně a přejmenované do rozpisy/ nebo slozeni/.
+        rels = []
+        for path, r in parsed:
+            fyear = next(
+                (x.academic_year for x in [*r.schedules, *r.committees]
+                 if x.academic_year), "",
+            )
+            if r.schedules:
+                name = self._pdf_name(fyear, r.schedules, "rozpis-studentu")
+                kind = "rozpisy"
+            else:
+                name = self._pdf_name(fyear, r.committees, "slozeni-komisi")
+                kind = "slozeni"
+            rels.append(
+                self.service.komise_store_pdf(path, fyear, name=name, kind=kind)
+            )
         stats = self.service.apply_komise_import(committees, schedules, rels)
         self.refresh()
         self.changed.emit()
         QMessageBox.information(
-            self, tr("Import komisí"),
+            self, tr("Import rozpisu studentů"),
             tr("Hotovo: {created} nových komisí, {updated} aktualizovaných, "
                "{slots} slotů rozpisu.").format(**stats)
             + ("\n\n" + "\n".join(errors) if errors else ""),
         )
+
+    @staticmethod
+    def _pdf_name(year: str, items, prefix: str) -> str:
+        """Sestaví popisný název PDF: ``prefix_<stupně>_<obory>_<rok>.pdf``."""
+        levels = sorted({getattr(x, "level", "") for x in items if getattr(x, "level", "")})
+        obory = sorted({getattr(x, "obor", "") for x in items if getattr(x, "obor", "")})
+        tag = "-".join(levels)
+        if obory:
+            tag = (tag + "_" if tag else "") + "-".join(obory)
+        y = (year or "").replace("/", "-")
+        parts = [prefix] + ([tag] if tag else []) + ([y] if y else [])
+        return "_".join(parts) + ".pdf"
 
     def _on_context_menu(self, pos) -> None:
         from PySide6.QtGui import QAction

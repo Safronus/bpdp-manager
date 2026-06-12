@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.5] - 2026-06-12
+
+### Changed
+- **Komise — přejmenované tlačítko a hezčí ukládání PDF.** Tlačítko
+  *Importovat PDF komisí* → **📄 Import PDF rozpisu studentů**. Nahraná PDF
+  se **přejmenují** (např. `rozpis-studentu_Bc_SWI_2025-2026.pdf`) a uloží do
+  podsložek **`komise/<rok>/rozpisy/`** (rozpisy studentů) a
+  **`komise/<rok>/slozeni/`** (složení komisí).
+
 ## [2.5.4] - 2026-06-12
 
 ### Added

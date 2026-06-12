@@ -1050,12 +1050,14 @@ badge). Šířka sloupců i panelu se přizpůsobí obsahu.
   `resources/komise_szz.json` a **načtou se samy po startu**. Žádné jméno
   studenta tu není; ta se plní jen lokálně z PDF (níže). Soubor je v gitu,
   takže se aktualizuje se zdrojem aplikace.
-- **📄 Importovat PDF komisí…** — načte fakultní PDF, typicky **rozpis
-  studentů** (jména + osobní čísla). U rozpisu se komise pozná **podle barvy
-  nadpisů** stránky a **oboru** (z názvu programu/specializace) a studenti se
-  napojí na správnou předpřipravenou komisi. Lze načíst i **složení** (pak se
+- **📄 Import PDF rozpisu studentů…** — načte fakultní PDF **rozpisu
+  studentů** (jména + osobní čísla). Komise se pozná **podle barvy nadpisů**
+  stránky a **oboru** (z názvu programu/specializace) a studenti se napojí na
+  správnou předpřipravenou komisi. Lze načíst i **složení komisí** (pak se
   sloučí dle roku + stupně + **oboru** + barvy). Před uložením **náhled
-  s checkboxy**; opakovaný import nevytváří duplicity.
+  s checkboxy**; opakovaný import nevytváří duplicity. PDF se **přejmenují**
+  (např. `rozpis-studentu_Bc_SWI_2025-2026.pdf`) a uloží do podsložek
+  `komise/<rok>/rozpisy/` (rozpisy) nebo `komise/<rok>/slozeni/` (složení).
 - **Zvýraznění tvých studentů:** v rozpisu jsou **🎓 vedení** (spárování přes
   **osobní číslo** Axxxxx, záložně přes jméno) zeleně a **🧐 oponovaní**
   (přes jméno) fialově. Sloupec *Moji studenti* ve stromu ukazuje počty;
@@ -1068,10 +1070,11 @@ badge). Šířka sloupců i panelu se přizpůsobí obsahu.
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).
   Rozpisy studentů z dříve nahraných PDF zmizí — stačí je **nahrát znovu**
-  přes *📄 Importovat PDF komisí…* (napojí se už na správné komise).
-- PDF se ukládají **strukturovaně** do `komise/<rok>/` ve složce profilu;
-  odkazy na zdrojová PDF jsou v detailu komise. Pravý klik na komisi →
-  *Smazat komisi* (PDF na disku zůstanou).
+  přes *📄 Import PDF rozpisu studentů…* (napojí se už na správné komise).
+- PDF se ukládají **strukturovaně a přejmenovaná** do `komise/<rok>/rozpisy/`
+  (rozpisy) a `komise/<rok>/slozeni/` (složení) ve složce profilu; odkazy na
+  zdrojová PDF jsou v detailu komise. Pravý klik na komisi → *Smazat komisi*
+  (PDF na disku zůstanou).
 
 > **Zvýraznění vedených/oponovaných zůstává beze změny** — pracuje nad
 > rozpisem (sloty studentů), takže funguje hned, jakmile rozpis naimportuješ

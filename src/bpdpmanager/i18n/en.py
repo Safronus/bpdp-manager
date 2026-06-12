@@ -1121,16 +1121,17 @@ EN: dict[str, str] = {
         "Opens the thesis detail in STAG in your browser.",
     # ── Komise SZZ (2.3.0) ───────────────────────────────────────────────
     "🏛 Komise": "🏛 Committees",
-    "📄 Importovat PDF komisí…": "📄 Import committee PDFs…",
-    "Načte fakultní PDF (složení komisí i rozpis studentů — druh se "
-    "rozpozná automaticky, rozpis i podle barvy nadpisů) a po náhledu "
-    "uloží. PDF se ukládají do komise/<rok>/.":
-        "Loads faculty PDFs (committee composition and student schedules — "
-        "the kind is detected automatically, schedules also by heading "
-        "colour) and saves after a preview. PDFs are stored in komise/<year>/.",
-    "🌐 Otevřít web s rozpisy": "🌐 Open the schedules website",
-    "Otevře stránku FAI se složením komisí a rozpisy SZZ.":
-        "Opens the FAI page with committee compositions and SZZ schedules.",
+    "📄 Import PDF rozpisu studentů…": "📄 Import student schedule PDF…",
+    "Načte fakultní PDF rozpisu studentů (komise se pozná podle barvy "
+    "nadpisů a oboru, studenti se napojí na správnou komisi). Lze načíst "
+    "i složení komisí. PDF se přejmenují a uloží do komise/<rok>/.":
+        "Loads a faculty student-schedule PDF (the committee is recognised by "
+        "heading colour and programme; students attach to the right committee). "
+        "Committee composition can be loaded too. PDFs are renamed and stored "
+        "in komise/<year>/.",
+    "Import rozpisu studentů": "Student schedule import",
+    "Vyber PDF rozpisu studentů (nebo složení komisí)":
+        "Select a student schedule PDF (or committee composition)",
     "🔄 Načíst komise znovu": "🔄 Reload committees",
     "Načíst komise znovu": "Reload committees",
     "Smaže všechny komise a načte čisté složení z aplikace. Použij na "
@@ -1145,7 +1146,7 @@ EN: dict[str, str] = {
     "Použij na úklid starších naimportovaných komisí, které nesedí "
     "(chybí obor, duplicity, zmíchané barvy).\n\n"
     "⚠ Rozpisy studentů z dříve nahraných PDF zmizí — nahraj je "
-    "potom znovu přes Importovat PDF komisí (napojí se už na "
+    "potom znovu přes Import PDF rozpisu studentů (napojí se už na "
     "správné komise).\n\nPokračovat?":
         "Deletes ALL committees and loads the clean composition shipped with "
         "the app.\n\nUse it to clean up older imported committees that don't "
