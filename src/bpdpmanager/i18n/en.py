@@ -1223,6 +1223,8 @@ EN: dict[str, str] = {
     "vedený": "supervised",
     "oponovaný": "opposed",
     "za {n} min": "in {n} min",
+    "za {h} h {m} min": "in {h} h {m} min",
+    "za {n} dní": "in {n} days",
     "nyní": "now",
     "Blíží se obhajoba": "A defence is coming up",
     "Blíží se obhajoba ({n})": "Defences coming up ({n})",

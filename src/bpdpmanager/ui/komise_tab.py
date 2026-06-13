@@ -248,8 +248,11 @@ class KomiseTab(QWidget):
         top.addWidget(self.lbl_legend)
         outer.addLayout(top)
 
-        # ── splitter: vlevo strom komisí + seznam PDF, vpravo detail ──────
-        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        # ── 3 panely: vlevo komise+PDF (dle obsahu), uprostřed detail komise,
+        #    vpravo nezávislý harmonogram (dle obsahu); prostřední bere zbytek.
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
 
         left = QSplitter(Qt.Orientation.Vertical)
         self.tree = QTreeWidget()
@@ -257,7 +260,7 @@ class KomiseTab(QWidget):
         self.tree.setRootIsDecorated(True)
         self.tree.setItemDelegateForColumn(1, StudentsVODelegate(self.tree))
         hdr = self.tree.header()
-        # Šířka sloupců dle dat; levý panel se přizpůsobí v _fit_left_pane.
+        # Šířka sloupců dle dat; levý panel se přizpůsobí v _fit_panels.
         for col in range(self.tree.columnCount()):
             hdr.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setStretchLastSection(False)
@@ -296,14 +299,29 @@ class KomiseTab(QWidget):
         left.addWidget(pdf_box)
         left.setStretchFactor(0, 3)
         left.setStretchFactor(1, 1)
-        self.splitter.addWidget(left)
+        self.left_container = QWidget()
+        lc = QVBoxLayout(self.left_container)
+        lc.setContentsMargins(0, 0, 0, 0)
+        lc.addWidget(left)
+        row.addWidget(self.left_container)
 
+        # Prostřední panel: detail vybrané komise (členové + studenti) / přehled.
         self.detail = QTextBrowser()
         self.detail.setOpenExternalLinks(True)
-        self.splitter.addWidget(self.detail)
-        self.splitter.setStretchFactor(1, 2)
-        outer.addWidget(self.splitter, stretch=1)
+        row.addWidget(self.detail, stretch=1)
 
+        # Pravý panel: nezávislý „Můj harmonogram obhajob" pro vybraný rok.
+        self.harmonogram_view = QTextBrowser()
+        self.harmonogram_view.setOpenExternalLinks(False)
+        self.right_container = QWidget()
+        rcl = QVBoxLayout(self.right_container)
+        rcl.setContentsMargins(0, 0, 0, 0)
+        rcl.addWidget(self.harmonogram_view)
+        row.addWidget(self.right_container)
+
+        outer.addLayout(row, stretch=1)
+
+        self._right_year = None
         self.refresh()
 
         # Tichá kontrola stavu obhajob (jen v období státnic) — vizualizuje,
@@ -313,6 +331,12 @@ class KomiseTab(QWidget):
         self._state_timer.timeout.connect(self._maybe_check_states)
         self._state_timer.start()
         QTimer.singleShot(3000, self._maybe_check_states)
+
+        # Odpočet u nejbližší obhajoby — překresli pravý panel každou minutu.
+        self._countdown_timer = QTimer(self)
+        self._countdown_timer.setInterval(60_000)
+        self._countdown_timer.timeout.connect(self._render_harmonogram)
+        self._countdown_timer.start()
 
     # ── tichá kontrola stavu obhajob ──────────────────────────────────────
     def _maybe_check_states(self) -> None:
@@ -408,6 +432,7 @@ class KomiseTab(QWidget):
                     leaf.setForeground(0, QBrush(QColor(committee_color_hex(c.color))))
                     leaf.setData(0, ROLE_COMMITTEE_ID, c.id)
                     leaf.setData(0, ROLE_KIND, "committee")
+                    leaf.setData(0, ROLE_YEAR, year)
                     leaf.setData(1, ROLE_VO, (led, opp))
                     leaf.setToolTip(
                         1, tr("Vedení: {led} · Oponované: {opp}").format(led=led, opp=opp)
@@ -423,11 +448,20 @@ class KomiseTab(QWidget):
         if selected:
             self._select_id(selected)
         elif self.tree.topLevelItemCount():
-            # Defaultně nejnovější rok → přehled komisí + harmonogram.
-            self.tree.setCurrentItem(self.tree.topLevelItem(0))
+            self._select_default_year()
         self._on_selected()
         self._refresh_pdf_list()
-        self._fit_left_pane()
+        self._fit_panels()
+
+    def _select_default_year(self) -> None:
+        """Po startu vyber aktuální akademický rok (jinak nejnovější)."""
+        cur = self.service.current_academic_year()
+        for i in range(self.tree.topLevelItemCount()):
+            it = self.tree.topLevelItem(i)
+            if it.data(0, ROLE_YEAR) == cur:
+                self.tree.setCurrentItem(it)
+                return
+        self.tree.setCurrentItem(self.tree.topLevelItem(0))
 
     def _refresh_pdf_list(self) -> None:
         """Naplní seznam PDF: rok → Složení / Rozpisy / Nezařazené → soubory."""
@@ -563,31 +597,46 @@ class KomiseTab(QWidget):
                 self.tree.setCurrentItem(leaf)
                 return
 
-    def _fit_left_pane(self) -> None:
-        """Šířka levého panelu podle obsahu stromu (sloupce + odsazení).
+    @staticmethod
+    def _tree_width(tree: QTreeWidget) -> int:
+        """Obsahová šířka stromu (součet sloupců + odsazení + scrollbar)."""
+        cols = sum(
+            max(tree.sizeHintForColumn(c), tree.columnWidth(c))
+            for c in range(tree.columnCount())
+        )
+        return cols + tree.indentation() * 3 + 40
 
-        Sčítá obsahové šířky sloupců (``sizeHintForColumn`` funguje i hned po
-        naplnění, na rozdíl od ještě nezměřené hlavičky) + odsazení stromu na
-        zanoření rok→stupeň→komise + rezervu na scrollbar/rámeček.
+    def _fit_panels(self) -> None:
+        """Levý i pravý panel napevno dle obsahu; prostřední bere zbytek.
+
+        Boky se roztáhnou přesně na obsah, dokud prostřednímu zbude aspoň
+        ~320 px; když by se nevešly, zmenší se poměrně (žádný ruční posuv).
         """
         self.tree.expandAll()
-        cols = sum(
-            max(self.tree.sizeHintForColumn(c), self.tree.columnWidth(c))
-            for c in range(self.tree.columnCount())
-        )
-        width = cols + self.tree.indentation() * 3 + 44
-        total = self.splitter.size().width() or 1200
-        left = max(300, min(width, int(total * 0.78)))
-        self.splitter.setSizes([left, max(total - left, 300)])
+        total = self.width() or 1400
+        lw = max(220, self._tree_width(self.tree), self._tree_width(self.pdf_tree))
+        if getattr(self, "_harmonogram_has_rows", False):
+            doc = self.harmonogram_view.document()
+            doc.setTextWidth(-1)
+            rw = max(240, int(doc.idealWidth()) + 32)
+        else:
+            rw = 300   # prázdný harmonogram nemá rozšiřovat pravý panel
+        avail = total - 320
+        if lw + rw > avail > 0:
+            scale = max(0.3, avail / (lw + rw))
+            lw, rw = int(lw * scale), int(rw * scale)
+        self.left_container.setFixedWidth(lw)
+        self.right_container.setFixedWidth(rw)
 
     def showEvent(self, event) -> None:  # noqa: N802 (Qt API)
-        # První zobrazení s reálnou velikostí → dopočítej šířku levého panelu.
         super().showEvent(event)
-        if not getattr(self, "_did_fit", False):
-            self._did_fit = True
-            self._fit_left_pane()
+        self._fit_panels()
 
-    # ── detail ───────────────────────────────────────────────────────────
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        super().resizeEvent(event)
+        self._fit_panels()
+
+    # ── detail (prostřední) + harmonogram (pravý) ─────────────────────────
     def _on_selected(self) -> None:
         items = self.tree.selectedItems()
         item = items[0] if items else (
@@ -602,6 +651,12 @@ class KomiseTab(QWidget):
                 item.data(0, ROLE_YEAR), item.data(0, ROLE_LEVEL)))
         else:
             self.detail.setHtml(self._empty_html())
+        # Pravý panel je nezávislý: harmonogram pro ROK výběru (default aktuální).
+        self._right_year = (
+            item.data(0, ROLE_YEAR) if item is not None else None
+        ) or self.service.current_academic_year()
+        self._render_harmonogram()
+        self._fit_panels()
 
     @staticmethod
     def _empty_html() -> str:
@@ -609,8 +664,46 @@ class KomiseTab(QWidget):
                 + tr("Vyber komisi, rok nebo stupeň vlevo, "
                      "nebo importuj PDF rozpisu studentů.") + "</p>")
 
+    # ── pravý panel: Můj harmonogram (nezávislý, pro vybraný rok) ──────────
+    @staticmethod
+    def _fmt_countdown(seconds: float) -> str:
+        mins = int(seconds // 60)
+        if mins < 60:
+            return tr("za {n} min").format(n=max(mins, 0))
+        if mins < 24 * 60:
+            return tr("za {h} h {m} min").format(h=mins // 60, m=mins % 60)
+        return tr("za {n} dní").format(n=mins // (24 * 60))
+
+    @staticmethod
+    def _nearest_upcoming(entries: list[dict], now):
+        best = best_dt = None
+        for e in entries:
+            dt = ThesisService._parse_slot_dt(e["date"], e["time"])
+            if dt is not None and dt > now and (best_dt is None or dt < best_dt):
+                best, best_dt = e, dt
+        return best, best_dt
+
+    def _render_harmonogram(self) -> None:
+        from datetime import datetime
+
+        year = getattr(self, "_right_year", None) or self.service.current_academic_year()
+        entries = [e for e in self.service.my_defense_schedule()
+                   if e["academic_year"] == year]
+        self._harmonogram_has_rows = bool(entries)
+        now = datetime.now()
+        nearest, ndt = self._nearest_upcoming(entries, now)
+        nkey = None
+        ntext = ""
+        if nearest is not None:
+            nkey = (nearest["date"], nearest["time"],
+                    nearest["personal_number"], nearest["student_name"])
+            ntext = self._fmt_countdown((ndt - now).total_seconds())
+        heading = tr("📅 Můj harmonogram obhajob") + f" — {year}"
+        self.harmonogram_view.setHtml(_schedule_section_html(
+            entries, heading, self._stag_states, nearest=nkey, nearest_text=ntext))
+
     def _overview_html(self, year: str, level: str | None) -> str:
-        """Přehled všech komisí roku (nebo stupně) + harmonogram pro daný výběr."""
+        """Prostřední panel: přehled všech komisí roku (nebo stupně)."""
         from html import escape
 
         roles = self.service.komise_student_roles()
@@ -622,11 +715,10 @@ class KomiseTab(QWidget):
         title = f"📅 {escape(year)}"
         if level:
             title += " — " + escape(tr(_LEVEL_LABEL.get(level, level)))
-        # Levá část: přehled komisí (po stupních); pravá část: harmonogram.
-        left = f"<h3 style='color:#ffa726;margin:4px 0 4px;'>{tr('Komise')}</h3>"
+        out = f"<h2 style='margin:4px 0 8px;'>{title}</h2>"
         # Rok bez kurátorovaného složení (jen z importu rozpisů) → upozornění.
         if committees and not any(c.from_seed for c in committees):
-            left += (
+            out += (
                 "<p style='background:#fff3e0;color:#e65100;padding:6px 10px;"
                 "border-radius:6px;'>⚠ "
                 + tr("Složení komisí pro tento rok zatím není v aplikaci - "
@@ -638,10 +730,9 @@ class KomiseTab(QWidget):
             by_level.setdefault(c.level or "", []).append(c)
         for lv in sorted(by_level, key=lambda x: _LEVEL_ORDER.get(x, 9)):
             if level is None:
-                left += (f"<p style='margin:10px 0 2px;'><b>📚 "
-                         f"{escape(tr(_LEVEL_LABEL.get(lv, lv or '(bez stupně)')))}"
-                         f"</b></p>")
-            left += "<table cellspacing='0'>"
+                out += (f"<h3 style='color:#ffa726;margin:12px 0 4px;'>📚 "
+                        f"{escape(tr(_LEVEL_LABEL.get(lv, lv or '(bez stupně)')))}</h3>")
+            out += "<table cellspacing='0'>"
             for c in sorted(by_level[lv], key=lambda x: (x.obor, x.color)):
                 led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
                 opp = sum(1 for s in c.slots if self._slot_role(s, roles) == "opp")
@@ -653,7 +744,7 @@ class KomiseTab(QWidget):
                     vo += f"<span style='color:{_C_LED};'>🎓 {led}</span> "
                 if opp:
                     vo += f"<span style='color:{_C_OPP};'>🧐 {opp}</span>"
-                left += (
+                out += (
                     "<tr>"
                     f"<td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
                     f"<span style='color:{dot};'>●</span> {tr('Komise')} "
@@ -662,23 +753,8 @@ class KomiseTab(QWidget):
                     f"{escape(', '.join(c.dates))}</td>"
                     f"<td style='padding:2px 0;'>{vo}</td></tr>"
                 )
-            left += "</table>"
-        entries = [
-            e for e in self.service.my_defense_schedule()
-            if e["academic_year"] == year and (level is None or e["level"] == level)
-        ]
-        right = _schedule_section_html(entries, tr("📅 Můj harmonogram obhajob"),
-                                       self._stag_states)
-        # Dvousloupcové rozložení: komise vlevo, harmonogram jako samostatná
-        # pravá sekce (oddělená čárou, ať není přilepený).
-        return (
-            f"<h2 style='margin:4px 0 8px;'>{title}</h2>"
-            "<table width='100%' cellspacing='0'><tr>"
-            f"<td valign='top' style='padding-right:22px;'>{left}</td>"
-            f"<td valign='top' style='border-left:1px solid {_MUTED};"
-            f"padding-left:22px;'>{right}</td>"
-            "</tr></table>"
-        )
+            out += "</table>"
+        return out
 
     #: Pevná šířka/výška rámečku role (px) — všechny role stejně široké.
     _ROLE_BADGE_W = 116
@@ -967,13 +1043,17 @@ def _date_key(d: str):
 
 
 def _schedule_section_html(entries: list[dict], heading: str,
-                           states: dict | None = None) -> str:
+                           states: dict | None = None, *,
+                           nearest: tuple | None = None,
+                           nearest_text: str = "") -> str:
     """HTML sekce harmonogramu (nadpis + počty + sloty po dnech).
 
-    Sdílí ji dialog *Můj harmonogram* i přehled roku/stupně v detailu.
-    Vstup ``entries`` je výstup ``ThesisService.my_defense_schedule`` (už
-    chronologicky seřazený), případně předfiltrovaný na rok/stupeň.
-    ``states`` (z tiché STAG kontroly) přidá badge Obhájeno/Neobhájeno.
+    Sdílí ji dialog *Můj harmonogram* i pravý panel záložky. Vstup ``entries``
+    je výstup ``ThesisService.my_defense_schedule`` (chronologicky seřazený),
+    případně předfiltrovaný na rok. ``states`` (z tiché STAG kontroly) přidá
+    badge Obhájeno/Neobhájeno. ``nearest`` = klíč (date, time, pnum, name)
+    nejbližšího nadcházejícího slotu — ten se zvýrazní a doplní se odpočet
+    ``nearest_text`` („za X min").
     """
     from html import escape
 
@@ -1009,14 +1089,20 @@ def _schedule_section_html(entries: list[dict], heading: str,
             pnum = (f" <span style='color:{_MUTED};'>{escape(e['personal_number'])}</span>"
                     if e["personal_number"] else "")
             state = _defense_state_badge(states, e["personal_number"], e["student_name"])
+            # Nejbližší nadcházející slot: zvýraznit + odpočet „za X".
+            is_near = nearest is not None and nearest == (
+                e["date"], e["time"], e["personal_number"], e["student_name"])
+            row_bg = "background:#fff8e1;" if is_near else ""
+            cd = (f"<b style='color:#e65100;'>⏳ {escape(nearest_text)}</b>"
+                  if is_near and nearest_text else state)
             out += (
-                "<tr>"
+                f"<tr style='{row_bg}'>"
                 f"<td style='padding:2px 12px 2px 0;color:{_MUTED};'>{escape(e['time'])}</td>"
                 f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
                 f"<td style='padding:2px 4px;{style}'>{badge} "
                 f"{escape(e['student_name'])}{pnum}</td>"
-                f"<td style='padding:2px 0 2px 8px;'>{state}</td></tr>"
+                f"<td style='padding:2px 0 2px 8px;white-space:nowrap;'>{cd}</td></tr>"
             )
         out += "</table>"
     return out

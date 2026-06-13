@@ -352,6 +352,48 @@ def test_future_year_shows_no_composition_notice(service) -> None:
     assert "zatím není v aplikaci" not in tab.detail.toPlainText()
 
 
+def test_right_harmonogram_independent_and_countdown(service) -> None:
+    """Pravý panel = harmonogram roku, nezávislý na komisi; odpočet u nejbližšího."""
+    from datetime import datetime, timedelta
+
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.ui.komise_tab import ROLE_COMMITTEE_ID, KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    cur = service.current_academic_year()
+    s = Student(first_name="Anna", last_name="Vedena", university_id="A10001")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year=cur,
+                                 student_id=s.id, status=ThesisStatus.IN_PROGRESS))
+    now = datetime.now()
+    near = now + timedelta(minutes=8)
+    dstr = f"{now.day}. {now.month}. {now.year}"
+    service.apply_komise_import([], [
+        ParsedSchedule(color="červená", academic_year=cur, level="Bc", obor="SWI",
+                       program_label="SWI", dates=[dstr],
+                       slots=[(dstr, near.strftime("%H:%M"), "A10001", "Anna Vedena")]),
+    ], ["r.pdf"])
+    tab = KomiseTab(service)
+    # Vyber libovolnou komisi — pravý harmonogram je nezávislý (rok = aktuální).
+    target = next(c for c in service.list_committees()
+                  if c.color == "modrá" and c.level == "Bc")
+    leaf = next(lf for lf in tab._iter_leaves()
+                if lf.data(0, ROLE_COMMITTEE_ID) == target.id)
+    tab.tree.setCurrentItem(leaf)
+    harm = tab.harmonogram_view.toPlainText()
+    assert "Můj harmonogram" in harm and cur in harm
+    assert "Anna Vedena" in harm           # nezávislé na vybrané komisi
+    assert "⏳" in harm                      # odpočet u nejbližšího
+    # _nearest_upcoming vrátí ten správný slot.
+    entries = [e for e in service.my_defense_schedule() if e["academic_year"] == cur]
+    nearest, _dt = tab._nearest_upcoming(entries, now)
+    assert nearest and nearest["personal_number"] == "A10001"
+
+
 def test_committee_detail_shows_source_pdf(service, tmp_path) -> None:
     """Detail komise ukáže zdrojový rozpis PDF (jen existující, s názvem)."""
     from PySide6.QtWidgets import QApplication

@@ -1046,11 +1046,15 @@ sloupec **Termíny** ukazuje dny, kdy komise zasedá. Sloupec **Studenti V/O**
 ukazuje, kolik v komisi **vedeš** (modrý badge) a kolik **oponuješ** (červený
 badge). Šířka sloupců i panelu se přizpůsobí obsahu.
 
-Vpravo se podle výběru ve stromu mění obsah: klik na **rok** nebo **stupeň
-(Bc/Mgr)** ukáže **dvousloupcový přehled** — vlevo všechny komise dané skupiny,
-vpravo (oddělená sekce) **📅 Můj harmonogram obhajob** pro daný rok; klik na
-**konkrétní komisi** ukáže její složení, rozpis a **zdrojový rozpis (PDF)**,
-ze kterého se sloty načetly. Po otevření je vybraný nejnovější rok.
+Záložka má **tři panely**: **vlevo** strom komisí (rok → Bc/Mgr → barva)
+a seznam **PDF souborů** — šířka levého panelu se **automaticky přizpůsobí
+obsahu**. **Uprostřed** detail výběru: klik na **rok / stupeň** ukáže přehled
+všech komisí dané skupiny, klik na **konkrétní komisi** její složení, rozpis
+a **zdrojový rozpis (PDF)**, ze kterého se sloty načetly. **Vpravo samostatný
+panel 📅 Můj harmonogram obhajob** — vždy kompletní pro **vybraný rok**
+(default aktuální), **nezávislý na vybrané komisi**; šířka opět dle obsahu.
+U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **odpočet**
+(„za X min", živě). Po otevření je vybraný aktuální akademický rok.
 
 - **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
   stupeň, členové, termíny) jsou součástí aplikace v souboru

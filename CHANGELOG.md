@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.18] - 2026-06-13
+
+### Changed
+- **Státnice & průběh — tři samostatné panely.** Vlevo strom komisí + PDF,
+  **uprostřed** detail vybrané komise (členové + studenti) nebo přehled roku,
+  **vpravo samostatný panel 📅 Můj harmonogram obhajob** — vždy kompletní pro
+  vybraný rok (default aktuální), **nezávislý na vybrané komisi**. Šířka
+  levého i pravého panelu se **automaticky přizpůsobí obsahu** (prostřední
+  bere zbytek; ruční přetahování není potřeba).
+
+### Added
+- **Odpočet u nejbližší obhajoby.** V harmonogramu se nejbližší nadcházející
+  student zvýrazní a ukáže se **živý odpočet** („za X min / h / dní").
+
 ## [2.5.17] - 2026-06-13
 
 ### Added

@@ -920,12 +920,16 @@ The left tree is grouped **academic year → level (Bc / Mgr) → committee
 **Students S/O** column shows how many you **supervise** (blue badge) and how
 many you **oppose** (red badge). Column and panel widths fit the content.
 
-The right panel follows the tree selection: clicking a **year** or **level
-(Bc/Mgr)** shows a **two-column overview** — all committees of that group on
-the left, **📅 My defence schedule** for that year as a separate section on
-the right; clicking a **specific committee** shows its composition, schedule
-and the **source schedule (PDF)** the slots were read from. On open the latest
-year is selected.
+The tab has **three panels**: **left** the committee tree (year → Bc/Mgr →
+colour) and the **PDF files** list — the left panel width **auto-fits the
+content**. **Middle** the selection detail: clicking a **year / level** shows
+an overview of all committees in that group, clicking a **specific committee**
+its composition, schedule and the **source schedule (PDF)** the slots were
+read from. **Right, a separate panel 📅 My defence schedule** — always
+complete for the **selected year** (current by default), **independent of the
+selected committee**; width again fits content. The **nearest** upcoming
+defence is highlighted with a live **countdown** ("in X min"). On open the
+current academic year is selected.
 
 - **Composition is pre-loaded** — **public data** (colour, programme, level,
   members, dates) ships with the app in `resources/komise_szz.json` and
