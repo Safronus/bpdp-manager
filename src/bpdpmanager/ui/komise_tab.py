@@ -38,6 +38,12 @@ from ..i18n import tr
 from ..models.komise import committee_color_hex
 from ..services import ThesisService
 
+#: Oficiální stránka FAI s PDF ke stažení (obecný odkaz, každý rok stejný).
+FAI_KOMISE_URL = (
+    "https://fai.utb.cz/student/statni-zaverecne-zkousky/"
+    "statni-zaverecne-zkousky-szz/slozeni-komisi-szz-a-rozpis-studentu-na-szz/"
+)
+
 ROLE_COMMITTEE_ID = Qt.ItemDataRole.UserRole + 1
 #: (vedené, oponované) počty studentů komise — pro StudentsVODelegate.
 ROLE_VO = Qt.ItemDataRole.UserRole + 2
@@ -233,7 +239,18 @@ class KomiseTab(QWidget):
         pv = QVBoxLayout(pdf_box)
         pv.setContentsMargins(0, 6, 0, 0)
         pv.setSpacing(2)
-        pv.addWidget(QLabel("📎 " + tr("PDF souborů komisí")))
+        pdf_head = QHBoxLayout()
+        pdf_head.setContentsMargins(0, 0, 0, 0)
+        pdf_head.addWidget(QLabel("📎 " + tr("PDF soubory")))
+        pdf_head.addStretch(1)
+        lbl_dl = QLabel(
+            f"<a href='{FAI_KOMISE_URL}'>⬇ {tr('Stáhnout z webu FAI')}</a>"
+        )
+        lbl_dl.setOpenExternalLinks(True)
+        lbl_dl.setToolTip(tr("Otevře stránku FAI s PDF složení komisí a rozpisů "
+                             "ke stažení (obecný odkaz, každý rok stejný)."))
+        pdf_head.addWidget(lbl_dl)
+        pv.addLayout(pdf_head)
         self.pdf_tree = QTreeWidget()
         self.pdf_tree.setHeaderHidden(True)
         self.pdf_tree.setRootIsDecorated(True)

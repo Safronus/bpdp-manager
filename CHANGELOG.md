@@ -7,6 +7,13 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.13] - 2026-06-13
+
+### Changed
+- **Komise — panel PDF přejmenován na „PDF soubory"** a doplněn odkaz
+  **⬇ Stáhnout z webu FAI** (otevře oficiální stránku s PDF ke stažení;
+  obecný odkaz, každý rok stejný).
+
 ## [2.5.12] - 2026-06-13
 
 ### Added

@@ -1188,6 +1188,12 @@ EN: dict[str, str] = {
     "Detail": "Detail",
     "Složení komisí": "Committee compositions",
     "PDF souborů komisí": "Committee PDF files",
+    "PDF soubory": "PDF files",
+    "Stáhnout z webu FAI": "Download from the FAI website",
+    "Otevře stránku FAI s PDF složení komisí a rozpisů ke stažení "
+    "(obecný odkaz, každý rok stejný).":
+        "Opens the FAI page with committee-composition and schedule PDFs to "
+        "download (a general link, the same every year).",
     "📅 Můj harmonogram obhajob": "📅 My defence schedule",
     "Vyber komisi, rok nebo stupeň vlevo, nebo importuj PDF rozpisu studentů.":
         "Select a committee, year or level on the left, or import a student "

@@ -965,13 +965,15 @@ overview + schedule right away).
 - PDFs are stored **structured and renamed** in `komise/<year>/rozpisy/`
   (schedules) and `komise/<year>/slozeni/` (composition) inside the profile
   folder; links to source PDFs are in the committee detail.
-- **📎 Committee PDF files list** (below the tree) shows PDFs by academic year,
+- **📎 PDF files** (panel below the tree) shows PDFs by academic year,
   split into **Committee compositions**, **Student schedules** and
   **Uncategorised (older import)** — PDFs from the first import version (often
   badly named); feel free to delete them. Composition PDFs for the upcoming
   year **ship with the app** (public data in git); you can add more by import.
   Right-click → **📂 Open** (even **several at once**, double-click opens one)
-  or **🗑 Delete file from disk** (git-shipped files can't be deleted).
+  or **🗑 Delete file from disk** (git-shipped files can't be deleted). The
+  **⬇ Download from the FAI website** link opens the official page with PDFs
+  to download (a general link, the same every year).
 - Right-click a
   committee → *Delete committee* (PDFs stay on disk).
 

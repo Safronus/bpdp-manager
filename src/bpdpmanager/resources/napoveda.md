@@ -1090,13 +1090,15 @@ složení a rozpis. Po otevření je vybraný nejnovější rok (tedy rovnou př
   (rozpisy) a `komise/<rok>/slozeni/` (složení) ve složce profilu; odkazy na
   zdrojová PDF jsou v detailu komise. Pravý klik na komisi → *Smazat komisi*
   (PDF na disku zůstanou).
-- **📎 Seznam PDF souborů komisí** (pod stromem) ukazuje PDF po akademických
-  rocích, rozdělené na **Složení komisí**, **Rozpisy studentů** a **Nezařazené
+- **📎 PDF soubory** (panel pod stromem) ukazuje PDF po akademických rocích,
+  rozdělené na **Složení komisí**, **Rozpisy studentů** a **Nezařazené
   (starší import)** — to jsou PDF z první verze načítání (často se špatným
   názvem); klidně je smaž. PDF složení pro nadcházející rok jsou **součástí
   aplikace** (veřejná data v gitu); další můžeš dohrát importem. Pravý klik →
   **📂 Otevřít** (i **více najednou**, dvojklik otevře jedno) nebo **🗑 Smazat
-  soubor z disku** (dodaná v gitu smazat nelze).
+  soubor z disku** (dodaná v gitu smazat nelze). Odkaz **⬇ Stáhnout z webu
+  FAI** otevře oficiální stránku s PDF ke stažení (obecný odkaz, každý rok
+  stejný).
 
 > **Zvýraznění vedených/oponovaných zůstává beze změny** — pracuje nad
 > rozpisem (sloty studentů), takže funguje hned, jakmile rozpis naimportuješ
