@@ -289,6 +289,11 @@ class KomiseTab(QWidget):
         self.pdf_tree = QTreeWidget()
         self.pdf_tree.setHeaderHidden(True)
         self.pdf_tree.setRootIsDecorated(True)
+        # Dlouhé názvy PDF se elidují (…) a nedrží šířku levého panelu — ten
+        # se řídí stromem komisí. Plný název je v tooltipu.
+        self.pdf_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.pdf_tree.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.pdf_tree.setSelectionMode(
             QTreeWidget.SelectionMode.ExtendedSelection
         )
@@ -599,22 +604,22 @@ class KomiseTab(QWidget):
 
     @staticmethod
     def _tree_width(tree: QTreeWidget) -> int:
-        """Obsahová šířka stromu (součet sloupců + odsazení + scrollbar)."""
-        cols = sum(
-            max(tree.sizeHintForColumn(c), tree.columnWidth(c))
-            for c in range(tree.columnCount())
-        )
-        return cols + tree.indentation() * 3 + 40
+        """Obsahová šířka stromu — JEN ``sizeHintForColumn`` (stabilní, nezávislé
+        na aktuální šířce sloupců; ``columnWidth`` by tvořil zpětnou vazbu a panel
+        by se s každým fitem rozšiřoval)."""
+        cols = sum(tree.sizeHintForColumn(c) for c in range(tree.columnCount()))
+        return cols + tree.indentation() * 3 + 36
 
     def _fit_panels(self) -> None:
         """Levý i pravý panel napevno dle obsahu; prostřední bere zbytek.
 
-        Boky se roztáhnou přesně na obsah, dokud prostřednímu zbude aspoň
-        ~320 px; když by se nevešly, zmenší se poměrně (žádný ruční posuv).
+        Levý = šířka **stromu komisí** (ne PDF seznamu — ten může být širší
+        kvůli dlouhým názvům a eliduje se), aby za komisemi nebyla mezera.
+        Boky se zmenší poměrně, jen kdyby prostřednímu nezbylo ~320 px.
         """
         self.tree.expandAll()
         total = self.width() or 1400
-        lw = max(220, self._tree_width(self.tree), self._tree_width(self.pdf_tree))
+        lw = max(220, self._tree_width(self.tree))
         if getattr(self, "_harmonogram_has_rows", False):
             doc = self.harmonogram_view.document()
             doc.setTextWidth(-1)
@@ -1089,15 +1094,19 @@ def _schedule_section_html(entries: list[dict], heading: str,
             pnum = (f" <span style='color:{_MUTED};'>{escape(e['personal_number'])}</span>"
                     if e["personal_number"] else "")
             state = _defense_state_badge(states, e["personal_number"], e["student_name"])
-            # Nejbližší nadcházející slot: zvýraznit + odpočet „za X".
+            # Nejbližší nadcházející slot: zvýraznit jasným akcentem (čas + odpočet
+            # oranžově, tučně) — BEZ světlého pozadí, aby zůstal čitelný na tmavém.
             is_near = nearest is not None and nearest == (
                 e["date"], e["time"], e["personal_number"], e["student_name"])
-            row_bg = "background:#fff8e1;" if is_near else ""
-            cd = (f"<b style='color:#e65100;'>⏳ {escape(nearest_text)}</b>"
+            time_style = ("color:#ffa726;font-weight:bold;" if is_near
+                          else f"color:{_MUTED};")
+            cd = (f"<b style='color:#ffa726;'>⏳ {escape(nearest_text)}</b>"
                   if is_near and nearest_text else state)
+            arrow = "▶ " if is_near else ""
             out += (
-                f"<tr style='{row_bg}'>"
-                f"<td style='padding:2px 12px 2px 0;color:{_MUTED};'>{escape(e['time'])}</td>"
+                "<tr>"
+                f"<td style='padding:2px 12px 2px 0;{time_style}'>"
+                f"{arrow}{escape(e['time'])}</td>"
                 f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
                 f"<td style='padding:2px 4px;{style}'>{badge} "

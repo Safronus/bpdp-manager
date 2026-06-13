@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.19] - 2026-06-13
+
+### Fixed
+- **Levý panel: stabilní šířka dle stromu komisí.** Šířka se počítá jen
+  z obsahu stromu (``sizeHintForColumn``), takže za seznamem komisí už není
+  mezera a panel se s opakovaným klikáním nerozšiřuje (dřív zpětná vazba přes
+  ``columnWidth``). Dlouhé názvy PDF se elidují (plný název v tooltipu) místo
+  roztahování panelu.
+- **Čitelné zvýraznění nejbližší obhajoby.** Nejbližší řádek harmonogramu se
+  značí oranžovým časem „▶ HH:MM" a odpočtem „⏳ za X" (čitelné na světlém
+  i tmavém motivu) — bez světlého podbarvení řádku, které dělalo text na
+  tmavém motivu nečitelným.
+
 ## [2.5.18] - 2026-06-13
 
 ### Changed
