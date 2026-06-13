@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.11] - 2026-06-13
+
+### Changed
+- **Komise — chytřejší pravý panel.** Klik na **rok** nebo **stupeň (Bc/Mgr)**
+  ve stromu ukáže **přehled všech komisí** dané skupiny a pod ním **📅 Můj
+  harmonogram obhajob** pro daný rok (přepíná se podle vybraného roku). Po
+  otevření je vybraný nejnovější rok, takže přehled i harmonogram jsou hned
+  vidět. Klik na konkrétní komisi ukáže její složení a rozpis.
+
+### Fixed
+- **Komise — odstraněny staré „Zdrojová PDF" z detailu.** Stale rel-cesty se
+  špatnými názvy už ve detailu komise nevisí; zdrojová PDF jsou v panelu
+  „PDF souborů komisí" vlevo.
+
 ## [2.5.10] - 2026-06-13
 
 ### Added

@@ -1045,6 +1045,12 @@ sloupec **Termíny** ukazuje dny, kdy komise zasedá. Sloupec **Studenti V/O**
 ukazuje, kolik v komisi **vedeš** (modrý badge) a kolik **oponuješ** (červený
 badge). Šířka sloupců i panelu se přizpůsobí obsahu.
 
+Vpravo se podle výběru ve stromu mění obsah: klik na **rok** nebo **stupeň
+(Bc/Mgr)** ukáže **přehled všech komisí** dané skupiny a pod ním **📅 Můj
+harmonogram obhajob** pro daný rok; klik na **konkrétní komisi** ukáže její
+složení a rozpis. Po otevření je vybraný nejnovější rok (tedy rovnou přehled
++ harmonogram).
+
 - **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
   stupeň, členové, termíny) jsou součástí aplikace v souboru
   `resources/komise_szz.json` a **načtou se samy po startu**. Žádné jméno

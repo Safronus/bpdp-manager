@@ -43,6 +43,10 @@ ROLE_COMMITTEE_ID = Qt.ItemDataRole.UserRole + 1
 ROLE_VO = Qt.ItemDataRole.UserRole + 2
 #: Absolutní cesta k PDF v seznamu souborů (otevření z kontextového menu).
 ROLE_PDF_PATH = Qt.ItemDataRole.UserRole + 3
+#: Druh uzlu stromu: "year" / "level" / "committee".
+ROLE_KIND = Qt.ItemDataRole.UserRole + 4
+ROLE_YEAR = Qt.ItemDataRole.UserRole + 5
+ROLE_LEVEL = Qt.ItemDataRole.UserRole + 6
 
 #: Stupeň → pořadí a popisek skupiny ve stromu (Bc před Mgr).
 _LEVEL_ORDER = {"Bc": 0, "Mgr": 1}
@@ -294,6 +298,8 @@ class KomiseTab(QWidget):
             year_item = QTreeWidgetItem([f"📅 {year}", "", ""])
             _bold(year_item)
             year_item.setFirstColumnSpanned(True)
+            year_item.setData(0, ROLE_KIND, "year")
+            year_item.setData(0, ROLE_YEAR, year)
             self.tree.addTopLevelItem(year_item)
             # Skupina podle stupně (Bc/Mgr) a uvnitř podle oboru + barvy.
             by_level: dict[str, list] = {}
@@ -304,6 +310,9 @@ class KomiseTab(QWidget):
                 level_item = QTreeWidgetItem([f"📚 {tr(lvl_label)}", "", ""])
                 _bold(level_item)
                 level_item.setFirstColumnSpanned(True)
+                level_item.setData(0, ROLE_KIND, "level")
+                level_item.setData(0, ROLE_YEAR, year)
+                level_item.setData(0, ROLE_LEVEL, level)
                 year_item.addChild(level_item)
                 for c in sorted(by_level[level], key=lambda x: (x.obor, x.color)):
                     led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
@@ -316,6 +325,7 @@ class KomiseTab(QWidget):
                     leaf = QTreeWidgetItem([label, "", ", ".join(c.dates)])
                     leaf.setForeground(0, QBrush(QColor(committee_color_hex(c.color))))
                     leaf.setData(0, ROLE_COMMITTEE_ID, c.id)
+                    leaf.setData(0, ROLE_KIND, "committee")
                     leaf.setData(1, ROLE_VO, (led, opp))
                     leaf.setToolTip(
                         1, tr("Vedení: {led} · Oponované: {opp}").format(led=led, opp=opp)
@@ -331,7 +341,8 @@ class KomiseTab(QWidget):
         if selected:
             self._select_id(selected)
         elif self.tree.topLevelItemCount():
-            self._select_first_leaf()
+            # Defaultně nejnovější rok → přehled komisí + harmonogram.
+            self.tree.setCurrentItem(self.tree.topLevelItem(0))
         self._on_selected()
         self._refresh_pdf_list()
         self._fit_left_pane()
@@ -460,11 +471,6 @@ class KomiseTab(QWidget):
                 for k in range(level_item.childCount()):
                     yield level_item.child(k)
 
-    def _select_first_leaf(self) -> None:
-        leaf = next(self._iter_leaves(), None)
-        if leaf is not None:
-            self.tree.setCurrentItem(leaf)
-
     def _selected_id(self) -> str | None:
         items = self.tree.selectedItems()
         return items[0].data(0, ROLE_COMMITTEE_ID) if items else None
@@ -501,16 +507,75 @@ class KomiseTab(QWidget):
 
     # ── detail ───────────────────────────────────────────────────────────
     def _on_selected(self) -> None:
-        cid = self._selected_id()
-        committee = self.service.get_committee(cid) if cid else None
-        if committee is None:
-            self.detail.setHtml(
-                "<p style='color:#888;padding:18px;'>"
-                + tr("Vyber komisi vlevo, nebo importuj PDF s komisemi.")
-                + "</p>"
-            )
-            return
-        self.detail.setHtml(self._committee_html(committee))
+        items = self.tree.selectedItems()
+        item = items[0] if items else (
+            self.tree.topLevelItem(0) if self.tree.topLevelItemCount() else None
+        )
+        kind = item.data(0, ROLE_KIND) if item is not None else None
+        if kind == "committee":
+            c = self.service.get_committee(item.data(0, ROLE_COMMITTEE_ID))
+            self.detail.setHtml(self._committee_html(c) if c else self._empty_html())
+        elif kind in ("year", "level"):
+            self.detail.setHtml(self._overview_html(
+                item.data(0, ROLE_YEAR), item.data(0, ROLE_LEVEL)))
+        else:
+            self.detail.setHtml(self._empty_html())
+
+    @staticmethod
+    def _empty_html() -> str:
+        return ("<p style='color:#888;padding:18px;'>"
+                + tr("Vyber komisi, rok nebo stupeň vlevo, "
+                     "nebo importuj PDF rozpisu studentů.") + "</p>")
+
+    def _overview_html(self, year: str, level: str | None) -> str:
+        """Přehled všech komisí roku (nebo stupně) + harmonogram pro daný výběr."""
+        from html import escape
+
+        roles = self.service.komise_student_roles()
+        committees = [
+            c for c in self.service.list_committees()
+            if (c.academic_year or "(bez roku)") == year
+            and (level is None or c.level == level)
+        ]
+        title = f"📅 {escape(year)}"
+        if level:
+            title += " — " + escape(tr(_LEVEL_LABEL.get(level, level)))
+        out = f"<h2 style='margin:4px 0 8px;'>{title}</h2>"
+        by_level: dict[str, list] = {}
+        for c in committees:
+            by_level.setdefault(c.level or "", []).append(c)
+        for lv in sorted(by_level, key=lambda x: _LEVEL_ORDER.get(x, 9)):
+            if level is None:
+                out += (f"<h3 style='color:#ffa726;margin:12px 0 4px;'>📚 "
+                        f"{escape(tr(_LEVEL_LABEL.get(lv, lv or '(bez stupně)')))}</h3>")
+            out += "<table cellspacing='0'>"
+            for c in sorted(by_level[lv], key=lambda x: (x.obor, x.color)):
+                led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
+                opp = sum(1 for s in c.slots if self._slot_role(s, roles) == "opp")
+                dot = committee_color_hex(c.color)
+                obor = f" ({escape(c.obor)})" if c.obor else ""
+                star = " ⭐" if self._is_my_committee(c) else ""
+                vo = ""
+                if led:
+                    vo += f"<span style='color:#1565c0;'>🎓 {led}</span> "
+                if opp:
+                    vo += f"<span style='color:#4a148c;'>🧐 {opp}</span>"
+                out += (
+                    "<tr>"
+                    f"<td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
+                    f"<span style='color:{dot};'>●</span> {tr('Komise')} "
+                    f"{escape(c.color)}{obor}{star}</td>"
+                    f"<td style='padding:2px 14px 2px 0;color:#888;'>"
+                    f"{escape(', '.join(c.dates))}</td>"
+                    f"<td style='padding:2px 0;'>{vo}</td></tr>"
+                )
+            out += "</table>"
+        entries = [
+            e for e in self.service.my_defense_schedule()
+            if e["academic_year"] == year and (level is None or e["level"] == level)
+        ]
+        out += _schedule_section_html(entries, tr("📅 Můj harmonogram obhajob"))
+        return out
 
     #: Pevná šířka/výška rámečku role (px) — všechny role stejně široké.
     _ROLE_BADGE_W = 116
@@ -621,19 +686,9 @@ class KomiseTab(QWidget):
                         f"{escape(s.student_name)}{badge}</td></tr>"
                     )
                 sched_html += "</table>"
-        # Zdrojové PDF
-        files_html = ""
-        if c.source_files:
-            links = " · ".join(
-                f"<a href='file://{self.service.komise_pdf_path(rp)}'>"
-                f"{escape(Path(rp).name)}</a>"
-                for rp in c.source_files
-            )
-            files_html = (
-                f"<p style='color:#888;font-size:11px;margin-top:14px;'>"
-                f"{tr('Zdrojová PDF:')} {links}</p>"
-            )
-        return head + members_html + sched_html + files_html
+        # Pozn.: zdrojová PDF se zobrazují v panelu „PDF souborů komisí" vlevo
+        # (per rok), ne tady — staré rel-cesty se špatnými názvy už nevisí.
+        return head + members_html + sched_html
 
     # ── akce ─────────────────────────────────────────────────────────────
     def _show_my_schedule(self) -> None:
@@ -782,6 +837,58 @@ def _date_key(d: str):
     return (m.group(3), int(m.group(2)), int(m.group(1))) if m else ("9999", 99, 99)
 
 
+def _schedule_section_html(entries: list[dict], heading: str) -> str:
+    """HTML sekce harmonogramu (nadpis + počty + sloty po dnech).
+
+    Sdílí ji dialog *Můj harmonogram* i přehled roku/stupně v detailu.
+    Vstup ``entries`` je výstup ``ThesisService.my_defense_schedule`` (už
+    chronologicky seřazený), případně předfiltrovaný na rok/stupeň.
+    """
+    from html import escape
+
+    out = f"<h3 style='color:#ffa726;margin:14px 0 4px;'>{escape(heading)}</h3>"
+    if not entries:
+        return out + (
+            "<p style='color:#888;'>"
+            + tr("Zatím žádné obhajoby tvých studentů. Nahraj rozpisy "
+                 "studentů z PDF — vedené a oponované se sem doplní.")
+            + "</p>"
+        )
+    led = sum(1 for e in entries if e["role"] == "led")
+    opp = sum(1 for e in entries if e["role"] == "opp")
+    out += (
+        f"<p style='color:#888;margin:2px 0 8px;'>{len(entries)} {tr('obhajob')}"
+        f" &nbsp;·&nbsp; <span style='color:#1b5e20;'>🎓 {tr('vedené')} {led}</span>"
+        f" &nbsp; <span style='color:#4a148c;'>🧐 {tr('oponované')} {opp}</span></p>"
+    )
+    by_date: dict[str, list[dict]] = {}
+    for e in entries:
+        by_date.setdefault(e["date"] or "—", []).append(e)
+    for date in sorted(by_date, key=_date_key):
+        out += (f"<p style='margin:8px 0 2px;'><b>{escape(date)}</b></p>"
+                "<table cellspacing='0'>")
+        for e in by_date[date]:
+            dot = committee_color_hex(e["color"])
+            obor = f" ({escape(e['obor'])})" if e["obor"] else ""
+            place = f"{tr('Komise')} {escape(e['color'])}{obor}"
+            if e["role"] == "led":
+                badge, style = "🎓", "background:#c8e6c9;color:#1b5e20;"
+            else:
+                badge, style = "🧐", "background:#e1bee7;color:#4a148c;"
+            pnum = (f" <span style='color:#999;'>{escape(e['personal_number'])}</span>"
+                    if e["personal_number"] else "")
+            out += (
+                "<tr>"
+                f"<td style='padding:2px 12px 2px 0;color:#555;'>{escape(e['time'])}</td>"
+                f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
+                f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
+                f"<td style='padding:2px 4px;{style}'>{badge} "
+                f"{escape(e['student_name'])}{pnum}</td></tr>"
+            )
+        out += "</table>"
+    return out
+
+
 class MyScheduleDialog(QDialog):
     """Osobní harmonogram obhajob — kdy a kde obhajují moji studenti."""
 
@@ -792,62 +899,12 @@ class MyScheduleDialog(QDialog):
         lay = QVBoxLayout(self)
         view = QTextBrowser()
         view.setOpenExternalLinks(False)
-        view.setHtml(self._build_html(entries))
+        view.setHtml(_schedule_section_html(entries, tr("📅 Můj harmonogram obhajob")))
         lay.addWidget(view, stretch=1)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
         lay.addWidget(buttons)
-
-    @staticmethod
-    def _build_html(entries: list[dict]) -> str:
-        from html import escape
-
-        if not entries:
-            return (
-                "<p style='color:#888;padding:18px;'>"
-                + tr("Zatím žádné obhajoby tvých studentů. Nahraj rozpisy "
-                     "studentů z PDF — vedené a oponované se sem doplní.")
-                + "</p>"
-            )
-        led = sum(1 for e in entries if e["role"] == "led")
-        opp = sum(1 for e in entries if e["role"] == "opp")
-        head = (
-            f"<h2 style='margin:4px 0;'>📅 {tr('Můj harmonogram obhajob')}</h2>"
-            f"<p style='color:#888;margin:2px 0 10px 0;'>"
-            f"{len(entries)} {tr('obhajob')} &nbsp;·&nbsp; "
-            f"<span style='color:#1b5e20;'>🎓 {tr('vedené')} {led}</span> &nbsp; "
-            f"<span style='color:#4a148c;'>🧐 {tr('oponované')} {opp}</span></p>"
-        )
-        # Seskupení po dnech (vstup je už chronologicky seřazený).
-        by_date: dict[str, list[dict]] = {}
-        for e in entries:
-            by_date.setdefault(e["date"] or "—", []).append(e)
-        body = ""
-        for date in sorted(by_date, key=_date_key):
-            body += f"<h3 style='color:#ffa726;margin:14px 0 4px 0;'>{escape(date)}</h3>"
-            body += "<table cellspacing='0'>"
-            for e in by_date[date]:
-                dot = committee_color_hex(e["color"])
-                obor = f" ({escape(e['obor'])})" if e["obor"] else ""
-                place = f"{tr('Komise')} {escape(e['color'])}{obor}"
-                if e["role"] == "led":
-                    badge, style = "🎓", "background:#c8e6c9;color:#1b5e20;"
-                else:
-                    badge, style = "🧐", "background:#e1bee7;color:#4a148c;"
-                pnum = (f" <span style='color:#999;'>{escape(e['personal_number'])}</span>"
-                        if e["personal_number"] else "")
-                body += (
-                    "<tr>"
-                    f"<td style='padding:2px 12px 2px 0;color:#555;'>{escape(e['time'])}</td>"
-                    f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
-                    f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
-                    f"<td style='padding:2px 4px;{style}'>{badge} "
-                    f"{escape(e['student_name'])}{pnum}</td>"
-                    "</tr>"
-                )
-            body += "</table>"
-        return head + body
 
 
 class KomiseImportPreviewDialog(QDialog):

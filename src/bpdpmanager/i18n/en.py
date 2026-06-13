@@ -1189,6 +1189,9 @@ EN: dict[str, str] = {
     "Složení komisí": "Committee compositions",
     "PDF souborů komisí": "Committee PDF files",
     "📅 Můj harmonogram obhajob": "📅 My defence schedule",
+    "Vyber komisi, rok nebo stupeň vlevo, nebo importuj PDF rozpisu studentů.":
+        "Select a committee, year or level on the left, or import a student "
+        "schedule PDF.",
     "Můj harmonogram obhajob": "My defence schedule",
     "Chronologický přehled, kdy a kde obhajují studenti, které vedeš "
     "nebo oponuješ — tvůj osobní rozvrh u komisí.":
