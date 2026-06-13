@@ -296,6 +296,35 @@ def test_my_defense_schedule(service) -> None:
     assert sched[0]["personal_number"] == "A99"
 
 
+def test_upcoming_defense_reminders(service) -> None:
+    """Připomínka: sloty mých studentů začínající do 10 min od ``now``."""
+    from datetime import datetime
+
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+
+    service.load_komise_seed()
+    s = Student(first_name="Anna", last_name="Vedena", university_id="A10001")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2025/2026",
+                                 student_id=s.id, status=ThesisStatus.IN_PROGRESS))
+    service.apply_komise_import([], [
+        ParsedSchedule(color="červená", academic_year="2025/2026", level="Bc",
+                       obor="SWI", program_label="SWI", dates=["15. 6. 2026"],
+                       slots=[("15. 6. 2026", "09:00", "A10001", "Anna Vedena"),
+                              ("15. 6. 2026", "14:00", "A10001", "Anna Vedena")]),
+    ], ["x.pdf"])
+    # 8 minut před 09:00 → připomínka jen na 09:00.
+    rem = service.upcoming_defense_reminders(datetime(2026, 6, 15, 8, 52))
+    assert len(rem) == 1
+    assert rem[0]["time"] == "09:00" and rem[0]["minutes"] == 8
+    assert rem[0]["role"] == "led" and rem[0]["key"]
+    # Po začátku (09:05) už nic do 10 min dopředu.
+    assert service.upcoming_defense_reminders(datetime(2026, 6, 15, 9, 5)) == []
+    # Příliš brzy (08:40, 20 min předem) → ještě nic.
+    assert service.upcoming_defense_reminders(datetime(2026, 6, 15, 8, 40)) == []
+
+
 def test_pdf_descriptive_name() -> None:
     """Název PDF: prefix_<stupně>_<obory>_<rok>.pdf z naparsovaných položek."""
     from bpdpmanager.ui.komise_tab import KomiseTab

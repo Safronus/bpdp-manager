@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.12] - 2026-06-13
+
+### Added
+- **Připomínka 10 minut před obhajobou.** Když aplikace běží, 10 minut před
+  obhajobou tvého **vedeného / oponovaného** studenta (dle harmonogramu
+  komisí) vyskočí **oznámení** (systémová bublina, jinak okno) — kdo, kdy
+  a u které komise jde na řadu. Kontrola běží každou minutu; každý slot
+  oznámí jednou za běh aplikace.
+
 ## [2.5.11] - 2026-06-13
 
 ### Changed

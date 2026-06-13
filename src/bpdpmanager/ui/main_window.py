@@ -787,6 +787,70 @@ class MainWindow(QMainWindow):
         self._update_checker: object | None = None
         QTimer.singleShot(1500, self._start_update_check)
 
+        # Připomínka 10 min před obhajobou vedeného/oponovaného studenta
+        # (z harmonogramu komisí). Kontroluje se každou minutu; každý slot
+        # oznámí jen jednou za běh aplikace.
+        self._notified_defenses: set[str] = set()
+        self._defense_tray = None
+        self._defense_timer = QTimer(self)
+        self._defense_timer.setInterval(60_000)
+        self._defense_timer.timeout.connect(self._check_defense_reminders)
+        self._defense_timer.start()
+        QTimer.singleShot(2500, self._check_defense_reminders)
+
+    # --- připomínka obhajob (harmonogram komisí) -----------------------------
+
+    def _check_defense_reminders(self) -> None:
+        """Zkontroluje, jestli se blíží obhajoba mého studenta (do 10 min)."""
+        from datetime import datetime
+
+        try:
+            reminders = self.service.upcoming_defense_reminders(datetime.now())
+        except Exception:  # připomínka nikdy nesmí shodit aplikaci
+            return
+        new = [r for r in reminders if r["key"] not in self._notified_defenses]
+        if not new:
+            return
+        for r in new:
+            self._notified_defenses.add(r["key"])
+        self._notify_defenses(new)
+
+    def _notify_defenses(self, reminders: list) -> None:
+        lines = []
+        for r in reminders:
+            who = "🎓 " + tr("vedený") if r["role"] == "led" else "🧐 " + tr("oponovaný")
+            obor = f" ({r['obor']})" if r["obor"] else ""
+            mins = r.get("minutes", 0)
+            when = tr("za {n} min").format(n=mins) if mins > 0 else tr("nyní")
+            lines.append(
+                f"{who}: {r['student_name']} — {tr('Komise')} {r['color']}{obor}"
+                f" · {r['time']} ({when})"
+            )
+        title = (tr("Blíží se obhajoba ({n})").format(n=len(reminders))
+                 if len(reminders) > 1 else tr("Blíží se obhajoba"))
+        body = "\n".join(lines)
+        tray = self._ensure_defense_tray()
+        if tray is not None:
+            from PySide6.QtWidgets import QSystemTrayIcon
+            tray.showMessage(title, body, QSystemTrayIcon.MessageIcon.Information, 20000)
+        else:
+            QMessageBox.information(self, title, body)
+
+    def _ensure_defense_tray(self):
+        """Vrátí (a jednou vytvoří) systémovou ikonu pro oznámení, nebo None."""
+        from PySide6.QtWidgets import QSystemTrayIcon
+
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return None
+        if self._defense_tray is None:
+            self._defense_tray = QSystemTrayIcon(self.windowIcon(), self)
+            self._defense_tray.setToolTip("BPDPManager")
+            self._defense_tray.activated.connect(
+                lambda _r: (self.showNormal(), self.raise_(), self.activateWindow())
+            )
+            self._defense_tray.show()
+        return self._defense_tray
+
     # --- tichá kontrola aktualizací aplikace ---------------------------------
 
     def _start_update_check(self) -> None:

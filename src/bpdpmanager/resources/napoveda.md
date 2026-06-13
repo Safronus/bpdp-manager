@@ -1077,6 +1077,10 @@ složení a rozpis. Po otevření je vybraný nejnovější rok (tedy rovnou př
   **kdy a kde** obhajují studenti, které **vedeš** (🎓) i **oponuješ** (🧐).
   „Kde" je komise (barva + obor). Tvůj osobní rozvrh, kdy a u které komise máš
   být. Naplní se z naimportovaných rozpisů.
+- **Připomínka 10 minut předem.** Když aplikace běží, **10 minut před**
+  obhajobou tvého vedeného/oponovaného studenta (dle harmonogramu) vyskočí
+  **oznámení** (systémová bublina, jinak okno) s tím, kdo, kdy a u které
+  komise jde na řadu. Každý slot oznámí jednou za běh aplikace.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

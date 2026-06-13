@@ -3122,6 +3122,45 @@ class ThesisService:
         out.sort(key=lambda e: self._sched_sort_key(e["date"], e["time"]))
         return out
 
+    @staticmethod
+    def _parse_slot_dt(date: str, time: str):
+        """„15. 6. 2026" + „09:00" → datetime, nebo None když nejde rozparsovat."""
+        from datetime import datetime
+
+        md = re.search(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})", date or "")
+        mt = re.search(r"(\d{1,2}):(\d{2})", time or "")
+        if not (md and mt):
+            return None
+        try:
+            return datetime(int(md.group(3)), int(md.group(2)), int(md.group(1)),
+                            int(mt.group(1)), int(mt.group(2)))
+        except ValueError:
+            return None
+
+    def upcoming_defense_reminders(self, now, within_minutes: int = 10) -> list[dict]:
+        """Obhajoby mých studentů začínající **do ``within_minutes`` minut**.
+
+        Vrací položky harmonogramu (vedené/oponované), jejichž čas spadá do
+        intervalu ⟨``now``, ``now`` + ``within_minutes``⟩ — pro připomínku „za
+        10 minut jdeš ke komisi". Každá položka má navíc ``minutes`` (kolik
+        zbývá) a ``key`` (stabilní identifikátor slotu pro deduplikaci
+        oznámení). ``now`` se předává zvenčí (kvůli testovatelnosti).
+        """
+        out: list[dict] = []
+        for e in self.my_defense_schedule():
+            dt = self._parse_slot_dt(e["date"], e["time"])
+            if dt is None:
+                continue
+            delta = (dt - now).total_seconds()
+            if 0 <= delta <= within_minutes * 60:
+                out.append({
+                    **e,
+                    "minutes": int(delta // 60),
+                    "key": f"{e['date']}|{e['time']}|{e['personal_number']}"
+                           f"|{e['student_name']}|{e['role']}",
+                })
+        return out
+
     def ensure_stag_urls(self) -> int:
         """Doplní chybějící odkaz na STAG u prací se známým STAG ID.
 

@@ -951,6 +951,11 @@ overview + schedule right away).
   **when and where** the students you **supervise** (🎓) and **oppose** (🧐)
   defend. "Where" is the committee (colour + programme). Your personal
   timetable of when and at which committee to be. Filled from imported schedules.
+- **10-minute reminder.** While the app is running, **10 minutes before** a
+  defence of your supervised/opposed student (per the schedule) a
+  **notification** pops up (system tray bubble, otherwise a window) telling
+  you who, when and at which committee is up. Each slot is announced once per
+  app run.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing
