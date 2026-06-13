@@ -319,6 +319,39 @@ def test_my_defense_schedule(service) -> None:
     assert sched[0]["personal_number"] == "A99"
 
 
+def test_future_year_shows_no_composition_notice(service) -> None:
+    """Rok bez kurátorovaného složení (jen import rozpisu) → upozornění."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.ui.komise_tab import ROLE_YEAR, KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    service.apply_komise_import([], [
+        ParsedSchedule(color="modrá", academic_year="2026/2027", level="Bc",
+                       obor="SWI", program_label="SWI", dates=["15. 6. 2027"],
+                       slots=[("15. 6. 2027", "09:00", "A1", "X Y")]),
+    ], ["x.pdf"])
+    tab = KomiseTab(service)
+
+    def select_year(y):
+        for i in range(tab.tree.topLevelItemCount()):
+            it = tab.tree.topLevelItem(i)
+            if it.data(0, ROLE_YEAR) == y:
+                tab.tree.setCurrentItem(it)
+                return it
+        return None
+
+    yr = select_year("2026/2027")
+    assert "zatím není v aplikaci" in tab.detail.toPlainText()   # přehled roku
+    leaf = yr.child(0).child(0)
+    tab.tree.setCurrentItem(leaf)
+    assert "zatím není v aplikaci" in tab.detail.toPlainText()   # detail komise
+    # Rok se seed složením → žádné upozornění.
+    select_year("2025/2026")
+    assert "zatím není v aplikaci" not in tab.detail.toPlainText()
+
+
 def test_committee_detail_shows_source_pdf(service, tmp_path) -> None:
     """Detail komise ukáže zdrojový rozpis PDF (jen existující, s názvem)."""
     from PySide6.QtWidgets import QApplication

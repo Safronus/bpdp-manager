@@ -1111,6 +1111,13 @@ ze kterého se sloty načetly. Po otevření je vybraný nejnovější rok.
 > rozpisem (sloty studentů), takže funguje hned, jakmile rozpis naimportuješ
 > (osobní číslo Axxxxx pro vedené, jméno pro oponované).
 
+> **Další akademický rok:** složení komisí je **veřejná data dodaná
+> s aplikací** (`komise_szz.json`) — pro nový rok se objeví až **aktualizací
+> aplikace**. Rozpisy studentů nahraješ z PDF kdykoli; když pro daný rok
+> složení ještě není v aplikaci, ukáže se **upozornění** „složení komisí pro
+> tento rok zatím není v aplikaci" (komise i tak fungují pro rozpis
+> a zvýraznění, jen bez seznamu členů).
+
 ---
 
 ## Jazyk aplikace (CZ / EN)

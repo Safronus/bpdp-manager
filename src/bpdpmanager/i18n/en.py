@@ -1197,6 +1197,14 @@ EN: dict[str, str] = {
         "download (a general link, the same every year).",
     "📅 Můj harmonogram obhajob": "📅 My defence schedule",
     "Zdrojový rozpis (PDF):": "Source schedule (PDF):",
+    "Složení této komise zatím není v aplikaci - bude doplněno "
+    "aktualizací aplikace (nebo nahraj PDF složení komisí).":
+        "This committee's composition is not in the app yet - it will be added "
+        "by an app update (or import the committee-composition PDF).",
+    "Složení komisí pro tento rok zatím není v aplikaci - "
+    "bude doplněno aktualizací aplikace.":
+        "Committee compositions for this year are not in the app yet - they "
+        "will be added by an app update.",
     "Vyber komisi, rok nebo stupeň vlevo, nebo importuj PDF rozpisu studentů.":
         "Select a committee, year or level on the left, or import a student "
         "schedule PDF.",

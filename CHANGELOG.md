@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.17] - 2026-06-13
+
+### Added
+- **Komise — upozornění pro rok bez složení.** Když pro akademický rok ještě
+  není v aplikaci kurátorované složení komisí (typicky nový rok, kde máš jen
+  naimportovaný rozpis studentů), ukáže se v přehledu roku i v detailu komise
+  **upozornění**, že složení bude doplněno aktualizací aplikace. Komise i tak
+  fungují pro rozpis a zvýraznění, jen bez seznamu členů.
+
 ## [2.5.16] - 2026-06-13
 
 ### Fixed

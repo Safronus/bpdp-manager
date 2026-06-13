@@ -624,6 +624,15 @@ class KomiseTab(QWidget):
             title += " — " + escape(tr(_LEVEL_LABEL.get(level, level)))
         # Levá část: přehled komisí (po stupních); pravá část: harmonogram.
         left = f"<h3 style='color:#ffa726;margin:4px 0 4px;'>{tr('Komise')}</h3>"
+        # Rok bez kurátorovaného složení (jen z importu rozpisů) → upozornění.
+        if committees and not any(c.from_seed for c in committees):
+            left += (
+                "<p style='background:#fff3e0;color:#e65100;padding:6px 10px;"
+                "border-radius:6px;'>⚠ "
+                + tr("Složení komisí pro tento rok zatím není v aplikaci - "
+                     "bude doplněno aktualizací aplikace.")
+                + "</p>"
+            )
         by_level: dict[str, list] = {}
         for c in committees:
             by_level.setdefault(c.level or "", []).append(c)
@@ -729,6 +738,16 @@ class KomiseTab(QWidget):
             + (" &nbsp;·&nbsp; " + escape(", ".join(c.dates)) if c.dates else "")
             + "</p>"
         )
+        # Upozornění pro rok, jehož složení komisí ještě není v aplikaci
+        # (komise vznikla jen z importovaného rozpisu, bez členů).
+        if not c.members:
+            head += (
+                "<p style='background:#fff3e0;color:#e65100;padding:6px 10px;"
+                "border-radius:6px;'>⚠ "
+                + tr("Složení této komise zatím není v aplikaci - bude doplněno "
+                     "aktualizací aplikace (nebo nahraj PDF složení komisí).")
+                + "</p>"
+            )
         # Složení — role jako zaoblené rámečky stejné šířky (PNG, protože
         # border-radius v QTextBrowser HTML nefunguje); text na střed.
         rows = ""

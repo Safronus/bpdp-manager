@@ -989,6 +989,13 @@ year is selected.
 > (student slots), so it kicks in as soon as you import the schedule (personal
 > number Axxxxx for supervised, name for opposed).
 
+> **Next academic year:** committee composition is **public data shipped with
+> the app** (`komise_szz.json`) — for a new year it appears only via an **app
+> update**. You can import student schedules anytime; if the composition for
+> that year isn't in the app yet, a **notice** is shown ("committee
+> compositions for this year are not in the app yet") — committees still work
+> for the schedule and highlighting, just without the member list.
+
 ---
 
 ## Application language (CZ / EN)
