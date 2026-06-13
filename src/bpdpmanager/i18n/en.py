@@ -1196,6 +1196,7 @@ EN: dict[str, str] = {
         "Opens the FAI page with committee-composition and schedule PDFs to "
         "download (a general link, the same every year).",
     "📅 Můj harmonogram obhajob": "📅 My defence schedule",
+    "Zdrojový rozpis (PDF):": "Source schedule (PDF):",
     "Vyber komisi, rok nebo stupeň vlevo, nebo importuj PDF rozpisu studentů.":
         "Select a committee, year or level on the left, or import a student "
         "schedule PDF.",

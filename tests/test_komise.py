@@ -319,6 +319,37 @@ def test_my_defense_schedule(service) -> None:
     assert sched[0]["personal_number"] == "A99"
 
 
+def test_committee_detail_shows_source_pdf(service, tmp_path) -> None:
+    """Detail komise ukáže zdrojový rozpis PDF (jen existující, s názvem)."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.config import komise_dir
+    from bpdpmanager.ui.komise_tab import ROLE_COMMITTEE_ID, KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    src = tmp_path / "s.pdf"
+    src.write_bytes(b"%PDF")
+    rel = service.komise_store_pdf(src, "2025/2026",
+                                   name="rozpis-studentu_Bc_SWI_2025-2026.pdf",
+                                   kind="rozpisy")
+    assert (komise_dir() / rel).exists()
+    service.apply_komise_import([], [
+        ParsedSchedule(color="červená", academic_year="2025/2026", level="Bc",
+                       obor="SWI", program_label="SWI", dates=["15. 6. 2026"],
+                       slots=[("15. 6. 2026", "09:00", "A1", "X Y")]),
+    ], [rel])
+    tab = KomiseTab(service)
+    target = next(c for c in service.list_committees()
+                  if c.color == "červená" and c.level == "Bc")
+    leaf = next(lf for lf in tab._iter_leaves()
+                if lf.data(0, ROLE_COMMITTEE_ID) == target.id)
+    tab.tree.setCurrentItem(leaf)
+    txt = tab.detail.toPlainText()
+    assert "Zdrojový rozpis" in txt
+    assert "rozpis-studentu_Bc_SWI_2025-2026.pdf" in txt
+
+
 def test_committee_period_and_state_badge(service) -> None:
     """Období státnic (rozmezí termínů) + badge stavu obhajoby v rozpisu."""
     from datetime import date

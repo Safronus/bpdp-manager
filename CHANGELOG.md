@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.16] - 2026-06-13
+
+### Fixed
+- **Komise — čitelnost na tmavém motivu.** Datumy, časy, osobní čísla a počty
+  vedené/oponované v přehledu i harmonogramu používaly tmavé barvy nečitelné
+  na tmavém pozadí; nově jsou v odstínech čitelných na světlém i tmavém.
+- **Detail komise opět ukazuje zdrojový rozpis (PDF)** — který soubor
+  z „Rozpisy studentů" byl pro komisi použit (jen existující, s aktuálním
+  názvem a proklikem).
+
+### Changed
+- **Přehled roku/stupně je dvousloupcový** — vlevo komise, vpravo
+  **📅 Můj harmonogram obhajob** jako samostatná sekce (oddělená čárou, ať
+  není přilepený ke komisím).
+
 ## [2.5.15] - 2026-06-13
 
 ### Changed

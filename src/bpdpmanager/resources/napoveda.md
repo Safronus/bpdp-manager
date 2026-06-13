@@ -1047,10 +1047,10 @@ ukazuje, kolik v komisi **vedeš** (modrý badge) a kolik **oponuješ** (červen
 badge). Šířka sloupců i panelu se přizpůsobí obsahu.
 
 Vpravo se podle výběru ve stromu mění obsah: klik na **rok** nebo **stupeň
-(Bc/Mgr)** ukáže **přehled všech komisí** dané skupiny a pod ním **📅 Můj
-harmonogram obhajob** pro daný rok; klik na **konkrétní komisi** ukáže její
-složení a rozpis. Po otevření je vybraný nejnovější rok (tedy rovnou přehled
-+ harmonogram).
+(Bc/Mgr)** ukáže **dvousloupcový přehled** — vlevo všechny komise dané skupiny,
+vpravo (oddělená sekce) **📅 Můj harmonogram obhajob** pro daný rok; klik na
+**konkrétní komisi** ukáže její složení, rozpis a **zdrojový rozpis (PDF)**,
+ze kterého se sloty načetly. Po otevření je vybraný nejnovější rok.
 
 - **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
   stupeň, členové, termíny) jsou součástí aplikace v souboru

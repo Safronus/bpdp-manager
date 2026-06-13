@@ -93,11 +93,16 @@ def _fold(s: str) -> str:
     return "".join(c for c in nfd if not unicodedata.combining(c)).lower().strip()
 
 
+#: Barvy textu čitelné na světlém i tmavém pozadí (panel detailu může být tmavý).
+_MUTED = "#9aa0a6"     # sekundární text (datum, čas, osobní číslo)
+_C_LED = "#43a047"     # vedené (zelená)
+_C_OPP = "#ab47bc"     # oponované (fialová)
+
 #: STAG stav obhajoby → (emoji, popisek, barva) pro badge v rozpisu.
 _STATE_BADGE = {
-    "defended": ("✅", "Obhájeno", "#1b5e20"),
-    "failed": ("❌", "Neobhájeno", "#b71c1c"),
-    "cancelled": ("⚠", "Nedokončeno", "#e65100"),
+    "defended": ("✅", "Obhájeno", "#43a047"),
+    "failed": ("❌", "Neobhájeno", "#ef5350"),
+    "cancelled": ("⚠", "Nedokončeno", "#ffa726"),
 }
 
 
@@ -600,7 +605,7 @@ class KomiseTab(QWidget):
 
     @staticmethod
     def _empty_html() -> str:
-        return ("<p style='color:#888;padding:18px;'>"
+        return (f"<p style='color:{_MUTED};padding:18px;'>"
                 + tr("Vyber komisi, rok nebo stupeň vlevo, "
                      "nebo importuj PDF rozpisu studentů.") + "</p>")
 
@@ -617,15 +622,17 @@ class KomiseTab(QWidget):
         title = f"📅 {escape(year)}"
         if level:
             title += " — " + escape(tr(_LEVEL_LABEL.get(level, level)))
-        out = f"<h2 style='margin:4px 0 8px;'>{title}</h2>"
+        # Levá část: přehled komisí (po stupních); pravá část: harmonogram.
+        left = f"<h3 style='color:#ffa726;margin:4px 0 4px;'>{tr('Komise')}</h3>"
         by_level: dict[str, list] = {}
         for c in committees:
             by_level.setdefault(c.level or "", []).append(c)
         for lv in sorted(by_level, key=lambda x: _LEVEL_ORDER.get(x, 9)):
             if level is None:
-                out += (f"<h3 style='color:#ffa726;margin:12px 0 4px;'>📚 "
-                        f"{escape(tr(_LEVEL_LABEL.get(lv, lv or '(bez stupně)')))}</h3>")
-            out += "<table cellspacing='0'>"
+                left += (f"<p style='margin:10px 0 2px;'><b>📚 "
+                         f"{escape(tr(_LEVEL_LABEL.get(lv, lv or '(bez stupně)')))}"
+                         f"</b></p>")
+            left += "<table cellspacing='0'>"
             for c in sorted(by_level[lv], key=lambda x: (x.obor, x.color)):
                 led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
                 opp = sum(1 for s in c.slots if self._slot_role(s, roles) == "opp")
@@ -634,26 +641,35 @@ class KomiseTab(QWidget):
                 star = " ⭐" if self._is_my_committee(c) else ""
                 vo = ""
                 if led:
-                    vo += f"<span style='color:#1565c0;'>🎓 {led}</span> "
+                    vo += f"<span style='color:{_C_LED};'>🎓 {led}</span> "
                 if opp:
-                    vo += f"<span style='color:#4a148c;'>🧐 {opp}</span>"
-                out += (
+                    vo += f"<span style='color:{_C_OPP};'>🧐 {opp}</span>"
+                left += (
                     "<tr>"
                     f"<td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
                     f"<span style='color:{dot};'>●</span> {tr('Komise')} "
                     f"{escape(c.color)}{obor}{star}</td>"
-                    f"<td style='padding:2px 14px 2px 0;color:#888;'>"
+                    f"<td style='padding:2px 14px 2px 0;color:{_MUTED};'>"
                     f"{escape(', '.join(c.dates))}</td>"
                     f"<td style='padding:2px 0;'>{vo}</td></tr>"
                 )
-            out += "</table>"
+            left += "</table>"
         entries = [
             e for e in self.service.my_defense_schedule()
             if e["academic_year"] == year and (level is None or e["level"] == level)
         ]
-        out += _schedule_section_html(entries, tr("📅 Můj harmonogram obhajob"),
-                                      self._stag_states)
-        return out
+        right = _schedule_section_html(entries, tr("📅 Můj harmonogram obhajob"),
+                                       self._stag_states)
+        # Dvousloupcové rozložení: komise vlevo, harmonogram jako samostatná
+        # pravá sekce (oddělená čárou, ať není přilepený).
+        return (
+            f"<h2 style='margin:4px 0 8px;'>{title}</h2>"
+            "<table width='100%' cellspacing='0'><tr>"
+            f"<td valign='top' style='padding-right:22px;'>{left}</td>"
+            f"<td valign='top' style='border-left:1px solid {_MUTED};"
+            f"padding-left:22px;'>{right}</td>"
+            "</tr></table>"
+        )
 
     #: Pevná šířka/výška rámečku role (px) — všechny role stejně široké.
     _ROLE_BADGE_W = 116
@@ -709,7 +725,7 @@ class KomiseTab(QWidget):
             f"<h2 style='margin:4px 0;'><span style='color:{hexcol};'>●</span> "
             f"{escape(c.display_name)}"
             + (" ⭐" if self._is_my_committee(c) else "") + "</h2>"
-            f"<p style='color:#888;margin:2px 0 10px 0;'>{escape(c.academic_year)}"
+            f"<p style='color:{_MUTED};margin:2px 0 10px 0;'>{escape(c.academic_year)}"
             + (" &nbsp;·&nbsp; " + escape(", ".join(c.dates)) if c.dates else "")
             + "</p>"
         )
@@ -758,18 +774,30 @@ class KomiseTab(QWidget):
                     state = _defense_state_badge(
                         self._stag_states, s.personal_number, s.student_name)
                     sched_html += (
-                        f"<tr><td style='padding:1px 12px 1px 0;color:#888;'>"
+                        f"<tr><td style='padding:1px 12px 1px 0;color:{_MUTED};'>"
                         f"{escape(s.time)}</td>"
-                        f"<td style='padding:1px 12px 1px 0;color:#888;'>"
+                        f"<td style='padding:1px 12px 1px 0;color:{_MUTED};'>"
                         f"{escape(s.personal_number)}</td>"
                         f"<td style='padding:1px 4px;{style}'>"
                         f"{escape(s.student_name)}{badge}</td>"
                         f"<td style='padding:1px 0 1px 8px;'>{state}</td></tr>"
                     )
                 sched_html += "</table>"
-        # Pozn.: zdrojová PDF se zobrazují v panelu „PDF souborů komisí" vlevo
-        # (per rok), ne tady — staré rel-cesty se špatnými názvy už nevisí.
-        return head + members_html + sched_html
+        # Zdrojový rozpis (PDF, ze kterého se sloty načetly) — jen existující
+        # soubory, s aktuálními (přejmenovanými) názvy a proklikem.
+        files_html = ""
+        existing = [rp for rp in c.source_files
+                    if self.service.komise_pdf_path(rp).exists()]
+        if existing:
+            links = " · ".join(
+                f"<a href='file://{self.service.komise_pdf_path(rp)}'>"
+                f"{escape(Path(rp).name)}</a>" for rp in existing
+            )
+            files_html = (
+                f"<p style='color:{_MUTED};font-size:11px;margin-top:14px;'>"
+                f"{tr('Zdrojový rozpis (PDF):')} {links}</p>"
+            )
+        return head + members_html + sched_html + files_html
 
     # ── akce ─────────────────────────────────────────────────────────────
     def _show_my_schedule(self) -> None:
@@ -933,7 +961,7 @@ def _schedule_section_html(entries: list[dict], heading: str,
     out = f"<h3 style='color:#ffa726;margin:14px 0 4px;'>{escape(heading)}</h3>"
     if not entries:
         return out + (
-            "<p style='color:#888;'>"
+            f"<p style='color:{_MUTED};'>"
             + tr("Zatím žádné obhajoby tvých studentů. Nahraj rozpisy "
                  "studentů z PDF — vedené a oponované se sem doplní.")
             + "</p>"
@@ -941,9 +969,9 @@ def _schedule_section_html(entries: list[dict], heading: str,
     led = sum(1 for e in entries if e["role"] == "led")
     opp = sum(1 for e in entries if e["role"] == "opp")
     out += (
-        f"<p style='color:#888;margin:2px 0 8px;'>{len(entries)} {tr('obhajob')}"
-        f" &nbsp;·&nbsp; <span style='color:#1b5e20;'>🎓 {tr('vedené')} {led}</span>"
-        f" &nbsp; <span style='color:#4a148c;'>🧐 {tr('oponované')} {opp}</span></p>"
+        f"<p style='color:{_MUTED};margin:2px 0 8px;'>{len(entries)} {tr('obhajob')}"
+        f" &nbsp;·&nbsp; <span style='color:{_C_LED};'>🎓 {tr('vedené')} {led}</span>"
+        f" &nbsp; <span style='color:{_C_OPP};'>🧐 {tr('oponované')} {opp}</span></p>"
     )
     by_date: dict[str, list[dict]] = {}
     for e in entries:
@@ -959,12 +987,12 @@ def _schedule_section_html(entries: list[dict], heading: str,
                 badge, style = "🎓", "background:#c8e6c9;color:#1b5e20;"
             else:
                 badge, style = "🧐", "background:#e1bee7;color:#4a148c;"
-            pnum = (f" <span style='color:#999;'>{escape(e['personal_number'])}</span>"
+            pnum = (f" <span style='color:{_MUTED};'>{escape(e['personal_number'])}</span>"
                     if e["personal_number"] else "")
             state = _defense_state_badge(states, e["personal_number"], e["student_name"])
             out += (
                 "<tr>"
-                f"<td style='padding:2px 12px 2px 0;color:#555;'>{escape(e['time'])}</td>"
+                f"<td style='padding:2px 12px 2px 0;color:{_MUTED};'>{escape(e['time'])}</td>"
                 f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
                 f"<td style='padding:2px 4px;{style}'>{badge} "
