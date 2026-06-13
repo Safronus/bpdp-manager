@@ -60,12 +60,15 @@ def test_pane_hidden_until_selection_then_collapsible(qapp, service) -> None:
     assert not tab.detail.isVisible()
     assert tab.detail_pane.isVisible()
 
-    # Přepnutí na jinou práci sbalení drží.
+    # Překreslení TÉŽE práce (refresh/autosave) sbalení respektuje.
     tab._on_thesis_selected(t.id)
     assert tab.detail_pane.collapsed and not tab.detail.isVisible()
 
-    # Rozbalení.
-    tab.detail_pane.btn_toggle.setChecked(True)
+    # Výběr JINÉ práce po sbalení → detail se automaticky rozbalí.
+    t2 = _make_thesis(service)
+    tab.tree.refresh()
+    tab._on_thesis_selected(t2.id)
+    assert not tab.detail_pane.collapsed
     assert tab.detail.isVisible()
     tab.hide()
 

@@ -203,8 +203,10 @@ Every thesis tab (supervised, future, History, *All* and 🧐 opposed) has the
   the full tab height (no empty area with a hint message).
 - Selecting a thesis opens the detail. The thin **"Thesis detail" bar**
   above it **collapses the detail downwards** (only the bar remains) —
-  handy when browsing long lists (History, All). Clicking the bar again
-  expands it; the collapsed state **persists** while switching theses.
+  handy when browsing long lists (History, All). **Clicking a different
+  thesis after collapsing re-expands the detail** (collapsing is for
+  browsing — once you pick a thesis, it shows). Re-rendering the same thesis
+  (save/refresh) keeps it collapsed; the bar also toggles it manually.
 
 ### 🔍 Search and navigation
 Type a **student name**, **thesis title** or **personal number (Axxxxx)** into

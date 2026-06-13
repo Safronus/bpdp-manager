@@ -7,7 +7,9 @@ Chování (stejné pro vedené, budoucí, historické, „Vše" i oponované):
 - **S vybranou prací** se nad detailem ukáže tenká lišta se šipkou; kliknutím
   se detail **sbalí dolů** (zůstane jen lišta) a seznam získá místo — hodí
   se při listování dlouhými seznamy (Historie, Vše). Dalším kliknutím se
-  detail zase rozbalí. Stav sbalení se drží i při přepínání prací.
+  detail zase rozbalí. **Když po sbalení vybereš JINOU práci, detail se
+  automaticky rozbalí** (sbalení je na listování; jakmile si práci vybereš,
+  ukáže se). Překreslení téže práce (autosave, refresh) sbalení respektuje.
 
 Panel se vkládá do vertikálního ``QSplitter`` místo samotného detailu;
 velikosti splitteru si při sbalení/rozbalení sám uloží a obnoví.
@@ -30,6 +32,7 @@ class CollapsibleDetailPane(QWidget):
         self.detail = detail
         self._collapsed = False
         self._saved_sizes: list[int] | None = None
+        self._last_id = ""
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -64,14 +67,25 @@ class CollapsibleDetailPane(QWidget):
 
     # --- API pro záložky -----------------------------------------------------
 
-    def set_has_selection(self, has: bool) -> None:
-        """Zobrazí/skryje celý panel podle toho, jestli je vybraná práce."""
-        if has and not self.isVisible():
-            self.show()
-            # Respektuj případné dřívější sbalení uživatelem.
-            self.detail.setVisible(not self._collapsed)
-        elif not has:
+    def set_content(self, work_id: str) -> None:
+        """Zobrazí/skryje panel podle výběru (``work_id`` = id práce, "" = nic).
+
+        Když je panel sbalený a vybere se **jiná** práce, detail se znovu
+        **rozbalí** (sbalení slouží k listování). Překreslení téže práce
+        (autosave / refresh) sbalení respektuje.
+        """
+        if not work_id:
             self.hide()
+            self._last_id = ""
+            return
+        changed = work_id != self._last_id
+        self._last_id = work_id
+        if not self.isVisible():
+            self.show()
+        if changed and self._collapsed:
+            self.btn_toggle.setChecked(True)   # jiná práce → rozbal (přes _on_toggled)
+        else:
+            self.detail.setVisible(not self._collapsed)
 
     @property
     def collapsed(self) -> bool:

@@ -146,9 +146,9 @@ class ThesisDetail(QWidget):
     # Detail panel sám dialog neumí instancovat (kruhový import), proto
     # signal a MainWindow ho odchytí.
     generate_review_requested = Signal(str)  # thesis id
-    # True = zobrazená práce, False = prázdno — sbalitelný panel
-    # (CollapsibleDetailPane) podle toho skrývá celou sekci detailu.
-    content_changed = Signal(bool)
+    # Id zobrazené práce ("" = prázdno) — sbalitelný panel (CollapsibleDetailPane)
+    # podle toho skrývá sekci detailu a po sbalení rozbalí při výběru JINÉ práce.
+    content_changed = Signal(str)
 
     AUTOSAVE_DEBOUNCE_MS = 1500
     AUTOSAVE_SAFETY_MS = 30_000
@@ -763,7 +763,7 @@ class ThesisDetail(QWidget):
         if thesis is None:
             self._show_empty()
             self._update_save_state_label(idle=True)
-            self.content_changed.emit(False)
+            self.content_changed.emit("")
             return
         # Doplň chybějící známky i zpětně (z in-app posudku / nahraného PDF) —
         # užitečné u historických prací s posudkem jen jako PDF.
@@ -771,7 +771,7 @@ class ThesisDetail(QWidget):
         if synced is not None:
             self.thesis = thesis = synced
         self._show_form()
-        self.content_changed.emit(True)
+        self.content_changed.emit(thesis.id)
 
         self._loading = True
         try:

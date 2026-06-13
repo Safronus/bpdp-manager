@@ -236,8 +236,10 @@ Každá záložka s pracemi (vedené, budoucí, Historie, *Vše* i 🧐 oponovan
   záložky (žádný prázdný prostor s hláškou).
 - Po výběru práce se detail otevře. **Tenkou lištou „Detail práce"** nad ním
   ho lze kdykoli **sbalit dolů** (zůstane jen lišta) — hodí se při listování
-  dlouhými seznamy (Historie, Vše). Dalším kliknutím na lištu se detail zase
-  rozbalí; **stav sbalení se drží** i při přepínání prací v seznamu.
+  dlouhými seznamy (Historie, Vše). **Když po sbalení klikneš na jinou práci,
+  detail se automaticky rozbalí** (sbalení je na listování — jakmile si práci
+  vybereš, ukáže se). Překreslení téže práce (uložení, obnova) sbalení
+  respektuje; dalším kliknutím na lištu detail ručně rozbalíš/sbalíš.
 
 ### 🔍 Vyhledávání a navigace
 Do pole nad záložkami napiš **jméno studenta**, **název práce** nebo

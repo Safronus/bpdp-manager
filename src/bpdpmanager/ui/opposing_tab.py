@@ -160,7 +160,7 @@ class OpposingTab(QWidget):
         self.detail_pane = CollapsibleDetailPane(
             self.detail, title="Detail oponované práce"
         )
-        self.detail.content_changed.connect(self.detail_pane.set_has_selection)
+        self.detail.content_changed.connect(self.detail_pane.set_content)
         splitter.addWidget(self.detail_pane)
 
         splitter.setSizes([260, 640])

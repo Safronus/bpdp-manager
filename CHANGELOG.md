@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.22] - 2026-06-13
+
+### Changed
+- **Sbalený detail práce se rozbalí při výběru jiné práce.** V záložkách se
+  seznamem prací (vedené/budoucí/historie/vše/oponované): po sbalení detailu
+  se kliknutím na **jinou** práci detail **automaticky znovu rozbalí** (sbalení
+  je na listování — jakmile práci vybereš, ukáže se). Překreslení téže práce
+  (autosave/refresh) sbalení respektuje.
+
 ## [2.5.21] - 2026-06-13
 
 ### Changed

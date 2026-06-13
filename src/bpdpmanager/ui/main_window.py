@@ -178,7 +178,7 @@ class _ThesesTab(QWidget):
         # Sbalitelný spodní panel: bez vybrané práce skrytý (seznam má celou
         # výšku), s výběrem jde lištou sbalit dolů — viz collapsible_pane.
         self.detail_pane = CollapsibleDetailPane(self.detail)
-        self.detail.content_changed.connect(self.detail_pane.set_has_selection)
+        self.detail.content_changed.connect(self.detail_pane.set_content)
 
         splitter.addWidget(self.tree)
         splitter.addWidget(self.detail_pane)
