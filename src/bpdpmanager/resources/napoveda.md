@@ -1062,6 +1062,14 @@ panel 📅 Můj harmonogram obhajob** — vždy kompletní pro **vybraný rok**
 (default aktuální), **nezávislý na vybrané komisi**; šířka opět dle obsahu.
 U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **odpočet**
 („za X min", živě). Po otevření je vybraný aktuální akademický rok.
+Tlačítkem **📆 Přidat do kalendáře** (nad harmonogramem) exportuješ
+**nadcházející** obhajoby vybraného roku do kalendáře: v dialogu zvolíš
+vedené/oponované (defaultně obojí), připomínku (defaultně **15 min předem**)
+a cílový kalendář — **Apple Kalendář** / **Outlook** (otevřou `.ics` rovnou),
+**Google** (uloží `.ics` do *Downloads*, zobrazí ho ve Finderu a otevře
+stránku importu Google Kalendáře) nebo **jen uložit soubor `.ics`**. Délka
+události se řídí stupněm: **Bc 45 min, Mgr 60 min**; místo = komise (barva +
+obor); místnost se neeviduje.
 
 - **Složení komisí je předpřipravené** — **veřejná data** (barva, obor,
   stupeň, členové, termíny) jsou součástí aplikace v souboru

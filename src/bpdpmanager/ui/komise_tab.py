@@ -16,6 +16,7 @@ from PySide6.QtCore import QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -324,6 +325,13 @@ class KomiseTab(QWidget):
         self.right_container = QWidget()
         rcl = QVBoxLayout(self.right_container)
         rcl.setContentsMargins(0, 0, 0, 0)
+        self.btn_add_calendar = QPushButton("📆 Přidat do kalendáře")
+        self.btn_add_calendar.setToolTip(
+            "Nadcházející obhajoby z vybraného roku do kalendáře "
+            "(Apple / Outlook / Google) jako .ics s připomínkou."
+        )
+        self.btn_add_calendar.clicked.connect(self._on_add_to_calendar)
+        rcl.addWidget(self.btn_add_calendar)
         rcl.addWidget(self.harmonogram_view)
         row.addWidget(self.right_container)
 
@@ -644,6 +652,8 @@ class KomiseTab(QWidget):
             rw = max(240, int(doc.idealWidth()) + 32)
         else:
             rw = 300   # prázdný harmonogram nemá rozšiřovat pravý panel
+        # Pravý panel musí pojmout i tlačítko „Přidat do kalendáře".
+        rw = max(rw, self.btn_add_calendar.sizeHint().width() + 24)
         avail = total - 320
         if lw + rw > avail > 0:
             scale = max(0.3, avail / (lw + rw))
@@ -724,6 +734,96 @@ class KomiseTab(QWidget):
         heading = tr("📅 Můj harmonogram obhajob") + f" — {year}"
         self.harmonogram_view.setHtml(_schedule_section_html(
             entries, heading, self._stag_states, nearest=nkey, nearest_text=ntext))
+        # Tlačítko do kalendáře jen když je co přidat (nadcházející ve `year`).
+        has_upcoming = any(
+            (dt := ThesisService._parse_slot_dt(e["date"], e["time"])) and dt > now
+            for e in entries
+        )
+        self.btn_add_calendar.setEnabled(has_upcoming)
+
+    def _on_add_to_calendar(self) -> None:
+        """Dialog → vygeneruje .ics nadcházejících obhajob a předá kalendáři."""
+        from datetime import datetime
+
+        year = (getattr(self, "_right_year", None)
+                or self.service.current_academic_year())
+        now = datetime.now()
+        dlg = AddToCalendarDialog(self.service, year, now, self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        opts = dlg.options()
+        events = self.service.calendar_events(
+            year, include_led=opts["led"], include_opp=opts["opp"], now=now)
+        if not events:
+            QMessageBox.information(
+                self, "Přidat do kalendáře",
+                "Žádné nadcházející obhajoby k přidání "
+                "(zkontroluj výběr vedené/oponované).")
+            return
+        for ev in events:
+            ev["reminder_min"] = opts["reminder"]
+        from ..services.ics_export import build_ics
+        ics = build_ics(events, dtstamp=now)
+        self._deliver_ics(ics, opts["provider"], year, len(events))
+
+    def _deliver_ics(self, ics: str, provider: str, year: str, count: int) -> None:
+        """Zapíše .ics a předá ho zvolenému kalendáři (best-effort)."""
+        from ._os_actions import open_path, open_with_app, reveal_in_file_manager
+
+        fname = f"obhajoby_{year.replace('/', '-')}.ics"
+        if provider == "save":
+            dest, _ = QFileDialog.getSaveFileName(
+                self, "Uložit .ics", str(Path.home() / fname),
+                "iCalendar (*.ics)")
+            if not dest:
+                return
+            try:
+                Path(dest).write_text(ics, encoding="utf-8")
+            except OSError as exc:
+                QMessageBox.warning(self, "Přidat do kalendáře",
+                                    f"Soubor se nepodařilo uložit:\n{exc}")
+                return
+            reveal_in_file_manager(dest)
+            QMessageBox.information(
+                self, "Přidat do kalendáře",
+                f"Uloženo {count} obhajob do:\n{dest}")
+            return
+
+        # Apple/Outlook/Google: zapiš do dočasné složky a předej.
+        import tempfile
+
+        path = Path(tempfile.gettempdir()) / fname
+        try:
+            path.write_text(ics, encoding="utf-8")
+        except OSError as exc:
+            QMessageBox.warning(self, "Přidat do kalendáře",
+                                f"Soubor se nepodařilo vytvořit:\n{exc}")
+            return
+
+        if provider == "apple":
+            open_with_app(path, "Calendar")
+        elif provider == "outlook":
+            open_with_app(path, "Microsoft Outlook")
+        elif provider == "google":
+            # Google nemá hromadné přidání přes odkaz → import souboru.
+            home_dest = Path.home() / "Downloads"
+            target = (home_dest if home_dest.is_dir() else Path.home()) / fname
+            try:
+                target.write_text(ics, encoding="utf-8")
+                path = target
+            except OSError:
+                pass
+            reveal_in_file_manager(path)
+            open_path("https://calendar.google.com/calendar/u/0/r/settings/export")
+            QMessageBox.information(
+                self, "Google Kalendář — import",
+                f"Soubor s {count} obhajobami byl uložen a zobrazen ve Finderu:\n"
+                f"{path}\n\n"
+                "V otevřeném Google Kalendáři zvol vlevo „Import a export → "
+                "Import“, vyber tento .ics soubor a potvrď.")
+            return
+        else:
+            open_path(path)
 
     def _overview_html(self, year: str, level: str | None) -> str:
         """Prostřední panel: přehled všech komisí roku (nebo stupně)."""
@@ -1155,6 +1255,99 @@ def _schedule_section_html(entries: list[dict], heading: str,
             )
         out += "</table>"
     return out
+
+
+class AddToCalendarDialog(QDialog):
+    """Volby pro export nadcházejících obhajob do kalendáře (.ics).
+
+    Uživatel zvolí vedené/oponované (default obojí), připomínku (default 15 min
+    předem) a cílový kalendář (Apple / Outlook / Google / jen uložit soubor).
+    Počet vybraných obhajob se přepočítává živě dle zaškrtnutí.
+    """
+
+    _REMINDERS = [
+        ("bez připomínky", None),
+        ("5 minut předem", 5),
+        ("10 minut předem", 10),
+        ("15 minut předem", 15),
+        ("30 minut předem", 30),
+        ("1 hodinu předem", 60),
+    ]
+    _PROVIDERS = [
+        ("apple", "Apple Kalendář"),
+        ("outlook", "Microsoft Outlook"),
+        ("google", "Google Kalendář (import souboru)"),
+        ("save", "Jen uložit soubor .ics"),
+    ]
+
+    def __init__(self, service: ThesisService, year: str, now, parent=None) -> None:
+        super().__init__(parent)
+        self._service = service
+        self._year = year
+        self._now = now
+        self.setWindowTitle("📆 Přidat obhajoby do kalendáře")
+        self.setMinimumWidth(380)
+        lay = QVBoxLayout(self)
+        lay.addWidget(QLabel(f"Nadcházející obhajoby — <b>{year}</b>"))
+
+        self.cb_led = QCheckBox("🎓 Vedené")
+        self.cb_opp = QCheckBox("🧐 Oponované")
+        self.cb_led.setChecked(True)
+        self.cb_opp.setChecked(True)
+        self.cb_led.toggled.connect(self._update_count)
+        self.cb_opp.toggled.connect(self._update_count)
+        lay.addWidget(self.cb_led)
+        lay.addWidget(self.cb_opp)
+
+        self.lbl_count = QLabel()
+        self.lbl_count.setStyleSheet("color:#9aa0a6;")
+        lay.addWidget(self.lbl_count)
+
+        row_r = QHBoxLayout()
+        row_r.addWidget(QLabel("Připomínka:"))
+        self.cmb_reminder = QComboBox()
+        for label, _ in self._REMINDERS:
+            self.cmb_reminder.addItem(label)
+        self.cmb_reminder.setCurrentIndex(3)   # 15 minut předem
+        row_r.addWidget(self.cmb_reminder, stretch=1)
+        lay.addLayout(row_r)
+
+        row_p = QHBoxLayout()
+        row_p.addWidget(QLabel("Kalendář:"))
+        self.cmb_provider = QComboBox()
+        for _, label in self._PROVIDERS:
+            self.cmb_provider.addItem(label)
+        row_p.addWidget(self.cmb_provider, stretch=1)
+        lay.addLayout(row_p)
+
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Přidat")
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        lay.addWidget(self.buttons)
+        self._update_count()
+
+    def _count(self) -> int:
+        return len(self._service.calendar_events(
+            self._year, include_led=self.cb_led.isChecked(),
+            include_opp=self.cb_opp.isChecked(), now=self._now))
+
+    def _update_count(self) -> None:
+        n = self._count()
+        self.lbl_count.setText(f"Vybráno: {n} obhajob")
+        ok = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
+        ok.setEnabled(n > 0)
+
+    def options(self) -> dict:
+        return {
+            "led": self.cb_led.isChecked(),
+            "opp": self.cb_opp.isChecked(),
+            "reminder": self._REMINDERS[self.cmb_reminder.currentIndex()][1],
+            "provider": self._PROVIDERS[self.cmb_provider.currentIndex()][0],
+        }
 
 
 class MyScheduleDialog(QDialog):

@@ -937,7 +937,14 @@ clicking **opens them in the system viewer**). **Right, a separate panel
 complete for the **selected year** (current by default), **independent of the
 selected committee**; width again fits content. The **nearest** upcoming
 defence is highlighted with a live **countdown** ("in X min"). On open the
-current academic year is selected.
+current academic year is selected. The **📆 Add to calendar** button (above
+the schedule) exports the **upcoming** defences of the selected year: in the
+dialog you choose supervised/opposed (both by default), a reminder (default
+**15 min before**) and the target calendar — **Apple Calendar** / **Outlook**
+(open the `.ics` directly), **Google** (saves the `.ics` to *Downloads*,
+reveals it in Finder and opens the Google Calendar import page) or **just save
+the `.ics` file**. Event length follows the level: **Bc 45 min, Mgr 60 min**;
+location = committee (colour + programme); rooms are not tracked.
 
 - **Composition is pre-loaded** — **public data** (colour, programme, level,
   members, dates) ships with the app in `resources/komise_szz.json` and

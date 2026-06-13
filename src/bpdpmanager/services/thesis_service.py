@@ -3122,6 +3122,73 @@ class ThesisService:
         out.sort(key=lambda e: self._sched_sort_key(e["date"], e["time"]))
         return out
 
+    def calendar_events(
+        self,
+        academic_year: str,
+        *,
+        include_led: bool = True,
+        include_opp: bool = True,
+        now=None,
+    ) -> list[dict]:
+        """Obhajoby mých studentů ve `academic_year` jako události pro kalendář.
+
+        Vrací list dictů připravených pro :func:`ics_export.build_ics`
+        (``uid``/``start``/``end``/``summary``/``location``/``description``),
+        chronologicky. Délka události dle stupně: **Bc 45 min, Mgr 60 min**.
+        ``include_led``/``include_opp`` filtrují vedené/oponované; ``now``
+        (datetime) ořízne již proběhlé sloty — slouží pro tlačítko „Přidat do
+        kalendáře" v harmonogramu (jen nadcházející ze zvoleného roku).
+        """
+        from datetime import timedelta
+
+        out: list[dict] = []
+        for e in self.my_defense_schedule():
+            if e["academic_year"] != academic_year:
+                continue
+            role = e["role"]
+            if role == "led" and not include_led:
+                continue
+            if role == "opp" and not include_opp:
+                continue
+            start = self._parse_slot_dt(e["date"], e["time"])
+            if start is None:
+                continue
+            if now is not None and start < now:
+                continue
+            dur = 60 if (e.get("level") or "").strip().lower() == "mgr" else 45
+            student = (e.get("student_name") or "").strip() or "?"
+            role_cz = "vedoucí" if role == "led" else "oponent"
+            emoji = "🎓" if role == "led" else "🧐"
+            loc = f"Komise {e.get('color') or ''}".strip()
+            if e.get("obor"):
+                loc += f" ({e['obor']})"
+            desc = "\n".join(
+                line for line in [
+                    f"Role: {role_cz}",
+                    f"Osobní číslo: {e['personal_number']}"
+                    if e.get("personal_number") else "",
+                    f"Komise: {e['committee']}" if e.get("committee") else "",
+                    f"Stupeň: {e.get('level') or '?'}",
+                    f"Akademický rok: {academic_year}",
+                ] if line
+            )
+            uid = (
+                f"{e['date']}-{e['time']}-{e.get('personal_number') or ''}-{role}"
+                .replace(" ", "").replace(".", "").replace(":", "")
+                + "@bpdpmanager"
+            )
+            out.append({
+                "uid": uid,
+                "start": start,
+                "end": start + timedelta(minutes=dur),
+                "summary": f"{emoji} Obhajoba: {student}",
+                "location": loc,
+                "description": desc,
+                "role": role,
+            })
+        out.sort(key=lambda x: x["start"])
+        return out
+
     @staticmethod
     def _parse_slot_dt(date: str, time: str):
         """„15. 6. 2026" + „09:00" → datetime, nebo None když nejde rozparsovat."""

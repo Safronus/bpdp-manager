@@ -27,6 +27,23 @@ def open_path(target: str | Path) -> None:
             pass
 
 
+def open_with_app(path: str | Path, app_name: str) -> bool:
+    """Otevře soubor v **konkrétní** aplikaci (best-effort).
+
+    Na macOS přes ``open -a <app>``; vrací ``True`` při úspěchu. Když daná
+    aplikace není (nebo na jiném OS), spadne zpět na výchozí přidruženou
+    aplikaci (:func:`open_path`) a vrátí ``False``. Slouží pro „otevřít .ics
+    v Apple Kalendáři / Outlooku".
+    """
+    path = str(path)
+    if sys.platform == "darwin":
+        res = subprocess.run(["open", "-a", app_name, path], check=False)
+        if res.returncode == 0:
+            return True
+    open_path(path)
+    return False
+
+
 def print_path(path: str | Path) -> str:
     """Vytiskne soubor (best-effort). Vrací ``"printed"`` (odesláno na výchozí
     tiskárnu), ``"opened"`` (otevřeno v aplikaci k ručnímu tisku) nebo

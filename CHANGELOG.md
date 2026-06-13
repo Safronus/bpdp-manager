@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.23] - 2026-06-13
+
+### Added
+- **📆 Přidat do kalendáře** (Státnice → panel *Můj harmonogram obhajob*).
+  Tlačítko nad harmonogramem vyexportuje **nadcházející** obhajoby vybraného
+  roku do kalendáře. V dialogu volíš **vedené/oponované** (defaultně obojí),
+  **připomínku** (defaultně 15 min předem, lze 5/10/15/30/60 i žádnou) a cílový
+  kalendář: **Apple Kalendář** / **Microsoft Outlook** (otevřou `.ics` rovnou),
+  **Google Kalendář** (uloží `.ics` do *Downloads*, zobrazí ve Finderu a otevře
+  stránku importu) nebo **jen uložit `.ics`**. Generuje se jeden `.ics`
+  (iCalendar) s `VALARM` připomínkou; délka události dle stupně **Bc 45 min /
+  Mgr 60 min**, místo = komise (barva + obor). Počet vybraných obhajob se
+  v dialogu přepočítává živě; tlačítko je aktivní jen když je co přidat.
+
 ## [2.5.22] - 2026-06-13
 
 ### Changed
