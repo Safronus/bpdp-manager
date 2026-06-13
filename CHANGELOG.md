@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.20] - 2026-06-13
+
+### Fixed
+- **Klik na zdrojové PDF v detailu komise už neukazuje změť.** Odkaz se nově
+  **otevře systémově** (výchozí prohlížeč PDF), místo aby QTextBrowser PDF
+  načetl jako text. Web odkazy se otevřou v prohlížeči.
+- **Zdrojová PDF u komise jsou správná.** Import nově přilepí zdrojový soubor
+  **jen ke komisím, které daný PDF opravdu obsahuje** (dřív se při importu více
+  PDF najednou přilepily všechny ke všem). Detail komise ukáže její **složení**
+  (dodané v gitu dle stupně+oboru) **a její rozpis** — ne cizí.
+
 ## [2.5.19] - 2026-06-13
 
 ### Fixed

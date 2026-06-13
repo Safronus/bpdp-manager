@@ -421,8 +421,12 @@ def test_committee_detail_shows_source_pdf(service, tmp_path) -> None:
                 if lf.data(0, ROLE_COMMITTEE_ID) == target.id)
     tab.tree.setCurrentItem(leaf)
     txt = tab.detail.toPlainText()
-    assert "Zdrojový rozpis" in txt
+    assert "Zdrojová PDF" in txt
     assert "rozpis-studentu_Bc_SWI_2025-2026.pdf" in txt
+    # Komise dostane i dodané složení dle stupně+oboru, ale ne cizí rozpis.
+    src_names = [p.name for p in tab._committee_source_pdfs(target)]
+    assert "slozeni-komisi_Bc_SWI.pdf" in src_names
+    assert "rozpis-studentu_Bc_SWI_2025-2026.pdf" in src_names
 
 
 def test_committee_period_and_state_badge(service) -> None:

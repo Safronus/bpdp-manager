@@ -312,7 +312,10 @@ class KomiseTab(QWidget):
 
         # Prostřední panel: detail vybrané komise (členové + studenti) / přehled.
         self.detail = QTextBrowser()
-        self.detail.setOpenExternalLinks(True)
+        # Linky neotvírat „navigací" (QTextBrowser by PDF načetl jako text =
+        # změť) — odkaz na PDF otevřeme systémově, web v prohlížeči.
+        self.detail.setOpenLinks(False)
+        self.detail.anchorClicked.connect(self._open_detail_link)
         row.addWidget(self.detail, stretch=1)
 
         # Pravý panel: nezávislý „Můj harmonogram obhajob" pro vybraný rok.
@@ -507,6 +510,21 @@ class KomiseTab(QWidget):
             if p:
                 out.append(p)
         return out
+
+    def _open_detail_link(self, url) -> None:
+        """Klik na odkaz v detailu: PDF/soubor otevři systémově, web v prohlížeči."""
+        from ._os_actions import open_path
+
+        if url.isLocalFile() or url.scheme() == "file":
+            p = Path(url.toLocalFile())
+            if p.exists():
+                open_path(p)
+            else:
+                QMessageBox.warning(self, tr("Otevřít"),
+                                    tr("Soubor neexistuje:") + f"\n{p}")
+        else:
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(url)
 
     def _open_selected_pdfs(self) -> None:
         from ._os_actions import open_path
@@ -883,21 +901,38 @@ class KomiseTab(QWidget):
                         f"<td style='padding:1px 0 1px 8px;'>{state}</td></tr>"
                     )
                 sched_html += "</table>"
-        # Zdrojový rozpis (PDF, ze kterého se sloty načetly) — jen existující
-        # soubory, s aktuálními (přejmenovanými) názvy a proklikem.
+        # Zdrojová PDF této komise: složení (dodané v gitu, dle stupně+oboru)
+        # + rozpis(y), ze kterých se sloty načetly. Jen existující, s proklikem.
         files_html = ""
-        existing = [rp for rp in c.source_files
-                    if self.service.komise_pdf_path(rp).exists()]
-        if existing:
+        srcs = self._committee_source_pdfs(c)
+        if srcs:
             links = " · ".join(
-                f"<a href='file://{self.service.komise_pdf_path(rp)}'>"
-                f"{escape(Path(rp).name)}</a>" for rp in existing
+                f"<a href='file://{p}'>{escape(p.name)}</a>" for p in srcs
             )
             files_html = (
                 f"<p style='color:{_MUTED};font-size:11px;margin-top:14px;'>"
-                f"{tr('Zdrojový rozpis (PDF):')} {links}</p>"
+                f"{tr('Zdrojová PDF:')} {links}</p>"
             )
         return head + members_html + sched_html + files_html
+
+    def _committee_source_pdfs(self, c) -> list:
+        """PDF patřící KE konkrétní komisi: složení (dodané v gitu dle
+        stupně+oboru) + rozpisy z ``source_files``. Deduplikované, existující."""
+        out = []
+        inv = self.service.komise_pdf_inventory().get(c.academic_year, {})
+        for p in inv.get("slozeni", []):
+            if c.level and c.obor and c.level in p.name and c.obor in p.name:
+                out.append(p)
+        for rp in c.source_files:
+            ap = self.service.komise_pdf_path(rp)
+            if ap.exists():
+                out.append(ap)
+        seen, uniq = set(), []
+        for p in out:
+            if str(p) not in seen:
+                seen.add(str(p))
+                uniq.append(p)
+        return uniq
 
     # ── akce ─────────────────────────────────────────────────────────────
     def _show_my_schedule(self) -> None:
@@ -969,25 +1004,30 @@ class KomiseTab(QWidget):
         dlg = KomiseImportPreviewDialog(committees, schedules, errors, self)
         if not dlg.exec():
             return
-        committees, schedules = dlg.selected()
+        sel_c = set(map(id, dlg.selected()[0]))
+        sel_s = set(map(id, dlg.selected()[1]))
 
-        # Ulož každé PDF strukturovaně a přejmenované do rozpisy/ nebo slozeni/.
-        rels = []
+        # Import a uložení PER SOUBOR — zdrojové PDF se tak přilepí JEN ke
+        # komisím, které daný soubor opravdu obsahuje (ne ke všem z dávky).
+        stats = {"created": 0, "updated": 0, "slots": 0}
         for path, r in parsed:
+            fc = [c for c in r.committees if id(c) in sel_c]
+            fs = [s for s in r.schedules if id(s) in sel_s]
+            if not (fc or fs):
+                continue
             fyear = next(
-                (x.academic_year for x in [*r.schedules, *r.committees]
-                 if x.academic_year), "",
+                (x.academic_year for x in [*fs, *fc] if x.academic_year), "",
             )
-            if r.schedules:
-                name = self._pdf_name(fyear, r.schedules, "rozpis-studentu")
+            if fs:
+                name = self._pdf_name(fyear, fs, "rozpis-studentu")
                 kind = "rozpisy"
             else:
-                name = self._pdf_name(fyear, r.committees, "slozeni-komisi")
+                name = self._pdf_name(fyear, fc, "slozeni-komisi")
                 kind = "slozeni"
-            rels.append(
-                self.service.komise_store_pdf(path, fyear, name=name, kind=kind)
-            )
-        stats = self.service.apply_komise_import(committees, schedules, rels)
+            rel = self.service.komise_store_pdf(path, fyear, name=name, kind=kind)
+            st = self.service.apply_komise_import(fc, fs, [rel])
+            for k in stats:
+                stats[k] += st[k]
         self.refresh()
         self.changed.emit()
         QMessageBox.information(

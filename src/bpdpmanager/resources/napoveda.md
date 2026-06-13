@@ -1050,7 +1050,8 @@ Záložka má **tři panely**: **vlevo** strom komisí (rok → Bc/Mgr → barva
 a seznam **PDF souborů** — šířka levého panelu se **automaticky přizpůsobí
 obsahu**. **Uprostřed** detail výběru: klik na **rok / stupeň** ukáže přehled
 všech komisí dané skupiny, klik na **konkrétní komisi** její složení, rozpis
-a **zdrojový rozpis (PDF)**, ze kterého se sloty načetly. **Vpravo samostatný
+a **zdrojová PDF** té komise (dodané složení dle stupně+oboru + její rozpis;
+klik je **otevře systémově**). **Vpravo samostatný
 panel 📅 Můj harmonogram obhajob** — vždy kompletní pro **vybraný rok**
 (default aktuální), **nezávislý na vybrané komisi**; šířka opět dle obsahu.
 U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **odpočet**

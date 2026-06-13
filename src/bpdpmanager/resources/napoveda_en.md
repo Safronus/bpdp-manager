@@ -924,8 +924,10 @@ The tab has **three panels**: **left** the committee tree (year → Bc/Mgr →
 colour) and the **PDF files** list — the left panel width **auto-fits the
 content**. **Middle** the selection detail: clicking a **year / level** shows
 an overview of all committees in that group, clicking a **specific committee**
-its composition, schedule and the **source schedule (PDF)** the slots were
-read from. **Right, a separate panel 📅 My defence schedule** — always
+its composition, schedule and the committee's **source PDFs** (shipped
+composition for its level+programme + the schedule the slots were read from;
+clicking **opens them in the system viewer**). **Right, a separate panel
+📅 My defence schedule** — always
 complete for the **selected year** (current by default), **independent of the
 selected committee**; width again fits content. The **nearest** upcoming
 defence is highlighted with a live **countdown** ("in X min"). On open the
