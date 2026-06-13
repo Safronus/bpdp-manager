@@ -956,6 +956,12 @@ overview + schedule right away).
   **notification** pops up (system tray bubble, otherwise a window) telling
   you who, when and at which committee is up. Each slot is announced once per
   app run.
+- **Live defence status (during the exam period only).** Within the committee
+  date range the app **silently checks** the STAG status of your supervised
+  and opposed theses **every 15 minutes** (read-only) and shows a badge next
+  to the student in the schedule: **✅ Defended** / **❌ Failed** /
+  **⚠ Not completed** (matched by personal number Axxxxx, name as fallback).
+  Outside the period the check does not run.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

@@ -1081,6 +1081,12 @@ složení a rozpis. Po otevření je vybraný nejnovější rok (tedy rovnou př
   obhajobou tvého vedeného/oponovaného studenta (dle harmonogramu) vyskočí
   **oznámení** (systémová bublina, jinak okno) s tím, kdo, kdy a u které
   komise jde na řadu. Každý slot oznámí jednou za běh aplikace.
+- **Stav obhajoby naživo (jen v období státnic).** V rozmezí termínů komisí
+  aplikace **každých 15 minut tiše** zkontroluje STAG stav tvých vedených
+  a oponovaných prací (jen čte, nic nezapisuje) a v rozpisu i harmonogramu
+  ukáže u studenta badge **✅ Obhájeno** / **❌ Neobhájeno** / **⚠ Nedokončeno**
+  (párování přes osobní číslo Axxxxx, záložně jméno). Mimo období se kontrola
+  nespouští.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

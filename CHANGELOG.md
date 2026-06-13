@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.14] - 2026-06-13
+
+### Added
+- **Komise — stav obhajoby naživo během státnic.** V rozmezí termínů komisí
+  aplikace **každých 15 minut tiše** zkontroluje STAG stav vedených
+  a oponovaných prací (**jen čte, nic nezapisuje**) a v rozpisu i harmonogramu
+  ukáže u studenta **✅ Obhájeno / ❌ Neobhájeno / ⚠ Nedokončeno** (párování
+  přes osobní číslo Axxxxx, záložně jméno). Mimo období se nespouští.
+
 ## [2.5.13] - 2026-06-13
 
 ### Changed

@@ -3137,6 +3137,25 @@ class ThesisService:
         except ValueError:
             return None
 
+    def committee_date_range(self):
+        """(nejdřívější, nejpozdější) datum napříč všemi komisemi, nebo None.
+
+        Vymezuje „období státnic" — tichá kontrola stavu obhajob běží jen
+        v tomto rozmezí (jindy není potřeba).
+        """
+        dates = []
+        for c in self.list_committees():
+            for d in c.dates:
+                dt = self._parse_slot_dt(d, "00:00")
+                if dt is not None:
+                    dates.append(dt.date())
+        return (min(dates), max(dates)) if dates else None
+
+    def in_committee_period(self, today) -> bool:
+        """Je ``today`` (datum) v období státnic (rozmezí termínů komisí)?"""
+        rng = self.committee_date_range()
+        return bool(rng and rng[0] <= today <= rng[1])
+
     def upcoming_defense_reminders(self, now, within_minutes: int = 10) -> list[dict]:
         """Obhajoby mých studentů začínající **do ``within_minutes`` minut**.
 

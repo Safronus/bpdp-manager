@@ -319,3 +319,74 @@ class StagChangesPreviewDialog(QDialog):
             "obhajoby). Nové práce stáhneš přes <b>📥 Import ze STAG</b>.</p>"
             + body + checked_section
         )
+
+
+# ── tichá kontrola stavu obhajob (pro vizualizaci v záložce Komise) ──────────
+
+def _fold_name(s: str) -> str:
+    import unicodedata
+    nfd = unicodedata.normalize("NFD", s or "")
+    return "".join(ch for ch in nfd if not unicodedata.combining(ch)).lower().strip()
+
+
+def fetch_defense_states(service) -> dict:
+    """Síťově zjistí STAG stav vedených (V řešení) a oponentur akt. roku se STAG
+    ID — **bez zápisu do DB**. Vrátí ``{klíč: stav}``: klíč = osobní číslo
+    (Axxxxx uppercase) i foldované jméno; stav = ``ThesisStatus.value``
+    (``defended`` / ``failed`` / …). Slouží k vizualizaci „kdo už dokončil"
+    v rozpisu komisí (párování přes osobní číslo / jméno)."""
+    out: dict[str, str] = {}
+
+    def record(code, *keys) -> None:
+        mapped = STAG_STATE_TO_STATUS.get(code)
+        if mapped is None:
+            return
+        for k in keys:
+            if k:
+                out[k] = mapped.value
+
+    for t in service.list_theses():
+        if t.status != ThesisStatus.IN_PROGRESS or not t.adipidno:
+            continue
+        code, _files, err = _fetch_target_state(t.adipidno)
+        if err:
+            continue
+        student = service.get_student(t.student_id) if t.student_id else None
+        keys = []
+        if student:
+            if student.university_id:
+                keys.append(student.university_id.strip().upper())
+            keys.append(_fold_name(f"{student.first_name} {student.last_name}"))
+        record(code, *keys)
+
+    current = service.current_academic_year()
+    for o in service.list_opposing_theses():
+        if o.academic_year != current or not o.adipidno:
+            continue
+        code, _files, err = _fetch_target_state(o.adipidno)
+        if err:
+            continue
+        record(code, _fold_name(f"{o.student_first_name} {o.student_last_name}"))
+    return out
+
+
+class KomiseStateChecker(QObject):
+    """Na vlákně zjistí STAG stav obhajob mých studentů; výsledek pošle signálem."""
+
+    finished = Signal(object)  # dict {klíč: stav}
+
+    def __init__(self, service, parent=None) -> None:
+        super().__init__(parent)
+        self._service = service
+        self._thread: threading.Thread | None = None
+
+    def start(self) -> None:
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self) -> None:
+        try:
+            states = fetch_defense_states(self._service)
+        except Exception:  # výsledek nesmí shodit vlákno
+            states = {}
+        self.finished.emit(states)

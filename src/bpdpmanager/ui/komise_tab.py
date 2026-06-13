@@ -12,7 +12,7 @@ from __future__ import annotations
 import unicodedata
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -91,6 +91,29 @@ def _role_key(role: str) -> str:
 def _fold(s: str) -> str:
     nfd = unicodedata.normalize("NFD", s or "")
     return "".join(c for c in nfd if not unicodedata.combining(c)).lower().strip()
+
+
+#: STAG stav obhajoby → (emoji, popisek, barva) pro badge v rozpisu.
+_STATE_BADGE = {
+    "defended": ("✅", "Obhájeno", "#1b5e20"),
+    "failed": ("❌", "Neobhájeno", "#b71c1c"),
+    "cancelled": ("⚠", "Nedokončeno", "#e65100"),
+}
+
+
+def _defense_state_badge(states: dict | None, pnum: str, name: str) -> str:
+    """HTML badge stavu obhajoby studenta (✅/❌/⚠) z tiché STAG kontroly.
+
+    Páruje přes osobní číslo (Axxxxx), záložně přes foldované jméno.
+    """
+    if not states:
+        return ""
+    val = states.get((pnum or "").strip().upper()) or states.get(_fold(name))
+    info = _STATE_BADGE.get(val) if val else None
+    if not info:
+        return ""
+    emoji, label, color = info
+    return f" <span style='color:{color};font-weight:bold;'>{emoji} {tr(label)}</span>"
 
 
 class StudentsVODelegate(QStyledItemDelegate):
@@ -172,6 +195,10 @@ class KomiseTab(QWidget):
         super().__init__(parent)
         self.service = service
         self.profile_manager = profile_manager
+        # Stav obhajob z tiché STAG kontroly (klíč → stav); plní se v období
+        # státnic. Inicializace před první refresh() (detail ho čte).
+        self._stag_states: dict = {}
+        self._state_checker = None
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
@@ -273,6 +300,39 @@ class KomiseTab(QWidget):
         outer.addWidget(self.splitter, stretch=1)
 
         self.refresh()
+
+        # Tichá kontrola stavu obhajob (jen v období státnic) — vizualizuje,
+        # kdo z mých studentů už obhájil. Nezapisuje do DB. Každých 15 minut.
+        self._state_timer = QTimer(self)
+        self._state_timer.setInterval(15 * 60_000)
+        self._state_timer.timeout.connect(self._maybe_check_states)
+        self._state_timer.start()
+        QTimer.singleShot(3000, self._maybe_check_states)
+
+    # ── tichá kontrola stavu obhajob ──────────────────────────────────────
+    def _maybe_check_states(self) -> None:
+        """Během období státnic na pozadí zjistí STAG stav mých obhajob."""
+        from datetime import date
+
+        if self._state_checker is not None:
+            return
+        try:
+            if not self.service.in_committee_period(date.today()):
+                return
+        except Exception:
+            return
+        from .stag_check import KomiseStateChecker
+
+        checker = KomiseStateChecker(self.service, parent=self)
+        checker.finished.connect(self._on_states_ready)
+        self._state_checker = checker
+        checker.start()
+
+    def _on_states_ready(self, states) -> None:
+        self._state_checker = None
+        if isinstance(states, dict) and states != self._stag_states:
+            self._stag_states = states
+            self._on_selected()   # překresli detail s badge stavů obhajob
 
     # ── data / zvýraznění ────────────────────────────────────────────────
     def _user_name_fold(self) -> str:
@@ -591,7 +651,8 @@ class KomiseTab(QWidget):
             e for e in self.service.my_defense_schedule()
             if e["academic_year"] == year and (level is None or e["level"] == level)
         ]
-        out += _schedule_section_html(entries, tr("📅 Můj harmonogram obhajob"))
+        out += _schedule_section_html(entries, tr("📅 Můj harmonogram obhajob"),
+                                      self._stag_states)
         return out
 
     #: Pevná šířka/výška rámečku role (px) — všechny role stejně široké.
@@ -694,13 +755,16 @@ class KomiseTab(QWidget):
                     elif role == "opp":
                         badge = " 🧐"
                         style = "background:#e1bee7;color:#4a148c;"
+                    state = _defense_state_badge(
+                        self._stag_states, s.personal_number, s.student_name)
                     sched_html += (
                         f"<tr><td style='padding:1px 12px 1px 0;color:#888;'>"
                         f"{escape(s.time)}</td>"
                         f"<td style='padding:1px 12px 1px 0;color:#888;'>"
                         f"{escape(s.personal_number)}</td>"
                         f"<td style='padding:1px 4px;{style}'>"
-                        f"{escape(s.student_name)}{badge}</td></tr>"
+                        f"{escape(s.student_name)}{badge}</td>"
+                        f"<td style='padding:1px 0 1px 8px;'>{state}</td></tr>"
                     )
                 sched_html += "</table>"
         # Pozn.: zdrojová PDF se zobrazují v panelu „PDF souborů komisí" vlevo
@@ -710,7 +774,8 @@ class KomiseTab(QWidget):
     # ── akce ─────────────────────────────────────────────────────────────
     def _show_my_schedule(self) -> None:
         """Otevře dialog s osobním harmonogramem obhajob (vedené + oponované)."""
-        dlg = MyScheduleDialog(self.service.my_defense_schedule(), self)
+        dlg = MyScheduleDialog(self.service.my_defense_schedule(), self,
+                               states=self._stag_states)
         dlg.exec()
 
     def _reset_committees(self) -> None:
@@ -854,12 +919,14 @@ def _date_key(d: str):
     return (m.group(3), int(m.group(2)), int(m.group(1))) if m else ("9999", 99, 99)
 
 
-def _schedule_section_html(entries: list[dict], heading: str) -> str:
+def _schedule_section_html(entries: list[dict], heading: str,
+                           states: dict | None = None) -> str:
     """HTML sekce harmonogramu (nadpis + počty + sloty po dnech).
 
     Sdílí ji dialog *Můj harmonogram* i přehled roku/stupně v detailu.
     Vstup ``entries`` je výstup ``ThesisService.my_defense_schedule`` (už
     chronologicky seřazený), případně předfiltrovaný na rok/stupeň.
+    ``states`` (z tiché STAG kontroly) přidá badge Obhájeno/Neobhájeno.
     """
     from html import escape
 
@@ -894,13 +961,15 @@ def _schedule_section_html(entries: list[dict], heading: str) -> str:
                 badge, style = "🧐", "background:#e1bee7;color:#4a148c;"
             pnum = (f" <span style='color:#999;'>{escape(e['personal_number'])}</span>"
                     if e["personal_number"] else "")
+            state = _defense_state_badge(states, e["personal_number"], e["student_name"])
             out += (
                 "<tr>"
                 f"<td style='padding:2px 12px 2px 0;color:#555;'>{escape(e['time'])}</td>"
                 f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
                 f"<td style='padding:2px 4px;{style}'>{badge} "
-                f"{escape(e['student_name'])}{pnum}</td></tr>"
+                f"{escape(e['student_name'])}{pnum}</td>"
+                f"<td style='padding:2px 0 2px 8px;'>{state}</td></tr>"
             )
         out += "</table>"
     return out
@@ -909,14 +978,16 @@ def _schedule_section_html(entries: list[dict], heading: str) -> str:
 class MyScheduleDialog(QDialog):
     """Osobní harmonogram obhajob — kdy a kde obhajují moji studenti."""
 
-    def __init__(self, entries: list[dict], parent=None) -> None:
+    def __init__(self, entries: list[dict], parent=None, *,
+                 states: dict | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("📅 Můj harmonogram obhajob"))
         self.setMinimumSize(680, 560)
         lay = QVBoxLayout(self)
         view = QTextBrowser()
         view.setOpenExternalLinks(False)
-        view.setHtml(_schedule_section_html(entries, tr("📅 Můj harmonogram obhajob")))
+        view.setHtml(_schedule_section_html(
+            entries, tr("📅 Můj harmonogram obhajob"), states))
         lay.addWidget(view, stretch=1)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)

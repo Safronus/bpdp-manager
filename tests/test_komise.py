@@ -296,6 +296,61 @@ def test_my_defense_schedule(service) -> None:
     assert sched[0]["personal_number"] == "A99"
 
 
+def test_committee_period_and_state_badge(service) -> None:
+    """Období státnic (rozmezí termínů) + badge stavu obhajoby v rozpisu."""
+    from datetime import date
+
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.ui.komise_tab import (
+        ROLE_COMMITTEE_ID,
+        KomiseTab,
+        _defense_state_badge,
+    )
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    # Období: napříč seed komisemi je 15.-19. 6. 2026.
+    assert service.committee_date_range() == (date(2026, 6, 15), date(2026, 6, 19))
+    assert service.in_committee_period(date(2026, 6, 17)) is True
+    assert service.in_committee_period(date(2026, 1, 1)) is False
+    # Badge: match přes osobní číslo i jméno.
+    assert "Obhájeno" in _defense_state_badge({"A1": "defended"}, "A1", "X")
+    assert "Neobhájeno" in _defense_state_badge({"jan novak": "failed"}, "", "Jan Novák")
+    assert _defense_state_badge({}, "A1", "X") == ""
+    # Vizualizace v detailu komise.
+    service.apply_komise_import([], [
+        ParsedSchedule(color="červená", academic_year="2025/2026", level="Bc",
+                       obor="SWI", program_label="SWI", dates=["15. 6. 2026"],
+                       slots=[("15. 6. 2026", "09:00", "A55501", "Test Student")]),
+    ], ["x.pdf"])
+    tab = KomiseTab(service)
+    tab._stag_states = {"A55501": "defended"}
+    target = next(c for c in service.list_committees()
+                  if c.color == "červená" and c.level == "Bc")
+    leaf = next(lf for lf in tab._iter_leaves()
+                if lf.data(0, ROLE_COMMITTEE_ID) == target.id)
+    tab.tree.setCurrentItem(leaf)
+    assert "Obhájeno" in tab.detail.toPlainText()
+
+
+def test_fetch_defense_states_maps_codes(service, monkeypatch) -> None:
+    """fetch_defense_states mapuje STAG kód na stav, klíč = os. číslo i jméno."""
+    import bpdpmanager.ui.stag_check as chk
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+
+    s = Student(first_name="Jan", last_name="Novák", university_id="A22222")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                                 academic_year="2025/2026", student_id=s.id,
+                                 adipidno="111"))
+    monkeypatch.setattr(chk, "_fetch_target_state", lambda a: ("DUO", [], ""))
+    states = chk.fetch_defense_states(service)
+    assert states.get("A22222") == ThesisStatus.DEFENDED.value
+    assert states.get("jan novak") == ThesisStatus.DEFENDED.value
+
+
 def test_upcoming_defense_reminders(service) -> None:
     """Připomínka: sloty mých studentů začínající do 10 min od ``now``."""
     from datetime import datetime
