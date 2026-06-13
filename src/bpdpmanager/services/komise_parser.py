@@ -262,7 +262,12 @@ def canonical_date(d: str) -> str:
 
 # ── parsování rozpisu studentů ─────────────────────────────────────────────
 
-_RE_SLOT = re.compile(r"(\d{1,2}:\d{2})\s+(A\d{5})\s+(.+?)(?=\s+\d{1,2}:\d{2}\s+A\d{5}|\s*$)")
+# Slot „HH:MM Axxxxx Jméno". Lookahead na další sloupec povoluje NULOVOU mezeru
+# (``\s*``) — dlouhé jméno v levém sloupci se dotkne času pravého sloupce
+# („…Al-Zamili11:00 A24397…") a bez toho by se oba sloupce slily do jednoho.
+_RE_SLOT = re.compile(
+    r"(\d{1,2}:\d{2})\s+(A\d{5})\s+(.+?)(?=\s*\d{1,2}:\d{2}\s*A\d{5}|\s*$)"
+)
 _RE_HEADER_DATES = re.compile(r"^\s*((?:\d{1,2}\.\s*\d{1,2}\.\s*\d{4}\s*)+)$")
 
 

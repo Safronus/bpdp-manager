@@ -703,7 +703,8 @@ class MainWindow(QMainWindow):
         from .komise_tab import KomiseTab
         self.tab_komise = KomiseTab(service, profile_manager=pm)
         self.tab_komise.changed.connect(self._update_status)
-        self.tabs.addTab(self.tab_komise, tr("🏛 Komise"))
+        self.tab_komise.changed.connect(self._update_komise_tab_title)
+        self.tabs.addTab(self.tab_komise, self._komise_tab_title())
         self.tabs.addTab(self.tab_stats, tr("📊 Statistiky"))
 
         # Základní titulky záložek s počty (počet doplňuje _refresh_tab_labels);
@@ -797,6 +798,33 @@ class MainWindow(QMainWindow):
         self._defense_timer.timeout.connect(self._check_defense_reminders)
         self._defense_timer.start()
         QTimer.singleShot(2500, self._check_defense_reminders)
+
+    # --- titulek záložky státnic (s rozmezím termínů) ------------------------
+
+    def _komise_tab_title(self) -> str:
+        """Titulek záložky státnic s rozmezím termínů, např.
+        „🏛 Státnice & průběh (15. 6. - 19. 6. 2026)"."""
+        base = tr("🏛 Státnice & průběh")
+        try:
+            rng = self.service.committee_date_range()
+        except Exception:
+            rng = None
+        if not rng:
+            return base
+        d1, d2 = rng
+        if (d1.month, d1.year) == (d2.month, d2.year):
+            span = f"{d1.day}. - {d2.day}. {d2.month}. {d2.year}"
+        elif d1.year == d2.year:
+            span = f"{d1.day}. {d1.month}. - {d2.day}. {d2.month}. {d2.year}"
+        else:
+            span = (f"{d1.day}. {d1.month}. {d1.year} - "
+                    f"{d2.day}. {d2.month}. {d2.year}")
+        return f"{base} ({span})"
+
+    def _update_komise_tab_title(self) -> None:
+        idx = self.tabs.indexOf(self.tab_komise)
+        if idx >= 0:
+            self.tabs.setTabText(idx, self._komise_tab_title())
 
     # --- připomínka obhajob (harmonogram komisí) -----------------------------
 
@@ -2153,6 +2181,7 @@ class MainWindow(QMainWindow):
                     widget.refresh()
         self._update_status()
         self._refresh_tab_labels()
+        self._update_komise_tab_title()
         self._rebuild_search_model()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt API)

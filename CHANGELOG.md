@@ -7,6 +7,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.15] - 2026-06-13
+
+### Changed
+- **Záložka „Komise" přejmenována na „🏛 Státnice & průběh"** — v titulku nově
+  i **rozmezí termínů** komisí (např. *15. 6. - 19. 6. 2026*).
+
+### Fixed
+- **Parser rozpisu: dlouhé jméno se slévalo s dalším sloupcem.** Když jméno
+  studenta v levém sloupci doléhalo přímo na čas pravého sloupce (PDF bez
+  mezery, např. „…Al-Zamili11:00 A24397…"), oba studenti splynuli do jednoho
+  řádku a druhý skončil ve špatném dni. Lookahead na další slot teď povoluje
+  nulovou mezeru — studenti se rozdělí správně, každý do svého dne.
+
 ## [2.5.14] - 2026-06-13
 
 ### Added

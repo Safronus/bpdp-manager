@@ -1032,7 +1032,8 @@ v následujících 60 dnech.
 
 ## Komise SZZ
 
-Záložka **🏛 Komise** ukazuje **komise státních závěrečných zkoušek** po
+Záložka **🏛 Státnice & průběh** (v titulku má rozmezí termínů, např. *15. 6.
+- 19. 6. 2026*) ukazuje **komise státních závěrečných zkoušek** po
 akademických rocích: **složení** (předseda, místopředsedové, tajemník,
 členové) a **rozpis studentů** (kdy jde který student k obhajobě). Komise
 mají **fakultní barevné označení** (červená, modrá, žlutá, zelená, fialová…)

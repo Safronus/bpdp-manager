@@ -1121,6 +1121,7 @@ EN: dict[str, str] = {
         "Opens the thesis detail in STAG in your browser.",
     # ── Komise SZZ (2.3.0) ───────────────────────────────────────────────
     "🏛 Komise": "🏛 Committees",
+    "🏛 Státnice & průběh": "🏛 State exams & progress",
     "📄 Import PDF rozpisu studentů…": "📄 Import student schedule PDF…",
     "Načte fakultní PDF rozpisu studentů (komise se pozná podle barvy "
     "nadpisů a oboru, studenti se napojí na správnou komisi). Lze načíst "

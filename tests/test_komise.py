@@ -113,6 +113,29 @@ def test_parse_schedule_two_columns() -> None:
     assert len(ps.slots) == 5
 
 
+_SCHEDULE_ABUT = """STÁTNÍ ZÁVĚREČNÉ ZKOUŠKY
+v magisterském studijním programu
+Informační technologie (Mgr)
+specializace:
+Softwarové inženýrství (Mgr)
+ZLÍN 17. 6. 2026
+18. 6. 2026
+Časový rozvrh obhajob a státních závěrečných zkoušek:
+17. 6. 2026 18. 6. 2026
+11:00 A25626 Layth Salah Yahyah Al-Zamili11:00 A24397 Bc. Veronika Krajanová
+"""
+
+
+def test_parse_schedule_long_name_abuts_next_column() -> None:
+    """Dlouhé jméno dotýkající se času dalšího sloupce („…Al-Zamili11:00 A…")
+    se nesmí slít — oba studenti zvlášť, každý ve svém sloupci/datu."""
+    ps = parse_schedule_page(_SCHEDULE_ABUT, "žlutá")
+    assert ps is not None
+    assert ("17. 6. 2026", "11:00", "A25626", "Layth Salah Yahyah Al-Zamili") in ps.slots
+    assert ("18. 6. 2026", "11:00", "A24397", "Bc. Veronika Krajanová") in ps.slots
+    assert len(ps.slots) == 2
+
+
 @pytest.fixture
 def service(tmp_path: Path):
     from bpdpmanager.services import ThesisService

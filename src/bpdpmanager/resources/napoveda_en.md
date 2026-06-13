@@ -906,7 +906,8 @@ period). A yellow panel shows important deadlines in the next 60 days.
 
 ## SZZ committees
 
-The **🏛 Committees** tab shows **state final exam committees** by academic
+The **🏛 State exams & progress** tab (its title shows the date range, e.g.
+*15. 6. - 19. 6. 2026*) shows **state final exam committees** by academic
 year: **composition** (chair, vice-chairs, secretary, members) and the
 **student schedule** (when each student defends). Committees use the
 faculty's **colour coding** (red, blue, yellow, green, purple…) — the tree
