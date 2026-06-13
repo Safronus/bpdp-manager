@@ -1159,6 +1159,25 @@ class MainWindow(QMainWindow):
         _apply(self.tab_history, n_history)
         _apply(self.tab_all, len(theses))
         _apply(self.tab_proposals, len(self.service.list_proposals()))
+        # Barevně odlišené „informační" záložky (ne pracovní). Volá se na konci,
+        # protože _apply výše resetuje barvu Návrhů témat na výchozí.
+        self._apply_info_tab_colors()
+
+    #: Informační (nepracovní) záložky → barva titulku (čitelná na obou motivech).
+    def _apply_info_tab_colors(self) -> None:
+        from PySide6.QtGui import QColor
+
+        colors = (
+            (self.tab_proposals, "#fb8c00"),    # 💡 Návrhy témat — oranžová
+            (self.tab_harmonogram, "#26a69a"),  # 📅 Harmonogram — tyrkysová
+            (self.tab_komise, "#ab47bc"),       # 🏛 Státnice — fialová
+            (self.tab_stats, "#42a5f5"),        # 📊 Statistiky — modrá
+        )
+        bar = self.tabs.tabBar()
+        for tab, col in colors:
+            idx = self.tabs.indexOf(tab)
+            if idx >= 0:
+                bar.setTabTextColor(idx, QColor(col))
 
     def _auto_select_first_in_current(self) -> None:
         """Po startu vybere první práci v Aktuální záložce.

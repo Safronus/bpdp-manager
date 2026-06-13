@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.21] - 2026-06-13
+
+### Changed
+- **Barevně odlišené „informační" záložky.** Titulky záložek **💡 Návrhy témat**
+  (oranžová), **📅 Harmonogram** (tyrkysová), **🏛 Státnice** (fialová) a
+  **📊 Statistiky** (modrá) jsou barevné, ať se vizuálně oddělí od pracovních
+  záložek (ty zůstávají beze změny, barví se dle stavu posudků/kapacity).
+
 ## [2.5.20] - 2026-06-13
 
 ### Fixed

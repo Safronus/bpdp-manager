@@ -223,6 +223,10 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 > **Důležité:** zařazení práce do tabu se řídí **stavem**, ne rokem.
 > Rok ovlivňuje jen řazení a grupování uvnitř tabu.
 
+> **Informační záložky** (*💡 Návrhy témat*, *📅 Harmonogram*, *🏛 Státnice
+> & průběh*, *📊 Statistiky*) mají **barevný titulek**, ať se vizuálně oddělí
+> od pracovních záložek (ty se barví podle stavu posudků / kapacity).
+
 ### 📑 Seznam + detail (sbalitelný)
 
 Každá záložka s pracemi (vedené, budoucí, Historie, *Vše* i 🧐 oponované) má

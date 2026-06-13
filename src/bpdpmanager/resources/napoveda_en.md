@@ -190,6 +190,10 @@ grey *Profile / Refresh / Help*), a **🔍 search field** below it and then the
 
 > **Important:** the tab placement is driven by **status**, not year.
 
+> **Info tabs** (*💡 Topic proposals*, *📅 Schedule*, *🏛 State exams &
+> progress*, *📊 Statistics*) have a **coloured title** to set them apart from
+> the work tabs (those are coloured by review status / capacity).
+
 ### 📑 List + detail (collapsible)
 
 Every thesis tab (supervised, future, History, *All* and 🧐 opposed) has the
