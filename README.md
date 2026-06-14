@@ -72,6 +72,89 @@ pip install -e .
 
 > **zsh tip:** pokud chceš nainstalovat i dev závislosti, napiš `pip install -e ".[dev]"` v uvozovkách — zsh by jinak `[dev]` interpretoval jako glob a hlásil `no matches found`.
 
+Výše uvedený postup (**venv + pip z klonu**) je doporučený, protože jako jediný umožní i **vestavěnou automatickou aktualizaci** (toolbar → *git pull + reinstalace*). Pokud Homebrew nemáš nebo nechceš, nevadí — níže je, jak získat Python i jak appku nainstalovat jinak.
+
+### Jak získat Python 3.11+ bez Homebrew
+
+Aplikace potřebuje **Python 3.11 nebo novější**. Homebrew k tomu vůbec není potřeba — vyber si jednu cestu podle systému. Ověření na konci: `python3 --version` (na Windows `py --version`) musí ukázat **3.11+**.
+
+**macOS**
+
+- **Oficiální instalátor** z [python.org/downloads/macos](https://www.python.org/downloads/macos/) — stáhni `.pkg`, nainstaluj klikáním, hotovo (přidá `python3`).
+- **uv** — jediný binárek (od Astral), umí rovnou stáhnout i Python:
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  uv python install 3.12
+  ```
+- **pyenv** (správa více verzí Pythonu, bez brew):
+  ```bash
+  curl -fsSL https://pyenv.run | bash      # poté přidej pyenv do shellu dle výpisu
+  pyenv install 3.12 && pyenv global 3.12
+  ```
+- ⚠️ Systémový `python3` z *Xcode Command Line Tools* bývá starší/omezený — radši použij některou z cest výše.
+
+**Windows**
+
+- **Oficiální instalátor** z [python.org/downloads/windows](https://www.python.org/downloads/windows/) — při instalaci zaškrtni **„Add python.exe to PATH"**.
+- **winget** (zabudovaný ve Windows 10/11):
+  ```powershell
+  winget install Python.Python.3.12
+  ```
+- **Microsoft Store** — vyhledej „Python 3.12" a nainstaluj.
+
+**Linux**
+
+- **Správce balíčků distribuce:**
+  ```bash
+  sudo apt install python3 python3-venv python3-pip     # Debian / Ubuntu
+  sudo dnf install python3 python3-pip                   # Fedora / RHEL
+  sudo pacman -S python python-pip                       # Arch
+  ```
+- nebo **uv** / **pyenv** stejně jako na macOS.
+
+### Další způsoby instalace aplikace
+
+Všechny předpokládají Python 3.11+ (viz výše). **A) venv + pip z klonu** je úvodní postup na začátku této sekce; dále si můžeš vybrat:
+
+**B) pipx — izolovaná instalace jako příkaz** (nejjednodušší „chci to jen spouštět")
+
+`pipx` nainstaluje aplikaci do vlastního izolovaného prostředí a zpřístupní příkaz `bpdp-manager` v celém systému, aniž by zasáhl do systémového Pythonu:
+
+```bash
+python3 -m pip install --user pipx     # nemáš-li pipx
+python3 -m pipx ensurepath             # přidá pipx do PATH (pak restartuj terminál)
+
+pipx install "git+https://github.com/safronus/bpdp-manager.git"
+bpdp-manager                           # spuštění
+```
+
+Aktualizace: `pipx upgrade bpdp-manager` · odinstalace: `pipx uninstall bpdp-manager`.
+
+**C) uv — moderní rychlý nástroj** (jeden binárek, umí vše)
+
+```bash
+git clone https://github.com/safronus/bpdp-manager.git
+cd bpdp-manager
+uv venv                 # vytvoří .venv se správným Pythonem
+uv pip install -e .
+uv run bpdp-manager     # nebo: source .venv/bin/activate && bpdp-manager
+```
+
+Nebo jako globální nástroj bez klonu: `uv tool install "git+https://github.com/safronus/bpdp-manager.git"`.
+
+**D) pip přímo z GitHubu (bez klonu)**
+
+Do čistého venv (funguje na všech OS):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install "git+https://github.com/safronus/bpdp-manager.git"
+bpdp-manager
+```
+
+> **Pozn. k aktualizacím:** varianty **B / C (uv tool) / D** dají jen příkaz, ne klon repozitáře, takže vestavěná **automatická aktualizace přes `git pull`** u nich nefunguje — aktualizuj je nástrojem, kterým jsi instaloval (`pipx upgrade …`, `uv tool upgrade …`, nebo znovu `pip install --upgrade "git+…"`). Chceš-li auto-update přímo z aplikace, použij **venv + pip z klonu** (úvodní postup) nebo **C s klonem**.
+
 ## Venv mimo synchronizovanou složku (iCloud, Dropbox, OneDrive…)
 
 Pokud máš projekt v **iCloud-synchronizované složce** (typicky `~/Desktop/` nebo `~/Documents/` na macOS s defaultním nastavením), **nedávej do něj `.venv` přímo**. iCloud Drive
@@ -89,9 +172,10 @@ zařízení má svůj vlastní venv lokálně.
 # 1) Mimo iCloud připrav složku pro venvy
 mkdir -p ~/.venvs
 
-# 2) Postav venv mimo projekt
-/opt/homebrew/bin/python3.12 -m venv ~/.venvs/bpdp-manager     # macOS s Homebrew
-# Linux / jiné:  python3.12 -m venv ~/.venvs/bpdp-manager
+# 2) Postav venv mimo projekt (libovolný Python 3.11+ — viz „Jak získat Python")
+python3.12 -m venv ~/.venvs/bpdp-manager                       # python.org / pyenv / distro
+# macOS s Homebrew:  /opt/homebrew/bin/python3.12 -m venv ~/.venvs/bpdp-manager
+# uv:                uv venv ~/.venvs/bpdp-manager --python 3.12
 
 # 3) V projektu vytvoř symlink na ten venv (pokud .venv existuje, nejdřív ho smaž)
 cd <cesta-k-projektu>
@@ -111,7 +195,7 @@ symlink `.venv` je už nasynchronizovaný, jen na něj připrav cíl:
 
 ```bash
 mkdir -p ~/.venvs
-/opt/homebrew/bin/python3.12 -m venv ~/.venvs/bpdp-manager
+python3.12 -m venv ~/.venvs/bpdp-manager      # nebo /opt/homebrew/bin/python3.12 (Homebrew)
 cd <cesta-k-projektu>
 source .venv/bin/activate
 pip install -e ".[dev]"
