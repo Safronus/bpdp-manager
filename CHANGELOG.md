@@ -7,6 +7,22 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.26] - 2026-06-14
+
+### Added
+- **Sloupcový graf obhajob** pod tabulkou komisí: per komise 4 sloupce (4 stavy
+  vedle sebe), barva sloupců = barva komise, odstín dle stavu (tmavší =
+  obhájeno → světlejší = bez obhajoby), nad sloupci počet, vlevo legenda.
+- **Průběh kontroly** vedle tlačítka *🔄 Aktualizovat* — „kontroluji X/Y" během
+  zjišťování stavů ze STAG a po dokončení „✓ hotovo".
+- **Procenta v tabulce komisí** — u každé kategorie počet i podíl z celku komise.
+
+### Changed
+- **Statistika obhajob: dvě tabulky vedle sebe (na poloviny)** — vlevo podle
+  barvy komise (+ graf pod ní), vpravo podle členů komise.
+- **Členové komise se řadí podle příjmení** vzestupně s respektem k české
+  diakritice (č za c, ž za z, …; tituly před i za jménem se ignorují).
+
 ## [2.5.25] - 2026-06-14
 
 ### Changed

@@ -440,7 +440,7 @@ def _match_committee_result(results, slot, committee):
 
 
 def fetch_committee_defense_states(
-    service, committees, now, prior=None, *, grace_min: int = 30
+    service, committees, now, prior=None, *, grace_min: int = 30, progress=None
 ) -> dict:
     """Síťově (read-only) zjistí kategorie obhajob studentů ``committees``.
 
@@ -472,23 +472,31 @@ def fetch_committee_defense_states(
                 continue
             pending.setdefault(_fold_name(surname), []).append((key, s, c, surname))
 
+    total = sum(len(items) for items in pending.values())
+    done = 0
+    if progress is not None:
+        progress(done, total)
     for items in pending.values():
         surname = items[0][3]
         try:
             results = stag_api.search_theses(surname, "", stag_api.ROLE_OPPONENT)
         except Exception:  # offline/parser; necháme studenta „bez obhajoby"
-            continue
+            results = []
         for key, slot, committee, _sn in items:
             match = _match_committee_result(results, slot, committee)
             if match is not None:
                 out[key] = category_from_code(match.status_code)
+        done += len(items)
+        if progress is not None:
+            progress(done, total)
     return out
 
 
 class KomiseStatsChecker(QObject):
     """Na vlákně zjistí kategorie obhajob studentů zadaných komisí (s cache)."""
 
-    finished = Signal(object)  # dict {klíč: kategorie}
+    finished = Signal(object)   # dict {klíč: kategorie}
+    progress = Signal(int, int)  # (zkontrolováno, celkem)
 
     def __init__(self, service, committees, now, prior=None, parent=None) -> None:
         super().__init__(parent)
@@ -505,7 +513,8 @@ class KomiseStatsChecker(QObject):
     def _run(self) -> None:
         try:
             states = fetch_committee_defense_states(
-                self._service, self._committees, self._now, self._prior)
+                self._service, self._committees, self._now, self._prior,
+                progress=lambda done, total: self.progress.emit(done, total))
         except Exception:  # výsledek nesmí shodit vlákno
             states = self._prior
         self.finished.emit(states)

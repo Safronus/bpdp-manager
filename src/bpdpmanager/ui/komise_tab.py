@@ -13,7 +13,7 @@ import unicodedata
 from pathlib import Path
 
 from PySide6.QtCore import QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -336,6 +336,10 @@ class KomiseTab(QWidget):
         self.lbl_stats = QLabel("📊 Statistika obhajob")
         stats_hdr.addWidget(self.lbl_stats)
         stats_hdr.addStretch()
+        # Průběh kontroly ze STAG (vlevo od tlačítka): „kontroluji X/Y" → „hotovo".
+        self.lbl_stats_progress = QLabel("")
+        self.lbl_stats_progress.setStyleSheet(f"color:{_MUTED};")
+        stats_hdr.addWidget(self.lbl_stats_progress)
         self.btn_refresh_stats = QPushButton("🔄 Aktualizovat")
         self.btn_refresh_stats.setToolTip(
             "Zjistí ze STAG, kdo z komisí už obhájil/neobhájil (dle jména). "
@@ -345,9 +349,26 @@ class KomiseTab(QWidget):
         self.btn_refresh_stats.clicked.connect(self._refresh_stats_now)
         stats_hdr.addWidget(self.btn_refresh_stats)
         sbl.addLayout(stats_hdr)
-        self.stats_view = QTextBrowser()
-        self.stats_view.setOpenExternalLinks(False)
-        sbl.addWidget(self.stats_view)
+
+        # Dvě tabulky vedle sebe (na poloviny): vlevo komise (+ graf pod ní),
+        # vpravo členové komise.
+        self.stats_committee = QTextBrowser()
+        self.stats_committee.setOpenExternalLinks(False)
+        self.stats_members = QTextBrowser()
+        self.stats_members.setOpenExternalLinks(False)
+        self.stats_chart = _DefenseBarChart()
+
+        left_col = QWidget()
+        lcl = QVBoxLayout(left_col)
+        lcl.setContentsMargins(0, 0, 0, 0)
+        lcl.addWidget(self.stats_committee, stretch=1)
+        lcl.addWidget(self.stats_chart, stretch=1)
+
+        stats_cols = QHBoxLayout()
+        stats_cols.setContentsMargins(0, 0, 0, 0)
+        stats_cols.addWidget(left_col, stretch=1)
+        stats_cols.addWidget(self.stats_members, stretch=1)
+        sbl.addLayout(stats_cols, stretch=1)
 
         mid = QWidget()
         ml = QVBoxLayout(mid)
@@ -828,7 +849,9 @@ class KomiseTab(QWidget):
         committees, scope = self._committees_in_scope()
         stats = committee_defense_stats(committees, self._committee_states)
         self.lbl_stats.setText(f"📊 Statistika obhajob — {scope}")
-        self.stats_view.setHtml(_stats_html(stats, scope))
+        self.stats_committee.setHtml(_stats_committee_html(stats, scope))
+        self.stats_members.setHtml(_stats_members_html(stats))
+        self.stats_chart.set_data(stats.get("by_color", []))
 
     def _refresh_stats_now(self) -> None:
         """Ruční obnova statistiky ze STAG (všechny komise → plní cache)."""
@@ -860,16 +883,25 @@ class KomiseTab(QWidget):
         if not committees:
             return
         self.btn_refresh_stats.setEnabled(False)
+        self.lbl_stats_progress.setText("kontroluji…")
         checker = KomiseStatsChecker(
             self.service, committees, datetime.now(),
             dict(self._committee_states), parent=self)
+        checker.progress.connect(self._on_stats_progress)
         checker.finished.connect(self._on_committee_stats_ready)
         self._stats_checker = checker
         checker.start()
 
+    def _on_stats_progress(self, done: int, total: int) -> None:
+        if total <= 0:
+            self.lbl_stats_progress.setText("nic ke kontrole")
+        else:
+            self.lbl_stats_progress.setText(f"kontroluji… {done}/{total}")
+
     def _on_committee_stats_ready(self, states) -> None:
         self._stats_checker = None
         self.btn_refresh_stats.setEnabled(True)
+        self.lbl_stats_progress.setText("✓ hotovo")
         if isinstance(states, dict):
             self._committee_states = states
             self._render_stats()
@@ -1322,84 +1354,96 @@ _CAT_COLORS = {
 }
 
 
-def _stats_html(stats: dict, scope: str) -> str:
-    """Dvě tabulky statistiky obhajob: dle barvy komise a dle členů."""
+def _cat_head_cells() -> str:
+    """Hlavičkové buňky 4 kategorií + Celkem (sdílené oběma tabulkami)."""
     from html import escape
 
     from ..services.komise_stats import CATEGORIES, CATEGORY_LABELS
 
-    def _num(v: int, cat: str) -> str:
+    cells = ""
+    for cat in CATEGORIES:
+        cells += (f"<th style='padding:2px 8px 2px 0;text-align:right;"
+                  f"color:{_CAT_COLORS[cat]};'>"
+                  f"{escape(tr(CATEGORY_LABELS[cat]))}</th>")
+    cells += (f"<th style='padding:2px 0;text-align:right;color:{_MUTED};'>"
+              f"{escape(tr('Celkem'))}</th>")
+    return cells
+
+
+def _stats_committee_html(stats: dict, scope: str) -> str:
+    """Tabulka statistiky podle barvy komise — počty **a procenta**."""
+    from html import escape
+
+    from ..services.komise_stats import CATEGORIES
+
+    def _pct_cell(v: int, total: int, cat: str, *, top: str = "") -> str:
         color = _CAT_COLORS.get(cat, _MUTED)
         weight = "bold" if v else "normal"
-        dim = "" if v else f"color:{_MUTED};"
-        return (f"<td style='padding:2px 10px 2px 0;text-align:right;"
-                f"{dim}'><span style='color:{color};font-weight:{weight};'>"
-                f"{v}</span></td>")
-
-    def _head_cells() -> str:
-        cells = ""
-        for cat in CATEGORIES:
-            cells += (f"<th style='padding:2px 10px 2px 0;text-align:right;"
-                      f"color:{_CAT_COLORS[cat]};white-space:nowrap;'>"
-                      f"{escape(tr(CATEGORY_LABELS[cat]))}</th>")
-        cells += (f"<th style='padding:2px 0;text-align:right;color:{_MUTED};'>"
-                  f"{escape(tr('Celkem'))}</th>")
-        return cells
+        pct = f"{round(v / total * 100)} %" if total else "-"
+        return (f"<td style='padding:2px 8px 2px 0;text-align:right;{top}'>"
+                f"<span style='color:{color};font-weight:{weight};'>{v}</span>"
+                f"<br><span style='color:{_MUTED};font-size:10px;'>{pct}</span></td>")
 
     by_color = stats.get("by_color", [])
-    by_member = stats.get("by_member", [])
     totals = stats.get("totals", {})
 
-    out = (f"<p style='color:{_MUTED};margin:0 0 6px 0;'>"
-           f"{escape(tr('Stav obhajob ze STAG (dle jména)'))} — {escape(scope)}.</p>")
-
+    out = ("<h3 style='margin:2px 0 4px;'>🎨 "
+           + escape(tr("Podle komise (barva)")) + "</h3>")
     if not by_color:
         return out + (f"<p style='color:{_MUTED};'>"
                       + escape(tr("Žádné komise v tomto rozsahu.")) + "</p>")
-
-    # Tabulka 1 — podle barvy komise.
-    out += ("<h3 style='margin:6px 0 4px;'>🎨 "
-            + escape(tr("Podle komise (barva)")) + "</h3>")
     out += "<table style='border-collapse:collapse;'><tr>"
-    out += (f"<th style='padding:2px 14px 2px 0;text-align:left;color:{_MUTED};'>"
-            f"{escape(tr('Komise'))}</th>") + _head_cells() + "</tr>"
+    out += (f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
+            f"{escape(tr('Komise'))}</th>") + _cat_head_cells() + "</tr>"
     for rowd in by_color:
         dot = committee_color_hex(rowd["color"])
         meta = " · ".join(x for x in (rowd.get("level"), rowd.get("obor")) if x)
         label = escape(rowd["color"] or "?")
         if meta:
             label += f" <span style='color:{_MUTED};'>({escape(meta)})</span>"
-        out += (f"<tr><td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
+        total = rowd.get("total", 0)
+        out += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;"
+                f"vertical-align:top;'>"
                 f"<span style='color:{dot};'>●</span> {label}</td>")
         for cat in CATEGORIES:
-            out += _num(rowd.get(cat, 0), cat)
-        out += (f"<td style='padding:2px 0;text-align:right;'>"
-                f"{rowd.get('total', 0)}</td></tr>")
-    # Souhrnný řádek.
-    out += (f"<tr><td style='padding:4px 14px 2px 0;border-top:1px solid {_MUTED};"
-            f"color:{_MUTED};'>Σ {escape(tr('celkem'))}</td>")
-    grand = 0
+            out += _pct_cell(rowd.get(cat, 0), total, cat, top="vertical-align:top;")
+        out += (f"<td style='padding:2px 0;text-align:right;vertical-align:top;'>"
+                f"{total}</td></tr>")
+    # Souhrnný řádek se Σ a procenty z celku.
+    grand = sum(totals.get(cat, 0) for cat in CATEGORIES)
+    border = f"border-top:1px solid {_MUTED};"
+    out += (f"<tr><td style='padding:4px 12px 2px 0;{border}color:{_MUTED};'>"
+            f"Σ {escape(tr('celkem'))}</td>")
     for cat in CATEGORIES:
-        v = totals.get(cat, 0)
-        grand += v
-        out += (f"<td style='padding:4px 10px 2px 0;text-align:right;border-top:"
-                f"1px solid {_MUTED};color:{_CAT_COLORS[cat]};font-weight:bold;'>"
-                f"{v}</td>")
-    out += (f"<td style='padding:4px 0 2px;text-align:right;border-top:1px solid "
-            f"{_MUTED};font-weight:bold;'>{grand}</td></tr></table>")
+        out += _pct_cell(totals.get(cat, 0), grand, cat, top=border)
+    out += (f"<td style='padding:4px 0 2px;text-align:right;{border}"
+            f"font-weight:bold;'>{grand}</td></tr></table>")
+    return out
 
-    # Tabulka 2 — podle členů komise.
-    out += ("<h3 style='margin:14px 0 4px;'>👤 "
-            + escape(tr("Podle členů komise")) + "</h3>")
+
+def _stats_members_html(stats: dict) -> str:
+    """Tabulka statistiky podle členů komise (řazeno dle příjmení)."""
+    from html import escape
+
+    from ..services.komise_stats import CATEGORIES
+
+    def _num(v: int, cat: str) -> str:
+        color = _CAT_COLORS.get(cat, _MUTED)
+        weight = "bold" if v else "normal"
+        return (f"<td style='padding:2px 8px 2px 0;text-align:right;'>"
+                f"<span style='color:{color};font-weight:{weight};'>{v}</span></td>")
+
+    by_member = stats.get("by_member", [])
+    out = ("<h3 style='margin:2px 0 4px;'>👤 "
+           + escape(tr("Podle členů komise")) + "</h3>")
     if not by_member:
-        out += (f"<p style='color:{_MUTED};'>"
-                + escape(tr("Komise nemají vyplněné členy.")) + "</p>")
-        return out
+        return out + (f"<p style='color:{_MUTED};'>"
+                      + escape(tr("Komise nemají vyplněné členy.")) + "</p>")
     out += "<table style='border-collapse:collapse;'><tr>"
-    out += (f"<th style='padding:2px 14px 2px 0;text-align:left;color:{_MUTED};'>"
-            f"{escape(tr('Člen'))}</th>") + _head_cells() + "</tr>"
+    out += (f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
+            f"{escape(tr('Člen'))}</th>") + _cat_head_cells() + "</tr>"
     for m in by_member:
-        out += (f"<tr><td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
+        out += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"{escape(m['name'])}</td>")
         for cat in CATEGORIES:
             out += _num(m.get(cat, 0), cat)
@@ -1407,6 +1451,116 @@ def _stats_html(stats: dict, scope: str) -> str:
                 f"{m.get('total', 0)}</td></tr>")
     out += "</table>"
     return out
+
+
+class _DefenseBarChart(QWidget):
+    """Sloupcový graf obhajob: per komise (barva) 4 sloupce stavů vedle sebe.
+
+    Barva sloupců = barva komise; jednotlivé stavy se liší **průhledností**
+    (tmavší = obhájeno → světlejší = bez obhajoby). Nad sloupci je počet,
+    pod skupinou barva komise. Vlevo nahoře malá legenda zkratek stavů.
+    """
+
+    _ALPHAS = (255, 195, 135, 80)  # defended, failed, unfinished, none
+    _SHORT = ("Obh.", "Neob.", "Nedok.", "Bez")
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._groups: list[dict] = []
+        self.setMinimumHeight(200)
+        self.setToolTip(
+            "Sloupce zleva: Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby "
+            "(tmavší = obhájeno). Barva sloupců = barva komise."
+        )
+
+    def set_data(self, by_color: list[dict]) -> None:
+        from ..services.komise_stats import CATEGORIES
+
+        groups: list[dict] = []
+        for r in by_color or []:
+            groups.append({
+                "label": r.get("color") or "?",
+                "sub": " · ".join(x for x in (r.get("level"), r.get("obor")) if x),
+                "hex": committee_color_hex(r.get("color") or ""),
+                "counts": [r.get(c, 0) for c in CATEGORIES],
+            })
+        self._groups = groups
+        self.update()
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        p = QPainter(self)
+        text_col = self.palette().windowText().color()
+        muted = QColor(_MUTED)
+        w, h = self.width(), self.height()
+        small = QFont(self.font())
+        small.setPointSize(8)
+        p.setFont(small)
+
+        if not self._groups:
+            p.setPen(muted)
+            p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
+                       tr("Bez dat ke grafu"))
+            p.end()
+            return
+
+        left, right, top, bottom = 26, 8, 34, 34
+        plot_w = max(20, w - left - right)
+        plot_h = max(20, h - top - bottom)
+        base_y = top + plot_h
+        maxv = max((max(g["counts"]) for g in self._groups), default=0) or 1
+
+        # Legenda (zkratky stavů s odstupňovanou průhledností) vlevo nahoře.
+        lx = left
+        for i, short in enumerate(self._SHORT):
+            sw = QColor(110, 110, 110)
+            sw.setAlpha(self._ALPHAS[i])
+            p.fillRect(lx, 4, 9, 9, sw)
+            p.setPen(text_col)
+            tw = p.fontMetrics().horizontalAdvance(short)
+            p.drawText(lx + 12, 4, tw + 4, 12,
+                       Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                       short)
+            lx += 12 + tw + 12
+
+        # Osa a maximum.
+        p.setPen(QPen(muted, 1))
+        p.drawLine(left, base_y, left + plot_w, base_y)
+        p.setPen(muted)
+        p.drawText(0, top - 6, left - 3, 12,
+                   Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+                   str(maxv))
+
+        n = len(self._groups)
+        gap = 10
+        gw = max(16, (plot_w - gap * (n - 1)) / n)
+        bgap = 2
+        bw = max(3, (gw - bgap * 3) / 4)
+        x = left
+        for g in self._groups:
+            for i, cnt in enumerate(g["counts"]):
+                bx = x + i * (bw + bgap)
+                bh = (cnt / maxv) * plot_h
+                col = QColor(g["hex"])
+                col.setAlpha(self._ALPHAS[i])
+                p.fillRect(int(bx), int(base_y - bh), int(bw), int(bh), col)
+                if cnt:
+                    p.setPen(text_col)
+                    p.drawText(int(bx - 2), int(base_y - bh - 13),
+                               int(bw + 4), 12, Qt.AlignmentFlag.AlignHCenter,
+                               str(cnt))
+            p.setPen(text_col)
+            p.drawText(int(x), base_y + 2, int(gw), 13,
+                       Qt.AlignmentFlag.AlignHCenter, g["label"])
+            if g["sub"]:
+                tiny = QFont(self.font())
+                tiny.setPointSize(7)
+                p.setFont(tiny)
+                p.setPen(muted)
+                p.drawText(int(x), base_y + 15, int(gw), 11,
+                           Qt.AlignmentFlag.AlignHCenter, g["sub"])
+                p.setFont(small)
+            x += gw + gap
+        p.end()
 
 
 def _date_key(d: str):

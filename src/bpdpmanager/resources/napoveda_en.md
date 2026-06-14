@@ -986,18 +986,23 @@ location = committee (colour + programme); rooms are not tracked.
 - **📊 Defence statistics (bottom section of the middle panel).** Below the
   committee detail is a separate section; the **top detail fits its content
   height** (members + schedule) and the statistics below **take the remaining
-  height** of the panel. It has **two tables**: **by committee
-  colour** (how many of the committee's students are *Defended / Failed / Not
-  completed / No defence yet*, plus a Σ row) and **by committee member** (each
-  member's sum of students across their committees, same categories). **Scope
+  height** of the panel. There are **two tables side by side (halves)**: **left,
+  by committee colour** (how many of the committee's students are *Defended /
+  Failed / Not completed / No defence yet* — **count and percentage**, plus a Σ
+  row) and **right, by committee member** (each member's sum of students across
+  their committees, same categories; **sorted by surname** with Czech
+  collation). **Below the committee table is a bar chart**: 4 bars per committee
+  (the 4 states side by side), bar colour = **committee colour**, shade by state
+  (darker = defended → lighter = no defence yet), count above each bar. **Scope
   follows the tree selection**: a selected committee → that one, a selected
   year/level → the whole year, otherwise **all years**. Statuses come **from
   STAG matched by name** (refined by Bc/Mgr type and defence year) for **all**
   committee students — not just yours. To spare STAG it only queries **~30 min
   after** a student's scheduled defence and only those **without a result**
   (resolved ones are cached); it runs in the background only during the exam
-  period, otherwise on demand via **🔄 Refresh**. Until a status is known the
-  student is *No defence yet*.
+  period, otherwise on demand via **🔄 Refresh** (a **progress** indicator next
+  to it shows "checking X/Y → done"). Until a status is known the student is
+  *No defence yet*.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

@@ -1109,18 +1109,22 @@ obor); místnost se neeviduje.
   nespouští.
 - **📊 Statistika obhajob (spodní sekce prostředního panelu).** Pod detailem
   komise je samostatná sekce; **horní detail se výškově přizpůsobuje obsahu**
-  (členové + rozpis) a statistika dole **zabere zbývající výšku** panelu. Sekce
-  má **dvě tabulky**: **podle barvy komise**
-  (kolik studentů komise *Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby*,
-  + řádek Σ) a **podle členů komise** (každému členovi součet studentů jeho
-  komisí v týchž kategoriích). **Rozsah se řídí výběrem vlevo**: vybraná komise
-  → jen ona, vybraný rok/stupeň → celý rok, jinak **všechny roky**. Stavy se
-  zjišťují **ze STAG podle jména** studenta (zpřesněno typem Bc/Mgr a rokem
-  obhajoby) pro **všechny** studenty komisí — ne jen tvoje. Aby se STAG
-  nezatěžoval: dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
-  u studentů **bez výsledku** (hotové se cachují); běží na pozadí jen v období
-  státnic, jinak ručně tlačítkem **🔄 Aktualizovat**. Než se stav zjistí, je
-  student *Bez obhajoby*.
+  (členové + rozpis) a statistika dole **zabere zbývající výšku** panelu. Jsou tu
+  **dvě tabulky vedle sebe (na poloviny)**: **vlevo podle barvy komise**
+  (kolik studentů komise *Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby* —
+  **počet i procento**, + řádek Σ) a **vpravo podle členů komise** (každému členovi
+  součet studentů jeho komisí v týchž kategoriích; **řazeno podle příjmení**
+  s českou diakritikou). **Pod tabulkou komisí je sloupcový graf**: per komise
+  4 sloupce (4 stavy vedle sebe), barva sloupců = **barva komise**, odstín dle
+  stavu (tmavší = obhájeno → světlejší = bez obhajoby), nad sloupci počet.
+  **Rozsah se řídí výběrem vlevo**: vybraná komise → jen ona, vybraný rok/stupeň
+  → celý rok, jinak **všechny roky**. Stavy se zjišťují **ze STAG podle jména**
+  studenta (zpřesněno typem Bc/Mgr a rokem obhajoby) pro **všechny** studenty
+  komisí — ne jen tvoje. Aby se STAG nezatěžoval: dotazuje se **až ~30 min po
+  plánovaném čase** obhajoby a jen u studentů **bez výsledku** (hotové se
+  cachují); běží na pozadí jen v období státnic, jinak ručně tlačítkem
+  **🔄 Aktualizovat** (vedle něj se ukazuje **průběh** „kontroluji X/Y → hotovo").
+  Než se stav zjistí, je student *Bez obhajoby*.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

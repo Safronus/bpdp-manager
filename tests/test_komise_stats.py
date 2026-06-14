@@ -19,6 +19,8 @@ from bpdpmanager.services.komise_stats import (
     CAT_UNFINISHED,
     category_from_code,
     committee_defense_stats,
+    czech_sort_key,
+    member_surname,
     slot_key,
 )
 
@@ -84,6 +86,31 @@ def test_committee_defense_stats_by_color_and_member() -> None:
     assert by_member["Eva Členka"]["total"] == 3
 
 
+def test_member_surname_strips_titles() -> None:
+    assert member_surname("prof. Ing. Jan Mareš, Ph.D.") == "Mareš"
+    assert member_surname("Ing. et Ing. Erik Král, Ph.D.") == "Král"
+    assert member_surname("prof. Ing. Zuzana Komínková Oplatková, Ph.D.") == "Oplatková"
+    assert member_surname("Karel Novák") == "Novák"
+
+
+def test_czech_sort_key_order() -> None:
+    names = ["Žáček", "Čermák", "Adam", "Cibulka", "Drozd", "Šimek", "Sýkora"]
+    # Č za C, Š za S, Ž poslední — česká abeceda.
+    assert sorted(names, key=czech_sort_key) == [
+        "Adam", "Cibulka", "Čermák", "Drozd", "Sýkora", "Šimek", "Žáček"]
+
+
+def test_committee_defense_stats_members_sorted_by_surname() -> None:
+    c = _committee("modrá", "Mgr", "NSWI",
+                   ["prof. Ing. Petr Žáček, Ph.D.",
+                    "doc. Ing. Petr Čermák, Ph.D.",
+                    "Ing. Karel Adam, Ph.D."],
+                   [("09:00", "A1", "Kdo Ví")])
+    stats = committee_defense_stats([c], {})
+    order = [member_surname(m["name"]) for m in stats["by_member"]]
+    assert order == ["Adam", "Čermák", "Žáček"]
+
+
 def test_committee_defense_stats_default_none() -> None:
     c = _committee("zelená", "Bc", "ITA", ["A B"], [("09:00", "A9", "Kdo Ví")])
     stats = committee_defense_stats([c], {})
@@ -102,6 +129,28 @@ def test_needs_committee_query_timing() -> None:
     assert _needs_committee_query(slot, datetime(2026, 6, 17, 11, 31)) is True
     # Neznámý čas → ptáme se.
     assert _needs_committee_query(None, datetime(2026, 6, 17, 11, 0)) is True
+
+
+def test_fetch_progress_total_counts_pending(monkeypatch) -> None:
+    """Progress „total" = počet studentů ke kontrole (po čase obhajoby, bez výsledku)."""
+    from bpdpmanager.services import stag_api
+    from bpdpmanager.ui import stag_check
+
+    # Komise se 2 sloty v minulosti (čas + 30 min uplynul).
+    c = _committee("modrá", "Mgr", "NSWI", ["A B"], [
+        ("09:00", "A1", "Anna Vedena"),
+        ("10:00", "A2", "Petr Druhy"),
+    ])
+    for s in c.slots:
+        s.date = "15. 6. 2026"
+    monkeypatch.setattr(stag_api, "search_theses", lambda *a, **k: [])
+
+    seen: list[tuple[int, int]] = []
+    now = datetime(2026, 6, 16, 12, 0)  # po obhajobách
+    stag_check.fetch_committee_defense_states(
+        None, [c], now, {}, progress=lambda d, t: seen.append((d, t)))
+    assert seen and seen[-1] == (2, 2)        # oba zkontrolováni z 2
+    assert seen[0][1] == 2                      # total = 2 hned na začátku
 
 
 def test_match_committee_result() -> None:
