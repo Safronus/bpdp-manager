@@ -205,6 +205,10 @@ class KomiseTab(QWidget):
         # státnic. Inicializace před první refresh() (detail ho čte).
         self._stag_states: dict = {}
         self._state_checker = None
+        # Kategorie obhajob VŠECH studentů komisí (statistika dole) — cache
+        # napříč překreslením; terminální stavy se ze STAG znovu nedotazují.
+        self._committee_states: dict = {}
+        self._stats_checker = None
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
@@ -311,13 +315,42 @@ class KomiseTab(QWidget):
         lc.addWidget(left)
         row.addWidget(self.left_container)
 
-        # Prostřední panel: detail vybrané komise (členové + studenti) / přehled.
+        # Prostřední panel: nahoře detail komise (členové + studenti) / přehled,
+        # dole samostatná sekce statistiky obhajob (svisle dělitelné).
         self.detail = QTextBrowser()
         # Linky neotvírat „navigací" (QTextBrowser by PDF načetl jako text =
         # změť) — odkaz na PDF otevřeme systémově, web v prohlížeči.
         self.detail.setOpenLinks(False)
         self.detail.anchorClicked.connect(self._open_detail_link)
-        row.addWidget(self.detail, stretch=1)
+
+        stats_box = QWidget()
+        sbl = QVBoxLayout(stats_box)
+        sbl.setContentsMargins(0, 6, 0, 0)
+        stats_hdr = QHBoxLayout()
+        stats_hdr.setContentsMargins(0, 0, 0, 0)
+        self.lbl_stats = QLabel("📊 Statistika obhajob")
+        stats_hdr.addWidget(self.lbl_stats)
+        stats_hdr.addStretch()
+        self.btn_refresh_stats = QPushButton("🔄 Aktualizovat")
+        self.btn_refresh_stats.setToolTip(
+            "Zjistí ze STAG, kdo z komisí už obhájil/neobhájil (dle jména). "
+            "Dotazují se jen studenti po čase obhajoby, kteří ještě nemají "
+            "výsledek; hotové se cachují."
+        )
+        self.btn_refresh_stats.clicked.connect(self._refresh_stats_now)
+        stats_hdr.addWidget(self.btn_refresh_stats)
+        sbl.addLayout(stats_hdr)
+        self.stats_view = QTextBrowser()
+        self.stats_view.setOpenExternalLinks(False)
+        sbl.addWidget(self.stats_view)
+
+        mid_split = QSplitter(Qt.Orientation.Vertical)
+        mid_split.addWidget(self.detail)
+        mid_split.addWidget(stats_box)
+        mid_split.setStretchFactor(0, 3)
+        mid_split.setStretchFactor(1, 2)
+        mid_split.setChildrenCollapsible(False)
+        row.addWidget(mid_split, stretch=1)
 
         # Pravý panel: nezávislý „Můj harmonogram obhajob" pro vybraný rok.
         self.harmonogram_view = QTextBrowser()
@@ -345,8 +378,10 @@ class KomiseTab(QWidget):
         self._state_timer = QTimer(self)
         self._state_timer.setInterval(15 * 60_000)
         self._state_timer.timeout.connect(self._maybe_check_states)
+        self._state_timer.timeout.connect(self._maybe_check_committee_stats)
         self._state_timer.start()
         QTimer.singleShot(3000, self._maybe_check_states)
+        QTimer.singleShot(3500, self._maybe_check_committee_stats)
 
         # Odpočet u nejbližší obhajoby — překresli pravý panel každou minutu.
         self._countdown_timer = QTimer(self)
@@ -689,6 +724,7 @@ class KomiseTab(QWidget):
             item.data(0, ROLE_YEAR) if item is not None else None
         ) or self.service.current_academic_year()
         self._render_harmonogram()
+        self._render_stats()
         self._fit_panels()
 
     @staticmethod
@@ -740,6 +776,80 @@ class KomiseTab(QWidget):
             for e in entries
         )
         self.btn_add_calendar.setEnabled(has_upcoming)
+
+    # ── statistika obhajob (spodní sekce prostředního panelu) ─────────────
+    def _committees_in_scope(self) -> tuple[list, str]:
+        """Komise pro statistiku dle výběru ve stromu + popisek rozsahu.
+
+        Komise → jen ta; rok/stupeň → komise toho roku; jinak (default) →
+        všechny roky.
+        """
+        items = self.tree.selectedItems()
+        item = items[0] if items else None
+        kind = item.data(0, ROLE_KIND) if item is not None else None
+        all_committees = self.service.list_committees()
+        if kind == "committee":
+            c = self.service.get_committee(item.data(0, ROLE_COMMITTEE_ID))
+            if c is not None:
+                label = f"komise {c.color} ({c.level or '?'} · {c.obor or '?'})"
+                return [c], label
+        if kind in ("year", "level"):
+            year = item.data(0, ROLE_YEAR)
+            return ([c for c in all_committees if c.academic_year == year],
+                    f"rok {year}")
+        return all_committees, "všechny roky"
+
+    def _render_stats(self) -> None:
+        from ..services.komise_stats import committee_defense_stats
+
+        committees, scope = self._committees_in_scope()
+        stats = committee_defense_stats(committees, self._committee_states)
+        self.lbl_stats.setText(f"📊 Statistika obhajob — {scope}")
+        self.stats_view.setHtml(_stats_html(stats, scope))
+
+    def _refresh_stats_now(self) -> None:
+        """Ruční obnova statistiky ze STAG (všechny komise → plní cache)."""
+        self._start_committee_stats_check(manual=True)
+
+    def _maybe_check_committee_stats(self) -> None:
+        """Na pozadí během období státnic doplní kategorie obhajob komisí."""
+        from datetime import date
+
+        try:
+            if not self.service.in_committee_period(date.today()):
+                return
+        except Exception:
+            return
+        self._start_committee_stats_check(manual=False)
+
+    def _start_committee_stats_check(self, *, manual: bool) -> None:
+        from datetime import datetime
+
+        from .stag_check import KomiseStatsChecker
+
+        if self._stats_checker is not None:
+            if manual:
+                QMessageBox.information(
+                    self, "Statistika obhajob",
+                    "Aktualizace už běží — chvilku počkej.")
+            return
+        committees = self.service.list_committees()
+        if not committees:
+            return
+        self.btn_refresh_stats.setEnabled(False)
+        checker = KomiseStatsChecker(
+            self.service, committees, datetime.now(),
+            dict(self._committee_states), parent=self)
+        checker.finished.connect(self._on_committee_stats_ready)
+        self._stats_checker = checker
+        checker.start()
+
+    def _on_committee_stats_ready(self, states) -> None:
+        self._stats_checker = None
+        self.btn_refresh_stats.setEnabled(True)
+        if isinstance(states, dict):
+            self._committee_states = states
+            self._render_stats()
 
     def _on_add_to_calendar(self) -> None:
         """Dialog → vygeneruje .ics nadcházejících obhajob a předá kalendáři."""
@@ -1178,6 +1288,102 @@ class KomiseTab(QWidget):
             self.service.delete_committee(committee_id)
             self.refresh()
             self.changed.emit()
+
+
+#: Barvy kategorií statistiky (čitelné v obou tématech).
+_CAT_COLORS = {
+    "defended": "#43a047",     # obhájeno (zelená)
+    "failed": "#e53935",       # neobhájeno (červená)
+    "unfinished": "#fb8c00",   # nedokončeno (oranžová)
+    "none": _MUTED,            # bez obhajoby (šedá)
+}
+
+
+def _stats_html(stats: dict, scope: str) -> str:
+    """Dvě tabulky statistiky obhajob: dle barvy komise a dle členů."""
+    from html import escape
+
+    from ..services.komise_stats import CATEGORIES, CATEGORY_LABELS
+
+    def _num(v: int, cat: str) -> str:
+        color = _CAT_COLORS.get(cat, _MUTED)
+        weight = "bold" if v else "normal"
+        dim = "" if v else f"color:{_MUTED};"
+        return (f"<td style='padding:2px 10px 2px 0;text-align:right;"
+                f"{dim}'><span style='color:{color};font-weight:{weight};'>"
+                f"{v}</span></td>")
+
+    def _head_cells() -> str:
+        cells = ""
+        for cat in CATEGORIES:
+            cells += (f"<th style='padding:2px 10px 2px 0;text-align:right;"
+                      f"color:{_CAT_COLORS[cat]};white-space:nowrap;'>"
+                      f"{escape(tr(CATEGORY_LABELS[cat]))}</th>")
+        cells += (f"<th style='padding:2px 0;text-align:right;color:{_MUTED};'>"
+                  f"{escape(tr('Celkem'))}</th>")
+        return cells
+
+    by_color = stats.get("by_color", [])
+    by_member = stats.get("by_member", [])
+    totals = stats.get("totals", {})
+
+    out = (f"<p style='color:{_MUTED};margin:0 0 6px 0;'>"
+           f"{escape(tr('Stav obhajob ze STAG (dle jména)'))} — {escape(scope)}.</p>")
+
+    if not by_color:
+        return out + (f"<p style='color:{_MUTED};'>"
+                      + escape(tr("Žádné komise v tomto rozsahu.")) + "</p>")
+
+    # Tabulka 1 — podle barvy komise.
+    out += ("<h3 style='margin:6px 0 4px;'>🎨 "
+            + escape(tr("Podle komise (barva)")) + "</h3>")
+    out += "<table style='border-collapse:collapse;'><tr>"
+    out += (f"<th style='padding:2px 14px 2px 0;text-align:left;color:{_MUTED};'>"
+            f"{escape(tr('Komise'))}</th>") + _head_cells() + "</tr>"
+    for rowd in by_color:
+        dot = committee_color_hex(rowd["color"])
+        meta = " · ".join(x for x in (rowd.get("level"), rowd.get("obor")) if x)
+        label = escape(rowd["color"] or "?")
+        if meta:
+            label += f" <span style='color:{_MUTED};'>({escape(meta)})</span>"
+        out += (f"<tr><td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
+                f"<span style='color:{dot};'>●</span> {label}</td>")
+        for cat in CATEGORIES:
+            out += _num(rowd.get(cat, 0), cat)
+        out += (f"<td style='padding:2px 0;text-align:right;'>"
+                f"{rowd.get('total', 0)}</td></tr>")
+    # Souhrnný řádek.
+    out += (f"<tr><td style='padding:4px 14px 2px 0;border-top:1px solid {_MUTED};"
+            f"color:{_MUTED};'>Σ {escape(tr('celkem'))}</td>")
+    grand = 0
+    for cat in CATEGORIES:
+        v = totals.get(cat, 0)
+        grand += v
+        out += (f"<td style='padding:4px 10px 2px 0;text-align:right;border-top:"
+                f"1px solid {_MUTED};color:{_CAT_COLORS[cat]};font-weight:bold;'>"
+                f"{v}</td>")
+    out += (f"<td style='padding:4px 0 2px;text-align:right;border-top:1px solid "
+            f"{_MUTED};font-weight:bold;'>{grand}</td></tr></table>")
+
+    # Tabulka 2 — podle členů komise.
+    out += ("<h3 style='margin:14px 0 4px;'>👤 "
+            + escape(tr("Podle členů komise")) + "</h3>")
+    if not by_member:
+        out += (f"<p style='color:{_MUTED};'>"
+                + escape(tr("Komise nemají vyplněné členy.")) + "</p>")
+        return out
+    out += "<table style='border-collapse:collapse;'><tr>"
+    out += (f"<th style='padding:2px 14px 2px 0;text-align:left;color:{_MUTED};'>"
+            f"{escape(tr('Člen'))}</th>") + _head_cells() + "</tr>"
+    for m in by_member:
+        out += (f"<tr><td style='padding:2px 14px 2px 0;white-space:nowrap;'>"
+                f"{escape(m['name'])}</td>")
+        for cat in CATEGORIES:
+            out += _num(m.get(cat, 0), cat)
+        out += (f"<td style='padding:2px 0;text-align:right;'>"
+                f"{m.get('total', 0)}</td></tr>")
+    out += "</table>"
+    return out
 
 
 def _date_key(d: str):

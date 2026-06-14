@@ -1,0 +1,134 @@
+"""Statistika obhajob komisí — agregace a párování stavů ze STAG.
+
+Pokrývá čistou logiku `services.komise_stats` (kategorie, agregace dle barvy
+i členů) a párovací/časové helpery v `ui.stag_check` (bez sítě).
+"""
+
+from __future__ import annotations
+
+import os
+from datetime import datetime
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from bpdpmanager.models.komise import Committee, CommitteeMember, DefenseSlot
+from bpdpmanager.services.komise_stats import (
+    CAT_DEFENDED,
+    CAT_FAILED,
+    CAT_NONE,
+    CAT_UNFINISHED,
+    category_from_code,
+    committee_defense_stats,
+    slot_key,
+)
+
+
+def test_category_from_code() -> None:
+    assert category_from_code("DUO") == CAT_DEFENDED
+    assert category_from_code("DBUO") == CAT_FAILED
+    assert category_from_code("OPUNO") == CAT_FAILED
+    assert category_from_code("ND") == CAT_UNFINISHED
+    assert category_from_code("R") == CAT_NONE
+    assert category_from_code("DBPOO") == CAT_NONE
+    assert category_from_code("") == CAT_NONE
+    assert category_from_code("XYZ") == CAT_NONE
+
+
+def test_slot_key_prefers_personal_number() -> None:
+    assert slot_key("a23625", "Marko Adámek") == "A23625"
+    # Bez osobního čísla → foldované jméno (bez diakritiky, lowercase).
+    assert slot_key("", "Marko Adámek") == "marko adamek"
+
+
+def _committee(color, level, obor, members, slots) -> Committee:
+    return Committee(
+        academic_year="2025/2026", color=color, level=level, obor=obor,
+        members=[CommitteeMember(role="Člen", name=m) for m in members],
+        slots=[DefenseSlot(date="17. 6. 2026", time=t, personal_number=p,
+                           student_name=n) for (t, p, n) in slots],
+    )
+
+
+def test_committee_defense_stats_by_color_and_member() -> None:
+    c1 = _committee("modrá", "Mgr", "NSWI", ["Karel Předseda", "Eva Členka"], [
+        ("09:00", "A1", "Anna Vedena"),
+        ("10:00", "A2", "Petr Druhy"),
+        ("11:00", "A3", "Jan Třetí"),
+    ])
+    c2 = _committee("červená", "Bc", "SWI", ["Karel Předseda"], [
+        ("09:00", "A4", "Lucie Čtvrtá"),
+    ])
+    states = {
+        "A1": CAT_DEFENDED,
+        "A2": CAT_FAILED,
+        # A3 nezadáno → none; A4 nezadáno → none
+    }
+    stats = committee_defense_stats([c1, c2], states)
+
+    by_color = {(r["color"]): r for r in stats["by_color"]}
+    assert by_color["modrá"][CAT_DEFENDED] == 1
+    assert by_color["modrá"][CAT_FAILED] == 1
+    assert by_color["modrá"][CAT_NONE] == 1
+    assert by_color["modrá"]["total"] == 3
+    assert by_color["červená"][CAT_NONE] == 1 and by_color["červená"]["total"] == 1
+
+    assert stats["totals"][CAT_DEFENDED] == 1
+    assert stats["totals"][CAT_FAILED] == 1
+    assert stats["totals"][CAT_NONE] == 2
+
+    # Karel je v obou komisích → součet 3+1 studentů; Eva jen v modré (3).
+    by_member = {m["name"]: m for m in stats["by_member"]}
+    assert by_member["Karel Předseda"]["total"] == 4
+    assert by_member["Karel Předseda"][CAT_DEFENDED] == 1
+    assert by_member["Karel Předseda"][CAT_NONE] == 2
+    assert by_member["Eva Členka"]["total"] == 3
+
+
+def test_committee_defense_stats_default_none() -> None:
+    c = _committee("zelená", "Bc", "ITA", ["A B"], [("09:00", "A9", "Kdo Ví")])
+    stats = committee_defense_stats([c], {})
+    assert stats["totals"][CAT_NONE] == 1
+    assert stats["totals"][CAT_DEFENDED] == 0
+
+
+def test_needs_committee_query_timing() -> None:
+    from bpdpmanager.ui.stag_check import _needs_committee_query
+
+    slot = datetime(2026, 6, 17, 11, 0)
+    # Před koncem (obhajoba + 30 min) se neptá.
+    assert _needs_committee_query(slot, datetime(2026, 6, 17, 11, 20)) is False
+    assert _needs_committee_query(slot, datetime(2026, 6, 17, 11, 29)) is False
+    # Po čase obhajoby + 30 min se ptá.
+    assert _needs_committee_query(slot, datetime(2026, 6, 17, 11, 31)) is True
+    # Neznámý čas → ptáme se.
+    assert _needs_committee_query(None, datetime(2026, 6, 17, 11, 0)) is True
+
+
+def test_match_committee_result() -> None:
+    from bpdpmanager.services.stag_api import StagThesisResult
+    from bpdpmanager.ui.stag_check import _match_committee_result
+
+    c = Committee(academic_year="2025/2026", color="modrá", level="Mgr", obor="NSWI")
+    slot = DefenseSlot(student_name="Anna Vedená", personal_number="A1")
+
+    results = [
+        # Jmenovec ze špatného roku → odmítnout.
+        StagThesisResult(adipidno="1", surname="Vedená", name="Anna",
+                         type_label="Diplomová práce", year="2022", status_code="DUO"),
+        # Správná: jméno + typ (Mgr=diplomová) + rok obhajoby 2026.
+        StagThesisResult(adipidno="2", surname="Vedená", name="Anna",
+                         type_label="Diplomová práce", year="2026", status_code="DUO"),
+    ]
+    m = _match_committee_result(results, slot, c)
+    assert m is not None and m.adipidno == "2"
+
+    # Špatný typ (bakalářská u Mgr komise) → žádná shoda.
+    bc_only = [StagThesisResult(adipidno="3", surname="Vedená", name="Anna",
+                                type_label="Bakalářská práce", year="2026",
+                                status_code="DUO")]
+    assert _match_committee_result(bc_only, slot, c) is None
+
+    # Jiné jméno → žádná shoda.
+    other = [StagThesisResult(adipidno="4", surname="Nový", name="Pavel",
+                              type_label="Diplomová práce", year="2026")]
+    assert _match_committee_result(other, slot, c) is None

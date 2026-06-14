@@ -1107,6 +1107,18 @@ obor); místnost se neeviduje.
   ukáže u studenta badge **✅ Obhájeno** / **❌ Neobhájeno** / **⚠ Nedokončeno**
   (párování přes osobní číslo Axxxxx, záložně jméno). Mimo období se kontrola
   nespouští.
+- **📊 Statistika obhajob (spodní sekce prostředního panelu).** Pod detailem
+  komise je samostatná sekce se **dvěma tabulkami**: **podle barvy komise**
+  (kolik studentů komise *Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby*,
+  + řádek Σ) a **podle členů komise** (každému členovi součet studentů jeho
+  komisí v týchž kategoriích). **Rozsah se řídí výběrem vlevo**: vybraná komise
+  → jen ona, vybraný rok/stupeň → celý rok, jinak **všechny roky**. Stavy se
+  zjišťují **ze STAG podle jména** studenta (zpřesněno typem Bc/Mgr a rokem
+  obhajoby) pro **všechny** studenty komisí — ne jen tvoje. Aby se STAG
+  nezatěžoval: dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
+  u studentů **bez výsledku** (hotové se cachují); běží na pozadí jen v období
+  státnic, jinak ručně tlačítkem **🔄 Aktualizovat**. Než se stav zjistí, je
+  student *Bez obhajoby*.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

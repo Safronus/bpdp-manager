@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.24] - 2026-06-14
+
+### Added
+- **📊 Statistika obhajob komisí** (Státnice → spodní samostatná sekce
+  prostředního panelu). Dvě tabulky: **podle barvy komise** a **podle členů
+  komise**, v kategoriích **Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby**
+  (+ řádek Σ). Rozsah se řídí výběrem vlevo: vybraná komise → jen ona,
+  vybraný rok/stupeň → celý rok, jinak všechny roky.
+- **Kontrola stavu obhajob všech studentů komisí.** Tichá STAG kontrola
+  (jen v období státnic) nově zjišťuje stav **všech** studentů ze všech komisí
+  (ne jen vedených/oponovaných) **podle jména** (zpřesněno typem Bc/Mgr a rokem
+  obhajoby). Šetří STAG: dotazuje se až **~30 min po plánovaném čase** obhajoby
+  a jen u studentů **bez výsledku** (hotové se cachují). Mimo období jen ručně
+  tlačítkem **🔄 Aktualizovat**. Než se stav zjistí, je student „Bez obhajoby".
+
 ## [2.5.23] - 2026-06-13
 
 ### Added

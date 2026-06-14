@@ -11,6 +11,7 @@ porovnání se sdílí se synchronizačním dialogem (``stag_sync_dialog``).
 
 from __future__ import annotations
 
+import re
 import threading
 from dataclasses import dataclass, field
 
@@ -389,4 +390,122 @@ class KomiseStateChecker(QObject):
             states = fetch_defense_states(self._service)
         except Exception:  # výsledek nesmí shodit vlákno
             states = {}
+        self.finished.emit(states)
+
+
+# ── statistika obhajob komisí (všichni studenti, párování dle jména) ─────────
+
+def _needs_committee_query(slot_dt, now, grace_min: int = 30) -> bool:
+    """Má smysl se STAG ptát na tento slot? Až **po čase obhajoby + grace**.
+
+    Dřív student logicky nemá výsledek (čeká), takže dotaz je zbytečný. Neznámý
+    čas → dotaz povolíme (radši zjistit).
+    """
+    if slot_dt is None:
+        return True
+    from datetime import timedelta
+
+    return now >= slot_dt + timedelta(minutes=grace_min)
+
+
+def _match_committee_result(results, slot, committee):
+    """Z výsledků STAG (hledání dle příjmení) napáruje práci jednoho slotu.
+
+    Páruje **podle jména** (množina tokenů jména/příjmení, bez diakritiky),
+    zpřesněno **typem** (Bc=bakalářská / Mgr=diplomová) a **rokem obhajoby**
+    (pozdější rok akademického roku komise). Vrací :class:`StagThesisResult`
+    nebo ``None``.
+    """
+    slot_set = set(_fold_name(slot.student_name).split())
+    if not slot_set:
+        return None
+    level = (committee.level or "").strip().lower()
+    type_kw = "bakal" if level == "bc" else "diplom" if level == "mgr" else ""
+    years = re.findall(r"\d{4}", committee.academic_year or "")
+    target_year = years[-1] if years else ""
+
+    best = None
+    for r in results:
+        res_set = set(_fold_name(f"{r.surname} {r.name}").split())
+        if not res_set or not (res_set <= slot_set or slot_set <= res_set):
+            continue
+        if type_kw and r.type_label and type_kw not in r.type_label.lower():
+            continue
+        if target_year and r.year and r.year != target_year:
+            continue
+        if r.status_code:          # preferuj záznam s vyplněným stavem
+            return r
+        best = best or r
+    return best
+
+
+def fetch_committee_defense_states(
+    service, committees, now, prior=None, *, grace_min: int = 30
+) -> dict:
+    """Síťově (read-only) zjistí kategorie obhajob studentů ``committees``.
+
+    Vrací ``{klíč: kategorie}`` (klíč = osobní číslo / foldované jméno; kategorie
+    z :mod:`services.komise_stats`). Šetří STAG:
+
+    - **terminální** stavy z ``prior`` (cache) se znovu nedotazují,
+    - dotazuje jen sloty, kterým už uplynul **čas obhajoby + ``grace_min``**,
+    - na každé **příjmení** jeden STAG dotaz (sdílený mezi jmenovci).
+
+    Studenty bez napárování ponechá tak, jak byli (typicky „bez obhajoby").
+    """
+    from ..services import stag_api
+    from ..services.komise_stats import TERMINAL, category_from_code, slot_key
+    from ..services.thesis_service import ThesisService
+
+    out = dict(prior or {})
+    pending: dict[str, list] = {}
+    for c in committees:
+        for s in c.slots:
+            key = slot_key(s.personal_number, s.student_name)
+            if out.get(key) in TERMINAL:
+                continue
+            dt = ThesisService._parse_slot_dt(s.date, s.time)
+            if not _needs_committee_query(dt, now, grace_min):
+                continue
+            surname = _surname_of(s.student_name)
+            if not surname:
+                continue
+            pending.setdefault(_fold_name(surname), []).append((key, s, c, surname))
+
+    for items in pending.values():
+        surname = items[0][3]
+        try:
+            results = stag_api.search_theses(surname, "", stag_api.ROLE_OPPONENT)
+        except Exception:  # offline/parser; necháme studenta „bez obhajoby"
+            continue
+        for key, slot, committee, _sn in items:
+            match = _match_committee_result(results, slot, committee)
+            if match is not None:
+                out[key] = category_from_code(match.status_code)
+    return out
+
+
+class KomiseStatsChecker(QObject):
+    """Na vlákně zjistí kategorie obhajob studentů zadaných komisí (s cache)."""
+
+    finished = Signal(object)  # dict {klíč: kategorie}
+
+    def __init__(self, service, committees, now, prior=None, parent=None) -> None:
+        super().__init__(parent)
+        self._service = service
+        self._committees = list(committees)
+        self._now = now
+        self._prior = dict(prior or {})
+        self._thread: threading.Thread | None = None
+
+    def start(self) -> None:
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self) -> None:
+        try:
+            states = fetch_committee_defense_states(
+                self._service, self._committees, self._now, self._prior)
+        except Exception:  # výsledek nesmí shodit vlákno
+            states = self._prior
         self.finished.emit(states)
