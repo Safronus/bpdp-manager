@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QSizePolicy,
@@ -105,6 +106,7 @@ _STATE_BADGE = {
     "defended": ("✅", "Obhájeno", "#43a047"),
     "failed": ("❌", "Neobhájeno", "#ef5350"),
     "cancelled": ("⚠", "Nedokončeno", "#ffa726"),
+    "unfinished": ("⚠", "Nedokončeno", "#ffa726"),  # kategorie ze statistiky komisí
 }
 
 
@@ -273,7 +275,23 @@ class KomiseTab(QWidget):
         self.tree.itemSelectionChanged.connect(self._on_selected)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
-        left.addWidget(self.tree)
+        # Filtr komisí podle jména člena / studenta (část jména, bez diakritiky).
+        tree_box = QWidget()
+        tbl = QVBoxLayout(tree_box)
+        tbl.setContentsMargins(0, 0, 0, 0)
+        tbl.setSpacing(4)
+        self.filter_edit = QLineEdit()
+        self.filter_edit.setPlaceholderText(
+            tr("🔎 Filtr: jméno člena nebo studenta…"))
+        self.filter_edit.setClearButtonEnabled(True)
+        self.filter_edit.setToolTip(tr(
+            "Zobrazí jen komise, kde je člen nebo student odpovídající textu "
+            "(stačí část jména, nezáleží na velikosti písmen ani diakritice)."
+        ))
+        self.filter_edit.textChanged.connect(self.refresh)
+        tbl.addWidget(self.filter_edit)
+        tbl.addWidget(self.tree)
+        left.addWidget(tree_box)
 
         # Seznam PDF souborů (rok → Složení / Rozpisy), otevíratelné z menu.
         pdf_box = QWidget()
@@ -460,10 +478,34 @@ class KomiseTab(QWidget):
         # foldované jméno uživatele (tituly jsou okolo jména).
         return any(me in _fold(m.name) for m in committee.members)
 
+    @staticmethod
+    def _committee_matches_filter(committee, flt: str) -> bool:
+        """Komise odpovídá filtru, je-li ``flt`` (foldovaný) v jméně **člena**
+        nebo **studenta** (rozpis), případně v osobním čísle studenta."""
+        if not flt:
+            return True
+        if any(flt in _fold(m.name) for m in committee.members):
+            return True
+        return any(
+            flt in _fold(s.student_name) or flt in (s.personal_number or "").lower()
+            for s in committee.slots
+        )
+
+    def _merged_states(self) -> dict:
+        """Stavy obhajob pro vizualizaci: kompletní kontrola komisí
+        (:attr:`_committee_states`) doplněná přesnými stavy mých prací
+        (:attr:`_stag_states`). Kategorie „none" (bez výsledku) nepřepisuje."""
+        merged = dict(self._stag_states)
+        for k, v in self._committee_states.items():
+            if v and v != "none":
+                merged[k] = v
+        return merged
+
     # ── strom ────────────────────────────────────────────────────────────
     def refresh(self) -> None:
         selected = self._selected_id()
         roles = self.service.komise_student_roles()
+        flt = _fold(self.filter_edit.text().strip()) if hasattr(self, "filter_edit") else ""
         self.tree.blockSignals(True)
         self.tree.clear()
         committees = self.service.list_committees()
@@ -482,7 +524,6 @@ class KomiseTab(QWidget):
             year_item.setFirstColumnSpanned(True)
             year_item.setData(0, ROLE_KIND, "year")
             year_item.setData(0, ROLE_YEAR, year)
-            self.tree.addTopLevelItem(year_item)
             # Skupina podle stupně (Bc/Mgr) a uvnitř podle oboru + barvy.
             by_level: dict[str, list] = {}
             for c in by_year[year]:
@@ -495,11 +536,12 @@ class KomiseTab(QWidget):
                 level_item.setData(0, ROLE_KIND, "level")
                 level_item.setData(0, ROLE_YEAR, year)
                 level_item.setData(0, ROLE_LEVEL, level)
-                year_item.addChild(level_item)
                 for c in sorted(by_level[level], key=lambda x: (x.obor, x.color)):
                     led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
                     opp = sum(1 for s in c.slots if self._slot_role(s, roles) == "opp")
                     if self.chk_mine.isChecked() and not (led or opp):
+                        continue
+                    if flt and not self._committee_matches_filter(c, flt):
                         continue
                     star = "⭐ " if self._is_my_committee(c) else ""
                     obor = f" ({c.obor})" if c.obor else ""
@@ -518,8 +560,12 @@ class KomiseTab(QWidget):
                         f2.setBold(True)
                         leaf.setFont(0, f2)
                     level_item.addChild(leaf)
-                level_item.setExpanded(True)
-            year_item.setExpanded(True)
+                if level_item.childCount():   # prázdné skupiny (filtr) nepřidávej
+                    year_item.addChild(level_item)
+                    level_item.setExpanded(True)
+            if year_item.childCount():
+                self.tree.addTopLevelItem(year_item)
+                year_item.setExpanded(True)
         self.tree.blockSignals(False)
         if selected:
             self._select_id(selected)
@@ -813,7 +859,7 @@ class KomiseTab(QWidget):
             ntext = self._fmt_countdown((ndt - now).total_seconds())
         heading = tr("📅 Můj harmonogram obhajob") + f" — {year}"
         self.harmonogram_view.setHtml(_schedule_section_html(
-            entries, heading, self._stag_states, nearest=nkey, nearest_text=ntext))
+            entries, heading, self._merged_states(), nearest=nkey, nearest_text=ntext))
         # Tlačítko do kalendáře jen když je co přidat (nadcházející ve `year`).
         has_upcoming = any(
             (dt := ThesisService._parse_slot_dt(e["date"], e["time"])) and dt > now
@@ -904,7 +950,8 @@ class KomiseTab(QWidget):
         self.lbl_stats_progress.setText("✓ hotovo")
         if isinstance(states, dict):
             self._committee_states = states
-            self._render_stats()
+            # Překresli i detail/rozpis a harmonogram (badge stavů studentů).
+            self._on_selected()
 
     def _on_add_to_calendar(self) -> None:
         """Dialog → vygeneruje .ics nadcházejících obhajob a předá kalendáři."""
@@ -1093,6 +1140,7 @@ class KomiseTab(QWidget):
 
         roles = self.service.komise_student_roles()
         me = self._user_name_fold()
+        states = self._merged_states()
         hexcol = committee_color_hex(c.color)
         head = (
             f"<h2 style='margin:4px 0;'><span style='color:{hexcol};'>●</span> "
@@ -1155,7 +1203,7 @@ class KomiseTab(QWidget):
                         badge = " 🧐"
                         style = "background:#e1bee7;color:#4a148c;"
                     state = _defense_state_badge(
-                        self._stag_states, s.personal_number, s.student_name)
+                        states, s.personal_number, s.student_name)
                     sched_html += (
                         f"<tr><td style='padding:1px 12px 1px 0;color:{_MUTED};'>"
                         f"{escape(s.time)}</td>"
@@ -1203,7 +1251,7 @@ class KomiseTab(QWidget):
     def _show_my_schedule(self) -> None:
         """Otevře dialog s osobním harmonogramem obhajob (vedené + oponované)."""
         dlg = MyScheduleDialog(self.service.my_defense_schedule(), self,
-                               states=self._stag_states)
+                               states=self._merged_states())
         dlg.exec()
 
     def _reset_committees(self) -> None:
@@ -1453,21 +1501,35 @@ def _stats_members_html(stats: dict) -> str:
     return out
 
 
+def _nice_step(value: int, divisions: int = 4) -> int:
+    """Hezký krok osy (1/2/5 * 10^n) tak, aby ~``divisions`` dílků pokrylo ``value``."""
+    import math
+
+    if value <= divisions:
+        return 1
+    raw = value / divisions
+    exp = math.floor(math.log10(raw))
+    base = 10 ** exp
+    for m in (1, 2, 5, 10):
+        if raw <= m * base:
+            return int(m * base)
+    return int(10 * base)
+
+
 class _DefenseBarChart(QWidget):
     """Sloupcový graf obhajob: per komise (barva) 4 sloupce stavů vedle sebe.
 
     Barva sloupců = barva komise; jednotlivé stavy se liší **průhledností**
     (tmavší = obhájeno → světlejší = bez obhajoby). Nad sloupci je počet,
-    pod skupinou barva komise. Vlevo nahoře malá legenda zkratek stavů.
+    vlevo osa Y s mřížkou, pod skupinou barva komise, nahoře legenda stavů.
     """
 
-    _ALPHAS = (255, 195, 135, 80)  # defended, failed, unfinished, none
-    _SHORT = ("Obh.", "Neob.", "Nedok.", "Bez")
+    _ALPHAS = (255, 200, 145, 90)  # defended, failed, unfinished, none
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._groups: list[dict] = []
-        self.setMinimumHeight(200)
+        self.setMinimumHeight(240)
         self.setToolTip(
             "Sloupce zleva: Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby "
             "(tmavší = obhájeno). Barva sloupců = barva komise."
@@ -1488,13 +1550,20 @@ class _DefenseBarChart(QWidget):
         self.update()
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        from ..services.komise_stats import CATEGORIES, CATEGORY_LABELS
+
         p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
         text_col = self.palette().windowText().color()
         muted = QColor(_MUTED)
+        grid = QColor(_MUTED)
+        grid.setAlpha(55)
         w, h = self.width(), self.height()
-        small = QFont(self.font())
-        small.setPointSize(8)
-        p.setFont(small)
+        base_font = QFont(self.font())
+        base_font.setPointSize(10)
+        sub_font = QFont(self.font())
+        sub_font.setPointSize(9)
+        p.setFont(base_font)
 
         if not self._groups:
             p.setPen(muted)
@@ -1503,62 +1572,77 @@ class _DefenseBarChart(QWidget):
             p.end()
             return
 
-        left, right, top, bottom = 26, 8, 34, 34
+        left, right, top, bottom = 42, 12, 44, 48
         plot_w = max(20, w - left - right)
         plot_h = max(20, h - top - bottom)
         base_y = top + plot_h
         maxv = max((max(g["counts"]) for g in self._groups), default=0) or 1
+        step = _nice_step(maxv, 4)
+        top_val = step * (maxv // step + (1 if maxv % step else 0))
+        top_val = max(top_val, step)
 
-        # Legenda (zkratky stavů s odstupňovanou průhledností) vlevo nahoře.
+        # Legenda nahoře (odstupňovaná šeď = stav; pořadí = pořadí sloupců).
+        p.setFont(sub_font)
         lx = left
-        for i, short in enumerate(self._SHORT):
-            sw = QColor(110, 110, 110)
+        for i, cat in enumerate(CATEGORIES):
+            sw = QColor(120, 120, 120)
             sw.setAlpha(self._ALPHAS[i])
-            p.fillRect(lx, 4, 9, 9, sw)
+            p.fillRect(lx, 8, 14, 14, sw)
+            p.setPen(QPen(muted, 1))
+            p.drawRect(lx, 8, 14, 14)
+            label = tr(CATEGORY_LABELS[cat])
+            tw = p.fontMetrics().horizontalAdvance(label)
             p.setPen(text_col)
-            tw = p.fontMetrics().horizontalAdvance(short)
-            p.drawText(lx + 12, 4, tw + 4, 12,
+            p.drawText(lx + 18, 8, tw + 6, 16,
                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                       short)
-            lx += 12 + tw + 12
+                       label)
+            lx += 18 + tw + 16
 
-        # Osa a maximum.
+        # Osa Y s mřížkou a popisky hodnot.
+        p.setFont(sub_font)
+        v = 0
+        while v <= top_val:
+            y = base_y - (v / top_val) * plot_h
+            p.setPen(QPen(grid, 1))
+            p.drawLine(left, int(y), left + plot_w, int(y))
+            p.setPen(muted)
+            p.drawText(0, int(y) - 8, left - 5, 16,
+                       Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                       str(v))
+            v += step
+        # Osy X a Y.
         p.setPen(QPen(muted, 1))
+        p.drawLine(left, top, left, base_y)
         p.drawLine(left, base_y, left + plot_w, base_y)
-        p.setPen(muted)
-        p.drawText(0, top - 6, left - 3, 12,
-                   Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
-                   str(maxv))
 
         n = len(self._groups)
-        gap = 10
-        gw = max(16, (plot_w - gap * (n - 1)) / n)
-        bgap = 2
-        bw = max(3, (gw - bgap * 3) / 4)
-        x = left
+        gap = 14
+        gw = max(20, (plot_w - gap * (n - 1)) / n)
+        bgap = 3
+        bw = max(4, (gw - bgap * 3) / 4)
+        x = left + gap / 2 if n == 1 else left
         for g in self._groups:
             for i, cnt in enumerate(g["counts"]):
                 bx = x + i * (bw + bgap)
-                bh = (cnt / maxv) * plot_h
+                bh = (cnt / top_val) * plot_h
                 col = QColor(g["hex"])
                 col.setAlpha(self._ALPHAS[i])
                 p.fillRect(int(bx), int(base_y - bh), int(bw), int(bh), col)
                 if cnt:
                     p.setPen(text_col)
-                    p.drawText(int(bx - 2), int(base_y - bh - 13),
-                               int(bw + 4), 12, Qt.AlignmentFlag.AlignHCenter,
+                    p.setFont(sub_font)
+                    p.drawText(int(bx - 3), int(base_y - bh - 16),
+                               int(bw + 6), 14, Qt.AlignmentFlag.AlignHCenter,
                                str(cnt))
             p.setPen(text_col)
-            p.drawText(int(x), base_y + 2, int(gw), 13,
+            p.setFont(base_font)
+            p.drawText(int(x), base_y + 4, int(gw), 16,
                        Qt.AlignmentFlag.AlignHCenter, g["label"])
             if g["sub"]:
-                tiny = QFont(self.font())
-                tiny.setPointSize(7)
-                p.setFont(tiny)
+                p.setFont(sub_font)
                 p.setPen(muted)
-                p.drawText(int(x), base_y + 15, int(gw), 11,
+                p.drawText(int(x), base_y + 22, int(gw), 14,
                            Qt.AlignmentFlag.AlignHCenter, g["sub"])
-                p.setFont(small)
             x += gw + gap
         p.end()
 

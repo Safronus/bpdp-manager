@@ -7,6 +7,21 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.27] - 2026-06-14
+
+### Added
+- **🔎 Filtr komisí podle jména** (pole nad stromem v záložce Komise) — část
+  jména **člena** nebo **studenta** (i osobní číslo) nechá ve stromu jen
+  odpovídající komise; nezáleží na velikosti písmen ani diakritice.
+
+### Changed
+- **Stav obhajoby u jednotlivých studentů v rozpisu komise.** Badge
+  ✅/❌/⚠ se v rozpisu (i v harmonogramu) nově ukazuje pro **všechny** studenty
+  komise z kompletní STAG kontroly (dříve jen tvoji vedení/oponovaní); tvé práce
+  zůstávají přesné přes STAG ID.
+- **Čitelnější sloupcový graf** statistiky — **osa Y s mřížkou** a popisky
+  hodnot, **větší písmo**, přehledná **legenda** stavů, počet nad sloupci.
+
 ## [2.5.26] - 2026-06-14
 
 ### Added

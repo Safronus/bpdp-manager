@@ -963,6 +963,9 @@ location = committee (colour + programme); rooms are not tracked.
   (matched via the **personal number** Axxxxx, name as fallback) are green
   and **🧐 opposed** ones (by name) purple. The *My students* column shows
   counts; the *Only committees with my students* filter hides the rest.
+- **🔎 Filter committees by name** (field above the tree) — type part of a
+  **committee member's** or a **student's** name (or personal number) and the
+  tree keeps only matching committees. Case- and diacritics-insensitive.
 - **⭐ Your committees:** committees where you are a member (by your profile
   name) get a star in the tree, the detail title and next to your name.
 - **Committee composition** shows the role in **coloured rounded boxes of
@@ -978,11 +981,13 @@ location = committee (colour + programme); rooms are not tracked.
   you who, when and at which committee is up. Each slot is announced once per
   app run.
 - **Live defence status (during the exam period only).** Within the committee
-  date range the app **silently checks** the STAG status of your supervised
-  and opposed theses **every 15 minutes** (read-only) and shows a badge next
-  to the student in the schedule: **✅ Defended** / **❌ Failed** /
-  **⚠ Not completed** (matched by personal number Axxxxx, name as fallback).
-  Outside the period the check does not run.
+  date range the app **silently checks** STAG defence statuses (read-only) and
+  shows a badge next to the student **right in the committee schedule** (and in
+  My defence schedule): **✅ Defended** / **❌ Failed** / **⚠ Not completed**.
+  The status is resolved for **all** committee students (see *Defence
+  statistics* below — matched by name); your supervised/opposed ones precisely
+  via STAG ID. Outside the period the check does not run (run it manually with
+  *🔄 Refresh* in the statistics).
 - **📊 Defence statistics (bottom section of the middle panel).** Below the
   committee detail is a separate section; the **top detail fits its content
   height** (members + schedule) and the statistics below **take the remaining

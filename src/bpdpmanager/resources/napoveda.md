@@ -1088,6 +1088,9 @@ obor); místnost se neeviduje.
   **osobní číslo** Axxxxx, záložně přes jméno) zeleně a **🧐 oponovaní**
   (přes jméno) fialově. Sloupec *Moji studenti* ve stromu ukazuje počty;
   filtr *Jen komise s mými studenty* skryje ostatní.
+- **🔎 Filtr komisí podle jména** (pole nad stromem) — napiš část jména
+  **člena komise** nebo **studenta** (i osobní číslo) a strom nechá jen komise,
+  které odpovídají. Nezáleží na velikosti písmen ani diakritice.
 - **⭐ Tvoje komise:** komise, kde jsi členem (dle jména z profilu), mají
   hvězdičku ve stromu, v titulku detailu i u tvého jména ve složení.
 - **Složení komise** má role v **barevných zaoblených rámečcích stejné
@@ -1102,11 +1105,12 @@ obor); místnost se neeviduje.
   **oznámení** (systémová bublina, jinak okno) s tím, kdo, kdy a u které
   komise jde na řadu. Každý slot oznámí jednou za běh aplikace.
 - **Stav obhajoby naživo (jen v období státnic).** V rozmezí termínů komisí
-  aplikace **každých 15 minut tiše** zkontroluje STAG stav tvých vedených
-  a oponovaných prací (jen čte, nic nezapisuje) a v rozpisu i harmonogramu
-  ukáže u studenta badge **✅ Obhájeno** / **❌ Neobhájeno** / **⚠ Nedokončeno**
-  (párování přes osobní číslo Axxxxx, záložně jméno). Mimo období se kontrola
-  nespouští.
+  aplikace **tiše** zjišťuje STAG stav obhajob (jen čte, nic nezapisuje) a
+  **přímo v rozpisu komise** (i v harmonogramu) ukáže u studenta badge
+  **✅ Obhájeno** / **❌ Neobhájeno** / **⚠ Nedokončeno**. Stav se zjišťuje pro
+  **všechny** studenty komise (viz *Statistika obhajob* níže — párování dle
+  jména), tvé vedené/oponované přesně přes STAG ID. Mimo období se kontrola
+  nespouští (ručně ji spustíš tlačítkem *🔄 Aktualizovat* ve statistice).
 - **📊 Statistika obhajob (spodní sekce prostředního panelu).** Pod detailem
   komise je samostatná sekce; **horní detail se výškově přizpůsobuje obsahu**
   (členové + rozpis) a statistika dole **zabere zbývající výšku** panelu. Jsou tu

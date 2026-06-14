@@ -153,6 +153,34 @@ def test_fetch_progress_total_counts_pending(monkeypatch) -> None:
     assert seen[0][1] == 2                      # total = 2 hned na začátku
 
 
+def test_committee_matches_filter() -> None:
+    from bpdpmanager.services.komise_stats import fold_name
+    from bpdpmanager.ui.komise_tab import KomiseTab
+
+    c = _committee("modrá", "Mgr", "NSWI",
+                   ["prof. Ing. Petr Žáček, Ph.D."],
+                   [("09:00", "A23625", "Marko Adámek")])
+    match = KomiseTab._committee_matches_filter
+    # Část jména studenta, bez diakritiky, nezáleží na velikosti.
+    assert match(c, fold_name("adamek"))
+    assert match(c, fold_name("MARKO"))
+    # Část jména člena (i bez diakritiky/titulů).
+    assert match(c, fold_name("zacek"))
+    # Osobní číslo.
+    assert match(c, "a23625")
+    # Nic neodpovídá.
+    assert not match(c, fold_name("novak"))
+
+
+def test_nice_step() -> None:
+    from bpdpmanager.ui.komise_tab import _nice_step
+
+    assert _nice_step(3, 4) == 1
+    assert _nice_step(23, 4) == 10
+    assert _nice_step(120, 4) == 50
+    assert _nice_step(8, 4) == 2
+
+
 def test_match_committee_result() -> None:
     from bpdpmanager.services.stag_api import StagThesisResult
     from bpdpmanager.ui.stag_check import _match_committee_result
