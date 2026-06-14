@@ -1108,7 +1108,9 @@ obor); místnost se neeviduje.
   (párování přes osobní číslo Axxxxx, záložně jméno). Mimo období se kontrola
   nespouští.
 - **📊 Statistika obhajob (spodní sekce prostředního panelu).** Pod detailem
-  komise je samostatná sekce se **dvěma tabulkami**: **podle barvy komise**
+  komise je samostatná sekce; **horní detail se výškově přizpůsobuje obsahu**
+  (členové + rozpis) a statistika dole **zabere zbývající výšku** panelu. Sekce
+  má **dvě tabulky**: **podle barvy komise**
   (kolik studentů komise *Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby*,
   + řádek Σ) a **podle členů komise** (každému členovi součet studentů jeho
   komisí v týchž kategoriích). **Rozsah se řídí výběrem vlevo**: vybraná komise

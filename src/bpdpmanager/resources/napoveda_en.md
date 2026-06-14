@@ -984,7 +984,9 @@ location = committee (colour + programme); rooms are not tracked.
   **⚠ Not completed** (matched by personal number Axxxxx, name as fallback).
   Outside the period the check does not run.
 - **📊 Defence statistics (bottom section of the middle panel).** Below the
-  committee detail is a separate section with **two tables**: **by committee
+  committee detail is a separate section; the **top detail fits its content
+  height** (members + schedule) and the statistics below **take the remaining
+  height** of the panel. It has **two tables**: **by committee
   colour** (how many of the committee's students are *Defended / Failed / Not
   completed / No defence yet*, plus a Σ row) and **by committee member** (each
   member's sum of students across their committees, same categories). **Scope

@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.25] - 2026-06-14
+
+### Changed
+- **Statistika obhajob flexibilně využije výšku panelu.** V záložce Státnice
+  se horní detail komise (členové + rozpis studentů) výškově **přizpůsobí
+  obsahu** a sekce **📊 Statistika obhajob** dole zabere **zbývající výšku**
+  prostředního panelu (delší detail je zastropovaný na ~65 % s vlastním
+  posuvníkem, aby na statistiku vždy zbylo místo).
+
 ## [2.5.24] - 2026-06-14
 
 ### Added

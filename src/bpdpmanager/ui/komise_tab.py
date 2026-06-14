@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QStyle,
     QStyledItemDelegate,
@@ -316,12 +317,16 @@ class KomiseTab(QWidget):
         row.addWidget(self.left_container)
 
         # Prostřední panel: nahoře detail komise (členové + studenti) / přehled,
-        # dole samostatná sekce statistiky obhajob (svisle dělitelné).
+        # který na výšku FITUJE OBSAH; dole sekce statistiky obhajob, která bere
+        # zbývající výšku.
         self.detail = QTextBrowser()
         # Linky neotvírat „navigací" (QTextBrowser by PDF načetl jako text =
         # změť) — odkaz na PDF otevřeme systémově, web v prohlížeči.
         self.detail.setOpenLinks(False)
         self.detail.anchorClicked.connect(self._open_detail_link)
+        # Horní detail se výškově přizpůsobuje obsahu (viz _fit_detail_height).
+        self.detail.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         stats_box = QWidget()
         sbl = QVBoxLayout(stats_box)
@@ -344,13 +349,12 @@ class KomiseTab(QWidget):
         self.stats_view.setOpenExternalLinks(False)
         sbl.addWidget(self.stats_view)
 
-        mid_split = QSplitter(Qt.Orientation.Vertical)
-        mid_split.addWidget(self.detail)
-        mid_split.addWidget(stats_box)
-        mid_split.setStretchFactor(0, 3)
-        mid_split.setStretchFactor(1, 2)
-        mid_split.setChildrenCollapsible(False)
-        row.addWidget(mid_split, stretch=1)
+        mid = QWidget()
+        ml = QVBoxLayout(mid)
+        ml.setContentsMargins(0, 0, 0, 0)
+        ml.addWidget(self.detail)            # nahoře: fituje obsah na výšku
+        ml.addWidget(stats_box, stretch=1)   # dole: bere zbývající výšku
+        row.addWidget(mid, stretch=1)
 
         # Pravý panel: nezávislý „Můj harmonogram obhajob" pro vybraný rok.
         self.harmonogram_view = QTextBrowser()
@@ -696,13 +700,31 @@ class KomiseTab(QWidget):
         self.left_container.setFixedWidth(lw)
         self.right_container.setFixedWidth(rw)
 
+    def _fit_detail_height(self) -> None:
+        """Horní detail (komise/přehled) na výšku fituje obsah.
+
+        Zbývající výšku prostředního panelu pak dostane sekce statistiky. Aby
+        statistice vždy zbylo místo, výška detailu je zastropovaná na ~65 %
+        panelu (delší detail pak má vlastní posuvník).
+        """
+        doc = self.detail.document()
+        vp_w = self.detail.viewport().width()
+        if vp_w > 0:
+            doc.setTextWidth(vp_w)
+        frame = 2 * self.detail.frameWidth()
+        content = int(doc.size().height()) + frame + 6
+        cap = max(160, int(self.height() * 0.65))
+        self.detail.setFixedHeight(max(60, min(content, cap)))
+
     def showEvent(self, event) -> None:  # noqa: N802 (Qt API)
         super().showEvent(event)
         self._fit_panels()
+        self._fit_detail_height()
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt API)
         super().resizeEvent(event)
         self._fit_panels()
+        self._fit_detail_height()
 
     # ── detail (prostřední) + harmonogram (pravý) ─────────────────────────
     def _on_selected(self) -> None:
@@ -726,6 +748,7 @@ class KomiseTab(QWidget):
         self._render_harmonogram()
         self._render_stats()
         self._fit_panels()
+        self._fit_detail_height()
 
     @staticmethod
     def _empty_html() -> str:
