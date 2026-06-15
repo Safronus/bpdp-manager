@@ -496,11 +496,6 @@ class StagImportDialog(QDialog):
             self.focus_opposing_id = dlg.focus_opposing_id
             self.accept()
             return
-        if dlg.statuses_only_done:
-            # Aktualizovaly se jen stavy prací (bez souborů) — zavři dialog,
-            # MainWindow refreshne seznamy.
-            self.accept()
-            return
         if dlg.result_items:
             # Zapamatuj si stažené soubory — připojí se po importu práce.
             self._stag_downloaded_files = dict(dlg.downloaded_files)
@@ -2226,8 +2221,6 @@ class StagDownloadDialog(QDialog):
         # Režim „jen soubory" — soubory připojeny rovnou k existující práci v DB,
         # CSV import se neprovádí. MainWindow pak jen refreshne + naviguje.
         self.files_only_done = False
-        # Režim „jen stavy" — aktualizuje jen stav prací ze STAG (bez souborů).
-        self.statuses_only_done = False
         self.focus_thesis_id: str | None = None
         self.focus_opposing_id: str | None = None
 
@@ -2380,15 +2373,6 @@ class StagDownloadDialog(QDialog):
             "Pokud práce v databázi není, upozorní.")
         )
         self.btn_files_only.clicked.connect(self._download_files_only)
-        self.btn_status_only = QPushButton(tr("🏷 Aktualizovat jen stavy"))
-        self.btn_status_only.setEnabled(False)
-        self.btn_status_only.setToolTip(
-            tr("Aktualizuje jen STAV prací ze STAG (bez stahování souborů) u prací, "
-            "které už máš v databázi. Vedené práce: stav "
-            "(Obhájeno / Neobhájeno / Nedokončeno / …); oponentury: stav práce ve "
-            "STAG. Rychlé — vyřeší i přeřazení Nedokončeno → Neobhájeno.")
-        )
-        self.btn_status_only.clicked.connect(self._update_statuses_only)
         self.btn_download = QPushButton(tr("⬇ Stáhnout vybrané"))
         self.btn_download.setEnabled(False)
         self.btn_download.setDefault(True)
@@ -2402,7 +2386,6 @@ class StagDownloadDialog(QDialog):
         self.btn_download.clicked.connect(self._download_selected)
         row.addStretch()
         row.addWidget(btn_cancel)
-        row.addWidget(self.btn_status_only)
         row.addWidget(self.btn_files_only)
         row.addWidget(self.btn_download)
         outer.addLayout(row)
@@ -2958,9 +2941,8 @@ class StagDownloadDialog(QDialog):
         self.btn_download.setText(
             "⬇ Stáhnout vybrané" if n == 0 else f"⬇ Stáhnout vybrané ({n})"
         )
-        # „Jen soubory" / „jen stavy" mají smysl jen se službou (dohledání v DB).
+        # „Jen soubory" má smysl jen se službou (dohledání práce v DB).
         self.btn_files_only.setEnabled(n > 0 and self._service is not None)
-        self.btn_status_only.setEnabled(n > 0 and self._service is not None)
 
     def _download_selected(self) -> None:
         results = self._checked_results()
@@ -3361,89 +3343,6 @@ class StagDownloadDialog(QDialog):
         self.focus_thesis_id = last_thesis_id
         self.focus_opposing_id = last_opposing_id if not last_thesis_id else None
         self.accept()
-
-    def _update_statuses_only(self) -> None:
-        """Aktualizuje jen STAV prací ze STAG (bez stahování souborů).
-
-        Vedené práce: ``ThesisStatus`` přes mapování STAG kódu (řeší i přeřazení
-        Nedokončeno → Neobhájeno). Oponentury: STAG kód stavu (sloupec *Stav*).
-        Páruje přes adipIdno/jméno; stav bere přímo z výsledku vyhledávání
-        (``status_code``), takže nejsou potřeba další dotazy na STAG.
-        """
-        results = self._checked_results()
-        if not results or self._service is None:
-            return
-        svc = self._service
-        changed: list[str] = []
-        unchanged = 0
-        unmatched: list[str] = []
-        unknown: list[str] = []
-        errors: list[str] = []
-
-        for result in results:
-            code = (result.status_code or "").strip().upper()
-            thesis_id, op_id = self._find_db_target(result)
-            if not thesis_id and not op_id:
-                unmatched.append(result.student_full)
-                continue
-            if not code:
-                unknown.append(result.student_full)
-                continue
-            if thesis_id:
-                thesis = svc.get_thesis(thesis_id)
-                new_status = STAG_STATE_TO_STATUS.get(code)
-                if thesis is None or new_status is None:
-                    unknown.append(result.student_full)
-                    continue
-                if thesis.status == new_status:
-                    unchanged += 1
-                    continue
-                old = thesis.status.label
-                try:
-                    svc.transition(thesis_id, new_status)
-                    changed.append(f"{result.student_full}: {old} → {new_status.label}")
-                except Exception as exc:  # noqa: BLE001 — nepovolený přechod / chybí pole
-                    errors.append(
-                        f"{result.student_full}: {old} → {new_status.label} ({exc})"
-                    )
-            else:
-                op = svc.get_opposing_thesis(op_id)
-                if op is None:
-                    unmatched.append(result.student_full)
-                    continue
-                if op.stag_state_code == code:
-                    unchanged += 1
-                    continue
-                old = STAG_STATE_SHORT.get(op.stag_state_code, op.stag_state_code or "—")
-                op.stag_state_code = code
-                svc.upsert_opposing_thesis(op)
-                changed.append(
-                    f"{result.student_full}: {old} → {STAG_STATE_SHORT.get(code, code)}"
-                )
-
-        summary: list[str] = []
-        if changed:
-            summary.append(f"✓ Aktualizováno stavů: {len(changed)}\n" + "\n".join(
-                f"  • {c}" for c in changed
-            ))
-        if unchanged:
-            summary.append(f"• Beze změny: {unchanged}")
-        if unmatched:
-            summary.append(
-                "⚠ Bez odpovídající práce v DB: " + ", ".join(unmatched)
-            )
-        if unknown:
-            summary.append("• Neznámý/chybějící STAG stav: " + ", ".join(unknown))
-        if errors:
-            summary.append("⚠ Nešlo aktualizovat:\n" + "\n".join(errors))
-        QMessageBox.information(
-            self, tr("STAG — jen stavy"),
-            "\n\n".join(summary) or "Nebylo co aktualizovat.",
-        )
-
-        if changed:
-            self.statuses_only_done = True
-            self.accept()
 
     # --- stahování souborů ---------------------------------------------------
 

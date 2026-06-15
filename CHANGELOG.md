@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.6.2] - 2026-06-16
+
+### Removed
+- Tlačítko **🏷 Aktualizovat jen stavy** v okně stahování prací ze STAG —
+  aktualizaci stavu řeší **tichá kontrola po startu**, **kontextová akce
+  „🔄 Aktualizace práce ze STAG…"** nad prací a v období státnic i kontrola
+  stavu obhajob. Odstraněn i související mrtvý kód (`_update_statuses_only`,
+  `statuses_only_done`).
+
 ## [2.6.1] - 2026-06-16
 
 ### Changed

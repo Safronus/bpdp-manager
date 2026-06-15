@@ -844,14 +844,9 @@ reviews without that field fall back to the suggestion sentence.
 > you only want files, use the **📎 Download files only** button in the
 > search window. It downloads files and attaches them to the matching
 > thesis (paired by STAG ID, else name + type). Warns if the thesis isn't
-> found.
->
-> **🏷 Update statuses only:** next to it, **🏷 Update statuses only**
-> updates **just the status** of ticked already-known theses from STAG (no
-> file downloads). Supervised theses get *Defended / Failed defense / Not
-> completed / …*; opposed theses the STAG status. Fast — also fixes the
-> retroactive *Not completed → Failed defense* reclassification. Shows a
-> summary of changed statuses.
+> found. *(Updating just the status is handled by the silent startup check
+> and the per-thesis context action "🔄 Update thesis from STAG…" — see
+> above.)*
 
 > **BP × DP:** BP and DP are separate records (paired by type), so importing
 > a DP **never overwrites** a previously imported BP. Theses are also paired
