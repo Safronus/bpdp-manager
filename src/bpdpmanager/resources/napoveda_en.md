@@ -960,11 +960,13 @@ location = committee (colour + programme); rooms are not tracked.
   `komise/<year>/rozpisy/` (schedules) or `komise/<year>/slozeni/`
   (composition).
 - **Highlighting your students:** in the schedule, **🎓 supervised** students
-  are green and **🧐 opposed** ones purple. Matching is primarily by **personal
-  number** Axxxxx (unambiguous — for supervised and opposed alike), with a
-  fallback by **name without titles** (schedule PDFs often carry titles, theses
-  don't, so `Ing. Matěj Suchánek` matches the thesis `Matěj Suchánek`). The
-  *My students* column shows counts; the *Only committees with my students*
+  are green and **🧐 opposed** ones purple. Only the **current state** counts —
+  supervised only while *In progress* (not theses you supervised long ago), and
+  opposed only from the **current academic year**. Matching is primarily by
+  **personal number** Axxxxx (unambiguous — for supervised and opposed alike),
+  with a fallback by **name without titles** (schedule PDFs often carry titles,
+  theses don't, so `Ing. Matěj Suchánek` matches the thesis `Matěj Suchánek`).
+  The *My students* column shows counts; the *Only committees with my students*
   filter hides the rest.
 - **🔎 Filter committees by name** (field above the tree) — type part of a
   **committee member's** or a **student's** name (or personal number) and the

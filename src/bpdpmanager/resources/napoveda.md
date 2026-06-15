@@ -1085,11 +1085,14 @@ obor); místnost se neeviduje.
   (např. `rozpis-studentu_Bc_SWI_2025-2026.pdf`) a uloží do podsložek
   `komise/<rok>/rozpisy/` (rozpisy) nebo `komise/<rok>/slozeni/` (složení).
 - **Zvýraznění tvých studentů:** v rozpisu jsou **🎓 vedení** zeleně a
-  **🧐 oponovaní** fialově. Párování je primárně přes **osobní číslo** Axxxxx
-  (jednoznačné — u vedených i oponovaných), záložně přes **jméno bez titulů**
-  (v rozpisu PDF studenti tituly mívají, v práci ne, takže `Ing. Matěj Suchánek`
-  se spáruje s prací `Matěj Suchánek`). Sloupec *Moji studenti* ve stromu ukazuje
-  počty; filtr *Jen komise s mými studenty* skryje ostatní.
+  **🧐 oponovaní** fialově. Bere se jen **aktuální stav** — vedené pouze ve stavu
+  *V řešení* (ne práce, které jsi vedl kdysi v minulosti) a oponované jen
+  z **aktuálního akademického roku**. Párování je primárně přes **osobní číslo**
+  Axxxxx (jednoznačné — u vedených i oponovaných), záložně přes **jméno bez
+  titulů** (v rozpisu PDF studenti tituly mívají, v práci ne, takže
+  `Ing. Matěj Suchánek` se spáruje s prací `Matěj Suchánek`). Sloupec
+  *Moji studenti* ve stromu ukazuje počty; filtr *Jen komise s mými studenty*
+  skryje ostatní.
 - **🔎 Filtr komisí podle jména** (pole nad stromem) — napiš část jména
   **člena komise** nebo **studenta** (i osobní číslo) a strom nechá jen komise,
   které odpovídají. Nezáleží na velikosti písmen ani diakritice.

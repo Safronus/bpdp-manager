@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.29] - 2026-06-15
+
+### Fixed
+- **Záložka Státnice ukazuje jen aktuální studenty** (regrese z 2.5.28). Párování
+  jména bez titulů omylem navázalo i studenty, které jsi vedl **v minulosti**
+  (např. tvá stará BP práce se přes `Bc. Jméno` v aktuálním Mgr rozpisu tvářila
+  jako aktuálně vedená). Nově `komise_student_roles` bere — stejně jako tichá
+  STAG kontrola — jen **vedené ve stavu V řešení** a **oponované z aktuálního
+  akademického roku**; historické práce se nezapočítávají.
+
 ## [2.5.28] - 2026-06-15
 
 ### Fixed

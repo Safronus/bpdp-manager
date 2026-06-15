@@ -3049,15 +3049,20 @@ class ThesisService:
     def komise_student_roles(self) -> dict[str, str]:
         """Mapa pro zvýraznění v rozpisech: klíč → ``"led"``/``"opp"``.
 
-        Klíče: **osobní číslo** (Axxxxx, uppercase) — primární a jednoznačné, u
-        vedených i **oponovaných** (``OpposingThesis.student_university_id``) —
-        a jako fallback foldované **jméno bez titulů** (v rozpisu PDF mají
-        studenti tituly, v práci ne, tak by se jinak nespárovali).
+        **Rozsah = jen aktuální** (stejně jako tichá kontrola obhajob): vedené
+        pouze ve stavu **V řešení** (ne historické, které jsem kdy vedl), a
+        oponované jen pro **aktuální akademický rok**. Klíče: **osobní číslo**
+        (Axxxxx) — primární a jednoznačné, u vedených i oponovaných
+        (``OpposingThesis.student_university_id``) — a jako fallback foldované
+        **jméno bez titulů** (v rozpisu PDF mají studenti tituly, v práci ne).
         """
         from .komise_stats import student_name_key
 
+        current = self.current_academic_year()
         out: dict[str, str] = {}
         for t in self.list_theses():
+            if t.status != ThesisStatus.IN_PROGRESS:
+                continue   # jen aktuálně vedené, ne historické
             student = self.get_student(t.student_id) if t.student_id else None
             if student is None:
                 continue
@@ -3067,6 +3072,8 @@ class ThesisService:
             if full:
                 out.setdefault(full, "led")
         for o in self.list_opposing_theses():
+            if o.academic_year != current:
+                continue   # jen oponentury aktuálního roku
             if o.student_university_id:
                 out.setdefault(o.student_university_id.strip().upper(), "opp")
             full = student_name_key(f"{o.student_first_name} {o.student_last_name}")

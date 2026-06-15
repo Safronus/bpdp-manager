@@ -320,7 +320,7 @@ def test_my_defense_schedule(service) -> None:
 
 
 def test_opposing_matched_by_personal_number_despite_title(service) -> None:
-    """Oponovaný se spáruje přes osobní číslo i když rozpis PDF má titul.
+    """Oponovaný (aktuální rok) se spáruje přes osobní číslo i s titulem v PDF.
 
     Regrese: dřív se oponovaní párovali jen jménem, takže „Ing. Matěj Suchánek"
     v rozpisu se nespároval s prací „Matěj Suchánek" (bez titulu).
@@ -328,13 +328,14 @@ def test_opposing_matched_by_personal_number_despite_title(service) -> None:
     from bpdpmanager.models import OpposingThesis
     from bpdpmanager.models.enums import ThesisType
 
+    cur = service.current_academic_year()
     service.load_komise_seed()
     service.upsert_opposing_thesis(OpposingThesis(
-        type=ThesisType.BP, academic_year="2025/2026",
+        type=ThesisType.BP, academic_year=cur,
         student_first_name="Matěj", student_last_name="Suchánek",
         student_university_id="A12345"))
     service.apply_komise_import([], [
-        ParsedSchedule(color="fialová", academic_year="2025/2026", level="Bc",
+        ParsedSchedule(color="fialová", academic_year=cur, level="Bc",
                        obor="SWI", program_label="SWI", dates=["10. 6. 2026"],
                        slots=[("10. 6. 2026", "09:00", "A12345",
                                "Ing. Matěj Suchánek")]),
@@ -349,18 +350,43 @@ def test_opposing_matched_by_name_without_personal_number(service) -> None:
     from bpdpmanager.models import OpposingThesis
     from bpdpmanager.models.enums import ThesisType
 
+    cur = service.current_academic_year()
     service.load_komise_seed()
     service.upsert_opposing_thesis(OpposingThesis(
-        type=ThesisType.BP, academic_year="2025/2026",
+        type=ThesisType.BP, academic_year=cur,
         student_first_name="Matěj", student_last_name="Suchánek"))
     service.apply_komise_import([], [
-        ParsedSchedule(color="fialová", academic_year="2025/2026", level="Bc",
+        ParsedSchedule(color="fialová", academic_year=cur, level="Bc",
                        obor="SWI", program_label="SWI", dates=["10. 6. 2026"],
                        slots=[("10. 6. 2026", "09:00", "", "Ing. Matěj Suchánek")]),
     ], ["swi_bc.pdf"])
     sched = service.my_defense_schedule()
     assert any(e["role"] == "opp" and "Suchánek" in e["student_name"]
                for e in sched)
+
+
+def test_historical_supervised_not_matched_in_current_committee(service) -> None:
+    """Práci vedenou v minulosti (Obhájeno) nesmí aktuální rozpis označit jako
+    aktuálně vedenou — ani přes jméno bez titulu (regrese 2.5.28)."""
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+
+    cur = service.current_academic_year()
+    service.load_komise_seed()
+    s = Student(first_name="Jan", last_name="Novák", university_id="A21111")
+    service.upsert_student(s)
+    # Historická BP práce (minulý rok, Obhájeno) — NEvedu ji teď.
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2023/2024",
+                                 student_id=s.id, status=ThesisStatus.DEFENDED))
+    # Aktuální Mgr rozpis: stejné jméno (s titulem Bc.) a jiné osobní číslo.
+    service.apply_komise_import([], [
+        ParsedSchedule(color="fialová", academic_year=cur, level="Mgr",
+                       obor="NKYB", program_label="NKYB", dates=["10. 6. 2026"],
+                       slots=[("10. 6. 2026", "09:00", "A23222", "Bc. Jan Novák")]),
+    ], ["nkyb_mgr.pdf"])
+    assert service.komise_student_roles().get("a21111".upper()) != "led"
+    sched = service.my_defense_schedule()
+    assert not any(e["student_name"] == "Bc. Jan Novák" for e in sched)
 
 
 def test_future_year_shows_no_composition_notice(service) -> None:
