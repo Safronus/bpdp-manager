@@ -296,13 +296,27 @@ class StagImportDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        # ── Hlavička ────────────────────────────────────────────────────────
-        title = QLabel(tr("📥 Importování dat ze STAGu (stag.utb.cz)"))
-        title.setStyleSheet("font-size:16px;font-weight:bold;")
-        outer.addWidget(title)
+        # ── Tvoje jméno (vpravo nahoře; titulek okna stačí) ─────────────────
+        default_user_name = ""
+        if profile_manager and profile_manager.active:
+            default_user_name = profile_manager.active.user_name or ""
+        self.ed_user_name = QLineEdit(default_user_name)
+        self.ed_user_name.setPlaceholderText(tr("např. Petr Žáček"))
+        self.ed_user_name.setMaximumWidth(240)
+        self.ed_user_name.setToolTip(
+            tr("Použije se k auto-detekci role: ve `vedouciJmeno` → „Vedu“, "
+            "v `oponentJmeno` → „Oponuji“. Per řádek lze přepsat v náhledu.")
+        )
+        name_row = QHBoxLayout()
+        name_row.addStretch()
+        name_row.addWidget(QLabel(tr("Tvoje jméno:")))
+        name_row.addWidget(self.ed_user_name)
+        outer.addLayout(name_row)
 
-        # ── Formulář s parametry ────────────────────────────────────────────
+        # ── Formulář (zarovnaný doleva) ─────────────────────────────────────
         form = QFormLayout()
+        form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
         # Stažení jedné práce podle studenta (vyhledání ve veřejném STAG).
         btn_stag_dl = QPushButton(tr("🔎 Stáhnout práci dle studenta"))
         btn_stag_dl.setToolTip(
@@ -341,39 +355,10 @@ class StagImportDialog(QDialog):
         row_bulk.addStretch()
         form.addRow(tr("Hromadně ze STAG"), row_bulk)
 
-        # Tvoje jméno (pro detekci role)
-        default_user_name = ""
-        if profile_manager and profile_manager.active:
-            default_user_name = profile_manager.active.user_name or ""
-        self.ed_user_name = QLineEdit(default_user_name)
-        self.ed_user_name.setPlaceholderText(tr("např. Petr Žáček"))
-        form.addRow(tr("Tvoje jméno"), self.ed_user_name)
-        help_lbl = QLabel(
-            tr("<small><i>Použije se k auto-detekci role: pokud se najde "
-            "v `vedouciJmeno` → ‚Vedu‘, v `oponentJmeno` → ‚Oponuji‘. "
-            "Per řádek lze přepsat v náhledu.</i></small>")
-        )
-        help_lbl.setStyleSheet("color:#888;")
-        help_lbl.setTextFormat(Qt.TextFormat.RichText)
-        form.addRow("", help_lbl)
-
         # Stav práce se určí automaticky z dat STAG (heuristika z datumů
-        # zadání/odevzdání/obhajoby), lze ho přepsat v náhledu — proto už není
-        # samostatné pole „fallback stav". Řádky bez dat → „V řešení".
-
-        # Před založením nových studentů otevřít jejich kartu k revizi/doplnění
-        # (e-mail, telefon, obor…). Veřejný STAG CSV nese jen osobní číslo a
-        # jméno (jméno doplňujeme z vyhledávání), zbytek je vhodné doplnit ručně.
-        self.chk_review_students = QCheckBox(
-            tr("✎ Před založením zkontrolovat / doplnit nové studenty")
-        )
-        self.chk_review_students.setChecked(False)
-        self.chk_review_students.setToolTip(
-            tr("Pro každého nového studenta (u vedených prací) otevře kartu "
-            "studenta předvyplněnou daty ze STAG — můžeš doplnit e-mail, "
-            "telefon, obor apod. Záznam se uloží až v rámci importu.")
-        )
-        form.addRow("", self.chk_review_students)
+        # zadání/odevzdání/obhajoby), lze ho přepsat v náhledu; řádky bez dat
+        # → „V řešení". Nový student se založí automaticky z dat STAG —
+        # e-mail/telefon/obor lze doplnit kdykoli ve správě studentů.
 
         outer.addLayout(form)
 
@@ -1370,13 +1355,9 @@ class StagImportDialog(QDialog):
         if not self._show_preflight_dialog(missing, len(active_rows)):
             return  # uživatel zrušil
 
-        # 1b) Volitelná revize/doplnění nových studentů (před zápisem)
+        # Nový student se zakládá automaticky z dat STAG (jméno + osobní číslo);
+        # další údaje (e-mail/telefon/obor) se doplní ve správě studentů.
         self._reviewed_students = {}
-        if self.chk_review_students.isChecked():
-            reviewed = self._review_new_students(active_rows)
-            if reviewed is None:
-                return  # uživatel revizi zrušil → celý import zruš
-            self._reviewed_students = reviewed
 
         # 2) Backup před importem (záchranná brzda — umožní celý import vrátit)
         self._preimport_backup_file = None
@@ -2012,68 +1993,6 @@ class StagImportDialog(QDialog):
         stats["created_student"] += 1
         return s
 
-    def _review_new_students(
-        self, active_rows: list[dict]
-    ) -> dict[str, Student] | None:
-        """Otevře kartu studenta pro každého *nového* studenta vedené práce.
-
-        Vrací slovník ``{osobní_číslo: Student}`` s doplněnými daty (zápis se
-        provede až v dávce importu), nebo ``None`` pokud uživatel revizi zrušil
-        a chce celý import přerušit.
-        """
-        from .student_dialog import StudentDialog
-
-        existing_by_uni = {
-            s.university_id: s
-            for s in self.service.list_students()
-            if s.university_id
-        }
-        reviewed: dict[str, Student] = {}
-        seen: set[str] = set()
-
-        for ws in active_rows:
-            record: ParsedRecord = ws["record"]
-            if ImportRole(ws["cb_role"].currentData()) != ImportRole.SUPERVISOR:
-                continue
-            uni_id = record.student_uni_id.strip()
-            if not uni_id or uni_id in existing_by_uni or uni_id in seen:
-                continue
-            seen.add(uni_id)
-
-            obor_choice = ws["cb_obor"].currentData()
-            obor_name = (
-                obor_choice
-                if obor_choice not in ("__keep__", "__new__")
-                else (record.student_obor_stag or "")
-            )
-            prefilled = Student(
-                first_name=record.student_first,
-                last_name=record.student_last,
-                obor=obor_name,
-                university_id=uni_id,
-            )
-            dlg = StudentDialog(
-                self.service, prefilled, parent=self, persist=False
-            )
-            label = f"{record.student_last} {record.student_first}".strip()
-            dlg.setWindowTitle(f"Doplnit studenta — {label}" if label else "Doplnit studenta")
-            if dlg.exec() == QDialog.DialogCode.Accepted:
-                reviewed[uni_id] = dlg.student
-            else:
-                choice = QMessageBox.question(
-                    self,
-                    tr("Přeskočit revizi?"),
-                    tr("Revize tohoto studenta byla zrušena.\n\n"
-                    "Pokračovat v importu s automaticky vyplněnými údaji "
-                    "(jméno, obor, osobní číslo)?"),
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-                    QMessageBox.StandardButton.Yes,
-                )
-                if choice == QMessageBox.StandardButton.Cancel:
-                    return None
-                reviewed[uni_id] = prefilled
-        return reviewed
-
     def _ensure_opponent(self, name: str, stats: dict) -> Opponent | None:
         """Najdi (podle jména) nebo vytvoř oponenta v registru."""
         raw = (name or "").strip()
@@ -2407,6 +2326,23 @@ class StagDownloadDialog(QDialog):
         self.chk_only_mine.setVisible(bool(auto_role))
         self.chk_only_mine.stateChanged.connect(self._on_filter_changed)
         toolbar.addWidget(self.chk_only_mine)
+
+        # Filtr „od akademického roku" (default vypnutý = všechny roky).
+        toolbar.addWidget(QLabel(tr("od roku:")))
+        self.cmb_from_year = QComboBox()
+        self.cmb_from_year.addItem(tr("(všechny roky)"), "")
+        from datetime import date as _date
+        _t = _date.today()
+        _start = _t.year if _t.month >= 9 else _t.year - 1
+        for _y in range(_start, _start - 10, -1):
+            ay = f"{_y}/{_y + 1}"
+            self.cmb_from_year.addItem(ay, ay)
+        self.cmb_from_year.setToolTip(
+            tr("Zobrazí jen práce z vybraného akademického roku a novější "
+            "(default: všechny roky).")
+        )
+        self.cmb_from_year.currentIndexChanged.connect(self._on_filter_changed)
+        toolbar.addWidget(self.cmb_from_year)
         outer.addLayout(toolbar)
 
         self.tree_results = QTreeWidget()
@@ -2572,8 +2508,10 @@ class StagDownloadDialog(QDialog):
         self._enrich_visible()
 
     def _visible_results(self) -> tuple[list[stag_api.StagThesisResult], int]:
-        """Vrátí (zobrazené práce po filtru, počet skrytých jmenovců)."""
+        """Vrátí (zobrazené práce po filtrech, počet skrytých)."""
         raw = self._results
+        hidden = 0
+        # 1) jen moje (dle celého jména)
         if (
             self._auto_role
             and self.chk_only_mine.isChecked()
@@ -2590,8 +2528,18 @@ class StagDownloadDialog(QDialog):
                     return (r.supervisor if self._auto_role == "supervisor"
                             else r.reviewer)
                 kept = [r for r in raw if _name_matches(_person(r), full)]
-            return kept, len(raw) - len(kept)
-        return list(raw), 0
+            hidden += len(raw) - len(kept)
+            raw = kept
+        # 2) od akademického roku (práce bez dotaženého roku ponecháme — rok se
+        #    dotáhne při enrichu a filtr se pak uplatní znovu)
+        from_year = (self.cmb_from_year.currentData()
+                     if hasattr(self, "cmb_from_year") else "")
+        if from_year:
+            kept = [r for r in raw
+                    if not (r.academic_year and r.academic_year < from_year)]
+            hidden += len(raw) - len(kept)
+            raw = kept
+        return list(raw), hidden
 
     @staticmethod
     def _group_key(mode: str, r: stag_api.StagThesisResult) -> tuple[str, str]:
@@ -2726,8 +2674,8 @@ class StagDownloadDialog(QDialog):
         )
         if hidden:
             status += (
-                f"  ·  Skryto {hidden} prací jmenovců — zruš filtr „Jen moje "
-                "práce“ pro zobrazení všech."
+                f"  ·  Skryto {hidden} prací filtry (jmenovci / od roku) — "
+                "uprav filtry pro zobrazení všech."
             )
         elif self._auto_role and not self.chk_only_mine.isChecked():
             status += "  ·  Bez filtru: zobrazeny i práce stejného příjmení jiných osob."

@@ -7,6 +7,27 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-06-16
+
+### Changed
+- **Toolbar — přeskupení vpravo:** *🟢 STAG indikátor · 📥 Import ze STAG ·
+  🔄 Aktualizace prací · 📦 Import práce ze ZIP* (importy přesunuty doprava
+  vedle aktualizací; indikátor STAG před nimi).
+- **Okno „Importování dat ze STAG":** odstraněn nadbytečný **titulek v okně**
+  (stačí titulek okna); horní formulář **zarovnán doleva**; pole **„Tvoje
+  jméno"** přesunuto **vpravo nahoru**.
+
+### Added
+- **Filtr „od akademického roku"** v okně se seznamem stažených prací (vedle
+  *„Jen moje práce"*) — zobrazí jen práce vybraného roku a **novější**
+  (default *všechny roky*). Práce s dosud nedotaženým rokem zůstanou (rok se
+  doplní při enrichu a filtr se uplatní znovu).
+
+### Removed
+- Volba **„Před založením zkontrolovat / doplnit nové studenty"** — studenti se
+  zakládají automaticky z dat STAG; e-mail/telefon/obor lze doplnit ve správě
+  studentů (odstraněn i mrtvý kód `_review_new_students`).
+
 ## [2.6.0] - 2026-06-16
 
 ### Changed

@@ -1387,19 +1387,8 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        # ── Skupina: Import (tyrkysová) ─────────────────────────────────
-        add(
-            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
-            "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
-            "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.",
-        )
-        add(
-            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
-            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
-            "posudky, soubory) — vytvoří novou práci.",
-        )
-
-        # Spacer → následující prvky (Aktualizace prací, Profil, …) odsune doprava.
+        # Spacer → následující prvky (import, Aktualizace prací, Profil, …)
+        # odsune doprava.
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
@@ -1413,6 +1402,14 @@ class MainWindow(QMainWindow):
         self._stag_status_btn.clicked.connect(self._ping_stag_now)
         toolbar.addWidget(self._stag_status_btn)
         toolbar.addSeparator()
+
+        # ── Import ze STAG (vedle Aktualizace prací) ────────────────────
+        add(
+            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
+            "Stáhne práci přímo ze STAG (stag.utb.cz) — dle studenta nebo "
+            "hromadně tvé vedené / oponované; vytvoří nebo aktualizuje "
+            "vedené BP/DP a oponentské posudky.",
+        )
 
         # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()
@@ -1442,6 +1439,13 @@ class MainWindow(QMainWindow):
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
+
+        # ── Import práce ze ZIP (za Aktualizace prací) ──────────────────
+        add(
+            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
+            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
+            "posudky, soubory) — vytvoří novou práci.",
+        )
 
         toolbar.addSeparator()
 

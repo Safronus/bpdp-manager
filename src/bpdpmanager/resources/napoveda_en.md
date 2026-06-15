@@ -612,8 +612,9 @@ was removed — downloading from STAG handles everything.
 > dialog **locked to that role**. They find **all** theses of the role in STAG by
 > your profile name (historical, current and listed for next year), sorted
 > **by academic year**. A surname may be ambiguous, so the **"Only my theses
-> (by full name)"** filter is on by default (can be turned off). Then just
-> tick what to import.
+> (by full name)"** filter is on by default (can be turned off). There is also
+> a **"from year"** dropdown — pick an academic year to show only theses of
+> **that year and newer** (default *all years*). Then just tick what to import.
 >
 > **Really all of them load.** STAG paginates search results implicitly
 > (returning only the first page) — the app disables pagination and loads
@@ -881,11 +882,11 @@ reviews without that field fall back to the suggestion sentence.
   programme…"** (the STAG code is prefilled). A newly created programme is
   **immediately offered in other rows** and pre-selected for rows **with
   the same STAG code**.
-- **Students** — for supervised theses a missing student is created and
-  assigned automatically. The **✎ Check / complete new students before
-  creating** option opens each new student's card (e-mail, phone,
-  programme…) — saved as part of the import. *(For opposed theses the
-  student is stored inline, not as a separate entity.)*
+- **Students** — for supervised theses a missing student is **created
+  automatically** from STAG data (name + personal number) and assigned;
+  further details (e-mail, phone, programme) can be filled later in student
+  management. *(For opposed theses the student is stored inline, not as a
+  separate entity.)*
 - A **Summary before import** shows which entities (students, opponents,
   supervisors, programmes) will be created.
 - **Transactional** — everything writes once at the end; errors roll back.

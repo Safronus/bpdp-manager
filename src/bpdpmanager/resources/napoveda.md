@@ -715,7 +715,9 @@ obstará stažení ze STAG.
 > i vypsané na další rok), seřazené **dle akademického roku**. Příjmení nemusí
 > být jednoznačné (víc vedoucích stejného příjmení) — proto je zapnutý filtr
 > **„Jen moje práce (dle celého jména)"**, který ponechá jen práce s tvým
-> celým jménem. Filtr lze vypnout. Pak jen zaškrtneš, co naimportovat.
+> celým jménem. Filtr lze vypnout. Navíc je tu volba **„od roku"** — vyber
+> akademický rok a zobrazí se jen práce **toho roku a novější** (default
+> *všechny roky*). Pak jen zaškrtneš, co naimportovat.
 >
 > **Načtou se opravdu všechny.** STAG výsledky vyhledávání implicitně
 > stránkuje (vrací jen první stránku), takže by se část prací do seznamu
@@ -1008,10 +1010,9 @@ použije návrhová věta („navrhuji hodnocení …").
   **„➕ Nový obor…"** (předvyplní STAG kód). Nově založený obor se **hned
   nabídne i v ostatních řádcích** a u všech řádků **se stejným STAG kódem**
   se rovnou předvybere — nemusíš ho zakládat znovu.
-- **Studenti** — u vedených prací se chybějící student automaticky
-  založí a přiřadí k práci. Volba **✎ Před založením zkontrolovat /
-  doplnit nové studenty** otevře pro každého nového studenta jeho kartu
-  (e-mail, telefon, obor…) k doplnění — zapíše se až v rámci importu.
+- **Studenti** — u vedených prací se chybějící student **automaticky založí**
+  z dat STAG (jméno + osobní číslo) a přiřadí k práci; další údaje (e-mail,
+  telefon, obor) doplníš kdykoli ve správě studentů.
   *(U oponovaných prací se student neeviduje jako samostatná entita,
   ukládá se inline u posudku.)*
 - **Souhrn před importem** ukáže, které entity (studenti, oponenti,
