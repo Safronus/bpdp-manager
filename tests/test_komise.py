@@ -389,6 +389,49 @@ def test_historical_supervised_not_matched_in_current_committee(service) -> None
     assert not any(e["student_name"] == "Bc. Jan Novák" for e in sched)
 
 
+def test_parse_schedule_orphan_right_column_goes_to_second_date() -> None:
+    """Řádek jen s pravým sloupcem (2. den) nesmí spadnout do 1. dne.
+
+    pypdf u osamoceného pravého sloupce nechá malé odsazení (mezeru) — podle
+    něj se rozliší, že patří k 2. datu (regrese: Liasnichy/Mlynár 16.6 → 15.6).
+    """
+    from bpdpmanager.services.komise_parser import parse_schedule_page
+
+    text = (
+        "Časový rozvrh obhajob a státních závěrečných zkoušek:\n"
+        "15. 6. 2026 16. 6. 2026\n"
+        "09:00 A23001 Anna Vzorová 08:00 A23101 Petr Pravý\n"
+        "10:00 A23002 Bára Vzorová 09:00 A23102 Pavel Pravý\n"
+        " 10:00 A23103 Karel Sirotek\n"
+        " 11:00 A23104 Eva Sirotková\n"
+    )
+    ps = parse_schedule_page(text, "zelená")
+    assert ps is not None and ps.dates == ["15. 6. 2026", "16. 6. 2026"]
+    by_pnum = {s[2]: s[0] for s in ps.slots}
+    assert by_pnum["A23103"] == "16. 6. 2026"   # osamocený pravý → 2. den
+    assert by_pnum["A23104"] == "16. 6. 2026"
+    assert by_pnum["A23001"] == "15. 6. 2026"   # levý sloupec drží 1. den
+    assert by_pnum["A23101"] == "16. 6. 2026"   # párový pravý → 2. den
+
+
+def test_parse_schedule_orphan_left_column_stays_first_date() -> None:
+    """Delší LEVÝ sloupec: osamocené řádky bez odsazení zůstanou na 1. dni."""
+    from bpdpmanager.services.komise_parser import parse_schedule_page
+
+    text = (
+        "Časový rozvrh obhajob a státních závěrečných zkoušek:\n"
+        "17. 6. 2026 18. 6. 2026\n"
+        "09:00 A23001 Anna Levá 09:00 A23101 Petr Pravý\n"
+        "10:00 A23002 Bára Levá 10:00 A23102 Pavel Pravý\n"
+        "11:00 A23003 Cyril Levý\n"
+        "12:00 A23004 Dana Levá\n"
+    )
+    ps = parse_schedule_page(text, "modrá")
+    by_pnum = {s[2]: s[0] for s in ps.slots}
+    assert by_pnum["A23003"] == "17. 6. 2026"
+    assert by_pnum["A23004"] == "17. 6. 2026"
+
+
 def test_komise_defense_states_persist_roundtrip(service) -> None:
     """Cache stavů obhajob se uloží na disk a po načtení vrátí (stejný rok);
     z jiného roku se ignoruje (čistá tabulka po startu)."""

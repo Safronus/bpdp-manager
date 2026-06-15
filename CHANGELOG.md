@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.34] - 2026-06-15
+
+### Fixed
+- **Rozpis studentů: poslední studenti 2. dne se přiřadí ke správnému datu.**
+  Když měl řádek dvousloupcového rozpisu jen pravou část (delší den), spadli
+  tito studenti chybně do 1. dne (např. Liasnichy/Mlynár z 16.6. skončili na
+  15.6.). Sloupec (= datum) osamoceného řádku se nově určí podle **odsazení**
+  (levý sloupec začíná na okraji, osamocený pravý má odsazení navíc), takže to
+  funguje i pro delší levý i delší pravý sloupec.
+
 ## [2.5.33] - 2026-06-15
 
 ### Fixed

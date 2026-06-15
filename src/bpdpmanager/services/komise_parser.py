@@ -337,13 +337,35 @@ def parse_schedule_page(text: str, heading_color: str) -> ParsedSchedule | None:
     if ps.dates:
         ps.academic_year = academic_year_from_date(ps.dates[0])
 
-    # Sloty: na řádku může být 1-2 zápisy (sloupec 1 = 1. datum, 2 = 2. datum).
-    for ln in lines[rozvrh_idx + 1:]:
+    # Sloty: na řádku 1-2 zápisy. U dvou je 1. levý sloupec (1. datum), 2. pravý
+    # (2. datum). Když má řádek JEN jeden zápis (delší sloupec pokračuje, druhý
+    # už došel), pořadí už sloupec neprozradí — určíme ho podle **odsazení**
+    # řádku: levý sloupec začíná na okraji (jako párové řádky), osamocený pravý
+    # má malé odsazení navíc (pypdf). Bez toho by poslední studenti 2. dne
+    # chybně spadli do 1. dne.
+    def _date_for(col: int) -> str:
+        if col < len(ps.dates):
+            return ps.dates[col]
+        return ps.dates[0] if ps.dates else ""
+
+    raw_lines = text.splitlines()
+    left_indent: int | None = None
+    for ln in raw_lines[rozvrh_idx + 1:]:
         matches = list(_RE_SLOT.finditer(ln))
+        if not matches:
+            continue
+        indent = len(ln) - len(ln.lstrip())
+        if len(matches) >= 2:
+            left_indent = indent if left_indent is None else min(left_indent, indent)
         for k, m in enumerate(matches):
-            date = ps.dates[k] if k < len(ps.dates) else (ps.dates[0] if ps.dates else "")
+            if len(matches) >= 2:
+                col = k
+            elif len(ps.dates) > 1 and left_indent is not None and indent > left_indent:
+                col = 1   # osamocený řádek odsazený víc než levý sloupec → 2. datum
+            else:
+                col = 0
             name = re.sub(r"\s+", " ", m.group(3)).strip()
-            ps.slots.append((date, m.group(1), m.group(2), name))
+            ps.slots.append((_date_for(col), m.group(1), m.group(2), name))
     return ps if ps.slots else None
 
 
