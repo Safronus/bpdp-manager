@@ -362,10 +362,11 @@ class KomiseTab(QWidget):
         stats_hdr.addWidget(self.lbl_stats_progress)
         self.btn_refresh_stats = QPushButton("🔄 Aktualizovat")
         self.btn_refresh_stats.setToolTip(
-            "Vynutí kontrolu ze STAG u VŠECH zbývajících studentů „bez "
-            "obhajoby\" — i těch, na které podle harmonogramu ještě nepřišla "
-            "řada (průběh může jít rychleji). Hotové se cachují a tichá kontrola "
-            "je už znovu neřeší. (Tichá kontrola na pozadí drží časové okno.)"
+            "Vynutí kontrolu ze STAG u všech zbývajících studentů „bez "
+            "obhajoby\", jejichž obhajoba je **dnes nebo dříve** (budoucí dny "
+            "se přeskočí) — i když na ně podle harmonogramu ještě nepřišla řada "
+            "(průběh může jít rychleji). Hotové se cachují a tichá kontrola je "
+            "už znovu neřeší. (Tichá kontrola na pozadí drží časové okno.)"
         )
         self.btn_refresh_stats.clicked.connect(self._refresh_stats_now)
         stats_hdr.addWidget(self.btn_refresh_stats)

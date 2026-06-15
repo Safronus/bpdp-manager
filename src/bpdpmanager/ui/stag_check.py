@@ -452,8 +452,9 @@ def fetch_committee_defense_states(
     - dotazuje jen sloty, kterým už uplynul **čas obhajoby + ``grace_min``**
       — pokud ``force=False`` (tichá kontrola). Při ``force=True`` (ruční
       „Aktualizovat") se časové okno ignoruje a dotáže **všechny zbývající**
-      (ne-terminální) studenty — průběh totiž může jít rychleji, než je
-      v harmonogramu,
+      (ne-terminální) studenty, **jejichž obhajoba je dnes nebo dříve**
+      (budoucí dny se přeskočí — ti ještě logicky neobhájili); průběh totiž
+      může jít rychleji, než je v harmonogramu,
     - na každé **příjmení** jeden STAG dotaz (sdílený mezi jmenovci).
 
     Studenty bez napárování ponechá tak, jak byli (typicky „bez obhajoby").
@@ -469,10 +470,14 @@ def fetch_committee_defense_states(
             key = slot_key(s.personal_number, s.student_name)
             if out.get(key) in TERMINAL:
                 continue
-            if not force:
-                dt = ThesisService._parse_slot_dt(s.date, s.time)
-                if not _needs_committee_query(dt, now, grace_min):
+            dt = ThesisService._parse_slot_dt(s.date, s.time)
+            if force:
+                # Vynucená kontrola: jen aktuální den (a dříve), ne budoucí dny
+                # — ty studenti logicky ještě neobhájili.
+                if dt is not None and dt.date() > now.date():
                     continue
+            elif not _needs_committee_query(dt, now, grace_min):
+                continue
             surname = _surname_of(s.student_name)
             if not surname:
                 continue

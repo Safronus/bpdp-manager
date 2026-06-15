@@ -227,6 +227,27 @@ def test_force_queries_before_defense_time(monkeypatch) -> None:
     assert seen_force[0][1] == 1   # jen A2 (A1 terminální → přeskočen)
 
 
+def test_force_skips_future_days(monkeypatch) -> None:
+    """force=True kontroluje jen aktuální den a dříve, ne budoucí dny."""
+    from bpdpmanager.services import stag_api
+    from bpdpmanager.ui import stag_check
+
+    c = _committee("modrá", "Bc", "SWI", ["A B"], [
+        ("09:00", "A1", "Dnes Student"),
+        ("09:00", "A2", "Zitra Student"),
+    ])
+    c.slots[0].date = "16. 6. 2026"   # dnes
+    c.slots[1].date = "17. 6. 2026"   # zítra → přeskočit
+    monkeypatch.setattr(stag_api, "search_theses", lambda *a, **k: [])
+
+    now = datetime(2026, 6, 16, 12, 0)
+    seen: list[tuple[int, int]] = []
+    stag_check.fetch_committee_defense_states(
+        None, [c], now, {}, force=True,
+        progress=lambda d, t: seen.append((d, t)))
+    assert seen[0][1] == 1   # jen dnešní slot (A1), zítřejší (A2) přeskočen
+
+
 def test_match_committee_result() -> None:
     from bpdpmanager.services.stag_api import StagThesisResult
     from bpdpmanager.ui.stag_check import _match_committee_result

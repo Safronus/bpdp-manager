@@ -1011,10 +1011,11 @@ location = committee (colour + programme); rooms are not tracked.
   only) spares STAG: it queries only **~30 min after** a student's scheduled
   defence and only those **without a result** (resolved ones are cached). The
   **🔄 Refresh button, however, forces a check of ALL remaining** *no-defence*
-  students — even those whose scheduled slot hasn't come up yet (defences can
-  run ahead of plan). Whatever it fills is cached, so the background check won't
-  re-query it. A **progress** indicator next to it shows "checking X/Y → done".
-  Until a status is known the student is *No defence yet*.
+  students whose defence is **today or earlier** (future days are skipped — they
+  obviously haven't defended yet), even those whose scheduled slot hasn't come
+  up yet (defences can run ahead of plan). Whatever it fills is cached, so the
+  background check won't re-query it. A **progress** indicator next to it shows
+  "checking X/Y → done". Until a status is known the student is *No defence yet*.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

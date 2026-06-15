@@ -1132,11 +1132,12 @@ obor); místnost se neeviduje.
   komisí — ne jen tvoje. **Tichá kontrola na pozadí** (jen v období státnic)
   šetří STAG: dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
   u studentů **bez výsledku** (hotové se cachují). **Tlačítko 🔄 Aktualizovat
-  ale vynutí kontrolu VŠECH zbývajících** studentů *bez obhajoby* — i těch, na
-  které podle harmonogramu ještě nepřišla řada (průběh může jít rychleji, než je
-  v plánu). Co tlačítko doplní, se uloží do cache, takže tichá kontrola to už
-  znovu neřeší. Vedle tlačítka se ukazuje **průběh** „kontroluji X/Y → hotovo".
-  Než se stav zjistí, je student *Bez obhajoby*.
+  ale vynutí kontrolu VŠECH zbývajících** studentů *bez obhajoby*, jejichž
+  obhajoba je **dnes nebo dříve** (budoucí dny se přeskočí — ti ještě logicky
+  neobhájili) — i když na ně podle harmonogramu ještě nepřišla řada (průběh může
+  jít rychleji, než je v plánu). Co tlačítko doplní, se uloží do cache, takže
+  tichá kontrola to už znovu neřeší. Vedle tlačítka se ukazuje **průběh**
+  „kontroluji X/Y → hotovo". Než se stav zjistí, je student *Bez obhajoby*.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

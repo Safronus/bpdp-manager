@@ -7,6 +7,14 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.31] - 2026-06-15
+
+### Changed
+- **Ruční „🔄 Aktualizovat" kontroluje jen aktuální den a dříve.** Vynucená
+  kontrola zbývajících *bez obhajoby* nově **přeskočí budoucí dny** (ti studenti
+  logicky ještě neobhájili) — dotáže jen ty, jejichž obhajoba je dnes nebo už
+  proběhla. Tichá kontrola beze změny.
+
 ## [2.5.30] - 2026-06-15
 
 ### Changed
