@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.35] - 2026-06-15
+
+### Changed
+- **Tichá kontrola obhajob řeší jen aktuální den.** Po restartu se na pozadí
+  nekontrolují všichni studenti napříč všemi dny (předchozí dny jsou v lokální
+  cache, nedotazují se znovu) — jen studenti **dnešního dne** po čase obhajoby
+  bez výsledku. Tím STAG po startu nezatěžuje opakovanou kontrolou všech.
+  Předchozí (i nedořešené „bez obhajoby") z minulých dní dořešíš ručním
+  tlačítkem **🔄 Aktualizovat** (to dál bere dnešek i dříve).
+
 ## [2.5.34] - 2026-06-15
 
 ### Fixed

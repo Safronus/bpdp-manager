@@ -151,17 +151,17 @@ def test_fetch_progress_total_counts_pending(monkeypatch) -> None:
     from bpdpmanager.services import stag_api
     from bpdpmanager.ui import stag_check
 
-    # Komise se 2 sloty v minulosti (čas + 30 min uplynul).
+    # Komise se 2 sloty dnes dopoledne (čas + 30 min už uplynul).
     c = _committee("modrá", "Mgr", "NSWI", ["A B"], [
         ("09:00", "A1", "Anna Vedena"),
         ("10:00", "A2", "Petr Druhy"),
     ])
     for s in c.slots:
-        s.date = "15. 6. 2026"
+        s.date = "16. 6. 2026"
     monkeypatch.setattr(stag_api, "search_theses", lambda *a, **k: [])
 
     seen: list[tuple[int, int]] = []
-    now = datetime(2026, 6, 16, 12, 0)  # po obhajobách
+    now = datetime(2026, 6, 16, 12, 0)  # dnes po obhajobách
     stag_check.fetch_committee_defense_states(
         None, [c], now, {}, progress=lambda d, t: seen.append((d, t)))
     assert seen and seen[-1] == (2, 2)        # oba zkontrolováni z 2
@@ -225,6 +225,27 @@ def test_force_queries_before_defense_time(monkeypatch) -> None:
         None, [c], now, prior, force=True,
         progress=lambda d, t: seen_force.append((d, t)))
     assert seen_force[0][1] == 1   # jen A2 (A1 terminální → přeskočen)
+
+
+def test_quiet_check_only_current_day(monkeypatch) -> None:
+    """Tichá kontrola (force=False) řeší jen AKTUÁLNÍ den — předchozí dny jsou
+    v cache, takže se po startu nezatěžuje STAG kontrolou všech."""
+    from bpdpmanager.services import stag_api
+    from bpdpmanager.ui import stag_check
+
+    c = _committee("modrá", "Bc", "SWI", ["A B"], [
+        ("09:00", "A1", "Vcera Student"),   # včera
+        ("09:00", "A2", "Dnes Student"),    # dnes
+    ])
+    c.slots[0].date = "15. 6. 2026"
+    c.slots[1].date = "16. 6. 2026"
+    monkeypatch.setattr(stag_api, "search_theses", lambda *a, **k: [])
+
+    now = datetime(2026, 6, 16, 12, 0)   # dnes, po čase obhajoby
+    seen: list[tuple[int, int]] = []
+    stag_check.fetch_committee_defense_states(
+        None, [c], now, {}, progress=lambda d, t: seen.append((d, t)))
+    assert seen[0][1] == 1   # jen dnešní (A2); včerejší (A1) se neřeší
 
 
 def test_force_skips_future_days(monkeypatch) -> None:

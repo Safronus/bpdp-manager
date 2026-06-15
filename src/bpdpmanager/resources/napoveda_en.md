@@ -1011,8 +1011,10 @@ location = committee (colour + programme); rooms are not tracked.
   namesake or your **own older thesis** from past years isn't mismatched) for
   **all**
   committee students — not just yours. The **background check** (exam period
-  only) spares STAG: it queries only **~30 min after** a student's scheduled
-  defence and only those **without a result** (resolved ones are cached). The
+  only) spares STAG: it covers **only the current day** (previous days come from
+  the cache and aren't re-queried), queries only **~30 min after** a student's
+  scheduled defence and only those **without a result** (resolved ones are
+  cached). The
   **🔄 Refresh button, however, forces a check of ALL remaining** *no-defence*
   students whose defence is **today or earlier** (future days are skipped — they
   obviously haven't defended yet), even those whose scheduled slot hasn't come

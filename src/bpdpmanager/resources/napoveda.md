@@ -1132,7 +1132,8 @@ obor); místnost se neeviduje.
   s rokem obhajoby mimo daný rok se zahodí, aby se nezaměnil jmenovec ani **tvá
   vlastní starší práce** z minulých let) pro **všechny** studenty
   komisí — ne jen tvoje. **Tichá kontrola na pozadí** (jen v období státnic)
-  šetří STAG: dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
+  šetří STAG: řeší **jen aktuální den** (předchozí dny jsou v cache, nedotazují
+  se znovu), dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
   u studentů **bez výsledku** (hotové se cachují). **Tlačítko 🔄 Aktualizovat
   ale vynutí kontrolu VŠECH zbývajících** studentů *bez obhajoby*, jejichž
   obhajoba je **dnes nebo dříve** (budoucí dny se přeskočí — ti ještě logicky
