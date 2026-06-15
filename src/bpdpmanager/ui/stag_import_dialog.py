@@ -14,22 +14,19 @@ import re
 import tempfile
 import unicodedata
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, QTimer
-from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
-    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
-    QInputDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -272,10 +269,6 @@ class StagImportDialog(QDialog):
         self.service = service
         self.profile_manager = profile_manager
         self.import_file: ImportFile | None = None
-        # Metadata z přímého stažení ze STAG (jméno studenta apod.) — veřejný
-        # CSV export STAG totiž jméno studenta NEOBSAHUJE (jen osobní číslo),
-        # doplníme ho proto z výsledku vyhledávání. Spotřebuje ho _load_preview.
-        self._pending_stag_meta: stag_api.StagThesisResult | None = None
         # Studenti zkontrolovaní/doplnění uživatelem před importem (klíč =
         # osobní číslo). Použije je _ensure_student místo holého auto-založení.
         self._reviewed_students: dict[str, Student] = {}
@@ -294,39 +287,33 @@ class StagImportDialog(QDialog):
         # po založení práce připojí k té správné (přes adipIdno).
         self._stag_downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
 
-        self.setWindowTitle(tr("Import dat ze STAG CSV"))
-        self.setMinimumSize(1240, 820)
+        self.setWindowTitle(tr("Importování dat ze STAGu (stag.utb.cz)"))
+        # Velikost se přizpůsobí obrazovce/oknu (viz konec __init__), ať dialog
+        # nepřeteče okraj na menším rozlišení.
+        self.setMinimumSize(900, 560)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
         # ── Hlavička ────────────────────────────────────────────────────────
-        title = QLabel(tr("📥 Import dat ze STAG CSV"))
+        title = QLabel(tr("📥 Importování dat ze STAGu (stag.utb.cz)"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
 
         # ── Formulář s parametry ────────────────────────────────────────────
         form = QFormLayout()
-        self.ed_path = QLineEdit()
-        self.ed_path.setPlaceholderText(tr("vyber CSV soubor exportovaný ze STAG"))
-        btn_browse = QPushButton(tr("Procházet…"))
-        btn_browse.clicked.connect(self._browse)
-        btn_stag_dl = QPushButton(tr("🌐 Stáhnout ze STAG"))
+        # Stažení jedné práce podle studenta (vyhledání ve veřejném STAG).
+        btn_stag_dl = QPushButton(tr("🔎 Stáhnout práci dle studenta"))
         btn_stag_dl.setToolTip(
-            tr("Najdi a stáhni CSV s prací přímo ze STAG podle příjmení "
-            "studenta a vedoucího/oponenta (bez přihlášení).")
+            tr("Najdi a stáhni práci přímo ze STAG podle příjmení studenta "
+            "a vedoucího/oponenta (bez přihlášení).")
         )
         btn_stag_dl.clicked.connect(self._open_stag_download)
-        btn_csv_help = QPushButton(tr("❓ Odkud stáhnout"))
-        btn_csv_help.setToolTip(tr("Jak získat CSV s prací ze STAG"))
-        btn_csv_help.clicked.connect(self._show_csv_download_help)
-        row_path = QHBoxLayout()
-        row_path.addWidget(self.ed_path, stretch=1)
-        row_path.addWidget(btn_browse)
-        row_path.addWidget(btn_stag_dl)
-        row_path.addWidget(btn_csv_help)
-        form.addRow(tr("CSV soubor"), row_path)
+        row_single = QHBoxLayout()
+        row_single.addWidget(btn_stag_dl)
+        row_single.addStretch()
+        form.addRow(tr("Podle studenta"), row_single)
 
         # Hromadné stažení všech mých prací ze STAG (napříč roky).
         btn_my_led = QPushButton(tr("🎓 Moje vedené práce…"))
@@ -341,31 +328,18 @@ class StagImportDialog(QDialog):
             "z profilu. Vybereš, co naimportovat.")
         )
         btn_my_opp.clicked.connect(lambda: self._open_stag_download(auto_role="opponent"))
+        btn_my_both = QPushButton(tr("🎓🧐 Vedené + oponované…"))
+        btn_my_both.setToolTip(
+            tr("Najde najednou tvé vedené i oponované práce (podle jména "
+            "z profilu) a sloučí je do jednoho náhledu.")
+        )
+        btn_my_both.clicked.connect(lambda: self._open_stag_download(auto_role="both"))
         row_bulk = QHBoxLayout()
         row_bulk.addWidget(btn_my_led)
         row_bulk.addWidget(btn_my_opp)
+        row_bulk.addWidget(btn_my_both)
         row_bulk.addStretch()
         form.addRow(tr("Hromadně ze STAG"), row_bulk)
-
-        # Aktualizace už evidovaných prací ze STAG (stav + nové soubory).
-        btn_upd_led = QPushButton(tr("🔄 Aktualizovat práce v řešení ze STAG"))
-        btn_upd_led.setToolTip(
-            tr("U vedených prací ve stavu „V řešení“ porovná stav a soubory se "
-            "STAG a nabídne změnu stavu + dohrání chybějících souborů "
-            "(např. nový posudek nebo odevzdaná práce).")
-        )
-        btn_upd_led.clicked.connect(lambda: self._open_stag_sync("supervisor"))
-        btn_upd_opp = QPushButton(tr("🔄 Aktualizovat práce k oponování ze STAG"))
-        btn_upd_opp.setToolTip(
-            tr("U oponovaných prací aktuálního akademického roku porovná soubory "
-            "se STAG a nabídne dohrání chybějících (např. nový posudek).")
-        )
-        btn_upd_opp.clicked.connect(lambda: self._open_stag_sync("opponent"))
-        row_upd = QHBoxLayout()
-        row_upd.addWidget(btn_upd_led)
-        row_upd.addWidget(btn_upd_opp)
-        row_upd.addStretch()
-        form.addRow(tr("Aktualizovat ze STAG"), row_upd)
 
         # Tvoje jméno (pro detekci role)
         default_user_name = ""
@@ -383,41 +357,9 @@ class StagImportDialog(QDialog):
         help_lbl.setTextFormat(Qt.TextFormat.RichText)
         form.addRow("", help_lbl)
 
-        # Fallback stav (použije se jen když CSV nemá žádné z datumů
-        # zadání/odevzdání/obhajoby — typicky čerstvý zájem). Skutečný
-        # stav per řádek určí heuristika z dat CSV (datumObhajoby →
-        # Obhájeno, datumOdevzdani → V řešení, datumZadani → Schválené),
-        # ale uživatel ho samozřejmě může v náhledu přepsat.
-        self.cb_default_status = QComboBox()
-        for st in ThesisStatus:
-            self.cb_default_status.addItem(st.label, st.value)
-        idx = self.cb_default_status.findData(ThesisStatus.IN_PROGRESS.value)
-        if idx >= 0:
-            self.cb_default_status.setCurrentIndex(idx)
-        form.addRow(tr("Fallback stav (vedené práce)"), self.cb_default_status)
-        status_help = QLabel(
-            tr("<small><i>Použije se jen pro řádky, kde CSV neobsahuje "
-            "<code>datumZadani</code>/<code>datumOdevzdani</code>/"
-            "<code>datumObhajoby</code>. Reálný stav per řádek určí "
-            "heuristika nad dat z CSV (lze ručně přepsat v náhledu).</i></small>")
-        )
-        status_help.setStyleSheet("color:#888;")
-        status_help.setTextFormat(Qt.TextFormat.RichText)
-        status_help.setWordWrap(True)
-        form.addRow("", status_help)
-
-        # Po úspěchu importu smazat originální CSV (default: ON — typicky
-        # nechce na disku zůstat nepořádek se stáhnutým CSV ze STAG)
-        self.chk_delete_csv = QCheckBox(
-            tr("🗑 Po dokončení importu smazat originální CSV")
-        )
-        self.chk_delete_csv.setChecked(True)
-        self.chk_delete_csv.setToolTip(
-            tr("Po úspěšném importu (rollback se nepočítá) původní CSV soubor "
-            "odstraní z disku. Kopie zůstává jako příloha typu *STAG export* "
-            "u každé importované práce.")
-        )
-        form.addRow("", self.chk_delete_csv)
+        # Stav práce se určí automaticky z dat STAG (heuristika z datumů
+        # zadání/odevzdání/obhajoby), lze ho přepsat v náhledu — proto už není
+        # samostatné pole „fallback stav". Řádky bez dat → „V řešení".
 
         # Před založením nových studentů otevřít jejich kartu k revizi/doplnění
         # (e-mail, telefon, obor…). Veřejný STAG CSV nese jen osobní číslo a
@@ -433,14 +375,10 @@ class StagImportDialog(QDialog):
         )
         form.addRow("", self.chk_review_students)
 
-        btn_load = QPushButton(tr("🔍 Načíst náhled"))
-        btn_load.clicked.connect(self._load_preview)
-        form.addRow("", btn_load)
-
         outer.addLayout(form)
 
         # ── Náhled tabulky + detail panel ──────────────────────────────────
-        self.lbl_info = QLabel(tr("Načti CSV soubor pro náhled."))
+        self.lbl_info = QLabel(tr("Stáhni práci ze STAG (tlačítka výše) pro náhled."))
         self.lbl_info.setStyleSheet("color:#888;")
         outer.addWidget(self.lbl_info)
 
@@ -522,96 +460,25 @@ class StagImportDialog(QDialog):
         row.addWidget(self.btn_import)
         outer.addLayout(row)
 
+        # Velikost: pohodlná, ale **nikdy nepřeteče obrazovku** (menší rozlišení).
+        screen = self.screen() or QApplication.primaryScreen()
+        avail = screen.availableGeometry() if screen else None
+        if avail is not None:
+            w = min(1240, int(avail.width() * 0.92))
+            h = min(820, int(avail.height() * 0.92))
+            self.resize(w, h)
+            self.setMaximumSize(avail.width(), avail.height())
+        else:
+            self.resize(1240, 820)
+
     # --- akce ----------------------------------------------------------------
-
-    def _show_csv_download_help(self) -> None:
-        """Návod, odkud a jak stáhnout CSV s prací ze STAG."""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle(tr("Odkud stáhnout CSV ze STAG"))
-        msg.setTextFormat(Qt.TextFormat.RichText)
-        msg.setText(
-            tr("<b>Nejrychleji:</b> použij tlačítko "
-            "<b>🌐 Stáhnout ze STAG</b> — práci najde a CSV stáhne přímo "
-            "(stačí příjmení studenta + vedoucího/oponenta).<hr>"
-            "<b>Nebo ručně z webu STAG:</b>"
-            "<ol>"
-            "<li>Otevři <a href='https://stag.utb.cz'>stag.utb.cz</a></li>"
-            "<li>Sekce <b>Prohlížení</b> → <b>Kvalifikační práce</b></li>"
-            "<li>Vyhledej práci podle <b>jména studenta</b></li>"
-            "<li>U nalezené práce zvol <b>stažení CSV</b></li>"
-            "</ol>"
-            "<p>Stažený soubor (<code>getKvalifikacniPrace*.csv</code>) pak "
-            "vyber tlačítkem <i>Procházet…</i>.</p>"
-            "<p style='color:#888;font-size:11px;'>Záznam kvalifikační práce "
-            "je veřejný, takže ke stažení obvykle není potřeba přihlášení.</p>")
-        )
-        # Umožni klik na odkaz
-        lbl = msg.findChild(QLabel, "qt_msgbox_label")
-        if lbl is not None:
-            lbl.setOpenExternalLinks(True)
-        msg.exec()
-
-    def _browse(self) -> None:
-        # Začni v poslední použité složce (nebo v adresáři aktuálně vybraného
-        # souboru, pokud uživatel už něco vyplnil ručně).
-        start_dir = ""
-        current = self.ed_path.text().strip()
-        if current:
-            p = Path(current).expanduser()
-            if p.is_dir():
-                start_dir = str(p)
-            elif p.parent.exists():
-                start_dir = str(p.parent)
-        if not start_dir and self.profile_manager is not None:
-            remembered = self.profile_manager.last_stag_import_dir
-            if remembered and Path(remembered).exists():
-                start_dir = remembered
-        if not start_dir:
-            start_dir = str(Path.home())
-
-        path_str, _ = QFileDialog.getOpenFileName(
-            self,
-            "Vyber STAG CSV soubor",
-            start_dir,
-            "CSV soubory (*.csv);;Všechny soubory (*.*)",
-        )
-        if path_str:
-            self.ed_path.setText(path_str)
-            # Zapamatuj si složku pro příště
-            if self.profile_manager is not None:
-                try:
-                    self.profile_manager.set_last_stag_import_dir(
-                        str(Path(path_str).parent)
-                    )
-                except Exception:
-                    pass
-
-    def _open_stag_sync(self, role: str) -> None:
-        """Otevře dialog pro aktualizaci už evidovaných prací ze STAG
-        (stav + dohrání chybějících souborů). Po změně zavře import dialog,
-        aby se hlavní okno obnovilo."""
-        # Lazy import — stag_sync_dialog importuje z tohoto modulu.
-        from .stag_sync_dialog import StagSyncDialog
-
-        sync = StagSyncDialog(
-            self.service, role, parent=self, profile_manager=self.profile_manager
-        )
-        sync.exec()
-        if sync.open_new_works:
-            # Uživatel chce stáhnout NOVÉ práce → otevři hromadné vyhledání role.
-            self._open_stag_download(auto_role=role)
-            return
-        if sync.changed:
-            # Zavři import dialog (accept) → MainWindow spustí _refresh_all().
-            self.accept()
 
     def _open_stag_download(self, auto_role: str | None = None) -> None:
         """Otevře dialog pro přímé vyhledání + stažení CSV ze STAG.
 
-        ``auto_role`` ("supervisor"/"opponent") = hromadné stažení všech mých
-        prací dané role (předvyplní a rovnou hledá podle jména z profilu).
-        Po úspěšném stažení nastaví cestu k dočasnému CSV a rovnou načte náhled.
+        ``auto_role`` ("supervisor"/"opponent"/"both") = hromadné stažení mých
+        prací dané role (resp. vedených i oponovaných) — předvyplní a rovnou
+        hledá podle jména z profilu. Po stažení rovnou načte náhled.
         """
         user_name = ""
         if self.profile_manager and self.profile_manager.active:
@@ -673,7 +540,8 @@ class StagImportDialog(QDialog):
                 imp = load_stag_csv(Path(path), user_name=user_name)
             except Exception as exc:  # noqa: BLE001
                 QMessageBox.warning(
-                    self, tr("Chyba načítání"), f"CSV {Path(path).name} nelze přečíst:\n{exc}"
+                    self, tr("Chyba načítání"),
+                    f"CSV {Path(path).name} nelze přečíst:\n{exc}"
                 )
                 continue
             encoding = encoding or imp.encoding
@@ -696,7 +564,6 @@ class StagImportDialog(QDialog):
             records=all_records,
             skipped=skipped,
         )
-        self.ed_path.setText(str(items[0][0]))  # první cesta jen pro zobrazení
         self._persist_user_name(user_name)
         self._populate_preview()
 
@@ -714,58 +581,6 @@ class StagImportDialog(QDialog):
                 )
             except Exception:  # noqa: BLE001
                 pass
-
-    def _load_preview(self) -> None:
-        path_str = self.ed_path.text().strip()
-        if not path_str:
-            QMessageBox.warning(self, tr("Chybí soubor"), tr("Vyber nejdřív CSV soubor."))
-            return
-        user_name = self.ed_user_name.text().strip()
-        try:
-            self.import_file = load_stag_csv(Path(path_str), user_name=user_name)
-        except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, tr("Chyba načítání"), f"Soubor nelze přečíst:\n{exc}")
-            return
-
-        # Doplň jméno studenta z výsledku vyhledávání ve STAG — veřejný CSV
-        # export jméno (jmeno/prijmeni.student) NEOBSAHUJE, jen osobní číslo.
-        self._apply_stag_meta_to_records()
-
-        # Ulož user_name do aktivního profilu, aby se příště předvyplnil
-        if (
-            self.profile_manager is not None
-            and self.profile_manager.active is not None
-            and user_name
-            and self.profile_manager.active.user_name != user_name
-        ):
-            try:
-                self.profile_manager.set_user_name(
-                    self.profile_manager.active.id, user_name
-                )
-            except Exception:
-                pass
-
-        self._populate_preview()
-
-    def _apply_stag_meta_to_records(self) -> None:
-        """Doplní jméno studenta z výsledku vyhledávání STAG do načtených
-        záznamů (veřejný CSV jméno neobsahuje). Spotřebuje ``_pending_stag_meta``.
-        """
-        meta = self._pending_stag_meta
-        self._pending_stag_meta = None
-        if meta is None or self.import_file is None:
-            return
-        for rec in self.import_file.records:
-            # Páruj přes adipidno; u jednořádkového exportu doplň vždy.
-            matches = (
-                rec.adipidno and meta.adipidno and rec.adipidno == meta.adipidno
-            ) or len(self.import_file.records) == 1
-            if not matches:
-                continue
-            if not rec.student_last and meta.surname:
-                rec.student_last = meta.surname
-            if not rec.student_first and meta.name:
-                rec.student_first = meta.name
 
     def _populate_preview(self) -> None:
         if self.import_file is None:
@@ -786,7 +601,10 @@ class StagImportDialog(QDialog):
         obory_by_stag = {o.stag_code: o for o in all_obory if o.stag_code}
         all_obor_names = [o.name for o in all_obory]
 
-        default_status = ThesisStatus(self.cb_default_status.currentData())
+        # Výchozí stav pro řádky bez dat v CSV — skutečný stav per řádek určí
+        # heuristika z dat STAG (datum obhajoby/odevzdání/zadání), viz
+        # _smart_status_for_record; v náhledu lze přepsat.
+        default_status = ThesisStatus.IN_PROGRESS
 
         existing_theses = self.service.list_theses()
         existing_opposing = self.service.list_opposing_theses()
@@ -1598,7 +1416,9 @@ class StagImportDialog(QDialog):
         last_thesis_id: str | None = None
         last_opposing_id: str | None = None
 
-        csv_source = Path(self.ed_path.text().strip()) if self.ed_path.text().strip() else None
+        # Společný fallback CSV už není (manuální výběr souboru se zrušil) —
+        # každý řádek nese vlastní `record.source_csv` ze stažení ze STAG.
+        csv_source = None
 
         try:
             with self.service.batch():
@@ -1720,27 +1540,7 @@ class StagImportDialog(QDialog):
             self.service.auto_link_retakes()  # propoj řádný + opravný pokus
         except Exception:  # noqa: BLE001
             pass
-        self._maybe_delete_source_csv(csv_source, stats)
         self._show_summary_dialog(stats, errors)
-
-    def _maybe_delete_source_csv(self, csv_source: Path | None, stats: dict) -> None:
-        """Po úspěšném importu smaže originální CSV soubor, je-li zaškrtnuto.
-
-        Důvod proč až tady (a ne uvnitř ``attach_document(delete_source=True)``):
-        CSV se připojí ke každé importované práci — pokud bychom smazali
-        po prvním attach, druhý attach by selhal s ``FileNotFoundError``.
-        Mazáme tedy jednorázově po dokončení všech přiloh.
-        """
-        stats.setdefault("source_csv_deleted", 0)
-        if not self.chk_delete_csv.isChecked():
-            return
-        if csv_source is None or not csv_source.is_file():
-            return
-        try:
-            csv_source.unlink()
-            stats["source_csv_deleted"] = 1
-        except OSError:
-            stats["source_csv_deleted"] = 0
 
     def _attach_downloaded_files(
         self,
@@ -1911,7 +1711,6 @@ class StagImportDialog(QDialog):
             self.service.auto_link_retakes()  # propoj řádný + opravný pokus
         except Exception:  # noqa: BLE001
             pass
-        self._maybe_delete_source_csv(csv_source, stats)
         self._show_summary_dialog(stats, errors)
 
     def _show_summary_dialog(self, stats: dict, errors: list[str]) -> None:
@@ -1949,11 +1748,6 @@ class StagImportDialog(QDialog):
             f"<tr><td>📄 Soubory ze STAG přiloženy</td>"
             f"<td colspan='2'>{stats.get('attached_files', 0)}</td></tr>"
         )
-        if stats.get("source_csv_deleted"):
-            rows.append(
-                "<tr><td>🗑 Originální CSV smazán</td>"
-                "<td colspan='2'>✓</td></tr>"
-            )
         rows.append(
             f"<tr><td>✗ Přeskočeno</td>"
             f"<td colspan='2'>{stats['skipped']}</td></tr>"
@@ -2680,8 +2474,12 @@ class StagDownloadDialog(QDialog):
         # Hromadný režim — uzamkni roli (žádné přepínání), vypni studenta
         # a rovnou hledej.
         if auto_role:
-            what = "vedené práce" if auto_role == "supervisor" else "oponentury"
-            role_word = "vedoucího" if auto_role == "supervisor" else "oponenta"
+            if auto_role == "both":
+                what = "vedené i oponované práce"
+            elif auto_role == "supervisor":
+                what = "vedené práce"
+            else:
+                what = "oponentury"
             self.setWindowTitle(f"Stáhnout moje {what} ze STAG")
             title.setText(f"🌐 Moje {what} ze STAG")
             self.ed_student.clear()
@@ -2692,13 +2490,14 @@ class StagDownloadDialog(QDialog):
                 student_lbl.setVisible(False)
             if auto_role == "supervisor":
                 self.rb_supervisor.setChecked(True)
-            else:
+            elif auto_role == "opponent":
                 self.rb_opponent.setChecked(True)
-            # Skryj přepínač role — dialog je zamčený na jednu roli.
+            # (pro „both" se hledají obě role — přepínač nehraje roli)
+            # Skryj přepínač role — dialog je zamčený.
             self._role_label.setVisible(False)
             self.rb_supervisor.setVisible(False)
             self.rb_opponent.setVisible(False)
-            self._person_form_label.setText(f"Příjmení {role_word} (= tvoje)")
+            self._person_form_label.setText(tr("Příjmení (= tvoje)"))
             self.ed_person.setPlaceholderText(tr("tvé příjmení z profilu"))
             QTimer.singleShot(0, self._do_search)
 
@@ -2715,12 +2514,6 @@ class StagDownloadDialog(QDialog):
             )
             self.ed_student.setFocus()
             return
-        role = (
-            stag_api.ROLE_SUPERVISOR
-            if self.rb_supervisor.isChecked()
-            else stag_api.ROLE_OPPONENT
-        )
-
         self.tree_results.clear()
         self._results = []
         self._enriched_adip = set()
@@ -2731,7 +2524,22 @@ class StagDownloadDialog(QDialog):
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
         try:
-            results = stag_api.search_theses(student, person, role)
+            if self._auto_role == "both":
+                # Vedené i oponované najednou — dvě hledání, sloučení dle adipidno.
+                results = []
+                seen: set[str] = set()
+                for role in (stag_api.ROLE_SUPERVISOR, stag_api.ROLE_OPPONENT):
+                    for r in stag_api.search_theses(student, person, role):
+                        if r.adipidno and r.adipidno not in seen:
+                            seen.add(r.adipidno)
+                            results.append(r)
+            else:
+                role = (
+                    stag_api.ROLE_SUPERVISOR
+                    if self.rb_supervisor.isChecked()
+                    else stag_api.ROLE_OPPONENT
+                )
+                results = stag_api.search_theses(student, person, role)
         except stag_api.StagError as exc:
             QApplication.restoreOverrideCursor()
             self.btn_search.setEnabled(True)
@@ -2771,9 +2579,17 @@ class StagDownloadDialog(QDialog):
             and self.chk_only_mine.isChecked()
             and self._user_full_name.strip()
         ):
-            def _person(r):
-                return r.supervisor if self._auto_role == "supervisor" else r.reviewer
-            kept = [r for r in raw if _name_matches(_person(r), self._user_full_name)]
+            full = self._user_full_name
+            if self._auto_role == "both":
+                # ponech práce, kde jsem vedoucí NEBO oponent
+                kept = [r for r in raw
+                        if _name_matches(r.supervisor, full)
+                        or _name_matches(r.reviewer, full)]
+            else:
+                def _person(r):
+                    return (r.supervisor if self._auto_role == "supervisor"
+                            else r.reviewer)
+                kept = [r for r in raw if _name_matches(_person(r), full)]
             return kept, len(raw) - len(kept)
         return list(raw), 0
 

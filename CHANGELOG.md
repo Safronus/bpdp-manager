@@ -7,6 +7,31 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-06-16
+
+### Changed
+- **Zjednodušení dialogu „Importování dat ze STAGu (stag.utb.cz)".** Import je
+  teď **jen přímo ze STAG** (přejmenovaný titulek). Tlačítko *Stáhnout ze STAG*
+  → ***🔎 Stáhnout práci dle studenta***. Dialog se navíc **vejde i na menší
+  rozlišení** (velikost se zastropuje na obrazovku).
+
+### Added
+- **🎓🧐 Vedené + oponované…** — třetí hromadné tlačítko: najde najednou
+  vedené i oponované práce (obě role) a sloučí je do jednoho náhledu.
+
+### Removed
+- **Ruční import CSV** (pole + *Procházet…*) a tlačítko *❓ Odkud stáhnout* —
+  vše obstará stažení ze STAG.
+- Tlačítka **🔄 Aktualizovat … ze STAG** z import dialogu (aktualizace zůstává:
+  tichá kontrola po startu + kontextová akce *🔄 Aktualizace práce ze STAG…*
+  nad jednou prací).
+- Pole **„Fallback stav"** (stav se určí z dat STAG a jde přepsat v náhledu;
+  řádky bez dat → *V řešení*).
+- Volba **„Po dokončení importu smazat originální CSV"** (stažené CSV jsou
+  v dočasné složce; kopie zůstává jako příloha *STAG export* u práce).
+- Odstraněn související mrtvý kód (`_browse`, `_show_csv_download_help`,
+  `_open_stag_sync`, `_load_preview`, `_maybe_delete_source_csv`, …).
+
 ## [2.5.37] - 2026-06-15
 
 ### Added

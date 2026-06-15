@@ -599,17 +599,17 @@ In the dialog:
 
 ---
 
-## Import from STAG (CSV)
+## Import from STAG
 
-The **📥 Import from STAG…** toolbar button can either **download a thesis
-directly from STAG** or load a manually downloaded CSV export
-`getKvalifikacniPrace*.csv`.
-
-### A) Download directly from STAG (recommended)
+The **📥 Import from STAG…** toolbar button downloads a thesis **directly from
+STAG** (stag.utb.cz) — either **by student** (the *🔎 Download thesis by
+student* button) or **your theses in bulk** (below). Manual CSV-file selection
+was removed — downloading from STAG handles everything.
 
 > **All my theses in bulk:** the import dialog has **🎓 My supervised
-> theses…** and **🧐 My opposed theses…** buttons. Each opens a dialog
-> **locked to that role**. They find **all** theses of the role in STAG by
+> theses…**, **🧐 My opposed theses…** and **🎓🧐 Supervised + opposed…**
+> (finds both roles at once and merges them into one preview). Each opens a
+> dialog **locked to that role**. They find **all** theses of the role in STAG by
 > your profile name (historical, current and listed for next year), sorted
 > **by academic year**. A surname may be ambiguous, so the **"Only my theses
 > (by full name)"** filter is on by default (can be turned off). Then just
@@ -757,7 +757,7 @@ subfolder — **contents are unchanged**. A **backup** is made first. Only
 > **Since 1.11.0** the text vs. attachment kind is detected correctly at
 > download time; this button mainly fixes theses downloaded earlier.
 
-Or classically via **🌐 Download from STAG**:
+Individually via **🔎 Download thesis by student**:
 
 1. Enter the **student's surname** (optional).
 2. Enter the **supervisor's or opponent's surname** and switch the *role*
@@ -779,23 +779,21 @@ The search uses the public *Browse → Qualification theses* on
 ### Updating already-registered theses from STAG
 
 During the semester theses often gain a new file (submitted thesis, review)
-or change status. Two buttons in *Import from STAG…* handle this:
+or change status. Updating happens in **two ways** (separate buttons in the
+import dialog are no longer needed):
 
-- **🔄 Update in-progress theses from STAG** — walks **supervised theses
-  *In progress***, finds them in STAG (by stored STAG ID, falling back to
-  the **student's surname**) and offers:
-  - a **status change** — when STAG reports a different status (e.g. *In
-    progress → Defended*); applied **only when ticked**;
-  - **downloading missing files** — files whose **kind** the thesis lacks
-    are pre-checked (typically a new review / submitted thesis).
-- **🔄 Update opposed theses from STAG** — the same for **current-year
-  opposed theses** (files; also fills the STAG status into the *Status*
-  column for previously downloaded ones).
+- **Silently on startup** — the app compares your theses with STAG and offers
+  **"🔄 Update supervised / opposed"** in the banner at the top (a tickable
+  change list). See *Check STAG changes*.
+- **Right-click over one thesis** — the context action **"🔄 Update thesis
+  from STAG…"** (supervised and opposed, even from History). See below.
 
-Everything runs with a **progress window** and a tickable change list. A
-**backup** is made before writing and the summary has **"↩ Roll back all"**.
-Theses **without a STAG ID** that can't be found by surname are **skipped
-and listed**.
+Updating offers a **status change** (e.g. *In progress → Defended*, applied
+only when ticked) and **downloading missing files** (files whose **kind** the
+thesis lacks are pre-checked). Everything runs with a **progress window** and a
+tickable change list. A **backup** is made before writing and the summary has
+**"↩ Roll back all"**. Theses **without a STAG ID** that can't be found by
+surname are **skipped and listed**.
 
 > **🔄 Updating ONE thesis from STAG (right-click).** Any thesis — supervised
 > (*Current / Future / History / All*) or opposed — has **"🔄 Update thesis
@@ -869,14 +867,6 @@ reviews without that field fall back to the suggestion sentence.
 > also **links them** (regular ↔ retake) and marks them **🔁** in the list
 > and the Overview. Both live in *History* by their status. Statistics
 > count *repeat attempts*.
-
-### B) Manually downloaded CSV
-1. Open **stag.utb.cz** → **Browse** → **Qualification theses**
-2. Find the thesis by the student's name and choose **download CSV**
-3. In the app pick the file via *Import from STAG… → Browse…*
-
-(The same guide is under the **❓ Where to download** button in the import
-dialog.)
 
 ### Import flow
 

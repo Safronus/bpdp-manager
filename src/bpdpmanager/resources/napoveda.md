@@ -699,15 +699,17 @@ V dialogu:
 
 ---
 
-## Import ze STAG (CSV)
+## Import ze STAG
 
-Toolbar **📥 Import ze STAG…** umí práci buď **stáhnout přímo ze STAG**,
-nebo načíst ručně stažený CSV export `getKvalifikacniPrace*.csv`.
-
-### A) Stáhnout přímo ze STAG (doporučeno)
+Toolbar **📥 Import ze STAG…** stáhne práci **přímo ze STAG** (stag.utb.cz) —
+buď **podle studenta** (tlačítko *🔎 Stáhnout práci dle studenta*), nebo
+**hromadně tvoje práce** (níže). Ruční výběr CSV souboru se zrušil — vše
+obstará stažení ze STAG.
 
 > **Hromadně všechny moje práce:** v import dialogu jsou tlačítka
-> **🎓 Moje vedené práce…** a **🧐 Moje oponentury…**. Každé otevře dialog
+> **🎓 Moje vedené práce…**, **🧐 Moje oponentury…** a
+> **🎓🧐 Vedené + oponované…** (najde najednou obě role a sloučí je do
+> jednoho náhledu). Každé otevře dialog
 > **uzamčený na danou roli** (žádné přepínání). Najdou ve STAG podle
 > tvého jména z profilu **všechny** práce dané role (historické, aktuální
 > i vypsané na další rok), seřazené **dle akademického roku**. Příjmení nemusí
@@ -877,7 +879,7 @@ balík = archiv-text bez PDF přílohy); nejasné případy (víc kandidátů) s
 > bez PDF textu je **Text práce + přílohy** (balík). Toto tlačítko
 > je hlavně na nápravu prací stažených dřív.
 
-Nebo klasicky přes **🌐 Stáhnout ze STAG**:
+Jednotlivě přes **🔎 Stáhnout práci dle studenta**:
 
 1. Zadej **příjmení studenta** (nepovinné).
 2. Zadej **příjmení vedoucího nebo oponenta** a přepni *role* (Vedoucí /
@@ -900,23 +902,21 @@ takže přihlášení obvykle není potřeba.
 ### Aktualizace už evidovaných prací ze STAG
 
 V průběhu semestru často přibyde u práce nový soubor (odevzdaná práce,
-posudek) nebo se změní stav. K tomu slouží dvě tlačítka v *Import ze STAG…*:
+posudek) nebo se změní stav. Aktualizace se dělá **dvěma způsoby** (samostatná
+tlačítka v import dialogu už nejsou potřeba):
 
-- **🔄 Aktualizovat práce v řešení ze STAG** — projde **vedené práce ve stavu
-  *V řešení***, dohledá je ve STAG (podle uloženého STAG ID, a když chybí, zkusí
-  **dle příjmení studenta**) a nabídne:
-  - **změnu stavu** — když STAG hlásí jiný stav (např. *V řešení → Obhájeno*),
-    návrh se zobrazí a **aplikuje jen po zaškrtnutí**;
-  - **dohrání chybějících souborů** — předzaškrtnou se soubory, jejichž **druh**
-    u práce ještě nemáš (typicky nový posudek / odevzdaná práce). Soubory, jejichž
-    druh už máš, jsou ponechané neoznačené (můžeš si je přidat ručně).
-- **🔄 Aktualizovat práce k oponování ze STAG** — totéž pro **oponentury
-  aktuálního akademického roku** (soubory; navíc **doplní STAG stav** do
-  sloupce *Stav* i u dříve stažených oponentur).
+- **Tiše po startu** — aplikace sama porovná tvé práce se STAG a v proužku
+  nahoře nabídne **„🔄 Aktualizovat vedené / oponované"** (otevře přehled změn
+  k zaškrtnutí). Viz *Kontrola změn ve STAG*.
+- **Pravým klikem nad jednou prací** — kontextová akce **„🔄 Aktualizace
+  práce ze STAG…"** (vedené i oponentury, i z Historie). Viz níže.
 
-Vše běží s **progres oknem** a přehledem změn k zaškrtnutí. Před zápisem se
-udělá **záloha** a v souhrnu je tlačítko **„↩ Vrátit vše"**. Práce **bez STAG
-ID**, které se nepodaří dohledat podle příjmení, se **přeskočí a vypíšou**
+Aktualizace nabídne **změnu stavu** (např. *V řešení → Obhájeno*, aplikuje se
+jen po zaškrtnutí) a **dohrání chybějících souborů** (předzaškrtnou se ty,
+jejichž **druh** u práce ještě nemáš). Vše běží s **progres oknem** a přehledem
+změn k zaškrtnutí. Před zápisem se udělá **záloha** a v souhrnu je tlačítko
+**„↩ Vrátit vše"**. Práce **bez STAG ID**, které se nepodaří dohledat podle
+příjmení, se **přeskočí a vypíšou**
 (doimportuj je klasicky přes hledání).
 
 > **🔄 Aktualizace JEDNÉ práce ze STAG (pravý klik).** Nad libovolnou prací —
@@ -994,13 +994,6 @@ použije návrhová věta („navrhuji hodnocení …").
 > **automaticky propojí** (vazba řádný ↔ opravný) a v seznamu i Souhrnu je
 > označí **🔁**. Obě jsou v *Historii* podle svého stavu (Obhájeno / Nedokončeno).
 > Ve Statistikách je počet *opravných pokusů (repetentů)*.
-
-### B) Ručně stažený CSV
-1. Otevři **stag.utb.cz** → **Prohlížení** → **Kvalifikační práce**
-2. Vyhledej práci podle jména studenta a u ní zvol **stažení CSV**
-3. V aplikaci vyber soubor přes *Import ze STAG… → Procházet…*
-
-(Stejný návod je i pod tlačítkem **❓ Odkud stáhnout** v import dialogu.)
 
 ### Průběh importu
 
