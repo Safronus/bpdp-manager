@@ -93,6 +93,21 @@ def test_member_surname_strips_titles() -> None:
     assert member_surname("Karel Novák") == "Novák"
 
 
+def test_strip_academic_titles_and_key() -> None:
+    from bpdpmanager.services.komise_stats import (
+        strip_academic_titles,
+        student_name_key,
+    )
+
+    assert strip_academic_titles("Ing. Matěj Suchánek") == "Matěj Suchánek"
+    assert strip_academic_titles("doc. Ing. Bc. Jan Novák") == "Jan Novák"
+    assert strip_academic_titles("Ing. et Ing. Erik Král") == "Erik Král"
+    assert strip_academic_titles("Marko Vzorek") == "Marko Vzorek"
+    # Klíč pro párování: bez titulů, bez diakritiky, lowercase.
+    assert student_name_key("Ing. Matěj Suchánek") == "matej suchanek"
+    assert student_name_key("Matěj Suchánek") == "matej suchanek"
+
+
 def test_czech_sort_key_order() -> None:
     names = ["Žáček", "Čermák", "Adam", "Cibulka", "Drozd", "Šimek", "Sýkora"]
     # Č za C, Š za S, Ž poslední — česká abeceda.

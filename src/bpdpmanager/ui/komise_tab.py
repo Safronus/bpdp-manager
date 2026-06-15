@@ -117,7 +117,9 @@ def _defense_state_badge(states: dict | None, pnum: str, name: str) -> str:
     """
     if not states:
         return ""
-    val = states.get((pnum or "").strip().upper()) or states.get(_fold(name))
+    from ..services.komise_stats import student_name_key
+
+    val = states.get((pnum or "").strip().upper()) or states.get(student_name_key(name))
     info = _STATE_BADGE.get(val) if val else None
     if not info:
         return ""
@@ -464,11 +466,17 @@ class KomiseTab(QWidget):
         return ""
 
     def _slot_role(self, slot, roles: dict[str, str]) -> str:
-        """„led" / „opp" / "" pro jeden slot rozpisu."""
+        """„led" / „opp" / "" pro jeden slot rozpisu.
+
+        Primárně dle **osobního čísla** (jednoznačné), fallback dle jména
+        **bez titulů** (v rozpisu mívají studenti tituly, v práci ne).
+        """
+        from ..services.komise_stats import student_name_key
+
         pnum = (slot.personal_number or "").strip().upper()
         if pnum and pnum in roles:
             return roles[pnum]
-        return roles.get(_fold(slot.student_name), "")
+        return roles.get(student_name_key(slot.student_name), "")
 
     def _is_my_committee(self, committee) -> bool:
         me = self._user_name_fold()

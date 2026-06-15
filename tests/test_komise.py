@@ -319,6 +319,50 @@ def test_my_defense_schedule(service) -> None:
     assert sched[0]["personal_number"] == "A99"
 
 
+def test_opposing_matched_by_personal_number_despite_title(service) -> None:
+    """Oponovaný se spáruje přes osobní číslo i když rozpis PDF má titul.
+
+    Regrese: dřív se oponovaní párovali jen jménem, takže „Ing. Matěj Suchánek"
+    v rozpisu se nespároval s prací „Matěj Suchánek" (bez titulu).
+    """
+    from bpdpmanager.models import OpposingThesis
+    from bpdpmanager.models.enums import ThesisType
+
+    service.load_komise_seed()
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.BP, academic_year="2025/2026",
+        student_first_name="Matěj", student_last_name="Suchánek",
+        student_university_id="A12345"))
+    service.apply_komise_import([], [
+        ParsedSchedule(color="fialová", academic_year="2025/2026", level="Bc",
+                       obor="SWI", program_label="SWI", dates=["10. 6. 2026"],
+                       slots=[("10. 6. 2026", "09:00", "A12345",
+                               "Ing. Matěj Suchánek")]),
+    ], ["swi_bc.pdf"])
+    sched = service.my_defense_schedule()
+    mine = [e for e in sched if e["personal_number"] == "A12345"]
+    assert mine and mine[0]["role"] == "opp"
+
+
+def test_opposing_matched_by_name_without_personal_number(service) -> None:
+    """Bez osobního čísla: fallback dle jména **bez titulů** (rozpis má titul)."""
+    from bpdpmanager.models import OpposingThesis
+    from bpdpmanager.models.enums import ThesisType
+
+    service.load_komise_seed()
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.BP, academic_year="2025/2026",
+        student_first_name="Matěj", student_last_name="Suchánek"))
+    service.apply_komise_import([], [
+        ParsedSchedule(color="fialová", academic_year="2025/2026", level="Bc",
+                       obor="SWI", program_label="SWI", dates=["10. 6. 2026"],
+                       slots=[("10. 6. 2026", "09:00", "", "Ing. Matěj Suchánek")]),
+    ], ["swi_bc.pdf"])
+    sched = service.my_defense_schedule()
+    assert any(e["role"] == "opp" and "Suchánek" in e["student_name"]
+               for e in sched)
+
+
 def test_future_year_shows_no_composition_notice(service) -> None:
     """Rok bez kurátorovaného složení (jen import rozpisu) → upozornění."""
     from PySide6.QtWidgets import QApplication

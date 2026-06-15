@@ -3049,15 +3049,12 @@ class ThesisService:
     def komise_student_roles(self) -> dict[str, str]:
         """Mapa pro zvýraznění v rozpisech: klíč → ``"led"``/``"opp"``.
 
-        Klíče: osobní číslo (Axxxxx, uppercase) vedených studentů a foldovaná
-        celá jména (vedení i oponovaní) — rozpis oponovaných nemá os. čísla
-        v DB, páruje se přes jméno.
+        Klíče: **osobní číslo** (Axxxxx, uppercase) — primární a jednoznačné, u
+        vedených i **oponovaných** (``OpposingThesis.student_university_id``) —
+        a jako fallback foldované **jméno bez titulů** (v rozpisu PDF mají
+        studenti tituly, v práci ne, tak by se jinak nespárovali).
         """
-        import unicodedata
-
-        def fold(s: str) -> str:
-            nfd = unicodedata.normalize("NFD", s or "")
-            return "".join(ch for ch in nfd if not unicodedata.combining(ch)).lower().strip()
+        from .komise_stats import student_name_key
 
         out: dict[str, str] = {}
         for t in self.list_theses():
@@ -3066,20 +3063,16 @@ class ThesisService:
                 continue
             if student.university_id:
                 out[student.university_id.strip().upper()] = "led"
-            full = fold(f"{student.first_name} {student.last_name}")
-            if full.strip():
+            full = student_name_key(f"{student.first_name} {student.last_name}")
+            if full:
                 out.setdefault(full, "led")
         for o in self.list_opposing_theses():
-            full = fold(f"{o.student_first_name} {o.student_last_name}")
-            if full.strip():
+            if o.student_university_id:
+                out.setdefault(o.student_university_id.strip().upper(), "opp")
+            full = student_name_key(f"{o.student_first_name} {o.student_last_name}")
+            if full:
                 out.setdefault(full, "opp")
         return out
-
-    @staticmethod
-    def _komise_fold(s: str) -> str:
-        import unicodedata
-        nfd = unicodedata.normalize("NFD", s or "")
-        return "".join(ch for ch in nfd if not unicodedata.combining(ch)).lower().strip()
 
     @staticmethod
     def _sched_sort_key(date: str, time: str):
@@ -3097,6 +3090,8 @@ class ThesisService:
         každá položka nese i komisi (kde) a barvu/obor. Slouží jako osobní
         rozvrh „kdy a kde mám být".
         """
+        from .komise_stats import student_name_key
+
         roles = self.komise_student_roles()
         out: list[dict] = []
         for c in self.list_committees():
@@ -3104,7 +3099,7 @@ class ThesisService:
                 pnum = (s.personal_number or "").strip().upper()
                 role = roles.get(pnum) if pnum else None
                 if not role:
-                    role = roles.get(self._komise_fold(s.student_name))
+                    role = roles.get(student_name_key(s.student_name))
                 if role not in ("led", "opp"):
                     continue
                 out.append({

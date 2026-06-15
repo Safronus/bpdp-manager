@@ -7,6 +7,20 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.28] - 2026-06-15
+
+### Fixed
+- **Oponovaní studenti se v záložce Státnice párují přes osobní číslo.** Dřív
+  se oponovaní (a fallback i vedení) párovali jen jménem, takže když měl student
+  v rozpisu PDF **titul** (`Ing. Matěj Suchánek`), ale v práci ne
+  (`Matěj Suchánek`), nepropojil se a v komisi/harmonogramu/statistice chyběl.
+  Nově je primární klíč **osobní číslo Axxxxx** (jednoznačné u vedených
+  i oponovaných — `OpposingThesis.student_university_id`) a fallback je **jméno
+  bez titulů** (Ing./Bc./Mgr./Ph.D./… i „et" se ignorují).
+
+### Removed
+- Nepoužitý interní helper `_komise_fold` (sjednoceno na párování bez titulů).
+
 ## [2.5.27] - 2026-06-14
 
 ### Added

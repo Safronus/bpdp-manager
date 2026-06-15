@@ -91,16 +91,41 @@ def member_surname(name: str) -> str:
 
 
 def slot_key(personal_number: str, student_name: str) -> str:
-    """Klíč studenta do ``states``: osobní číslo, jinak foldované jméno."""
+    """Klíč studenta do ``states``: osobní číslo, jinak jméno bez titulů."""
     pn = (personal_number or "").strip().upper()
-    return pn if pn else fold_name(student_name)
+    return pn if pn else student_name_key(student_name)
+
+
+# Akademické tituly (foldované, bez teček) — odřežou se při párování jména
+# rozpis ↔ práce, protože v rozpisu PDF studenti tituly mají a v práci ne.
+_TITLE_TOKENS = frozenset({
+    "prof", "doc", "ing", "bc", "bca", "mgr", "mga", "dr", "ddr", "rndr",
+    "phdr", "paeddr", "judr", "mudr", "mvdr", "rsdr", "thdr", "thlic",
+    "phd", "ph", "csc", "drsc", "dis", "et", "mba", "llm", "rngr",
+})
+
+
+def strip_academic_titles(name: str) -> str:
+    """Odebere z jména akademické tituly (Ing., Bc., Ph.D., doc., …, i „et")."""
+    import re
+
+    parts = re.split(r"[\s,]+", name or "")
+    kept = [p for p in parts
+            if p and fold_name(p.replace(".", "")) not in _TITLE_TOKENS]
+    return " ".join(kept)
+
+
+def student_name_key(name: str) -> str:
+    """Klíč jména studenta pro párování rozpis ↔ práce: **bez titulů**,
+    bez diakritiky, lowercase. ``Ing. Matěj Suchánek`` → ``matej suchanek``."""
+    return fold_name(strip_academic_titles(name))
 
 
 def _slot_category(slot, states: dict) -> str:
     pn = (slot.personal_number or "").strip().upper()
     if pn and pn in states:
         return states[pn]
-    return states.get(fold_name(slot.student_name), CAT_NONE)
+    return states.get(student_name_key(slot.student_name), CAT_NONE)
 
 
 def _empty_counts() -> dict:
