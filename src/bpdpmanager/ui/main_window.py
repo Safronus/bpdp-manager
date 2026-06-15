@@ -1600,9 +1600,21 @@ class MainWindow(QMainWindow):
             backup_path=data_dir / "db.json.bak",
             backup_manager=BackupManager(data_dir),
         )
-        self.service.reset(new_repo)
-        # Nově vytvořený profil dostane výchozí obory + šablony.
-        self.service.maybe_seed_defaults()
+        try:
+            self.service.reset(new_repo)
+            # Nově vytvořený profil dostane výchozí obory + šablony.
+            self.service.maybe_seed_defaults()
+        except OSError as exc:
+            # Typicky iCloud/Dropbox „odlehčil" db.json a bez sítě timeout —
+            # neshazuj aplikaci, jen to oznam (service zůstal na původním profilu).
+            QMessageBox.critical(
+                self, tr("Přepnutí profilu"),
+                tr("Data profilu se nepodařilo načíst — soubor je možná "
+                   "v cloudové složce (iCloud/Dropbox) a bez připojení k síti "
+                   "ho nelze stáhnout.\n\nZkus to po obnovení internetu, nebo "
+                   "přesuň data profilu mimo cloudovou složku.\n\n{err}")
+                .format(err=exc))
+            return
 
         # Refresh UI a window title
         self.setWindowTitle(self._compose_title())

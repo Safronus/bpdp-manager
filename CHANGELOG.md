@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.36] - 2026-06-15
+
+### Fixed
+- **Aplikace nespadne, když selže zápis do cloudové složky (iCloud/Dropbox).**
+  Když je `db.json` v iCloud/Dropbox a soubor je „odlehčený" (offloaded), bez
+  sítě se zápis zasekne na timeout (`Errno 60`). Dřív to shodilo celou
+  aplikaci (typicky při přepnutí profilu / migraci). Nově je krátkodobá `.bak`
+  záloha **best-effort** (selhání neshodí vlastní uložení dat), migrace verze
+  i `reset` profilu to ustojí a přepnutí profilu místo pádu **oznámí chybu**
+  dialogem.
+
 ## [2.5.35] - 2026-06-15
 
 ### Changed
