@@ -784,6 +784,15 @@ class MainWindow(QMainWindow):
         # vykreslit). Indikátor v proužku + odznaky na záložkách.
         self._stag_checker: object | None = None
         QTimer.singleShot(900, lambda: self._start_stag_check(auto=True))
+
+        # Indikátor připojení ke STAG: aktivní ping na pozadí po startu a pak
+        # každých 5 minut (+ ruční přes klik na indikátor).
+        self._stag_pinger: object | None = None
+        self._stag_ping_timer = QTimer(self)
+        self._stag_ping_timer.setInterval(5 * 60_000)
+        self._stag_ping_timer.timeout.connect(self._maybe_ping_stag)
+        self._stag_ping_timer.start()
+        QTimer.singleShot(1200, self._maybe_ping_stag)
         # Tichá kontrola aktualizací aplikace (GitHub CHANGELOG.md).
         self._update_checker: object | None = None
         QTimer.singleShot(1500, self._start_update_check)
@@ -998,6 +1007,43 @@ class MainWindow(QMainWindow):
         checker.finished.connect(self._on_stag_check_done)
         self._stag_checker = checker
         checker.start()
+
+    # --- indikátor připojení ke STAG ----------------------------------------
+    def _ping_stag_now(self) -> None:
+        """Ruční ověření připojení (klik na indikátor) — zkusí hned."""
+        self._maybe_ping_stag(force=True)
+
+    def _maybe_ping_stag(self, force: bool = False) -> None:
+        """Spustí ping STAGu na pozadí (pokud už neběží)."""
+        from .stag_check import StagConnectivityChecker
+
+        if getattr(self, "_stag_pinger", None) is not None:
+            return
+        if hasattr(self, "_stag_status_btn"):
+            self._stag_status_btn.setText("⏳ STAG…")
+        pinger = StagConnectivityChecker(parent=self)
+        pinger.finished.connect(self._on_stag_connectivity)
+        self._stag_pinger = pinger
+        pinger.start()
+
+    def _on_stag_connectivity(self, ok: bool, detail: str) -> None:
+        from datetime import datetime
+
+        self._stag_pinger = None
+        if not hasattr(self, "_stag_status_btn"):
+            return
+        stamp = datetime.now().strftime("%H:%M")
+        if ok:
+            self._stag_status_btn.setText("🟢 STAG")
+            self._stag_status_btn.setToolTip(
+                tr("STAG dostupný (ověřeno {time}). Klikni pro nové ověření.")
+                .format(time=stamp))
+        else:
+            self._stag_status_btn.setText("🔴 STAG")
+            self._stag_status_btn.setToolTip(
+                tr("STAG nedostupný (ověřeno {time}): {detail}\n"
+                   "Klikni pro nové ověření.")
+                .format(time=stamp, detail=detail or tr("bez spojení")))
 
     def _stag_checked_today(self) -> bool:
         from datetime import date
@@ -1357,6 +1403,16 @@ class MainWindow(QMainWindow):
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
+
+        # ── Indikátor připojení ke STAG (aktivní ping na pozadí) ────────
+        self._stag_status_btn = QToolButton()
+        self._stag_status_btn.setAutoRaise(True)
+        self._stag_status_btn.setText("⚪ STAG")
+        self._stag_status_btn.setToolTip(
+            tr("Připojení ke STAG — klikni pro okamžité ověření."))
+        self._stag_status_btn.clicked.connect(self._ping_stag_now)
+        toolbar.addWidget(self._stag_status_btn)
+        toolbar.addSeparator()
 
         # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()

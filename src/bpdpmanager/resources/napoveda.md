@@ -798,6 +798,15 @@ je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze
 zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
 Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.
 
+### 🟢 Indikátor připojení ke STAG (v toolbaru)
+
+Vpravo v toolbaru je ukazatel **STAG**: 🟢 = dostupný, 🔴 = nedostupný,
+⚪/⏳ = zjišťuje se. Aplikace **lehce „pingne"** `stag.utb.cz` po startu a pak
+**každých 5 minut** (jen HEAD dotaz, nic se nestahuje). **Klik** na ukazatel
+spustí ověření hned; tooltip ukáže čas posledního ověření a u nedostupnosti
+i důvod (offline / TLS-certifikát / timeout). Indikátor jen informuje — žádná
+STAG funkce se kvůli němu nemění.
+
 ### 🔍 Kontrola se STAG (co chybí)
 
 Toolbarové tlačítko **🔍 Kontrola se STAG** (skupina *Import*): projde práce

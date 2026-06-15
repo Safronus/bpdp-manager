@@ -690,6 +690,15 @@ pre-filled and pre-checked, just confirm. **📥 Import from STAG** remains
 for **new theses** you don't have in the app yet. The check is
 **read-only**; offline it reports quietly.
 
+### 🟢 STAG connection indicator (toolbar)
+
+On the right of the toolbar is a **STAG** indicator: 🟢 = reachable, 🔴 =
+unreachable, ⚪/⏳ = checking. The app lightly **pings** `stag.utb.cz` on startup
+and then **every 5 minutes** (a HEAD request only, nothing is downloaded).
+**Clicking** it checks immediately; the tooltip shows the last-checked time and,
+when unreachable, the reason (offline / TLS-certificate / timeout). It is
+informational only — no STAG feature depends on it.
+
 ### 🔍 STAG consistency (what's missing)
 
 The **🔍 STAG consistency** toolbar button (Import group): walks theses

@@ -7,6 +7,15 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.37] - 2026-06-15
+
+### Added
+- **Indikátor připojení ke STAG v toolbaru.** Vpravo nahoře ukazatel **STAG**
+  (🟢 dostupný / 🔴 nedostupný / ⚪⏳ zjišťuje se). Aplikace lehce „pingne"
+  `stag.utb.cz` po startu a pak **každých 5 minut** (jen HEAD, nic se nestahuje);
+  **klik** ověří hned. Tooltip ukáže čas posledního ověření a u nedostupnosti
+  i důvod (offline / TLS-certifikát / timeout).
+
 ## [2.5.36] - 2026-06-15
 
 ### Fixed
