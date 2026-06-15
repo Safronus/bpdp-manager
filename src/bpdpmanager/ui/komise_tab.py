@@ -212,7 +212,9 @@ class KomiseTab(QWidget):
         self._state_checker = None
         # Kategorie obhajob VŠECH studentů komisí (statistika dole) — cache
         # napříč překreslením; terminální stavy se ze STAG znovu nedotazují.
-        self._committee_states: dict = {}
+        # Načte se z disku (z minulého běhu), ať se statistika ukáže hned a STAG
+        # se nemusí ptát na už zjištěné studenty.
+        self._committee_states: dict = self.service.load_komise_defense_states()
         self._stats_checker = None
 
         outer = QVBoxLayout(self)
@@ -962,6 +964,7 @@ class KomiseTab(QWidget):
         self.lbl_stats_progress.setText("✓ hotovo")
         if isinstance(states, dict):
             self._committee_states = states
+            self.service.save_komise_defense_states(states)   # ulož pro příští start
             # Překresli i detail/rozpis a harmonogram (badge stavů studentů).
             self._on_selected()
 

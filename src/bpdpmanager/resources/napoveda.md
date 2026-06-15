@@ -1138,6 +1138,10 @@ obor); místnost se neeviduje.
   jít rychleji, než je v plánu). Co tlačítko doplní, se uloží do cache, takže
   tichá kontrola to už znovu neřeší. Vedle tlačítka se ukazuje **průběh**
   „kontroluji X/Y → hotovo". Než se stav zjistí, je student *Bez obhajoby*.
+  **Zjištěné stavy se ukládají lokálně** (`komise_defense_states.json` ve složce
+  profilu), takže po restartu se statistika i graf ukáží **hned z disku** a STAG
+  se neptá znovu na už zjištěné studenty (cache je vázaná na akademický rok —
+  nový rok začíná čistý).
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

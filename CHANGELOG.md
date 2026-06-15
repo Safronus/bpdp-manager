@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.32] - 2026-06-15
+
+### Added
+- **Statistika obhajob se ukládá lokálně a po startu načte z disku.** Zjištěné
+  stavy obhajob (`komise_defense_states.json` ve složce profilu) se uchovají
+  mezi spuštěními, takže po startu se **tabulky i graf ukáží hned** a tichá
+  kontrola **nezatěžuje STAG** opakovaným dotazováním na už zjištěné studenty —
+  dotáže jen ty, kteří ještě nemají výsledek. Cache je vázaná na akademický rok
+  (nový rok začíná čistý).
+
 ## [2.5.31] - 2026-06-15
 
 ### Changed

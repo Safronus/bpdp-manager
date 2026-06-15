@@ -2867,6 +2867,51 @@ class ThesisService:
 
         return komise_dir() / rel_path
 
+    # ── cache stavů obhajob komisí (statistika) ───────────────────────────
+    @staticmethod
+    def _komise_states_path() -> Path:
+        return app_data_dir() / "komise_defense_states.json"
+
+    def load_komise_defense_states(self) -> dict:
+        """Načte lokálně uloženou cache stavů obhajob komisí (z minulého běhu).
+
+        Vrací ``{klíč: kategorie}``; prázdné, když soubor chybí, je poškozený
+        nebo je z **jiného akademického roku** (nový rok = čistá tabulka). Díky
+        tomu se po startu statistika ukáže hned z disku a STAG se nemusí znovu
+        ptát na už zjištěné studenty.
+        """
+        import json
+
+        try:
+            data = json.loads(self._komise_states_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        if data.get("academic_year") != self.current_academic_year():
+            return {}
+        states = data.get("states")
+        return states if isinstance(states, dict) else {}
+
+    def save_komise_defense_states(self, states: dict) -> None:
+        """Uloží cache stavů obhajob komisí (kategorie) lokálně k profilu.
+
+        Tagováno aktuálním akademickým rokem — po přechodu na nový rok se cache
+        ignoruje (viz :meth:`load_komise_defense_states`).
+        """
+        import json
+
+        path = self._komise_states_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps({"academic_year": self.current_academic_year(),
+                            "states": states},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8")
+        except OSError:
+            pass
+
     @staticmethod
     def _komise_seed_pdf_dir() -> Path:
         """Složka s PDF složení komisí dodanými v gitu (veřejná data)."""

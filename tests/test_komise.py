@@ -389,6 +389,24 @@ def test_historical_supervised_not_matched_in_current_committee(service) -> None
     assert not any(e["student_name"] == "Bc. Jan Novák" for e in sched)
 
 
+def test_komise_defense_states_persist_roundtrip(service) -> None:
+    """Cache stavů obhajob se uloží na disk a po načtení vrátí (stejný rok);
+    z jiného roku se ignoruje (čistá tabulka po startu)."""
+    import json
+
+    assert service.load_komise_defense_states() == {}     # zatím nic uloženo
+    states = {"A12345": "defended", "jan novak": "failed"}
+    service.save_komise_defense_states(states)
+    assert service.load_komise_defense_states() == states
+
+    # Podvrhni jiný akademický rok → načtení vrátí prázdno.
+    p = service._komise_states_path()
+    data = json.loads(p.read_text(encoding="utf-8"))
+    data["academic_year"] = "1999/2000"
+    p.write_text(json.dumps(data), encoding="utf-8")
+    assert service.load_komise_defense_states() == {}
+
+
 def test_future_year_shows_no_composition_notice(service) -> None:
     """Rok bez kurátorovaného složení (jen import rozpisu) → upozornění."""
     from PySide6.QtWidgets import QApplication

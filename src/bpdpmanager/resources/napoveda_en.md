@@ -1016,6 +1016,10 @@ location = committee (colour + programme); rooms are not tracked.
   up yet (defences can run ahead of plan). Whatever it fills is cached, so the
   background check won't re-query it. A **progress** indicator next to it shows
   "checking X/Y → done". Until a status is known the student is *No defence yet*.
+  **Resolved statuses are cached locally** (`komise_defense_states.json` in the
+  profile folder), so after a restart the statistics and chart show
+  **immediately from disk** and STAG isn't re-queried for already-known students
+  (the cache is tied to the academic year — a new year starts empty).
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing
