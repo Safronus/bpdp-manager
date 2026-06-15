@@ -1006,7 +1006,10 @@ location = committee (colour + programme); rooms are not tracked.
   (darker = defended → lighter = no defence yet), count above each bar. **Scope
   follows the tree selection**: a selected committee → that one, a selected
   year/level → the whole year, otherwise **all years**. Statuses come **from
-  STAG matched by name** (refined by Bc/Mgr type and defence year) for **all**
+  STAG matched by name** (refined by Bc/Mgr type and the **committee's academic
+  year** — records whose defence year falls outside it are discarded, so a
+  namesake or your **own older thesis** from past years isn't mismatched) for
+  **all**
   committee students — not just yours. The **background check** (exam period
   only) spares STAG: it queries only **~30 min after** a student's scheduled
   defence and only those **without a result** (resolved ones are cached). The

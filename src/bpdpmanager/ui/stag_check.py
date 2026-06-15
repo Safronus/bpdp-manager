@@ -412,31 +412,38 @@ def _match_committee_result(results, slot, committee):
     """Z výsledků STAG (hledání dle příjmení) napáruje práci jednoho slotu.
 
     Páruje **podle jména** (množina tokenů jména/příjmení, bez diakritiky),
-    zpřesněno **typem** (Bc=bakalářská / Mgr=diplomová) a **rokem obhajoby**
-    (pozdější rok akademického roku komise). Vrací :class:`StagThesisResult`
-    nebo ``None``.
+    zpřesněno **typem** (Bc=bakalářská / Mgr=diplomová) a **akademickým rokem**
+    komise. Rok obhajoby (``r.year``) musí spadat do akademického roku komise
+    (``RRRR/RRRR`` → kterýkoli z obou roků — podzimní i jarní termín); záznam
+    z **prokazatelně jiného roku** se zahodí (ochrana proti jmenovcům z minulých
+    let). Vrací :class:`StagThesisResult` nebo ``None``.
     """
     slot_set = set(_fold_name(slot.student_name).split())
     if not slot_set:
         return None
     level = (committee.level or "").strip().lower()
     type_kw = "bakal" if level == "bc" else "diplom" if level == "mgr" else ""
-    years = re.findall(r"\d{4}", committee.academic_year or "")
-    target_year = years[-1] if years else ""
+    target_years = set(re.findall(r"\d{4}", committee.academic_year or ""))
 
-    best = None
+    candidates = []
     for r in results:
         res_set = set(_fold_name(f"{r.surname} {r.name}").split())
         if not res_set or not (res_set <= slot_set or slot_set <= res_set):
             continue
         if type_kw and r.type_label and type_kw not in r.type_label.lower():
             continue
-        if target_year and r.year and r.year != target_year:
+        # Známý rok obhajoby mimo akademický rok komise → jmenovec z jiných let.
+        if target_years and r.year and r.year not in target_years:
             continue
-        if r.status_code:          # preferuj záznam s vyplněným stavem
-            return r
-        best = best or r
-    return best
+        candidates.append(r)
+
+    if not candidates:
+        return None
+    # Preferuj práci s rokem obhajoby PŘÍMO v akademickém roce komise, pak se
+    # stavem; bez vyplněného roku ber až jako poslední (nelze rozlišit jistě).
+    exact = [r for r in candidates if r.year in target_years]
+    pool = exact or candidates
+    return next((r for r in pool if r.status_code), pool[0])
 
 
 def fetch_committee_defense_states(

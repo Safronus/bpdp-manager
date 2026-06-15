@@ -276,3 +276,35 @@ def test_match_committee_result() -> None:
     other = [StagThesisResult(adipidno="4", surname="Nový", name="Pavel",
                               type_label="Diplomová práce", year="2026")]
     assert _match_committee_result(other, slot, c) is None
+
+
+def test_match_disambiguates_namesake_by_academic_year() -> None:
+    """Jmenovec z jiného roku se nesmí přiřadit (regrese: Kubíček 2019/2020
+    vs. 2025/2026). Rok obhajoby musí spadat do akad. roku komise."""
+    from bpdpmanager.services.stag_api import StagThesisResult
+    from bpdpmanager.ui.stag_check import _match_committee_result
+
+    c = Committee(academic_year="2025/2026", color="fialová", level="Mgr",
+                  obor="NKYB")
+    slot = DefenseSlot(student_name="Daniel Václav Kubíček", personal_number="A23259")
+
+    # Starý jmenovec (2019/2020, obhájeno) + aktuální práce (2025/2026).
+    results = [
+        StagThesisResult(adipidno="old", surname="Kubíček", name="Daniel",
+                         type_label="Diplomová práce", year="2020", status_code="ND"),
+        StagThesisResult(adipidno="new", surname="Kubíček", name="Daniel Václav",
+                         type_label="Diplomová práce", year="2026", status_code="R"),
+    ]
+    m = _match_committee_result(results, slot, c)
+    assert m is not None and m.adipidno == "new"
+
+    # Jen starý jmenovec z jiného roku → raději nic (ne špatný stav).
+    only_old = [results[0]]
+    assert _match_committee_result(only_old, slot, c) is None
+
+    # Podzimní termín téhož akad. roku (rok obhajoby 2025) je platný.
+    autumn = [StagThesisResult(adipidno="aut", surname="Kubíček",
+                               name="Daniel Václav", type_label="Diplomová práce",
+                               year="2025", status_code="DUO")]
+    m2 = _match_committee_result(autumn, slot, c)
+    assert m2 is not None and m2.adipidno == "aut"

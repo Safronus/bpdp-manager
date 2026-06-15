@@ -1128,7 +1128,9 @@ obor); místnost se neeviduje.
   stavu (tmavší = obhájeno → světlejší = bez obhajoby), nad sloupci počet.
   **Rozsah se řídí výběrem vlevo**: vybraná komise → jen ona, vybraný rok/stupeň
   → celý rok, jinak **všechny roky**. Stavy se zjišťují **ze STAG podle jména**
-  studenta (zpřesněno typem Bc/Mgr a rokem obhajoby) pro **všechny** studenty
+  studenta (zpřesněno typem Bc/Mgr a **akademickým rokem komise** — práce
+  s rokem obhajoby mimo daný rok se zahodí, aby se nezaměnil jmenovec ani **tvá
+  vlastní starší práce** z minulých let) pro **všechny** studenty
   komisí — ne jen tvoje. **Tichá kontrola na pozadí** (jen v období státnic)
   šetří STAG: dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
   u studentů **bez výsledku** (hotové se cachují). **Tlačítko 🔄 Aktualizovat

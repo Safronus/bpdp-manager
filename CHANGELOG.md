@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.33] - 2026-06-15
+
+### Fixed
+- **Stav obhajoby se nepřiřadí podle jmenovce z jiného roku.** Párování na STAG
+  podle jména nově odmítne práci, jejíž **rok obhajoby spadá mimo akademický rok
+  komise** (např. `Kubíček Daniel 2019/2020` se už nepřiřadí studentovi
+  `Daniel Václav Kubíček` v komisi `2025/2026`). Z kandidátů se preferuje práce
+  s rokem obhajoby přímo v akademickém roce komise; podzimní i jarní termín
+  (oba roky `RRRR/RRRR`) jsou platné. Chrání to i proti **vlastní starší práci**
+  téhož studenta.
+
 ## [2.5.32] - 2026-06-15
 
 ### Added
