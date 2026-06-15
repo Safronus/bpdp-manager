@@ -7,6 +7,16 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.5.30] - 2026-06-15
+
+### Changed
+- **Tlačítko „🔄 Aktualizovat" ve statistice obhajob vynutí kontrolu všech
+  zbývajících.** Ruční aktualizace teď zkontroluje ze STAG **všechny** studenty
+  se stavem *Bez obhajoby* — i ty, na které podle harmonogramu ještě nepřišla
+  řada (průběh SZZ může jít rychleji, než je v plánu). Co doplní, se uloží do
+  cache, takže **tichá kontrola** na pozadí to už znovu neřeší. Tichá kontrola
+  se nemění — dál drží časové okno (~30 min po plánované obhajobě).
+
 ## [2.5.29] - 2026-06-15
 
 ### Fixed

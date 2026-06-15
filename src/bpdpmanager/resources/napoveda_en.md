@@ -1007,12 +1007,14 @@ location = committee (colour + programme); rooms are not tracked.
   follows the tree selection**: a selected committee → that one, a selected
   year/level → the whole year, otherwise **all years**. Statuses come **from
   STAG matched by name** (refined by Bc/Mgr type and defence year) for **all**
-  committee students — not just yours. To spare STAG it only queries **~30 min
-  after** a student's scheduled defence and only those **without a result**
-  (resolved ones are cached); it runs in the background only during the exam
-  period, otherwise on demand via **🔄 Refresh** (a **progress** indicator next
-  to it shows "checking X/Y → done"). Until a status is known the student is
-  *No defence yet*.
+  committee students — not just yours. The **background check** (exam period
+  only) spares STAG: it queries only **~30 min after** a student's scheduled
+  defence and only those **without a result** (resolved ones are cached). The
+  **🔄 Refresh button, however, forces a check of ALL remaining** *no-defence*
+  students — even those whose scheduled slot hasn't come up yet (defences can
+  run ahead of plan). Whatever it fills is cached, so the background check won't
+  re-query it. A **progress** indicator next to it shows "checking X/Y → done".
+  Until a status is known the student is *No defence yet*.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

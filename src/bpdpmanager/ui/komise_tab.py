@@ -362,9 +362,10 @@ class KomiseTab(QWidget):
         stats_hdr.addWidget(self.lbl_stats_progress)
         self.btn_refresh_stats = QPushButton("🔄 Aktualizovat")
         self.btn_refresh_stats.setToolTip(
-            "Zjistí ze STAG, kdo z komisí už obhájil/neobhájil (dle jména). "
-            "Dotazují se jen studenti po čase obhajoby, kteří ještě nemají "
-            "výsledek; hotové se cachují."
+            "Vynutí kontrolu ze STAG u VŠECH zbývajících studentů „bez "
+            "obhajoby\" — i těch, na které podle harmonogramu ještě nepřišla "
+            "řada (průběh může jít rychleji). Hotové se cachují a tichá kontrola "
+            "je už znovu neřeší. (Tichá kontrola na pozadí drží časové okno.)"
         )
         self.btn_refresh_stats.clicked.connect(self._refresh_stats_now)
         stats_hdr.addWidget(self.btn_refresh_stats)
@@ -938,9 +939,11 @@ class KomiseTab(QWidget):
             return
         self.btn_refresh_stats.setEnabled(False)
         self.lbl_stats_progress.setText("kontroluji…")
+        # Ruční „Aktualizovat" vynutí kontrolu VŠECH zbývajících (force) bez
+        # ohledu na čas obhajoby; tichá kontrola na pozadí drží časové okno.
         checker = KomiseStatsChecker(
             self.service, committees, datetime.now(),
-            dict(self._committee_states), parent=self)
+            dict(self._committee_states), parent=self, force=manual)
         checker.progress.connect(self._on_stats_progress)
         checker.finished.connect(self._on_committee_stats_ready)
         self._stats_checker = checker

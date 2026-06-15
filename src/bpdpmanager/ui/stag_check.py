@@ -440,7 +440,8 @@ def _match_committee_result(results, slot, committee):
 
 
 def fetch_committee_defense_states(
-    service, committees, now, prior=None, *, grace_min: int = 30, progress=None
+    service, committees, now, prior=None, *, grace_min: int = 30,
+    progress=None, force: bool = False
 ) -> dict:
     """Síťově (read-only) zjistí kategorie obhajob studentů ``committees``.
 
@@ -448,7 +449,11 @@ def fetch_committee_defense_states(
     z :mod:`services.komise_stats`). Šetří STAG:
 
     - **terminální** stavy z ``prior`` (cache) se znovu nedotazují,
-    - dotazuje jen sloty, kterým už uplynul **čas obhajoby + ``grace_min``**,
+    - dotazuje jen sloty, kterým už uplynul **čas obhajoby + ``grace_min``**
+      — pokud ``force=False`` (tichá kontrola). Při ``force=True`` (ruční
+      „Aktualizovat") se časové okno ignoruje a dotáže **všechny zbývající**
+      (ne-terminální) studenty — průběh totiž může jít rychleji, než je
+      v harmonogramu,
     - na každé **příjmení** jeden STAG dotaz (sdílený mezi jmenovci).
 
     Studenty bez napárování ponechá tak, jak byli (typicky „bez obhajoby").
@@ -464,9 +469,10 @@ def fetch_committee_defense_states(
             key = slot_key(s.personal_number, s.student_name)
             if out.get(key) in TERMINAL:
                 continue
-            dt = ThesisService._parse_slot_dt(s.date, s.time)
-            if not _needs_committee_query(dt, now, grace_min):
-                continue
+            if not force:
+                dt = ThesisService._parse_slot_dt(s.date, s.time)
+                if not _needs_committee_query(dt, now, grace_min):
+                    continue
             surname = _surname_of(s.student_name)
             if not surname:
                 continue
@@ -498,12 +504,14 @@ class KomiseStatsChecker(QObject):
     finished = Signal(object)   # dict {klíč: kategorie}
     progress = Signal(int, int)  # (zkontrolováno, celkem)
 
-    def __init__(self, service, committees, now, prior=None, parent=None) -> None:
+    def __init__(self, service, committees, now, prior=None, parent=None, *,
+                 force: bool = False) -> None:
         super().__init__(parent)
         self._service = service
         self._committees = list(committees)
         self._now = now
         self._prior = dict(prior or {})
+        self._force = force
         self._thread: threading.Thread | None = None
 
     def start(self) -> None:
@@ -514,6 +522,7 @@ class KomiseStatsChecker(QObject):
         try:
             states = fetch_committee_defense_states(
                 self._service, self._committees, self._now, self._prior,
+                force=self._force,
                 progress=lambda done, total: self.progress.emit(done, total))
         except Exception:  # výsledek nesmí shodit vlákno
             states = self._prior

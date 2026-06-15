@@ -196,6 +196,37 @@ def test_nice_step() -> None:
     assert _nice_step(8, 4) == 2
 
 
+def test_force_queries_before_defense_time(monkeypatch) -> None:
+    """force=True (ruční Aktualizovat) dotáže i studenty PŘED časem obhajoby,
+    ale terminální (z cache) přeskočí."""
+    from bpdpmanager.services import stag_api
+    from bpdpmanager.services.komise_stats import CAT_DEFENDED, slot_key
+    from bpdpmanager.ui import stag_check
+
+    c = _committee("modrá", "Bc", "SWI", ["A B"], [
+        ("15:00", "A1", "Anna Vedena"),     # obhajoba dnes pozdě odpoledne
+        ("15:00", "A2", "Petr Druhy"),
+    ])
+    for s in c.slots:
+        s.date = "16. 6. 2026"
+    monkeypatch.setattr(stag_api, "search_theses", lambda *a, **k: [])
+
+    now = datetime(2026, 6, 16, 9, 0)   # ráno, PŘED obhajobami (15:00)
+    # Tichá kontrola (force=False): nikoho se neptá (čas ještě nenastal).
+    seen_quiet: list[tuple[int, int]] = []
+    stag_check.fetch_committee_defense_states(
+        None, [c], now, {}, progress=lambda d, t: seen_quiet.append((d, t)))
+    assert seen_quiet[0][1] == 0
+
+    # Ruční (force=True): dotáže oba, ale jeden už je v cache jako obhájeno.
+    prior = {slot_key("A1", "Anna Vedena"): CAT_DEFENDED}
+    seen_force: list[tuple[int, int]] = []
+    stag_check.fetch_committee_defense_states(
+        None, [c], now, prior, force=True,
+        progress=lambda d, t: seen_force.append((d, t)))
+    assert seen_force[0][1] == 1   # jen A2 (A1 terminální → přeskočen)
+
+
 def test_match_committee_result() -> None:
     from bpdpmanager.services.stag_api import StagThesisResult
     from bpdpmanager.ui.stag_check import _match_committee_result

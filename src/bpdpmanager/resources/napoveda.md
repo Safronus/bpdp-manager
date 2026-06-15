@@ -1129,10 +1129,13 @@ obor); místnost se neeviduje.
   **Rozsah se řídí výběrem vlevo**: vybraná komise → jen ona, vybraný rok/stupeň
   → celý rok, jinak **všechny roky**. Stavy se zjišťují **ze STAG podle jména**
   studenta (zpřesněno typem Bc/Mgr a rokem obhajoby) pro **všechny** studenty
-  komisí — ne jen tvoje. Aby se STAG nezatěžoval: dotazuje se **až ~30 min po
-  plánovaném čase** obhajoby a jen u studentů **bez výsledku** (hotové se
-  cachují); běží na pozadí jen v období státnic, jinak ručně tlačítkem
-  **🔄 Aktualizovat** (vedle něj se ukazuje **průběh** „kontroluji X/Y → hotovo").
+  komisí — ne jen tvoje. **Tichá kontrola na pozadí** (jen v období státnic)
+  šetří STAG: dotazuje se **až ~30 min po plánovaném čase** obhajoby a jen
+  u studentů **bez výsledku** (hotové se cachují). **Tlačítko 🔄 Aktualizovat
+  ale vynutí kontrolu VŠECH zbývajících** studentů *bez obhajoby* — i těch, na
+  které podle harmonogramu ještě nepřišla řada (průběh může jít rychleji, než je
+  v plánu). Co tlačítko doplní, se uloží do cache, takže tichá kontrola to už
+  znovu neřeší. Vedle tlačítka se ukazuje **průběh** „kontroluji X/Y → hotovo".
   Než se stav zjistí, je student *Bez obhajoby*.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
