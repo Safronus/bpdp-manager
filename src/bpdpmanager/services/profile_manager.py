@@ -195,11 +195,34 @@ class ProfileManager:
         return profile
 
     def set_user_name(self, profile_id: str, user_name: str) -> Profile:
-        """Nastaví jméno uživatele profilu (pro STAG import auto-detect role)."""
+        """Nastaví celé jméno uživatele (pro STAG import auto-detect role).
+
+        Zpětně kompatibilní vstupní bod (import/export); části křestní/příjmení
+        nechává být — ty se nastavují přes :meth:`set_user_name_parts`.
+        """
         profile = self.get(profile_id)
         if profile is None:
             raise ProfileError(f"Profil {profile_id} neexistuje.")
         profile.user_name = (user_name or "").strip()
+        self._save_registry()
+        return profile
+
+    def set_user_name_parts(
+        self, profile_id: str, first_name: str, surname: str
+    ) -> Profile:
+        """Nastaví křestní jméno + příjmení zvlášť (přesné hledání ve STAG).
+
+        Celé ``user_name`` (pro auto-detekci role a skládání s tituly) se z nich
+        složí jako ``"{křestní} {příjmení}"``.
+        """
+        profile = self.get(profile_id)
+        if profile is None:
+            raise ProfileError(f"Profil {profile_id} neexistuje.")
+        first = (first_name or "").strip()
+        surname = (surname or "").strip()
+        profile.user_first_name = first
+        profile.user_surname = surname
+        profile.user_name = f"{first} {surname}".strip()
         self._save_registry()
         return profile
 
@@ -465,9 +488,14 @@ class ProfileManager:
             n += 1
 
         profile = self.create(name=unique_name, data_dir=Path(target_data_dir))
-        # Pokud byl exportován user_name (pro STAG auto-detect role), přebíráme.
+        # Pokud byly exportovány části jména (pro STAG hledání), přebíráme je;
+        # jinak fallback na celé user_name (starší export).
+        first = (original.get("user_first_name") or "").strip()
+        surname = (original.get("user_surname") or "").strip()
         user_name = (original.get("user_name") or "").strip()
-        if user_name:
+        if first or surname:
+            self.set_user_name_parts(profile.id, first, surname)
+        elif user_name:
             self.set_user_name(profile.id, user_name)
         return profile, result
 

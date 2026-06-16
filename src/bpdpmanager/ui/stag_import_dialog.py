@@ -313,8 +313,12 @@ class StagImportDialog(QDialog):
         # Role (vedoucí/oponent) i hromadné stažení se řídí jménem z PROFILU;
         # tady ho jen ukážeme jako stav „připraveno k importu" (změna v 👤).
         self._user_name = ""
+        self._user_surname = ""
         if profile_manager and profile_manager.active:
             self._user_name = (profile_manager.active.user_name or "").strip()
+            # Explicitní příjmení z profilu (přesné hledání i u dvojího jména);
+            # prázdné = starý profil → fallback na odhad z celého jména níže.
+            self._user_surname = (profile_manager.active.user_surname or "").strip()
         lbl_name = QLabel()
         if self._user_name:
             lbl_name.setText(
@@ -335,12 +339,18 @@ class StagImportDialog(QDialog):
         outer.addLayout(name_row)
 
         # ── Profilové příjmení pro hromadné hledání ─────────────────────────
-        tokens = [
-            t.strip(".,")
-            for t in self._user_name.replace(",", " ").split()
-            if t.strip(".,")
-        ]
-        self._profile_surname = tokens[-1] if tokens else ""  # příjmení
+        # Přednost má explicitní příjmení z profilu (přesné i u dvojího
+        # křestního/příjmení); jen u starého profilu (prázdné) odhadneme
+        # poslední token celého jména.
+        if self._user_surname:
+            self._profile_surname = self._user_surname
+        else:
+            tokens = [
+                t.strip(".,")
+                for t in self._user_name.replace(",", " ").split()
+                if t.strip(".,")
+            ]
+            self._profile_surname = tokens[-1] if tokens else ""
 
         # ── Sloučené okno: dva kroky v jednom (QStackedWidget) ──────────────
         # Krok 1 = najít a stáhnout ze STAG; Krok 2 = náhled stažených prací

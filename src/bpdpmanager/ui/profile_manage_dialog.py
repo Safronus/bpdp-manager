@@ -177,15 +177,27 @@ class ProfileManageDialog(QDialog):
             tr("Jméno se používá k auto-detekci role při importu ze STAG.\n"
             "Tituly před/za se automaticky doplní do jména autora v posudku.")
         ))
+        # Křestní + příjmení zvlášť — kvůli přesnému hledání ve STAG u dvojího
+        # křestního jména i dvojího příjmení. U starého profilu (bez částí)
+        # předvyplníme rozdělením celého jména (uživatel může opravit).
+        from ..models.naming import split_first_surname
+        first0 = profile.user_first_name
+        surname0 = profile.user_surname
+        if not first0 and not surname0:
+            first0, surname0 = split_first_surname(profile.user_name or "")
         form = QFormLayout()
         ed_before = QLineEdit(profile.user_title_before or "")
         ed_before.setPlaceholderText(tr("např. doc. Ing."))
-        ed_name = QLineEdit(profile.user_name or "")
-        ed_name.setPlaceholderText(tr("např. Petr Novák"))
+        ed_first = QLineEdit(first0)
+        ed_first.setPlaceholderText(tr("např. Petr (i dvojí, např. Jan Petr)"))
+        ed_surname = QLineEdit(surname0)
+        ed_surname.setPlaceholderText(
+            tr("např. Novák (i dvojí, např. Komínková Oplatková)"))
         ed_after = QLineEdit(profile.user_title_after or "")
         ed_after.setPlaceholderText(tr("např. Ph.D."))
         form.addRow(tr("Tituly před"), ed_before)
-        form.addRow(tr("Jméno a příjmení"), ed_name)
+        form.addRow(tr("Křestní jméno"), ed_first)
+        form.addRow(tr("Příjmení"), ed_surname)
         form.addRow(tr("Tituly za"), ed_after)
         v.addLayout(form)
         from ..models.naming import compose_titled_name
@@ -193,11 +205,12 @@ class ProfileManageDialog(QDialog):
         preview.setStyleSheet("color:#666;")
 
         def _upd() -> None:
-            full = compose_titled_name(ed_before.text(), ed_name.text(), ed_after.text())
+            name = f"{ed_first.text().strip()} {ed_surname.text().strip()}".strip()
+            full = compose_titled_name(ed_before.text(), name, ed_after.text())
             preview.setText(f"V posudku: <b>{full or '—'}</b>")
 
         preview.setTextFormat(Qt.TextFormat.RichText)
-        for ed in (ed_before, ed_name, ed_after):
+        for ed in (ed_before, ed_first, ed_surname, ed_after):
             ed.textChanged.connect(lambda *_: _upd())
         _upd()
         v.addWidget(preview)
@@ -210,7 +223,8 @@ class ProfileManageDialog(QDialog):
         if not dlg.exec():
             return
         try:
-            self.pm.set_user_name(profile.id, ed_name.text())
+            self.pm.set_user_name_parts(
+                profile.id, ed_first.text(), ed_surname.text())
             self.pm.set_user_titles(profile.id, ed_before.text(), ed_after.text())
         except ProfileError as exc:
             QMessageBox.warning(self, tr("Uložení selhalo"), str(exc))

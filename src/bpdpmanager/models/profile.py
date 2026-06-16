@@ -29,7 +29,13 @@ class Profile(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
     data_dir: str  # absolutní cesta ke složce s db.json, documents/, harmonograms/
-    user_name: str = ""  # jméno uživatele profilu (pro STAG import auto-detect role)
+    user_name: str = ""  # celé jméno (pro STAG auto-detect role + skládání s tituly)
+    # Jméno rozdělené na části — kvůli přesnému hledání ve STAG u dvojího
+    # křestního jména i dvojího příjmení (odhad „poslední token = příjmení"
+    # selhává). ``user_name`` se z nich skládá; prázdné = starý profil
+    # (STAG kód spadne na odhad z ``user_name``, dokud uživatel profil neupraví).
+    user_first_name: str = ""  # křestní jméno (může být dvojí, např. „Jan Petr")
+    user_surname: str = ""     # příjmení (může být dvojí, např. „Komínková Oplatková")
     user_email: str = ""  # e-mail uživatele (odesílatel posudků sekretářkám)
     # Tituly před/za jménem (volný string) — skládají se do jména autora posudku.
     user_title_before: str = ""  # např. "doc. Ing."

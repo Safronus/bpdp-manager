@@ -247,6 +247,31 @@ def test_stag_pending_ignores_other_year(service) -> None:
     assert service.load_stag_pending_changes() == {}
 
 
+def test_compute_uses_explicit_surname(service, monkeypatch) -> None:
+    """Hledání nových prací bere EXPLICITNÍ příjmení z profilu (přesné i
+    u dvojího jména); prázdné = fallback na poslední token celého jména."""
+    seen: list[str] = []
+
+    monkeypatch.setattr(chk, "_fetch_target_state", lambda adip: ("", [], ""))
+
+    def fake_search(student, person, role):
+        seen.append(person)
+        return []
+
+    monkeypatch.setattr(chk.stag_api, "search_theses", fake_search)
+
+    # Explicitní příjmení → hledá se „Komínková Oplatková", ne jen „Oplatková".
+    seen.clear()
+    chk.compute_stag_check(service, "Zuzana Komínková Oplatková",
+                           "Komínková Oplatková")
+    assert seen and all(p == "Komínková Oplatková" for p in seen)
+
+    # Bez explicitního → fallback na poslední token.
+    seen.clear()
+    chk.compute_stag_check(service, "Zuzana Komínková Oplatková", "")
+    assert seen and all(p == "Oplatková" for p in seen)
+
+
 def test_change_keyset_detects_new() -> None:
     """change_keyset rozliší, co přibylo (pro re-show proužku po další kontrole)."""
     a = chk.StagCheckResult(ok=True, supervised_ids=["t1"], opposing_ids=["o1"])

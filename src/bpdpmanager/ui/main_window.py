@@ -1008,12 +1008,14 @@ class MainWindow(QMainWindow):
         if auto and self._stag_checked_today():
             return  # dnes už proběhla automatická kontrola
         user_name = ""
+        user_surname = ""
         if self.profile_manager and self.profile_manager.active:
             user_name = self.profile_manager.active.user_name or ""
+            user_surname = self.profile_manager.active.user_surname or ""
         self._set_stag_banner(
             "⏳ Kontroluji změny ve STAG…", "#e3f2fd", show_open=False
         )
-        checker = StagChecker(self.service, user_name, parent=self)
+        checker = StagChecker(self.service, user_name, user_surname, parent=self)
         checker.finished.connect(self._on_stag_check_done)
         self._stag_checker = checker
         checker.start()

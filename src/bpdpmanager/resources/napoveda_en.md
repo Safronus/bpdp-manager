@@ -35,10 +35,16 @@ On first run a welcome window asks **where to store the data**:
 ### 2. Your name, e-mail and review place (in the profile)
 In **👤 → 🗂 Profile management**:
 
-- **👤 Your name and titles…** — name + **titles before/after** (e.g.
-  "doc. Ing." and "Ph.D."). The name is used for **role auto-detection**
-  during STAG import (supervisor / opponent); the titles are **automatically
-  composed into the author name in reviews**.
+- **👤 Your name and titles…** — **first name** and **surname** separately +
+  **titles before/after** (e.g. "doc. Ing." and "Ph.D."). The name is used for
+  **role auto-detection** during STAG import (supervisor / opponent); the
+  titles are **automatically composed into the author name in reviews**.
+  > **Why first name / surname separately:** STAG is searched by **surname**.
+  > For a **double surname** ("Komínková Oplatková") or a **double first name**
+  > ("Jan Petr") guessing would fail — so it's entered explicitly. The surname
+  > may have multiple words. (An older single-field profile keeps working; when
+  > edited it is pre-filled by splitting — check it, especially a double
+  > surname.)
 - **✉ E-mail…** — your e-mail (e.g. `surname@utb.cz`). Used as the **sender
   when e-mailing reviews to secretaries**. The SMTP server is configured in
   **👤 → ✉ E-mail settings (SMTP)**.

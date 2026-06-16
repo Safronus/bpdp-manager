@@ -135,8 +135,14 @@ def _surname_of(full_name: str) -> str:
     return tokens[-1] if tokens else ""
 
 
-def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
-    """Spočítá počty změn ve STAG (read-only). Vhodné volat z vlákna."""
+def compute_stag_check(
+    service, user_full_name: str = "", user_surname: str = ""
+) -> StagCheckResult:
+    """Spočítá počty změn ve STAG (read-only). Vhodné volat z vlákna.
+
+    ``user_surname`` = explicitní příjmení z profilu (přesné hledání i u dvojího
+    jména); prázdné = odhad z celého jména (``_surname_of``).
+    """
     r = StagCheckResult()
     attempts = 0
     failures = 0
@@ -192,8 +198,9 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
             r.up_to_date.append(f"{base} (oponentura)")
 
     # 3) Nové práce ve STAG (dle CELÉHO jména — ne jen příjmení, ať nepočítáme
-    #    jmenovce), které v DB nemáš.
-    surname = _surname_of(user_full_name)
+    #    jmenovce), které v DB nemáš. Příjmení pro hledání: explicitní z profilu,
+    #    jinak odhad z celého jména.
+    surname = user_surname.strip() or _surname_of(user_full_name)
     if surname:
         seen_new: set[str] = set()
         for role in (ROLE_SUPERVISOR, ROLE_OPPONENT):
@@ -229,10 +236,12 @@ class StagChecker(QObject):
 
     finished = Signal(object)  # StagCheckResult
 
-    def __init__(self, service, user_full_name: str = "", parent=None) -> None:
+    def __init__(self, service, user_full_name: str = "", user_surname: str = "",
+                 parent=None) -> None:
         super().__init__(parent)
         self._service = service
         self._user = user_full_name
+        self._user_surname = user_surname
         self._thread: threading.Thread | None = None
 
     def start(self) -> None:
@@ -241,7 +250,7 @@ class StagChecker(QObject):
 
     def _run(self) -> None:
         try:
-            result = compute_stag_check(self._service, self._user)
+            result = compute_stag_check(self._service, self._user, self._user_surname)
         except Exception as exc:  # noqa: BLE001 — výsledek nesmí shodit vlákno
             result = StagCheckResult(ok=False, error=str(exc))
         # Signál se z vlákna doručí do hlavního vlákna (QueuedConnection).

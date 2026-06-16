@@ -5,6 +5,28 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.0] - 2026-06-16
+
+### Added
+- **Profil: jméno rozdělené na křestní jméno + příjmení.** STAG se hledá podle
+  **příjmení** — dosavadní odhad „poslední token = příjmení" selhával u
+  **dvojího příjmení** („Komínková Oplatková" → hledalo se jen „Oplatková")
+  i u **dvojího křestního** jména („Jan Petr Novák"). Nově se v profilu
+  (**👤 → Tvoje jméno a tituly…**) zadává **křestní jméno** a **příjmení**
+  zvlášť; příjmení může mít víc slov.
+  - Hromadné stažení (Vedené/Oponentury) i tichá kontrola „nové práce ve STAG"
+    používají **explicitní příjmení** z profilu.
+  - **Zpětně kompatibilní:** starý profil (jedno pole) funguje dál — STAG kód
+    spadne na původní odhad, dokud profil neupravíš (při úpravě se obě pole
+    předvyplní rozdělením celého jména). Bez vynucené migrace.
+  - Auto-detekce role zůstává z **celého jména** (porovnání množin tokenů).
+  - Části jména se přenášejí i v exportu/importu profilu.
+
+### Internal
+- `Profile.user_first_name` / `user_surname`; `ProfileManager.set_user_name_parts`
+  (skládá `user_name`); `naming.split_first_surname` (předvyplnění/fallback);
+  `compute_stag_check` / `StagChecker` přijímají explicitní `user_surname`.
+
 ## [2.8.8] - 2026-06-16
 
 ### Fixed

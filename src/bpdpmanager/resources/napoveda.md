@@ -36,10 +36,16 @@ Při prvním spuštění tě uvítá okno, kde zvolíš, **kam se ukládají dat
 ### 2. Tvoje jméno, e-mail a místo posudku (v profilu)
 V **👤 → 🗂 Správa profilů**:
 
-- **👤 Tvoje jméno a tituly…** — jméno + **tituly před/za** (např.
-  „doc. Ing." a „Ph.D."). Jméno slouží k **auto-detekci role** při STAG
-  importu (vedoucí / oponent); tituly se **automaticky složí do jména
-  autora v posudku** („doc. Ing. Petr Žáček, Ph.D.").
+- **👤 Tvoje jméno a tituly…** — **křestní jméno** a **příjmení** zvlášť +
+  **tituly před/za** (např. „doc. Ing." a „Ph.D."). Jméno slouží k
+  **auto-detekci role** při STAG importu (vedoucí / oponent); tituly se
+  **automaticky složí do jména autora v posudku** („doc. Ing. Petr Žáček,
+  Ph.D.").
+  > **Proč zvlášť křestní/příjmení:** hledání ve STAGu jde podle **příjmení**.
+  > U **dvojího příjmení** („Komínková Oplatková") i **dvojího křestního**
+  > jména („Jan Petr") by odhad selhal — proto se zadává explicitně. Příjmení
+  > může mít víc slov. (Starší profil s jedním polem funguje dál; při úpravě se
+  > předvyplní rozdělením — zkontroluj, hlavně u dvojího příjmení.)
 - **✉ E-mail…** — tvůj e-mail (např. `prijmeni@utb.cz`). Slouží jako
   **odesílatel při posílání posudků sekretářkám** (viz *Odeslání posudků
   e-mailem*). SMTP server se nastavuje v **👤 → ✉ Nastavení e-mailu (SMTP)**.

@@ -230,6 +230,8 @@ def export_profile_to_zip(
             "name": profile.name,
             "original_id": profile.id,
             "user_name": profile.user_name or "",
+            "user_first_name": profile.user_first_name or "",
+            "user_surname": profile.user_surname or "",
             "created_at": profile.created_at.isoformat() if profile.created_at else "",
         },
         "contents": {

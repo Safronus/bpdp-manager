@@ -86,3 +86,20 @@ def parse_titled_name(full: str) -> tuple[str, str, str]:
             # jako předchozí titul (jinak před jméno).
             (last if last is not None else before).append(tok)
     return " ".join(before), name, ", ".join(after)
+
+
+def split_first_surname(full: str) -> tuple[str, str]:
+    """Heuristicky rozdělí celé jméno na ``(křestní, příjmení)``.
+
+    Příjmení = poslední token, křestní = zbytek (``"Jan Petr Novák"`` →
+    ``("Jan Petr", "Novák")``). Jen pro **předvyplnění** dvou polí profilu
+    a fallback — u dvojího příjmení (``"Zuzana Komínková Oplatková"``) to
+    rozdělí špatně (příjmení „Oplatková"), proto si to uživatel v profilu
+    upraví; po uložení se už bere jeho explicitní volba.
+    """
+    toks = [t for t in (full or "").replace(",", " ").split() if t]
+    if not toks:
+        return "", ""
+    if len(toks) == 1:
+        return "", toks[0]   # jediný token bereme jako příjmení (pro hledání)
+    return " ".join(toks[:-1]), toks[-1]
