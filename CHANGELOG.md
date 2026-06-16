@@ -5,6 +5,20 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.6] - 2026-06-16
+
+### Changed
+- **Statistika obhajob (záložka „Státnice") — na úzkém okně záložkový režim.**
+  Side-by-side rozložení (komise+graf | členové) se i po 2.8.5 v „mezipásmu"
+  mačkalo (dvě tabulky vedle sebe na ~300 px → hlavičky *Obhájeno/Neobhájeno/…*
+  se lámaly po písmenech). Nově se sekce pod ~820 px šířky přepne do
+  **záložkového režimu**: *📋 Podle komise*, *📊 Graf*, *👤 Podle členů* jako
+  tři **záložky**, každá v **plné šířce** + **posuvníky** v případě nutnosti
+  (graf je ve scroll area). Nahradilo to svislé skládání z 2.8.5.
+  - 3 widgety se mezi „side-by-side" splitterem a `QTabWidget` přeparentují
+    (přes `QStackedWidget`); reparentuje se jen při změně režimu.
+  - Velký monitor (2560/4K) **beze změny** — side-by-side jako dřív.
+
 ## [2.8.5] - 2026-06-16
 
 ### Fixed
