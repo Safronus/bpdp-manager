@@ -24,6 +24,38 @@ def test_creates_db_on_first_load(repo: JsonRepository) -> None:
     assert repo.path.exists()
 
 
+def test_save_survives_backup_failure(repo: JsonRepository, monkeypatch) -> None:
+    """Selhání .bak zálohy (např. iCloud offload → timeout) nesmí shodit zápis."""
+    import shutil
+
+    db = repo.load()                       # vytvoří db.json
+    monkeypatch.setattr(shutil, "copy2",
+                        lambda *a, **k: (_ for _ in ()).throw(
+                            TimeoutError(60, "Operation timed out")))
+    repo.save(db)                          # nesmí vyhodit výjimku
+    assert repo.path.exists()
+    assert repo.load().version == db.version   # data se opravdu zapsala
+
+
+def test_migrate_survives_save_failure(tmp_path, monkeypatch) -> None:
+    """Načtení staršího schématu nespadne, když zápis bumpu verze selže."""
+    import json
+    import shutil
+
+    p = tmp_path / "db.json"
+    base = JsonRepository(path=p, backup_path=tmp_path / "db.json.bak")
+    base.load()                            # vytvoří db.json
+    data = json.loads(p.read_text(encoding="utf-8"))
+    data["version"] = 1                    # podvrhni starou verzi
+    p.write_text(json.dumps(data), encoding="utf-8")
+
+    monkeypatch.setattr(shutil, "copy2",
+                        lambda *a, **k: (_ for _ in ()).throw(OSError("offload")))
+    repo2 = JsonRepository(path=p, backup_path=tmp_path / "db.json.bak")
+    loaded = repo2.load()                  # load → _migrate → save (copy2 padá)
+    assert loaded.version >= 1             # nespadlo
+
+
 def test_roundtrip_thesis(repo: JsonRepository) -> None:
     service = ThesisService(repo)
     student = Student(first_name="Jan", last_name="Vzorník", obor="NSWI-P")

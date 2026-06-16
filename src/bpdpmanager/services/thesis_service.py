@@ -147,10 +147,13 @@ class ThesisService:
         """Nahradí podkladový repozitář a načte data z něj.
 
         Používá se při přepnutí na jiný profil — bez nutnosti vytvářet
-        nový ThesisService a přemontovávat UI.
+        nový ThesisService a přemontovávat UI. Načtení proběhne **před**
+        přepnutím — když selže (např. offline iCloud), service zůstane
+        konzistentní na původním profilu (žádný polovičatý stav).
         """
+        db = repo.load()
         self._repo = repo
-        self._db = repo.load()
+        self._db = db
 
     def save(self) -> None:
         """Persist ``_db`` na disk. V rámci ``batch()`` se zápis odkládá."""

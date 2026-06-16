@@ -46,9 +46,15 @@ class JsonRepository(Repository):
     def save(self, db: Database) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
-        # krátkodobá .bak záloha (vždy poslední pre-save stav)
+        # krátkodobá .bak záloha (vždy poslední pre-save stav) — **best-effort**:
+        # selhání nesmí shodit zápis. Typicky iCloud/Dropbox „odlehčí" (offload)
+        # db.json(.bak) a bez sítě se zápis do placeholderu zasekne na timeout
+        # (Errno 60). Záloha je nice-to-have, vlastní data uloží zápis níže.
         if self.path.exists():
-            shutil.copy2(self.path, self.backup_path)
+            try:
+                shutil.copy2(self.path, self.backup_path)
+            except OSError:
+                pass
 
         tmp = self.path.with_suffix(self.path.suffix + ".tmp")
         payload = db.model_dump(mode="json")
@@ -70,5 +76,10 @@ class JsonRepository(Repository):
         """Schema migration hook — pro budoucí verze."""
         if db.version < SCHEMA_VERSION:
             db.version = SCHEMA_VERSION
-            self.save(db)
+            # Zápis bumpu verze je best-effort — když teď nejde (offline iCloud),
+            # uloží se při příštím úspěšném save; načtení tím nesmí spadnout.
+            try:
+                self.save(db)
+            except OSError:
+                pass
         return db
