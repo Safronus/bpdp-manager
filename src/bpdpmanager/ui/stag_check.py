@@ -217,21 +217,29 @@ class StagChecker(QObject):
 class StagChangesPreviewDialog(QDialog):
     """Rychlý náhled, co se ve STAG změnilo / co je nového — před importem."""
 
-    def __init__(self, result: StagCheckResult, parent=None) -> None:
+    def __init__(self, result: StagCheckResult, parent=None, *, on_sync=None) -> None:
         super().__init__(parent)
         self.result = result
+        # on_sync(opposing: bool) -> bool — spustí aktualizaci subsetu (vedené
+        # nebo oponované) a vrátí, zda se něco změnilo. Okno se NEzavírá, takže
+        # jde aplikovat obě role po sobě. Když je None (testy / fallback),
+        # tlačítka se chovají po staru (nastaví flag + zavřou).
+        self._on_sync = on_sync
         self.open_import = False
-        # Rovnou na aktualizaci dotčených prací (subset) — viz main_window.
+        self.did_sync = False            # proběhla aspoň jedna aktualizace
+        self._sup_done = False
+        self._opp_done = False
+        # Zpětná kompatibilita (jednorázové chování bez callbacku).
         self.open_sync_supervised = False
         self.open_sync_opposing = False
         self.setWindowTitle(tr("Změny ve STAG — náhled"))
         self.setMinimumSize(620, 460)
 
         layout = QVBoxLayout(self)
-        view = QTextBrowser()
-        view.setOpenExternalLinks(False)
-        view.setHtml(self._build_html(result))
-        layout.addWidget(view, stretch=1)
+        self._view = QTextBrowser()
+        self._view.setOpenExternalLinks(False)
+        self._view.setHtml(self._build_html(result))
+        layout.addWidget(self._view, stretch=1)
 
         row = QHBoxLayout()
         btn_close = QPushButton(tr("Zavřít"))
@@ -243,7 +251,7 @@ class StagChangesPreviewDialog(QDialog):
             "Otevře aktualizaci ze STAG jen pro vedené práce se zjištěnou "
             "změnou — návrhy (stav, soubory) budou rovnou předpřipravené."
         ))
-        self.btn_sync_sup.clicked.connect(self._go_sync_supervised)
+        self.btn_sync_sup.clicked.connect(lambda: self._do_sync(opposing=False))
         self.btn_sync_sup.setEnabled(result.supervised_changes > 0)
         self.btn_sync_opp = QPushButton(
             tr("🔄 Aktualizovat oponované ({n})…").format(n=result.opposing_changes)
@@ -252,7 +260,7 @@ class StagChangesPreviewDialog(QDialog):
             "Otevře aktualizaci ze STAG jen pro oponované práce se zjištěnou "
             "změnou — návrhy (stav, soubory) budou rovnou předpřipravené."
         ))
-        self.btn_sync_opp.clicked.connect(self._go_sync_opposing)
+        self.btn_sync_opp.clicked.connect(lambda: self._do_sync(opposing=True))
         self.btn_sync_opp.setEnabled(result.opposing_changes > 0)
         self.btn_import = QPushButton(tr("📥 Otevřít Import ze STAG…"))
         self.btn_import.setToolTip(tr(
@@ -272,13 +280,32 @@ class StagChangesPreviewDialog(QDialog):
         self.open_import = True
         self.accept()
 
-    def _go_sync_supervised(self) -> None:
-        self.open_sync_supervised = True
-        self.accept()
+    def _do_sync(self, opposing: bool) -> None:
+        """Spustí aktualizaci dané role **bez zavření** okna (lze i druhou roli).
 
-    def _go_sync_opposing(self) -> None:
-        self.open_sync_opposing = True
-        self.accept()
+        Bez callbacku (``on_sync`` = None) spadne na staré jednorázové chování
+        (nastaví flag a zavře) — kvůli zpětné kompatibilitě a testům.
+        """
+        if self._on_sync is None:
+            if opposing:
+                self.open_sync_opposing = True
+            else:
+                self.open_sync_supervised = True
+            self.accept()
+            return
+        changed = bool(self._on_sync(opposing))
+        if not changed:
+            return   # uživatel nic neaplikoval → tlačítko necháme aktivní
+        self.did_sync = True
+        if opposing:
+            self._opp_done = True
+            self.btn_sync_opp.setEnabled(False)
+            self.btn_sync_opp.setText(tr("✓ Oponované vyřízeno"))
+        else:
+            self._sup_done = True
+            self.btn_sync_sup.setEnabled(False)
+            self.btn_sync_sup.setText(tr("✓ Vedené vyřízeno"))
+        self._view.setHtml(self._build_html(self.result))
 
     @staticmethod
     def _section(title: str, items: list[str], color: str) -> str:
@@ -307,17 +334,31 @@ class StagChangesPreviewDialog(QDialog):
                 f"ani nové práce ve STAG (prošlo {r.checked} prací).</p>"
             )
             return head + checked_section
+        done_note = (
+            "<h3 style='color:#2e7d32;margin:10px 0 4px;'>✓ {what} — aktualizováno</h3>"
+        )
+        sup_section = (
+            done_note.format(what="Vedené práce")
+            if self._sup_done
+            else self._section("🔄 Vedené práce se změnou", r.supervised, "#ef6c00")
+        )
+        opp_section = (
+            done_note.format(what="Oponované práce")
+            if self._opp_done
+            else self._section("🔄 Oponované práce se změnou", r.opposing, "#ef6c00")
+        )
         body = (
             self._section("🆕 Nové práce ve STAG (nemáš v aplikaci)", r.new, "#1565c0")
-            + self._section("🔄 Vedené práce se změnou", r.supervised, "#ef6c00")
-            + self._section("🔄 Oponované práce se změnou", r.opposing, "#ef6c00")
+            + sup_section + opp_section
         )
         return (
             "<p>Tohle STAG nabízí navíc oproti tvé databázi. Změny u "
-            "existujících prací aplikuješ rovnou tlačítkem "
-            "<b>🔄 Aktualizovat…</b> dole (otevře se jen s dotčenými pracemi "
-            "a předpřipravenými návrhy — stav, text práce, posudky i průběh "
-            "obhajoby). Nové práce stáhneš přes <b>📥 Import ze STAG</b>.</p>"
+            "existujících prací aplikuješ rovnou tlačítky "
+            "<b>🔄 Aktualizovat vedené / oponované</b> dole — <b>okno zůstane "
+            "otevřené</b>, takže můžeš po sobě vyřídit obě role (každé se otevře "
+            "jen s dotčenými pracemi a předpřipravenými návrhy — stav, text "
+            "práce, posudky i průběh obhajoby). Nové práce stáhneš přes "
+            "<b>📥 Import ze STAG</b>.</p>"
             + body + checked_section
         )
 

@@ -813,7 +813,10 @@ i seznam **zkontrolovaných a aktuálních** prací. Z náhledu pokračuješ rov
 dál: tlačítka **🔄 Aktualizovat vedené (N)…** / **🔄 Aktualizovat oponované
 (N)…** otevřou **Aktualizaci ze STAG jen s dotčenými pracemi** — návrhy
 (změna stavu, chybějící soubory) jsou předpřipravené a předzaškrtnuté, stačí
-potvrdit. **📥 Import ze STAG** zůstává pro **nové práce**, které ještě
+potvrdit. **Náhled přitom zůstává otevřený** — když kontrola našla změny
+u vedených **i** oponovaných prací, vyřídíš **obě role po sobě** v jednom
+otevření (vyřízená sekce se označí *✓ aktualizováno*); nemusíš čekat na další
+tichou kontrolu. **📥 Import ze STAG** zůstává pro **nové práce**, které ještě
 v aplikaci nemáš. Tlačítko **Detaily…** je dostupné i když
 je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze kdykoli **ručně
 zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.

@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.2] - 2026-06-16
+
+### Changed
+- **Detail tiché kontroly STAG: vedené i oponované práce v jednom otevření.**
+  Dřív se náhled změn po kliknutí na *🔄 Aktualizovat vedené* / *oponované*
+  **zavřel** a druhou roli šlo aktualizovat až po další tiché kontrole. Nově
+  náhled **zůstává otevřený** — vyřídíš obě role po sobě (vyřízená sekce se
+  označí *✓ aktualizováno*, tlačítko zašedne). Banner a odznaky 🔄 na záložkách
+  se přepočítají **až po zavření** náhledu (jen když aspoň jednou aktualizoval).
+  Samotná logika aktualizace (`StagSyncDialog`, návrhy stavu/souborů, zálohy,
+  rollback) je beze změny.
+
 ## [2.8.1] - 2026-06-16
 
 ### Added

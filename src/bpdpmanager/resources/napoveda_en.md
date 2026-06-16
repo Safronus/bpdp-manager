@@ -711,8 +711,11 @@ theses STAG offers, and (for verification) the list of **checked,
 up-to-date** theses. From the preview you continue directly: **🔄 Update
 supervised (N)…** / **🔄 Update opposed (N)…** open the **STAG update with
 the affected theses only** — proposals (status change, missing files) come
-pre-filled and pre-checked, just confirm. **📥 Import from STAG** remains
-for **new theses** you don't have in the app yet. The check is
+pre-filled and pre-checked, just confirm. **The preview stays open** — when
+the check found changes in both supervised **and** opposed theses, you handle
+**both roles one after another** in a single open (a handled section is marked
+*✓ updated*); no need to wait for the next silent check. **📥 Import from
+STAG** remains for **new theses** you don't have in the app yet. The check is
 **read-only**; offline it reports quietly.
 
 ### 🟢 STAG connection indicator (toolbar)

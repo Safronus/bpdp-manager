@@ -1293,19 +1293,33 @@ class MainWindow(QMainWindow):
         if result is None:
             self._start_stag_check()
             return
-        dlg = StagChangesPreviewDialog(result, self)
+        # Detail zůstává otevřený — aktualizaci vedených i oponovaných lze
+        # spustit po sobě (callback _run_stag_sync_subset). Banner/odznaky se
+        # přepočítají až po zavření detailu (pokud aspoň jednou aktualizoval).
+        dlg = StagChangesPreviewDialog(result, self, on_sync=self._run_stag_sync_subset)
         dlg.exec()
-        if dlg.open_sync_supervised and result.supervised_ids:
-            self._open_stag_sync_subset(result.supervised_ids, opposing=False)
-        elif dlg.open_sync_opposing and result.opposing_ids:
-            self._open_stag_sync_subset(result.opposing_ids, opposing=True)
-        elif dlg.open_import:
+        if dlg.open_import:
             self._import_from_stag()
+            return
+        if dlg.did_sync:
+            self._start_stag_check()
 
-    def _open_stag_sync_subset(self, ids: list, *, opposing: bool) -> None:
-        """Aktualizace ze STAG jen pro práce z tiché kontroly (subset)."""
+    def _run_stag_sync_subset(self, opposing: bool) -> bool:
+        """Aktualizace ze STAG pro subset z tiché kontroly (vedené/oponované).
+
+        Volá se **inline z detailu** (okno se nezavírá): otevře `StagSyncDialog`
+        jen s dotčenými pracemi, po aplikaci obnoví pohledy a vrátí, zda se něco
+        změnilo. Banner/odznaky se **nepřepočítávají tady** — to udělá
+        :meth:`_show_stag_changes` až po zavření detailu.
+        """
         from .stag_sync_dialog import ROLE_OPPONENT, ROLE_SUPERVISOR, StagSyncDialog
 
+        result = getattr(self, "_last_stag_result", None)
+        if result is None:
+            return False
+        ids = result.opposing_ids if opposing else result.supervised_ids
+        if not ids:
+            return False
         dlg = StagSyncDialog(
             self.service,
             ROLE_OPPONENT if opposing else ROLE_SUPERVISOR,
@@ -1316,9 +1330,8 @@ class MainWindow(QMainWindow):
         dlg.exec()
         if dlg.changed:
             self._refresh_all()
-            # Po aplikaci změn přepočítej tichou kontrolu — banner a odznaky
-            # 🔄 na záložkách by jinak hlásily už neexistující změny.
-            self._start_stag_check()
+            return True
+        return False
 
     def _refresh_tab_labels(self) -> None:
         """Doplní k titulkům záložek počty prací (+ STAG odznak 🔄) a barvu.

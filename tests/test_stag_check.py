@@ -145,6 +145,58 @@ def test_preview_dialog_buttons(service) -> None:
     assert dlg.open_sync_supervised and not dlg.open_sync_opposing
 
 
+def test_preview_dialog_inline_both(service) -> None:
+    """S callbackem lze aktualizovat vedené i oponované v JEDNOM otevření okna."""
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+
+    r = chk.StagCheckResult(
+        ok=True, checked=4,
+        supervised=["A — BP · změna"], supervised_ids=["t1"],
+        opposing=["B — DP · změna"], opposing_ids=["o1"],
+        new=[],
+    )
+    calls: list[bool] = []
+
+    def fake_sync(opposing: bool) -> bool:
+        calls.append(opposing)
+        return True   # něco se změnilo
+
+    dlg = chk.StagChangesPreviewDialog(r, on_sync=fake_sync)
+    assert dlg.btn_sync_sup.isEnabled() and dlg.btn_sync_opp.isEnabled()
+
+    dlg.btn_sync_sup.click()
+    assert calls == [False]
+    assert dlg.did_sync
+    assert not dlg.btn_sync_sup.isEnabled()   # vedené vyřízeno (zašedlé)
+    assert dlg.btn_sync_opp.isEnabled()       # oponované pořád aktivní
+    # okno se NEzavřelo (žádný accept → flagy zůstávají False)
+    assert not dlg.open_sync_supervised and not dlg.open_sync_opposing
+
+    dlg.btn_sync_opp.click()
+    assert calls == [False, True]
+    assert not dlg.btn_sync_opp.isEnabled()   # i oponované vyřízeno
+
+
+def test_preview_dialog_no_change_keeps_button(service) -> None:
+    """Když aktualizace nic nezmění (callback vrátí False), tlačítko zůstává."""
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+
+    r = chk.StagCheckResult(
+        ok=True, checked=2,
+        supervised=["A — BP · změna"], supervised_ids=["t1"],
+        opposing=[], opposing_ids=[],
+        new=[],
+    )
+    dlg = chk.StagChangesPreviewDialog(r, on_sync=lambda opposing: False)
+    dlg.btn_sync_sup.click()
+    assert dlg.btn_sync_sup.isEnabled()   # nic se nezměnilo → zůstává aktivní
+    assert not dlg.did_sync
+
+
 def test_offline_marks_not_ok(service, monkeypatch) -> None:
     s = Student(first_name="A", last_name="B")
     service.upsert_student(s)
