@@ -703,8 +703,10 @@ a **banner above the tabs**. You can also run it manually via
 - **new theses in STAG** you don't have yet — paired by **full name**, so
   namesakes don't count.
 
-The banner always shows a result — even **"✓ everything up to date"**. On
-changes, a **🔄 badge** lights up on the *Currently supervised* and
+The banner always shows a result — even **"✓ everything up to date"** — plus
+**how many theses were checked out of how many** registered (e.g. *"checked 12
+of 14 theses"*), so you have an overview and can tell when some couldn't be
+fetched. On changes, a **🔄 badge** lights up on the *Currently supervised* and
 *🧐 Opposed theses* tabs. **🔎 Details…** opens a **quick preview** — which
 theses changed (status, thesis text, reviews, **defence record**), which new
 theses STAG offers, and (for verification) the list of **checked,

@@ -84,6 +84,7 @@ def test_no_changes_all_aktualni(service, monkeypatch) -> None:
     assert r.ok
     assert r.total_changes == 0
     assert r.checked == 1
+    assert r.total == 1   # jedna evidovaná práce ke kontrole (X z Y)
     # Pro debug: zkontrolovaná-a-aktuální práce je vypsaná jmenovitě.
     assert len(r.up_to_date) == 1
     assert "A B" in r.up_to_date[0] and "(vedená)" in r.up_to_date[0]
@@ -213,7 +214,7 @@ def test_stag_pending_persist_roundtrip(service) -> None:
     """Pending změny se uloží a načtou (přežijí restart); prázdné = vyřešeno."""
     assert service.load_stag_pending_changes() == {}
     r = chk.StagCheckResult(
-        ok=True, checked=3,
+        ok=True, checked=3, total=5,
         supervised=["A — BP"], supervised_ids=["t1"],
         opposing=["B — DP"], opposing_ids=["o1"],
         new=["C — nová"],
@@ -222,10 +223,12 @@ def test_stag_pending_persist_roundtrip(service) -> None:
     loaded = service.load_stag_pending_changes()
     assert loaded["supervised_ids"] == ["t1"] and loaded["opposing_ids"] == ["o1"]
     assert loaded["ts"] == "09:30" and loaded["dismissed"] is False
+    assert loaded["checked"] == 3 and loaded["total"] == 5
 
     r2 = chk.StagCheckResult.from_pending(loaded)
     assert r2.ok and r2.total_changes == 3
     assert r2.supervised_ids == ["t1"] and r2.new == ["C — nová"]
+    assert r2.checked == 3 and r2.total == 5   # „X z Y" přežije restart
 
     service.save_stag_pending_changes({})   # vše vyřešeno
     assert service.load_stag_pending_changes() == {}

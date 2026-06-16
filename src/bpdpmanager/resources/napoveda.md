@@ -805,8 +805,10 @@ hlídá:
   (jiní vedoucí/oponenti se stejným příjmením).
 
 Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
-práce)"**. Při změnách svítí **odznak 🔄 na záložkách** *Aktuálně vedené práce*
-a *🧐 Oponované práce*. Tlačítkem **🔎 Detaily…** otevřeš **rychlý
+práce)"** — a navíc **kolik prací bylo zkontrolováno z kolika evidovaných**
+(např. *„zkontrolováno 12 z 14 prací"*); máš tak přehled o stavu a pozná se,
+když se část prací nepodařilo dotáhnout. Při změnách svítí **odznak 🔄 na
+záložkách** *Aktuálně vedené práce* a *🧐 Oponované práce*. Tlačítkem **🔎 Detaily…** otevřeš **rychlý
 náhled** — jmenovitě, které práce mají změnu (stav, text práce, posudky i
 **průběh obhajoby**), které nové práce STAG nabízí, a (pro kontrolu/debug)
 i seznam **zkontrolovaných a aktuálních** prací. Z náhledu pokračuješ rovnou

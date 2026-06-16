@@ -45,7 +45,8 @@ class StagCheckResult:
 
     ok: bool = False
     error: str = ""
-    checked: int = 0                       # kolik existujících prací prošlo
+    checked: int = 0                       # kolik existujících prací úspěšně prošlo
+    total: int = 0                         # kolik existujících prací se kontrolovat mělo
     supervised: list[str] = field(default_factory=list)  # vedené „V řešení" se změnou
     opposing: list[str] = field(default_factory=list)    # oponentury akt. roku se změnou
     new: list[str] = field(default_factory=list)         # nové práce ve STAG (nemáš)
@@ -84,6 +85,7 @@ class StagCheckResult:
             "opposing_ids": self.opposing_ids,
             "new": self.new,
             "checked": self.checked,
+            "total": self.total,
         }
 
     @classmethod
@@ -92,6 +94,7 @@ class StagCheckResult:
         return cls(
             ok=True,
             checked=int(d.get("checked", 0) or 0),
+            total=int(d.get("total", 0) or 0),
             supervised=list(d.get("supervised", [])),
             opposing=list(d.get("opposing", [])),
             new=list(d.get("new", [])),
@@ -147,6 +150,7 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         if t.status != ThesisStatus.IN_PROGRESS or not t.adipidno:
             continue
         attempts += 1
+        r.total += 1
         code, files, err = _fetch_target_state(t.adipidno)
         if err:
             failures += 1
@@ -170,6 +174,7 @@ def compute_stag_check(service, user_full_name: str = "") -> StagCheckResult:
         if o.academic_year != current or not o.adipidno:
             continue
         attempts += 1
+        r.total += 1
         code, files, err = _fetch_target_state(o.adipidno)
         if err:
             failures += 1
@@ -363,7 +368,8 @@ class StagChangesPreviewDialog(QDialog):
         if r.total_changes == 0:
             head = (
                 "<p style='color:#2e7d32;'>✓ <b>Vše aktuální</b> — žádné změny "
-                f"ani nové práce ve STAG (prošlo {r.checked} prací).</p>"
+                "ani nové práce ve STAG "
+                f"(zkontrolováno {r.checked} z {r.total} prací).</p>"
             )
             return head + checked_section
         done_note = (
@@ -383,6 +389,10 @@ class StagChangesPreviewDialog(QDialog):
             self._section("🆕 Nové práce ve STAG (nemáš v aplikaci)", r.new, "#1565c0")
             + sup_section + opp_section
         )
+        scope = (
+            f"<p style='color:#888;'>Zkontrolováno {r.checked} z {r.total} "
+            "evidovaných prací.</p>" if r.total else ""
+        )
         return (
             "<p>Tohle STAG nabízí navíc oproti tvé databázi. Změny u "
             "existujících prací aplikuješ rovnou tlačítky "
@@ -391,7 +401,7 @@ class StagChangesPreviewDialog(QDialog):
             "jen s dotčenými pracemi a předpřipravenými návrhy — stav, text "
             "práce, posudky i průběh obhajoby). Nové práce stáhneš přes "
             "<b>📥 Import ze STAG</b>.</p>"
-            + body + checked_section
+            + scope + body + checked_section
         )
 
 

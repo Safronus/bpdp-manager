@@ -1291,7 +1291,8 @@ class MainWindow(QMainWindow):
             self._stag_pending_dismissed = False
             self._set_stag_banner(
                 f"✓ STAG zkontrolováno v {ts} — <b>vše aktuální</b> "
-                f"(prošlo {result.checked} prací). Detaily ↓",
+                f"(zkontrolováno {result.checked} z {result.total} prací). "
+                "Detaily ↓",
                 "#e8f5e9", show_open=True,
             )
             # Žádné novinky → proužek se po 15 s sám skryje (nepřekáží).
@@ -1313,9 +1314,13 @@ class MainWindow(QMainWindow):
         if result.new_works:
             parts.append(f"🆕 {result.new_works}× nová práce ve STAG")
         when = f" v {ts}" if ts else ""
+        scope = (
+            f" (zkontrolováno {result.checked} z {result.total} prací)"
+            if result.total else ""
+        )
         self._set_stag_banner(
-            f"🔄 STAG zkontrolováno{when} — <b>změny: {', '.join(parts)}</b>. "
-            "Klikni na „Detaily…“.",
+            f"🔄 STAG zkontrolováno{when}{scope} — "
+            f"<b>změny: {', '.join(parts)}</b>. Klikni na „Detaily…“.",
             "#fff8e1", show_open=True,
         )
 

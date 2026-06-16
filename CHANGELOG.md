@@ -5,6 +5,19 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.4] - 2026-06-16
+
+### Added
+- **Proužek tiché kontroly STAG ukazuje „X z Y prací".** Kolik evidovaných
+  prací se zkontrolovalo z kolika (např. *„zkontrolováno 12 z 14 prací"*) — i u
+  proužku se změnami, nejen u „vše aktuální". Uživatel má přehled o stavu a
+  pozná se, když se část prací nepodařilo dotáhnout (debug). Počet je i v okně
+  **Detaily…** a **přežije restart** (ukládá se s pending změnami).
+
+### Internal
+- `StagCheckResult.total` (počítáno v `compute_stag_check`, serializováno
+  v `to_pending`/`from_pending`).
+
 ## [2.8.3] - 2026-06-16
 
 ### Added
