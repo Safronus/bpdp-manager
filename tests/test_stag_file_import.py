@@ -20,6 +20,7 @@ from bpdpmanager.storage import JsonRepository  # noqa: E402
 from bpdpmanager.ui.stag_import_dialog import (  # noqa: E402
     _SECTION_TO_KIND,
     StagDownloadDialog,
+    StagImportDialog,
     StagFilesPreviewDialog,
     _DownloadedStagFile,
 )
@@ -114,3 +115,80 @@ def test_find_db_target_no_match(qapp, service: ThesisService) -> None:
     r = stag_api.StagThesisResult(adipidno="123", surname="Nikdo", name="Nový",
                                   type_label="Diplomová práce")
     assert dlg._find_db_target(r) == (None, None)
+
+
+def _pending(name, kind, section, selected, sf) -> _DownloadedStagFile:
+    return _DownloadedStagFile(
+        path=None, filename=name, kind=kind, section=section,
+        size=10, selected=selected, stag_file=sf,
+    )
+
+
+def test_build_download_jobs_respects_selection_and_role(
+    qapp, service: ThesisService
+) -> None:
+    """Joby na pozadí: jen vybrané, správný cíl/role/typ; bez cíle se přeskočí."""
+    dlg = StagImportDialog(service)
+    sf1, sf3 = object(), object()
+    dlg._stag_pending_files = {
+        "A1": [
+            _pending("text.pdf", AttachmentKind.THESIS_TEXT, "text", True, sf1),
+            _pending("skip.pdf", AttachmentKind.OTHER, "other", False, object()),
+        ],
+        "B2": [
+            _pending("posudek.pdf", AttachmentKind.OPPONENT_REVIEW,
+                     "opponent_review", True, sf3),
+        ],
+        "C3": [  # bez cíle v DB → přeskočí se celé
+            _pending("x.pdf", AttachmentKind.OTHER, "other", True, object()),
+        ],
+    }
+    dlg._stag_pending_labels = {"A1": "Novák Jan", "B2": "Malá Eva", "C3": "X"}
+
+    jobs = dlg._build_stag_download_jobs(
+        thesis_by_adip={"A1": "tid-1"},
+        opposing_by_adip={"B2": "oid-2"},
+    )
+
+    assert len(jobs) == 2
+    j_text = next(j for j in jobs if j.adipidno == "A1")
+    assert j_text.target_id == "tid-1" and j_text.is_opposing is False
+    assert j_text.kind == AttachmentKind.THESIS_TEXT
+    assert j_text.stag_file is sf1 and j_text.student_label == "Novák Jan"
+    j_op = next(j for j in jobs if j.adipidno == "B2")
+    assert j_op.target_id == "oid-2" and j_op.is_opposing is True
+    assert j_op.kind == AttachmentKind.OPPONENT_REVIEW
+
+
+def test_mainwindow_stag_attach_fn_attaches_and_cleans_temp(
+    qapp, tmp_path: Path, service: ThesisService
+) -> None:
+    """`_stag_attach_fn` připojí stažený soubor k práci a smaže temp."""
+    from bpdpmanager.ui.main_window import MainWindow
+    from bpdpmanager.ui.stag_download_manager import StagFileJob, StagFileResult
+
+    student = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(student)
+    t = Thesis(type=ThesisType.DP, academic_year="2024/2025", student_id=student.id)
+    service.upsert_thesis(t)
+
+    class _SF:
+        filename = "text.pdf"
+        section = "text"
+
+    mw = MainWindow(service)
+    try:
+        job = StagFileJob(
+            target_id=t.id, is_opposing=False, adipidno="X",
+            student_label="Novák Jan", stag_file=_SF(),
+            kind=AttachmentKind.THESIS_TEXT,
+        )
+        tmp = tmp_path / "stag_text.pdf"
+        tmp.write_bytes(b"PDFDATA")
+        mw._stag_attach_fn(StagFileResult(job=job, path=tmp, size=7))
+
+        loaded = service.get_thesis(t.id)
+        assert any(a.kind == AttachmentKind.THESIS_TEXT for a in loaded.attachments)
+        assert not tmp.exists()   # temp uklizen po připojení
+    finally:
+        mw.close()

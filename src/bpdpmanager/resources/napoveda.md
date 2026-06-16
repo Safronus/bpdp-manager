@@ -75,10 +75,11 @@ stáhnout své práce přímo ze STAG**:
 2. **🎓 Moje vedené práce…** — najde a předvybere všechny tvé vedené práce
    (historické i aktuální) podle jména z profilu.
 3. **🧐 Moje oponentury…** — totéž pro práce, kde jsi oponent.
-4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. U velkého objemu příloh
-   zvol *„Jen data (bez příloh)"* — gigabajty plných textů dotáhneš později
-   cíleně. Stav a chybějící soubory pak průběžně doplníš přes
-   *🔄 Aktualizovat …* a zkontroluješ tlačítkem *🔍 Kontrola se STAG*.
+4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. Práce se založí hned;
+   **přílohy se dotáhnou na pozadí** (průběh dole ve stavovém řádku). U velkého
+   objemu příloh můžeš zvolit *„Jen data (bez příloh)"* — gigabajty plných
+   textů dotáhneš později cíleně. Stav a chybějící soubory pak průběžně doplníš
+   přes *🔄 Aktualizovat …* a zkontroluješ tlačítkem *🔍 Kontrola se STAG*.
 
 Před zápisem se objeví **📋 Souhrn před importem** s výčtem **nových studentů,
 oponentů, vedoucích a oborů, které se automaticky založí**. Díky tomu
@@ -742,24 +743,25 @@ jen nenamapovaný obor případně zvolíš/založíš v náhledu).
 > **stavu, typu (BP/DP), oboru, akademického roku** (nebo bez seskupení).
 > Zaškrtnutím hlavičky skupiny vybereš/zrušíš celou skupinu naráz.
 >
-> **Přílohy (📎).** Počet a velikost příloh se u práce zobrazí, **jakmile ji
-> zaškrtneš** (např. „📎 4 · 14.0 MB") — dotahuje se z detailu jen u
-> zaškrtnutých prací. Samotné **stahování** ukazuje **průběh** (která práce a
-> která příloha se zrovna stahuje, **vč. staženo/celkem MB** u velkých příloh)
-> a lze ho **přerušit** — po přerušení se **dočasně stažené soubory uklidí**.
-> Pokud se nějaká příloha nestáhne, aplikace to vypíše. Stahování běží
-> **na pozadí**, takže okno **nezamrzne** ani když STAG odpovídá pomalu
-> (Přerušit funguje pořád). Timeout je **odstupňovaný podle velikosti**
-> (velká příloha dostane víc času — i stovky MB / GB se v klidu stáhnou,
-> malý soubor naopak selže rychle, když opravdu visí). Kdyby se i tak něco
-> nestáhlo včas, aplikace to řekne a připomene, že **soubor jde vždy stáhnout
-> ze STAGu ručně** (přes webový prohlížeč) a přidat k práci v sekci
-> **📎 Dokumenty**. Před stahováním aplikace **nabídne smazání
-> zbylých dočasných souborů** z dřívějška (po přerušení / pádu). Když by
-> přílohy zabraly **hodně místa** (stovky MB a víc, typicky u hromadného
-> stažení mnoha prací), zeptá se, jestli stáhnout přílohy, nebo
-> **naimportovat jen data prací bez příloh**. Co se nakonec naimportuje
-> (a vyloučení velkých příloh) vybereš v **náhledu souborů** v dalším kroku.
+> **Přílohy (📎) — stahují se na pozadí.** Počet a velikost příloh se u práce
+> zobrazí, **jakmile ji zaškrtneš** (např. „📎 4 · 14.0 MB") — dotahuje se
+> z detailu jen u zaškrtnutých prací. **Obsah příloh se při importu NEstahuje** —
+> v dalším kroku vybereš v **náhledu souborů**, co stáhnout (a případně upravíš
+> *typ přílohy*); velikosti jsou tu **odhady ze STAG**. Vlastní **stahování pak
+> proběhne až po (transakčním) založení prací — na pozadí**: import se rovnou
+> dokončí a zavře, dole ve **stavovém řádku** se ukazuje **průběh** (kolik
+> příloh je hotovo a která se zrovna stahuje) a jde ho **přerušit (✕)**. Každá
+> příloha se připojí k práci **hned po stažení**, po doběhnutí celé dávky se
+> pohledy **obnoví**. Timeout je **odstupňovaný podle velikosti** (velká příloha
+> dostane víc času — i stovky MB / GB se v klidu stáhnou, malý soubor naopak
+> selže rychle, když opravdu visí); každá příloha má **1 automatické opakování**.
+> Pokud se i tak něco nestáhne, aplikace to na konci **vypíše** a nabídne
+> **🔄 Zkusit znovu** (jen neúspěšné); soubor jde vždy stáhnout **ze STAGu
+> ručně** (přes webový prohlížeč) a přidat k práci v sekci **📎 Dokumenty**.
+> Před stahováním aplikace **nabídne smazání zbylých dočasných souborů**
+> z dřívějška (po přerušení / pádu). Když by přílohy zabraly **hodně místa**
+> (stovky MB a víc, typicky u hromadného stažení mnoha prací), zeptá se, jestli
+> stáhnout přílohy na pozadí, nebo **naimportovat jen data prací bez příloh**.
 >
 > **„✓ už máš" — co se stane při opětovném stažení (merge).** Práce, které už
 > v databázi jsou, mají odznak **✓ už máš** a jsou **předem odškrtnuté** (ve

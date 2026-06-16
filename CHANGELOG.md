@@ -5,13 +5,27 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
-## [Unreleased]
+## [2.7.0] - 2026-06-16
 
-### Added (rozpracováno — stahování příloh na pozadí, krok 1/2)
-- Interní `StagFileDownloadManager` (vlákno, fronta, signály, auto-retry,
-  cancel) + **nemodální progres v dolní liště** (text + lišta + Zrušit) a
-  `MainWindow.start_stag_file_downloads()` s finálním souhrnem a *Zkusit znovu*.
-  Zatím **nezapojeno** do STAG import flow (přijde v kroku 2).
+### Changed
+- **Přílohy ze STAG se stahují na pozadí (neblokující import).** Import
+  „⬇ Stáhnout vybrané" teď práce **založí transakčně a hned se zavře**; obsah
+  příloh se **nestahuje v modálním okně**, ale **na pozadí** přes nový
+  `StagFileDownloadManager` — průběh se ukazuje v **dolní stavové liště**
+  (text + lišta + ✕ Zrušit). Každá příloha se připojí k práci **hned po
+  stažení**, po doběhnutí dávky se pohledy obnoví. Aplikace tak při velkém
+  objemu příloh **nezamrzne** a uživatel může mezitím pracovat.
+- **Výběr příloh (náhled) je teď PŘED stažením** — pracuje nad *výpisem* ze
+  STAG (velikosti jsou **odhady**), nikoli nad už staženými soubory. Zachován
+  výběr souborů, úprava *typu přílohy*, volba *„Jen data (bez příloh)"*
+  i varování u velkého objemu.
+- Při neúspěchu některé přílohy nabídne **🔄 Zkusit znovu** (jen neúspěšné);
+  každá příloha má **1 automatické opakování** a odstupňovaný timeout.
+
+### Added
+- `StagFileDownloadManager` (vlákno, fronta, signály, auto-retry, cancel) +
+  `MainWindow.start_stag_file_downloads()` s finálním souhrnem a *Zkusit znovu*
+  — společná infrastruktura pro stahování příloh ze STAG na pozadí.
 
 ## [2.6.3] - 2026-06-16
 

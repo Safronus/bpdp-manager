@@ -16,7 +16,7 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -93,14 +93,21 @@ _FILE_KIND_CHOICES: list[AttachmentKind] = [
 
 @dataclass
 class _DownloadedStagFile:
-    """Soubor stažený ze STAG do dočasného úložiště — čeká na import do práce."""
+    """Soubor ze STAG — buď už stažený (``path``), nebo jen vypsaný k stažení.
 
-    path: Path                 # dočasná lokální cesta
+    Náhled výběru (``StagFilesPreviewDialog``) pracuje stejně s oběma: u
+    vypsaného (ještě nestaženého) souboru je ``path=None``, ``size`` je odhad
+    (``size_hint``) a ``stag_file`` nese původní ``StagFile`` pro pozdější
+    stažení na pozadí.
+    """
+
+    path: Path | None          # dočasná lokální cesta (None = ještě nestaženo)
     filename: str              # původní název ze STAG
     kind: AttachmentKind       # typ přílohy (předvyplněn ze sekce, lze přepsat)
     section: str = "other"     # původní STAG sekce
-    size: int = 0              # velikost v bajtech
+    size: int = 0              # velikost v bajtech (u nestaženého = odhad)
     selected: bool = True      # zda importovat (náhled umožní odznačit)
+    stag_file: object | None = None  # původní stag_api.StagFile (pro stažení)
 
 
 def _fold(s: str) -> str:
@@ -283,9 +290,14 @@ class StagImportDialog(QDialog):
         self._preimport_backup_file: str | None = None
         self._preimport_data_dir: Path | None = None
         self.reverted = False  # MainWindow přečte: pokud True, import byl vrácen
-        # Soubory stažené ze STAG spolu s prací (klíč = adipIdno). Importér je
-        # po založení práce připojí k té správné (přes adipIdno).
-        self._stag_downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
+        # Přílohy vybrané ke stažení ze STAG (klíč = adipIdno). Obsah se NEstahuje
+        # v dialogu — až po (transakčním) založení prací se z nich poskládají
+        # joby a MainWindow je stáhne na pozadí a průběžně připojí.
+        self._stag_pending_files: dict[str, list[_DownloadedStagFile]] = {}
+        self._stag_pending_labels: dict[str, str] = {}  # adipIdno → jméno studenta
+        # Joby ke stažení příloh na pozadí — naplní se po úspěšném importu,
+        # MainWindow je po zavření dialogu předá StagFileDownloadManageru.
+        self.pending_download_jobs: list = []
 
         self.setWindowTitle(tr("Importování dat ze STAGu (stag.utb.cz)"))
         # Velikost se přizpůsobí obrazovce/oknu (viz konec __init__), ať dialog
@@ -505,8 +517,12 @@ class StagImportDialog(QDialog):
             self.accept()
             return
         if dlg.result_items:
-            # Zapamatuj si stažené soubory — připojí se po importu práce.
-            self._stag_downloaded_files = dict(dlg.downloaded_files)
+            # Zapamatuj si přílohy vybrané ke stažení — po (transakčním) založení
+            # prací se z nich poskládají joby a stáhnou se na pozadí.
+            self._stag_pending_files = dict(dlg.pending_files)
+            self._stag_pending_labels = {
+                r.adipidno: r.student_full for (_p, r) in dlg.result_items
+            }
             # Po stažení (i více prací najednou) rovnou načti náhled.
             self._load_preview_from_stag(dlg.result_items)
 
@@ -1327,6 +1343,7 @@ class StagImportDialog(QDialog):
         if not self.row_widgets:
             return
 
+        self.pending_download_jobs = []  # reset – naplní se po úspěšném importu
         active_rows = self._collect_active_rows()
         if not active_rows:
             QMessageBox.information(
@@ -1369,7 +1386,7 @@ class StagImportDialog(QDialog):
             "created_opposing": 0, "updated_opposing": 0,
             "created_student": 0, "created_opponent": 0,
             "created_supervisor": 0, "skipped": 0,
-            "attached_csv": 0, "attached_files": 0,
+            "attached_csv": 0, "queued_files": 0,
         }
         errors: list[str] = []
         affected_thesis_ids: list[str] = []
@@ -1456,10 +1473,12 @@ class StagImportDialog(QDialog):
                     except Exception as exc:  # noqa: BLE001
                         errors.append(f"Přiložení CSV k posudku {oid[:8]}: {exc}")
 
-                # 3b2) Připoj soubory stažené ze STAG (text/přílohy/posudky)
-                self._attach_downloaded_files(
-                    thesis_by_adip, opposing_by_adip, stats, errors
+                # 3b2) Přílohy ze STAG se NESTAHUJÍ v transakci — poskládej jen
+                # joby (k cílovým id) a MainWindow je stáhne/připojí na pozadí.
+                self.pending_download_jobs = self._build_stag_download_jobs(
+                    thesis_by_adip, opposing_by_adip
                 )
+                stats["queued_files"] = len(self.pending_download_jobs)
 
                 # 3c) Pokud se cokoli nepovedlo a uživatel je dotazuje, dej mu
                 #     šanci rollback udělat výjimkou z bloku.
@@ -1481,6 +1500,7 @@ class StagImportDialog(QDialog):
                 self.imported_opposing_ids = []
                 self.focus_thesis_id = None
                 self.focus_opposing_id = None
+                self.pending_download_jobs = []  # nic se nezaložilo → nestahuj
                 return
             else:
                 # Uživatel chce přesto uložit → zopakuj v dalším batch BEZ raise
@@ -1491,6 +1511,7 @@ class StagImportDialog(QDialog):
                 )
         except Exception as exc:  # noqa: BLE001
             # Jakákoli jiná neočekávaná chyba — rollback už proběhl
+            self.pending_download_jobs = []  # nic se nezaložilo → nestahuj
             QMessageBox.critical(
                 self,
                 tr("Import selhal"),
@@ -1510,50 +1531,39 @@ class StagImportDialog(QDialog):
             pass
         self._show_summary_dialog(stats, errors)
 
-    def _attach_downloaded_files(
+    def _build_stag_download_jobs(
         self,
         thesis_by_adip: dict[str, str],
         opposing_by_adip: dict[str, str],
-        stats: dict,
-        errors: list[str],
-    ) -> None:
-        """Připojí soubory stažené ze STAG k odpovídající práci (přes adipIdno).
+    ) -> list:
+        """Z vybraných příloh poskládá joby ke stažení na pozadí (po commitu).
 
-        U oponentských posudků navíc dosynchronizuje známky (z PDF posudku
-        vedoucího se vyčte navržená známka).
+        Obsah se NEstahuje tady — :class:`StagFileDownloadManager` (v MainWindow)
+        je stáhne na pozadí a každý soubor připojí k cílové práci/posudku
+        (``target_id``) podle ``adipIdno``. Zachová uživatelův výběr i typ
+        přílohy zvolený v náhledu.
         """
-        if not self._stag_downloaded_files:
-            return
-        for adip, files in self._stag_downloaded_files.items():
+        from .stag_download_manager import StagFileJob
+
+        jobs: list = []
+        for adip, files in self._stag_pending_files.items():
             tid = thesis_by_adip.get(adip)
             oid = opposing_by_adip.get(adip)
             if not tid and not oid:
                 continue
+            label = self._stag_pending_labels.get(adip, "")
             for f in files:
-                if not (f.path and f.path.exists()):
+                if not f.selected or f.stag_file is None:
                     continue
-                try:
-                    if tid:
-                        self.service.attach_document(
-                            tid, f.path, kind=f.kind, label=f.filename
-                        )
-                    else:
-                        self.service.opposing_attach_document(
-                            oid, f.path, kind=f.kind, label=f.filename
-                        )
-                    stats["attached_files"] += 1
-                except Exception as exc:  # noqa: BLE001
-                    errors.append(f"Přiložení souboru {f.filename}: {exc}")
-            if oid:
-                try:
-                    self.service.sync_opposing_grades(oid)
-                except Exception:  # noqa: BLE001
-                    pass
-            if tid:
-                try:
-                    self.service.sync_thesis_grades(tid)
-                except Exception:  # noqa: BLE001
-                    pass
+                jobs.append(StagFileJob(
+                    target_id=tid or oid,
+                    is_opposing=not tid,
+                    adipidno=adip,
+                    student_label=label,
+                    stag_file=f.stag_file,
+                    kind=f.kind,
+                ))
+        return jobs
 
     # --- pomocné helpers k importu --------------------------------------
 
@@ -1666,10 +1676,11 @@ class StagImportDialog(QDialog):
                 except Exception:
                     pass
 
-            # Soubory stažené ze STAG (text/přílohy/posudky)
-            self._attach_downloaded_files(
-                thesis_by_adip, opposing_by_adip, stats, errors
+            # Přílohy ze STAG — joby ke stažení na pozadí (po commitu).
+            self.pending_download_jobs = self._build_stag_download_jobs(
+                thesis_by_adip, opposing_by_adip
             )
+            stats["queued_files"] = len(self.pending_download_jobs)
 
         self.imported_thesis_ids = affected_thesis_ids
         self.imported_opposing_ids = affected_opposing_ids
@@ -1713,8 +1724,9 @@ class StagImportDialog(QDialog):
             f"<td colspan='2'>{stats['attached_csv']}</td></tr>"
         )
         rows.append(
-            f"<tr><td>📄 Soubory ze STAG přiloženy</td>"
-            f"<td colspan='2'>{stats.get('attached_files', 0)}</td></tr>"
+            f"<tr><td>📄 Přílohy ze STAG ke stažení</td>"
+            f"<td colspan='2'>{stats.get('queued_files', 0)} "
+            f"(stahují se na pozadí)</td></tr>"
         )
         rows.append(
             f"<tr><td>✗ Přeskočeno</td>"
@@ -2207,9 +2219,9 @@ class StagDownloadDialog(QDialog):
         # Hromadný režim (moje vedené / oponentury) — filtrace dle celého jména.
         self._auto_role = auto_role
         self._user_full_name = user_full_name
-        # Soubory stažené spolu s prací (klíč = adipIdno) — importér je připojí
-        # k odpovídající práci po jejím založení.
-        self.downloaded_files: dict[str, list[_DownloadedStagFile]] = {}
+        # Přílohy VYBRANÉ ke stažení (klíč = adipIdno) — obsah se nestahuje tady;
+        # importér je po založení práce stáhne a připojí na pozadí.
+        self.pending_files: dict[str, list[_DownloadedStagFile]] = {}
         # Režim „jen soubory" — soubory připojeny rovnou k existující práci v DB,
         # CSV import se neprovádí. MainWindow pak jen refreshne + naviguje.
         self.files_only_done = False
@@ -2944,9 +2956,8 @@ class StagDownloadDialog(QDialog):
         self.btn_files_only.setEnabled(False)
         items: list[tuple[Path, stag_api.StagThesisResult]] = []
         errors: list[str] = []
-        files_by_adip: dict[str, list[_DownloadedStagFile]] = {}
         listings: dict[str, list[stag_api.StagFile]] = {}
-        # Dočasně stažené soubory (CSV + přílohy) — při zrušení se uklidí.
+        # Dočasně stažená CSV — při zrušení se uklidí (přílohy se tu nestahují).
         temp_files: list[Path] = []
         # Jeden klient (session) na celé stažení — odkaz na soubor je vázán
         # na session, kterou založí dotaz na detail práce.
@@ -3024,27 +3035,44 @@ class StagDownloadDialog(QDialog):
             {r.adipidno: listings.get(r.adipidno, []) for (_, r) in items}
         )
 
-        # Fáze 3: stáhni soubory (text, přílohy, posudky) — streamovaně, ať je
-        # u velkých příloh vidět průběh (jinak to vypadá jako zamrznutí).
-        to_download = [
-            (result, sf)
-            for (_, result) in items
-            for sf in listings.get(result.adipidno, [])
-            if sf.soubidno not in skip_ids
-        ]
-        total_bytes = sum(max(0, sf.size_hint) for (_, sf) in to_download)
+        progress.close()
+
+        # Fáze 3: přílohy se v dialogu UŽ NESTAHUJÍ. Z výpisu poskládáme
+        # „čekající" položky (obsah=None, velikost=odhad) — uživatel vybere,
+        # co stáhnout, a vlastní stažení proběhne na pozadí až po založení prací
+        # (StagFileDownloadManager v MainWindow). Velikosti jsou odhady ze STAG.
+        pending_by_adip: dict[str, list[_DownloadedStagFile]] = {}
+        for (_path, result) in items:
+            entries = [
+                _DownloadedStagFile(
+                    path=None,
+                    filename=sf.filename,
+                    kind=_SECTION_TO_KIND.get(sf.section, AttachmentKind.OTHER),
+                    section=sf.section,
+                    size=max(0, sf.size_hint),
+                    stag_file=sf,
+                )
+                for sf in listings.get(result.adipidno, [])
+                if sf.soubidno not in skip_ids
+            ]
+            if entries:
+                pending_by_adip[result.adipidno] = entries
+
+        total_files = sum(len(v) for v in pending_by_adip.values())
+        total_bytes = sum(e.size for v in pending_by_adip.values() for e in v)
         # Velký objem příloh → nabídni i import jen dat (bez příloh), ať se
         # omylem netáhnou gigabajty (typicky u hromadného stažení mnoha prací).
-        if to_download and total_bytes > _BIG_TOTAL_BYTES:
+        if total_files and total_bytes > _BIG_TOTAL_BYTES:
             box = QMessageBox(self)
             box.setIcon(QMessageBox.Icon.Question)
             box.setWindowTitle(tr("Velké stahování příloh"))
             box.setText(
                 f"Přílohy zaberou celkem ~{_fmt_size(total_bytes)} "
-                f"({len(to_download)} souborů napříč {len(items)} pracemi)."
+                f"({total_files} souborů napříč {len(items)} pracemi)."
             )
             box.setInformativeText(
-                "Stáhnout přílohy, nebo naimportovat jen data prací (bez příloh)?"
+                "Stáhnout přílohy (na pozadí), nebo naimportovat jen data prací "
+                "(bez příloh)?"
             )
             box.addButton(tr("⬇ Stáhnout přílohy"), QMessageBox.ButtonRole.AcceptRole)
             btn_data = box.addButton(
@@ -3055,134 +3083,21 @@ class StagDownloadDialog(QDialog):
             box.exec()
             clicked = box.clickedButton()
             if clicked == btn_cancel:
-                progress.close()
                 self._cleanup_temp_files(temp_files)
                 self._update_download_btn()
                 self.lbl_status.setText(tr("Stahování zrušeno."))
                 return
             if clicked == btn_data:
-                to_download = []  # přeskoč přílohy, importuj jen CSV data
+                pending_by_adip = {}  # přeskoč přílohy, importuj jen CSV data
 
-        total_files = len(to_download)
-        total_bytes = sum(max(0, sf.size_hint) for (_, sf) in to_download)
-        use_bytes = total_bytes > 0
-        # QProgressDialog používá 32-bit int — u velkých součtů (GB napříč
-        # mnoha pracemi) by syrové bajty přetekly. Škálujeme na promile.
-        steps = 1000
-        progress.setRange(0, steps if use_bytes else max(1, total_files))
-        progress.setValue(0)
-        progress.setLabelText(tr("Stahuji přílohy…"))
-        if total_files:
-            progress.show()
-        QApplication.processEvents()
-
-        # Stahuje se na PRACOVNÍM vlákně, UI vlákno jen překresluje progres —
-        # takže ani pomalá odpověď STAG (server generuje PDF / přiškrtí) UI
-        # nezamrzne a tlačítko Přerušit zůstává funkční.
-        from concurrent.futures import ThreadPoolExecutor
-
-        failed: list[str] = []
-        canceled3 = False
-        bytes_done = 0
-        executor = ThreadPoolExecutor(max_workers=1)
-        try:
-            for idx, (result, sf) in enumerate(to_download):
-                if progress.wasCanceled():
-                    canceled3 = True
-                    break
-                dl = None
-                last_err = ""
-                # 1 opakování na přechodné selhání (STAG občas přiškrtí spojení
-                # při mnoha souborech po sobě).
-                for attempt in (1, 2):
-                    if progress.wasCanceled():
-                        canceled3 = True
-                        break
-                    retry = "  (2. pokus)" if attempt == 2 else ""
-                    base = (
-                        f"Stahuji přílohy ({idx + 1}/{total_files}){retry}:\n"
-                        f"{result.student_full}\n↳ {sf.filename}"
-                    )
-                    # Sdílený stav mezi vláknem (stahuje) a UI (kreslí) — bez Qt
-                    # volání ve vlákně (Qt není thread-safe).
-                    state = {"downloaded": 0, "total": None, "cancel": False}
-
-                    def _worker_progress(downloaded, total, _s=state):
-                        _s["downloaded"] = downloaded
-                        _s["total"] = total
-                        return not _s["cancel"]
-
-                    fut = executor.submit(
-                        self._download_one_file, client, result, sf, _worker_progress
-                    )
-                    while not fut.done():
-                        if progress.wasCanceled():
-                            state["cancel"] = True
-                        dn = state["downloaded"]
-                        if dn <= 0:
-                            # Čekáme na první bajt — STAG velké/ZIP přílohy teprve
-                            # připravuje, může to trvat i desítky sekund.
-                            suffix = "  ⏳ STAG připravuje soubor (čekám)…"
-                        else:
-                            tot = state["total"] or sf.size_hint or 0
-                            suffix = (
-                                f"  ({_fmt_size(dn)} / {_fmt_size(tot)})"
-                                if tot else f"  ({_fmt_size(dn)})"
-                            )
-                        progress.setLabelText(base + suffix)
-                        if use_bytes:
-                            frac = (bytes_done + dn) / total_bytes
-                            progress.setValue(min(steps, int(frac * steps)))
-                        QApplication.processEvents()
-                        QThread.msleep(40)  # ~25 překreslení/s, nízká zátěž CPU
-
-                    try:
-                        dl = fut.result()
-                    except stag_api.StagCancelledError:
-                        canceled3 = True
-                        break
-                    except Exception as exc:  # noqa: BLE001
-                        dl = None
-                        last_err = str(exc)
-                    if dl is not None:
-                        break  # úspěch → neopakuj
-
-                if canceled3:
-                    break
-                if dl is not None:
-                    files_by_adip.setdefault(result.adipidno, []).append(dl)
-                    temp_files.append(dl.path)
-                    bytes_done += dl.size or sf.size_hint or 0
-                else:
-                    reason = f" — {last_err}" if last_err else ""
-                    failed.append(f"{result.student_full}: {sf.filename}{reason}")
-                    bytes_done += sf.size_hint or 0
-                if not use_bytes:
-                    progress.setValue(idx + 1)
-                QApplication.processEvents()
-        finally:
-            executor.shutdown(wait=False, cancel_futures=True)
-        progress.close()
-
-        if canceled3:
-            # Uživatel přerušil → ukliď VŠE dočasně stažené (CSV i přílohy).
-            self._cleanup_temp_files(temp_files)
-            self._update_download_btn()
-            self.lbl_status.setText(tr("⚠ Stahování přerušeno, dočasné soubory uklizeny."))
-            return
-
-        if failed:
-            QMessageBox.warning(
-                self, tr("STAG — některé přílohy se nestáhly"),
-                "Tyto přílohy se nepodařilo stáhnout (přeskočeny):\n\n"
-                + "\n".join(f"• {x}" for x in failed),
-            )
-
-        # Náhled stažených souborů — výběr, co naimportovat (default vše).
-        self.downloaded_files = self._preview_and_pick(
-            [(self._group_label(r), files_by_adip[r.adipidno])
-             for (_, r) in items if r.adipidno in files_by_adip],
-            files_by_adip,
+        # Náhled výběru příloh (default vše) — uživatel odškrtá / upraví typ.
+        # Pracuje nad VÝPISEM (obsah ještě nestažen), velikosti jsou odhady.
+        self.pending_files = self._preview_and_pick(
+            [(self._group_label(r), pending_by_adip[r.adipidno])
+             for (_, r) in items if r.adipidno in pending_by_adip],
+            pending_by_adip,
+            intro="Vyber přílohy ke stažení. Stáhnou se na pozadí a připojí se "
+                  "k práci po jejím založení (velikosti jsou odhady ze STAG).",
         )
 
         self.result_items = items

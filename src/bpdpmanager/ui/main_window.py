@@ -1070,13 +1070,16 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(self._bg_widget)   # vlevo (ne permanent)
         self._stag_file_mgr = None
         self._bg_attach_fn = None
+        self._bg_on_complete = None
 
-    def start_stag_file_downloads(self, jobs, attach_fn) -> None:
+    def start_stag_file_downloads(self, jobs, attach_fn, on_complete=None) -> None:
         """Spustí stahování příloh ze STAG **na pozadí** (neblokuje UI).
 
         ``jobs`` = seznam :class:`StagFileJob`; ``attach_fn(StagFileResult)`` se
         volá na **hlavním vlákně** pro každý úspěšně stažený soubor (připojení
-        k práci). Na konci ukáže souhrn a u neúspěšných nabídne *Zkusit znovu*.
+        k práci). ``on_complete`` (volitelně) se zavolá po doběhnutí celé dávky
+        (typicky obnova pohledů). Na konci ukáže souhrn a u neúspěšných nabídne
+        *Zkusit znovu*.
         """
         from .stag_download_manager import StagFileDownloadManager
 
@@ -1089,6 +1092,7 @@ class MainWindow(QMainWindow):
                 tr("Stahování příloh už běží — počkej, až doběhne."))
             return
         self._bg_attach_fn = attach_fn
+        self._bg_on_complete = on_complete
         mgr = StagFileDownloadManager(self)
         mgr.enqueue(jobs)
         mgr.progress.connect(self._on_bg_progress)
@@ -1130,6 +1134,7 @@ class MainWindow(QMainWindow):
         failed = summary.get("failed", [])
         if summary.get("canceled"):
             self.statusBar().showMessage(tr("Stahování příloh přerušeno."), 5000)
+            self._finish_bg_batch()   # obnov pohledy (něco už mohlo doběhnout)
             return
         from .stag_import_dialog import _fmt_size
 
@@ -1138,6 +1143,7 @@ class MainWindow(QMainWindow):
             n=len(ok), size=_fmt_size(size))
         if not failed:
             self.statusBar().showMessage(msg, 6000)
+            self._finish_bg_batch()
             return
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Warning)
@@ -1153,8 +1159,53 @@ class MainWindow(QMainWindow):
         box.addButton(tr("Zavřít"), QMessageBox.ButtonRole.RejectRole)
         box.exec()
         if box.clickedButton() is btn_retry:
+            # Obnova pohledů (on_complete) až po doběhnutí opakované dávky.
             self.start_stag_file_downloads(
-                [r.job for r in failed], self._bg_attach_fn)
+                [r.job for r in failed], self._bg_attach_fn,
+                on_complete=self._bg_on_complete)
+            return
+        self._finish_bg_batch()
+
+    def _finish_bg_batch(self) -> None:
+        """Doběhnutí dávky příloh — jednorázová obnova pohledů (on_complete)."""
+        cb = self._bg_on_complete
+        self._bg_on_complete = None
+        self._bg_attach_fn = None
+        if cb is not None:
+            try:
+                cb()
+            except Exception:  # obnova nesmí shodit aplikaci
+                pass
+
+    def _stag_attach_fn(self, result) -> None:
+        """Připojí jednu staženou přílohu ze STAG k práci/posudku (hlavní vlákno).
+
+        Volá se z :meth:`_on_bg_file` pro každý úspěšně stažený soubor. Po
+        připojení (service zkopíruje obsah do úložiště) smaže dočasný soubor.
+        """
+        job = result.job
+        sf = job.stag_file
+        kind = job.kind
+        label = getattr(sf, "filename", "soubor")
+        if job.is_opposing:
+            self.service.opposing_attach_document(
+                job.target_id, result.path, kind=kind, label=label)
+            try:
+                self.service.sync_opposing_grades(job.target_id)
+            except Exception:  # noqa: BLE001
+                pass
+        else:
+            self.service.attach_document(
+                job.target_id, result.path, kind=kind, label=label)
+            try:
+                self.service.sync_thesis_grades(job.target_id)
+            except Exception:  # noqa: BLE001
+                pass
+        try:
+            if result.path:
+                Path(result.path).unlink(missing_ok=True)
+        except OSError:
+            pass
 
     def _stag_checked_today(self) -> bool:
         from datetime import date
@@ -2342,6 +2393,15 @@ class MainWindow(QMainWindow):
             self._focus_thesis(dlg.focus_thesis_id)
         elif dlg.focus_opposing_id:
             self._focus_opposing_thesis(dlg.focus_opposing_id)
+
+        # Přílohy ze STAG se stahují AŽ TEĎ — na pozadí (import je už zapsaný,
+        # práce existují). Každý soubor se po stažení připojí k odpovídající
+        # práci a po doběhnutí dávky se pohledy obnoví.
+        jobs = getattr(dlg, "pending_download_jobs", None)
+        if jobs:
+            self.start_stag_file_downloads(
+                jobs, self._stag_attach_fn, on_complete=self._refresh_all
+            )
 
         # Po importu/aktualizaci přepočítej indikátor STAG (banner + odznaky).
         self._start_stag_check()

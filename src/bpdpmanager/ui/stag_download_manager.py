@@ -28,6 +28,7 @@ class StagFileJob:
     adipidno: str             # STAG ID práce (jen pro pojmenování temp souboru)
     student_label: str        # popisek do progresu (jméno studenta)
     stag_file: object         # stag_api.StagFile (download_path, filename, section, …)
+    kind: object | None = None  # AttachmentKind zvolený v náhledu (pro připojení)
 
 
 @dataclass

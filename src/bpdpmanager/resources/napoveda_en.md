@@ -72,9 +72,11 @@ your theses directly from STAG**:
 2. **🎓 My supervised theses…** — finds and pre-selects all your supervised
    theses (historical and current) by your profile name.
 3. **🧐 My opposed theses…** — the same for theses where you are the opponent.
-4. Tick what you want and **⬇ Download selected**. For large attachment
-   volumes choose *"Data only (no attachments)"* — gigabytes of full texts can
-   be fetched later via *🔄 Update…* and checked with *🔍 STAG consistency*.
+4. Tick what you want and **⬇ Download selected**. The theses are created right
+   away; **attachments are fetched in the background** (progress in the status
+   bar at the bottom). For large attachment volumes choose *"Data only (no
+   attachments)"* — gigabytes of full texts can be fetched later via *🔄 Update…*
+   and checked with *🔍 STAG consistency*.
 
 Before writing, a **📋 Summary before import** lists the **new students,
 opponents, supervisors and programmes that will be created automatically** —
@@ -638,21 +640,26 @@ import*; only an unmapped programme may need picking/creating in the preview).
 > (BP/DP), programme, academic year** (or no grouping). Ticking a group
 > header (de)selects the whole group.
 >
-> **Attachments (📎).** The count and size of attachments appears **once you
-> tick a thesis** (e.g. "📎 4 · 14.0 MB"). The **download** itself shows
-> **progress** (which thesis and attachment, incl. downloaded/total MB for
-> large files) and can be **interrupted** — temporary files are cleaned up.
-> Failures are listed. Downloads run **in the background**, so the window
-> never freezes (Cancel always works). The timeout **scales with file size**
-> (a large attachment gets more time — even hundreds of MB / GB download
-> fine; a small file fails fast when truly stuck). If something still times
-> out, the app reminds you that **files can always be downloaded manually
-> from STAG** (via the browser) and added in **📎 Documents**. Before
-> downloading, the app **offers to delete leftover temporary files** from
-> earlier runs. When attachments would take **a lot of space** (hundreds of
-> MB+, typical for bulk downloads), it asks whether to download attachments
-> or **import data only**. What gets imported (and excluding large
-> attachments) is chosen in the **file preview** in the next step.
+> **Attachments (📎) — downloaded in the background.** The count and size of
+> attachments appears **once you tick a thesis** (e.g. "📎 4 · 14.0 MB"). The
+> attachment **content is NOT downloaded during import** — in the next step you
+> pick in the **file preview** what to download (and optionally adjust the
+> *attachment type*); sizes there are **STAG estimates**. The actual
+> **download then happens after the theses are (transactionally) created — in
+> the background**: the import finishes and closes right away, and the **status
+> bar** at the bottom shows **progress** (how many attachments are done and
+> which is downloading) with a **Cancel (✕)**. Each attachment is attached to
+> its thesis **right after it downloads**, and the views **refresh** once the
+> batch completes. The timeout **scales with file size** (a large attachment
+> gets more time — even hundreds of MB / GB download fine; a small file fails
+> fast when truly stuck); each attachment gets **1 automatic retry**. If
+> something still fails, the app **lists it** at the end and offers **🔄 Try
+> again** (failed ones only); files can always be downloaded manually **from
+> STAG** (via the browser) and added in **📎 Documents**. Before downloading,
+> the app **offers to delete leftover temporary files** from earlier runs. When
+> attachments would take **a lot of space** (hundreds of MB+, typical for bulk
+> downloads), it asks whether to download attachments in the background or
+> **import data only**.
 >
 > **"✓ already have" — what re-downloading does (merge).** Theses already in
 > the database get a **✓ already have** badge and are **unticked** by
