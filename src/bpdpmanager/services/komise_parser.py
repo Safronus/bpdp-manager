@@ -102,9 +102,10 @@ _ROLES = ("Předseda", "Místopředseda", "Tajemník", "Členové", "Člen")
 _COLOR_WORDS = (
     "červená|modrá|zelená|žlutá|fialová|oranžová|růžová|tyrkysová|hnědá|šedá"
 )
-# Varianta A: „Komise cervena" / „Komise fialova (15.06.2026)"
+# Varianta A: „Komise cervena" / „Komise fialova (15.06.2026)" /
+# „Komise červená 17.06.2026 - 18.06.2026" (datum za barvou, i bez závorek).
 _RE_COMMITTEE_A = re.compile(
-    rf"^Komise\s+({_COLOR_WORDS})\s*(?:\(([^)]*)\))?\s*$", re.IGNORECASE | re.MULTILINE
+    rf"^Komise\s+({_COLOR_WORDS})\b[ \t]*(.*?)\s*$", re.IGNORECASE | re.MULTILINE
 )
 # Varianta B: „Komise: žlutá"
 _RE_COMMITTEE_B = re.compile(rf"^Komise:\s*({_COLOR_WORDS})\s*$", re.IGNORECASE | re.MULTILINE)
@@ -179,7 +180,8 @@ def parse_composition(text: str) -> list[ParsedCommittee]:
     # Najdi všechny začátky komisí (obou variant) a rozsekej text na bloky.
     starts: list[tuple[int, str, str]] = []   # (pozice, barva, poznámka)
     for m in _RE_COMMITTEE_A.finditer(text):
-        starts.append((m.start(), m.group(1).lower(), (m.group(2) or "").strip()))
+        note = (m.group(2) or "").strip().strip("()").strip()
+        starts.append((m.start(), m.group(1).lower(), note))
     for m in _RE_COMMITTEE_B.finditer(text):
         starts.append((m.start(), m.group(1).lower(), ""))
     starts.sort()
@@ -196,18 +198,27 @@ def parse_composition(text: str) -> list[ParsedCommittee]:
     for i, (pos, color, note) in enumerate(starts):
         end = starts[i + 1][0] if i + 1 < len(starts) else len(text)
         block = text[pos:end]
+        # Hlavička komise (řádky „SP / SO/ specializace …" a „Datum:") stojí
+        # v textu PŘED řádkem „Komise:" — čteme ji z úseku PŘED blokem (od konce
+        # předchozí komise po tuto). Blok ZA „Komise:" totiž sahá až k další
+        # komisi, takže obsahuje datum/obor té NÁSLEDUJÍCÍ → posun o jednu
+        # a špatné datum/obor (viz dvě „zelené" se stejnou barvou, jiným dnem).
+        header = text[(starts[i - 1][0] if i > 0 else 0):pos]
         c = ParsedCommittee(color=color, academic_year=year, level=level,
                             program_label=program)
-        # Datum: z poznámky v závorce, řádku „Datum:" v bloku, jinak z hlavičky.
+        # Datum: z poznámky v závorce (varianta A), jinak poslední „Datum:"
+        # v hlavičce před „Komise:", jinak hlavička dokumentu.
         block_dates = _normalize_dates(note)
-        dm = re.search(r"^Datum:\s*(.+)$", block, re.MULTILINE)
-        if dm:
-            block_dates = block_dates or _normalize_dates(dm.group(1))
+        if not block_dates:
+            dms = re.findall(r"^Datum:\s*(.+)$", header, re.MULTILINE)
+            if dms:
+                block_dates = _normalize_dates(dms[-1])
         c.dates = block_dates or list(doc_dates)
-        # „SP / SO/ specializace …" v bloku (varianta B) upřesní program.
-        sm = re.search(r"specializace\s+(.+?)\s*$", block, re.MULTILINE)
-        if sm and not program:
-            c.program_label = sm.group(1).strip()
+        # „SP / SO/ specializace …" v hlavičce upřesní program (varianta B);
+        # bere se poslední (nejblíž k „Komise:"), jinak hlavička dokumentu.
+        sms = re.findall(r"specializace\s+(.+?)\s*$", header, re.MULTILINE)
+        if sms:
+            c.program_label = sms[-1].strip()
         # Role — řádek po řádku; pokračovací řádky (bez role) patří k Členům.
         current_role = ""
         for raw in block.splitlines()[1:]:

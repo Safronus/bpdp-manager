@@ -83,6 +83,56 @@ def test_parse_composition_variant_b_dedups_heading() -> None:
     assert len(out[0].members) == 2
 
 
+def test_composition_header_before_komise_assigns_to_right_committee() -> None:
+    """Datum/specializace stojí PŘED řádkem „Komise:" — parser je nesmí vzít
+    z NÁSLEDUJÍCÍ komise. Dvě stejně barevné komise s jiným dnem a jiným
+    složením: člen jen z 19.6 nesmí skončit u té 17.-18. (a naopak). (Fiktivní
+    jména, reálná do gitu nepatří.)"""
+    text = (
+        "magisterský studijní program 2025/2026\n"
+        "SP / SO/ specializace Informatika - specializace SWI\n"
+        "Datum: 17.06.2026 - 18.6.2026\n"
+        "Komise: zelená\n"
+        "Předseda: doc. Ing. Alfa Alfová, Ph.D.\n"
+        "Členové: Ing. Beta Betová, Ph.D.\n"
+        " Ing. Gama Gamová, Ph.D.\n"
+        "SP / SO/ specializace Informatika - specializace SWI\n"
+        "Datum: 19.06.2026\n"
+        "Komise: zelená\n"
+        "Předseda: prof. Ing. Delta Deltová, Ph.D.\n"
+        "Členové: Ing. Beta Betová, Ph.D.\n"
+        " Ing. Epsilon Epsilonová, Ph.D.\n"
+    )
+    greens = [c for c in parse_composition(text) if c.color == "zelená"]
+    assert len(greens) == 2
+    g1718 = next(c for c in greens if c.dates == ["17. 6. 2026", "18. 6. 2026"])
+    g19 = next(c for c in greens if c.dates == ["19. 6. 2026"])
+    n1718 = [n for _, n in g1718.members]
+    n19 = [n for _, n in g19.members]
+    # 19.6 komise = Delta + Epsilon (správné datum i složení).
+    assert any("Delta" in n for n in n19)
+    assert any("Epsilon" in n for n in n19)
+    # Člen jen z 19.6 (Epsilon) NESMÍ být u 17.-18.; ta má Alfa, ne Delta.
+    assert not any("Epsilon" in n for n in n1718)
+    assert any("Alfa" in n for n in n1718)
+    assert not any("Delta" in n for n in n1718)
+
+
+def test_composition_variant_a_inline_date_without_parens() -> None:
+    """Varianta A s datem ZA barvou bez závorek („Komise zelená 17.06.2026 -
+    18.06.2026") se zachytí jako datum komise."""
+    text = (
+        "magisterský 2025/2026\n"
+        "SP / SO/ specializace X - specializace SWI\n"
+        "Komise zelená 17.06.2026 - 18.06.2026\n"
+        "Komise: zelená\n"
+        "Předseda: doc. Alfa Alfová\n"
+        "Členové: Ing. Beta Betová\n"
+    )
+    g = next(c for c in parse_composition(text) if c.color == "zelená")
+    assert g.dates == ["17. 6. 2026", "18. 6. 2026"]
+
+
 _SCHEDULE = """STÁTNÍ ZÁVĚREČNÉ ZKOUŠKY
 v bakalářském studijním programu
 Softwarové inženýrství

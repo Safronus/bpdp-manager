@@ -5,6 +5,20 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.1] - 2026-06-16
+
+### Fixed
+- **Složení komisí: špatné datum/obor (a chybějící člen) u formátu, kde `Datum:`
+  a specializace stojí PŘED řádkem `Komise:`.** Parser dělil bloky až na
+  `Komise:` a datum/obor pak četl *uvnitř* bloku — ten ale sahá až k další
+  komisi, takže si bral hlavičku **následující** komise (posun o jednu).
+  U dvou stejně barevných komisí s jiným dnem a jiným složením (např. dvě
+  „zelené" — jedna 17.–18. 6., druhá 19. 6. s jiným předsedou a členem navíc)
+  to vedlo ke **špatnému datu i oboru** a člen byl přiřazen k nesprávné komisi
+  (ve sloučené komisi pak chyběl). Nově se hlavička čte z textu **před**
+  `Komise:`. Navíc se zachytí i datum ve formátu „Komise zelená 17.06.2026 -
+  18.06.2026" (za barvou, bez závorek).
+
 ## [2.9.0] - 2026-06-16
 
 ### Added
