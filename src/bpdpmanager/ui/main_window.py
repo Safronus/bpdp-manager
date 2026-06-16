@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
     QSplitter,
@@ -758,6 +759,9 @@ class MainWindow(QMainWindow):
         cv.addWidget(self.tabs, stretch=1)
         self.setCentralWidget(central)
         self.setStatusBar(QStatusBar())
+        # Stahování příloh ze STAG na pozadí — nemodální progres v dolní liště
+        # (text + lišta + Zrušit). Skrytý, dokud něco neběží.
+        self._build_bg_progress()
         # Barevný souhrn posudků (vpravo v dolní liště).
         self._status_reviews = QLabel()
         self._status_reviews.setTextFormat(Qt.TextFormat.RichText)
@@ -784,6 +788,15 @@ class MainWindow(QMainWindow):
         # vykreslit). Indikátor v proužku + odznaky na záložkách.
         self._stag_checker: object | None = None
         QTimer.singleShot(900, lambda: self._start_stag_check(auto=True))
+
+        # Indikátor připojení ke STAG: aktivní ping na pozadí po startu a pak
+        # každých 5 minut (+ ruční přes klik na indikátor).
+        self._stag_pinger: object | None = None
+        self._stag_ping_timer = QTimer(self)
+        self._stag_ping_timer.setInterval(5 * 60_000)
+        self._stag_ping_timer.timeout.connect(self._maybe_ping_stag)
+        self._stag_ping_timer.start()
+        QTimer.singleShot(1200, self._maybe_ping_stag)
         # Tichá kontrola aktualizací aplikace (GitHub CHANGELOG.md).
         self._update_checker: object | None = None
         QTimer.singleShot(1500, self._start_update_check)
@@ -998,6 +1011,150 @@ class MainWindow(QMainWindow):
         checker.finished.connect(self._on_stag_check_done)
         self._stag_checker = checker
         checker.start()
+
+    # --- indikátor připojení ke STAG ----------------------------------------
+    def _ping_stag_now(self) -> None:
+        """Ruční ověření připojení (klik na indikátor) — zkusí hned."""
+        self._maybe_ping_stag(force=True)
+
+    def _maybe_ping_stag(self, force: bool = False) -> None:
+        """Spustí ping STAGu na pozadí (pokud už neběží)."""
+        from .stag_check import StagConnectivityChecker
+
+        if getattr(self, "_stag_pinger", None) is not None:
+            return
+        if hasattr(self, "_stag_status_btn"):
+            self._stag_status_btn.setText("⏳ STAG…")
+        pinger = StagConnectivityChecker(parent=self)
+        pinger.finished.connect(self._on_stag_connectivity)
+        self._stag_pinger = pinger
+        pinger.start()
+
+    def _on_stag_connectivity(self, ok: bool, detail: str) -> None:
+        from datetime import datetime
+
+        self._stag_pinger = None
+        if not hasattr(self, "_stag_status_btn"):
+            return
+        stamp = datetime.now().strftime("%H:%M")
+        if ok:
+            self._stag_status_btn.setText("🟢 STAG")
+            self._stag_status_btn.setToolTip(
+                tr("STAG dostupný (ověřeno {time}). Klikni pro nové ověření.")
+                .format(time=stamp))
+        else:
+            self._stag_status_btn.setText("🔴 STAG")
+            self._stag_status_btn.setToolTip(
+                tr("STAG nedostupný (ověřeno {time}): {detail}\n"
+                   "Klikni pro nové ověření.")
+                .format(time=stamp, detail=detail or tr("bez spojení")))
+
+    # --- stahování příloh ze STAG na pozadí (dolní lišta) --------------------
+    def _build_bg_progress(self) -> None:
+        """Nemodální progres stahování příloh (vlevo v dolní liště)."""
+        self._bg_widget = QWidget()
+        lay = QHBoxLayout(self._bg_widget)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+        self._bg_label = QLabel("")
+        self._bg_bar = QProgressBar()
+        self._bg_bar.setMaximumWidth(180)
+        self._bg_cancel = QToolButton()
+        self._bg_cancel.setText("✕")
+        self._bg_cancel.setToolTip(tr("Zrušit stahování příloh ze STAG"))
+        self._bg_cancel.clicked.connect(self._cancel_bg_downloads)
+        lay.addWidget(self._bg_label)
+        lay.addWidget(self._bg_bar)
+        lay.addWidget(self._bg_cancel)
+        self._bg_widget.setVisible(False)
+        self.statusBar().addWidget(self._bg_widget)   # vlevo (ne permanent)
+        self._stag_file_mgr = None
+        self._bg_attach_fn = None
+
+    def start_stag_file_downloads(self, jobs, attach_fn) -> None:
+        """Spustí stahování příloh ze STAG **na pozadí** (neblokuje UI).
+
+        ``jobs`` = seznam :class:`StagFileJob`; ``attach_fn(StagFileResult)`` se
+        volá na **hlavním vlákně** pro každý úspěšně stažený soubor (připojení
+        k práci). Na konci ukáže souhrn a u neúspěšných nabídne *Zkusit znovu*.
+        """
+        from .stag_download_manager import StagFileDownloadManager
+
+        jobs = list(jobs)
+        if not jobs:
+            return
+        if self._stag_file_mgr is not None and self._stag_file_mgr.active:
+            QMessageBox.information(
+                self, tr("Stahování ze STAG"),
+                tr("Stahování příloh už běží — počkej, až doběhne."))
+            return
+        self._bg_attach_fn = attach_fn
+        mgr = StagFileDownloadManager(self)
+        mgr.enqueue(jobs)
+        mgr.progress.connect(self._on_bg_progress)
+        mgr.file_downloaded.connect(self._on_bg_file)
+        mgr.finished.connect(self._on_bg_finished)
+        self._stag_file_mgr = mgr
+        self._bg_bar.setRange(0, len(jobs))
+        self._bg_bar.setValue(0)
+        self._bg_label.setText(tr("⬇ STAG soubory…"))
+        self._bg_widget.setVisible(True)
+        mgr.start()
+
+    def _cancel_bg_downloads(self) -> None:
+        if self._stag_file_mgr is not None:
+            self._stag_file_mgr.cancel()
+            self._bg_label.setText(tr("⏳ ruším…"))
+
+    def _on_bg_progress(self, done: int, total: int, label: str) -> None:
+        self._bg_bar.setMaximum(max(1, total))
+        self._bg_bar.setValue(done)
+        txt = tr("⬇ STAG soubory {d}/{t}").format(d=done, t=total)
+        if label:
+            txt += f" · {label}"
+        self._bg_label.setText(txt)
+
+    def _on_bg_file(self, result) -> None:
+        # Připojení k práci běží na hlavním vlákně (zápis přes service).
+        if self._bg_attach_fn is None:
+            return
+        try:
+            self._bg_attach_fn(result)
+        except Exception:  # připojení jednoho souboru nesmí shodit zbytek
+            pass
+
+    def _on_bg_finished(self, summary: dict) -> None:
+        self._stag_file_mgr = None
+        self._bg_widget.setVisible(False)
+        ok = summary.get("ok", [])
+        failed = summary.get("failed", [])
+        if summary.get("canceled"):
+            self.statusBar().showMessage(tr("Stahování příloh přerušeno."), 5000)
+            return
+        from .stag_import_dialog import _fmt_size
+
+        size = sum(getattr(r, "size", 0) for r in ok)
+        msg = tr("✓ Staženo {n} příloh ({size})").format(
+            n=len(ok), size=_fmt_size(size))
+        if not failed:
+            self.statusBar().showMessage(msg, 6000)
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(tr("Stahování příloh ze STAG"))
+        box.setText(
+            msg + "\n" + tr("⚠ Nepodařilo se stáhnout {n} příloh.").format(
+                n=len(failed)))
+        box.setDetailedText("\n".join(
+            f"• {r.job.student_label}: {r.job.stag_file.filename} — {r.error}"
+            for r in failed))
+        btn_retry = box.addButton(
+            tr("🔄 Zkusit znovu"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("Zavřít"), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is btn_retry:
+            self.start_stag_file_downloads(
+                [r.job for r in failed], self._bg_attach_fn)
 
     def _stag_checked_today(self) -> bool:
         from datetime import date
@@ -1341,22 +1498,29 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        # ── Skupina: Import (tyrkysová) ─────────────────────────────────
-        add(
-            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
-            "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
-            "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.",
-        )
-        add(
-            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
-            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
-            "posudky, soubory) — vytvoří novou práci.",
-        )
-
-        # Spacer → následující prvky (Aktualizace prací, Profil, …) odsune doprava.
+        # Spacer → následující prvky (import, Aktualizace prací, Profil, …)
+        # odsune doprava.
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
+
+        # ── Indikátor připojení ke STAG (aktivní ping na pozadí) ────────
+        self._stag_status_btn = QToolButton()
+        self._stag_status_btn.setAutoRaise(True)
+        self._stag_status_btn.setText("⚪ STAG")
+        self._stag_status_btn.setToolTip(
+            tr("Připojení ke STAG — klikni pro okamžité ověření."))
+        self._stag_status_btn.clicked.connect(self._ping_stag_now)
+        toolbar.addWidget(self._stag_status_btn)
+        toolbar.addSeparator()
+
+        # ── Import ze STAG (vedle Aktualizace prací) ────────────────────
+        add(
+            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
+            "Stáhne práci přímo ze STAG (stag.utb.cz) — dle studenta nebo "
+            "hromadně tvé vedené / oponované; vytvoří nebo aktualizuje "
+            "vedené BP/DP a oponentské posudky.",
+        )
 
         # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()
@@ -1386,6 +1550,13 @@ class MainWindow(QMainWindow):
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
+
+        # ── Import práce ze ZIP (za Aktualizace prací) ──────────────────
+        add(
+            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
+            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
+            "posudky, soubory) — vytvoří novou práci.",
+        )
 
         toolbar.addSeparator()
 
@@ -1600,9 +1771,21 @@ class MainWindow(QMainWindow):
             backup_path=data_dir / "db.json.bak",
             backup_manager=BackupManager(data_dir),
         )
-        self.service.reset(new_repo)
-        # Nově vytvořený profil dostane výchozí obory + šablony.
-        self.service.maybe_seed_defaults()
+        try:
+            self.service.reset(new_repo)
+            # Nově vytvořený profil dostane výchozí obory + šablony.
+            self.service.maybe_seed_defaults()
+        except OSError as exc:
+            # Typicky iCloud/Dropbox „odlehčil" db.json a bez sítě timeout —
+            # neshazuj aplikaci, jen to oznam (service zůstal na původním profilu).
+            QMessageBox.critical(
+                self, tr("Přepnutí profilu"),
+                tr("Data profilu se nepodařilo načíst — soubor je možná "
+                   "v cloudové složce (iCloud/Dropbox) a bez připojení k síti "
+                   "ho nelze stáhnout.\n\nZkus to po obnovení internetu, nebo "
+                   "přesuň data profilu mimo cloudovou složku.\n\n{err}")
+                .format(err=exc))
+            return
 
         # Refresh UI a window title
         self.setWindowTitle(self._compose_title())

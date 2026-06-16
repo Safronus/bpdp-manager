@@ -7,6 +7,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+### Added (rozpracováno — stahování příloh na pozadí, krok 1/2)
+- Interní `StagFileDownloadManager` (vlákno, fronta, signály, auto-retry,
+  cancel) + **nemodální progres v dolní liště** (text + lišta + Zrušit) a
+  `MainWindow.start_stag_file_downloads()` s finálním souhrnem a *Zkusit znovu*.
+  Zatím **nezapojeno** do STAG import flow (přijde v kroku 2).
+
 ## [2.6.3] - 2026-06-16
 
 ### Changed
