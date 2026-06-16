@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.1] - 2026-06-16
+
+### Added
+- **Hromadné nastavení v náhledu importu ze STAG.** Nad náhledovou tabulkou
+  je lišta **„Hromadně vybraným:"** — vyber víc řádků (**Ctrl/Shift klik**,
+  nebo **☑ Vše** / **☐ Nic**) a nastav jim naráz **Role / Stav / Akci**
+  (např. všechny *Přeskočit*, nebo všem *Oponuji*). Volba se aplikuje hned na
+  vybrané řádky; jednotlivé řádky pak jdou ručně doladit. Tabulka náhledu je
+  nově ve **vícevýběrovém** režimu (`ExtendedSelection`).
+
 ## [2.8.0] - 2026-06-16
 
 ### Changed

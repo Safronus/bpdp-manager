@@ -1017,6 +1017,11 @@ použije návrhová věta („navrhuji hodnocení …").
   lokální obor), stavu a akce (Vytvořit / Aktualizovat / Přeskočit).
   Stav se předvyplní podle STAG kódu (`R`, `DBPOO` → V řešení;
   `DUO` → Obhájeno; `DBUO`, `ND` → Nedokončeno) nebo podle datumů.
+- **Hromadné nastavení.** Nad tabulkou je lišta **„Hromadně vybraným:"** —
+  vyber víc řádků (**Ctrl/Shift klik**, nebo tlačítko **☑ Vše** / **☐ Nic**)
+  a nastav jim naráz **Role / Stav / Akci** (např. všechny *Přeskočit*, nebo
+  všem *Oponuji*). Volba se aplikuje hned na vybrané řádky; jednotlivé řádky
+  pak můžeš ještě doladit ručně.
   U **nenamapovaného oboru** (jantarový řádek) zvol existující obor, nebo
   **„➕ Nový obor…"** (předvyplní STAG kód). Nově založený obor se **hned
   nabídne i v ostatních řádcích** a u všech řádků **se stejným STAG kódem**

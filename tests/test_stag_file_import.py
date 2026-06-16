@@ -193,6 +193,81 @@ def test_merged_dialog_reject_when_empty_closes(qapp, service: ThesisService) ->
     assert seen == [True]
 
 
+def _preview_with_records(dlg, n):
+    """Naplní náhled `n` fiktivními řádky (přes _populate_preview)."""
+    from bpdpmanager.services.stag_csv_importer import (
+        ImportFile,
+        ImportRole,
+        ParsedRecord,
+    )
+    recs = [
+        ParsedRecord(role=ImportRole.UNKNOWN, student_last=f"N{i}",
+                     student_first="Jan", type_code="DP",
+                     academic_year="2024/2025", title_cs=f"Téma {i}")
+        for i in range(n)
+    ]
+    dlg.import_file = ImportFile(path=Path("x.csv"), encoding="utf-8", records=recs)
+    dlg._populate_preview()
+
+
+def test_bulk_set_role_status_action(qapp, service: ThesisService) -> None:
+    """Hromadné nastavení role/stavu/akce u vybraných řádků náhledu."""
+    from bpdpmanager.models.enums import ThesisStatus
+    from bpdpmanager.services.stag_csv_importer import ImportRole
+    from bpdpmanager.ui.stag_import_dialog import ACTION_SKIP
+
+    dlg = StagImportDialog(service)
+    _preview_with_records(dlg, 3)
+    assert len(dlg.row_widgets) == 3
+
+    dlg.table_select_all()
+    # Role → Oponuji
+    dlg.cmb_bulk_role.setCurrentIndex(
+        dlg.cmb_bulk_role.findData(ImportRole.OPPONENT.value))
+    assert all(w["cb_role"].currentData() == ImportRole.OPPONENT.value
+               for w in dlg.row_widgets)
+    assert dlg.cmb_bulk_role.currentIndex() == 0   # reset na placeholder
+    # Stav → Obhájeno
+    dlg.cmb_bulk_status.setCurrentIndex(
+        dlg.cmb_bulk_status.findData(ThesisStatus.DEFENDED.value))
+    assert all(w["cb_status"].currentData() == ThesisStatus.DEFENDED.value
+               for w in dlg.row_widgets)
+    # Akce → Přeskočit
+    dlg.cmb_bulk_action.setCurrentIndex(dlg.cmb_bulk_action.findData("skip"))
+    assert all(w["cb_action"].currentData() == ACTION_SKIP
+               for w in dlg.row_widgets)
+
+
+def test_bulk_only_selected_rows(qapp, service: ThesisService) -> None:
+    """Hromadná změna se dotkne jen vybraných řádků (ne všech)."""
+    from bpdpmanager.services.stag_csv_importer import ImportRole
+
+    dlg = StagImportDialog(service)
+    _preview_with_records(dlg, 3)
+    dlg.table.clearSelection()
+    dlg.table.selectRow(1)   # jen prostřední
+    dlg.cmb_bulk_role.setCurrentIndex(
+        dlg.cmb_bulk_role.findData(ImportRole.OPPONENT.value))
+    roles = [w["cb_role"].currentData() for w in dlg.row_widgets]
+    assert roles[1] == ImportRole.OPPONENT.value
+    assert roles[0] == ImportRole.SUPERVISOR.value   # nedotčeno
+    assert roles[2] == ImportRole.SUPERVISOR.value
+
+
+def test_bulk_without_selection_is_noop(qapp, service: ThesisService) -> None:
+    """Bez výběru řádků se nic nezmění a ukáže se hint."""
+    from bpdpmanager.services.stag_csv_importer import ImportRole
+
+    dlg = StagImportDialog(service)
+    _preview_with_records(dlg, 2)
+    before = [w["cb_role"].currentData() for w in dlg.row_widgets]
+    dlg.table.clearSelection()
+    dlg.cmb_bulk_role.setCurrentIndex(
+        dlg.cmb_bulk_role.findData(ImportRole.OPPONENT.value))
+    assert [w["cb_role"].currentData() for w in dlg.row_widgets] == before
+    assert "Nejdřív vyber" in dlg.lbl_info.text()
+
+
 def test_mainwindow_stag_attach_fn_attaches_and_cleans_temp(
     qapp, tmp_path: Path, service: ThesisService
 ) -> None:

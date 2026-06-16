@@ -901,6 +901,11 @@ reviews without that field fall back to the suggestion sentence.
   programme…"** (the STAG code is prefilled). A newly created programme is
   **immediately offered in other rows** and pre-selected for rows **with
   the same STAG code**.
+- **Bulk set.** Above the table a **"Bulk for selected:"** bar — select
+  several rows (**Ctrl/Shift click**, or **☑ All** / **☐ None**) and set their
+  **Role / Status / Action** at once (e.g. skip them all, or set them all to
+  *Opponent*). The choice applies immediately to the selected rows; individual
+  rows can still be fine-tuned by hand.
 - **Students** — for supervised theses a missing student is **created
   automatically** from STAG data (name + personal number) and assigned;
   further details (e-mail, phone, programme) can be filled later in student

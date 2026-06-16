@@ -390,6 +390,40 @@ class StagImportDialog(QDialog):
         self.lbl_info.setStyleSheet("color:#888;")
         pp_lay.addWidget(self.lbl_info)
 
+        # ── Hromadné nastavení vybraných řádků ──────────────────────────────
+        # Vyber řádky (Ctrl/Shift klik, nebo ☑ Vše) a nastav jim naráz roli /
+        # stav / akci. Volba se aplikuje hned a combo se vrátí na placeholder.
+        bulk_bar = QHBoxLayout()
+        bulk_bar.setContentsMargins(0, 0, 0, 0)
+        bulk_bar.addWidget(QLabel(tr("Hromadně vybraným:")))
+        self.cmb_bulk_role = QComboBox()
+        self.cmb_bulk_role.addItem(tr("🔧 Role…"), None)
+        self.cmb_bulk_role.addItem(tr("🎓 Vedu já"), ImportRole.SUPERVISOR.value)
+        self.cmb_bulk_role.addItem(tr("🧐 Oponuji"), ImportRole.OPPONENT.value)
+        self.cmb_bulk_role.currentIndexChanged.connect(self._on_bulk_role)
+        bulk_bar.addWidget(self.cmb_bulk_role)
+        self.cmb_bulk_status = QComboBox()
+        self.cmb_bulk_status.addItem(tr("🔧 Stav…"), None)
+        for st in ThesisStatus:
+            self.cmb_bulk_status.addItem(st.label, st.value)
+        self.cmb_bulk_status.currentIndexChanged.connect(self._on_bulk_status)
+        bulk_bar.addWidget(self.cmb_bulk_status)
+        self.cmb_bulk_action = QComboBox()
+        self.cmb_bulk_action.addItem(tr("🔧 Akce…"), None)
+        self.cmb_bulk_action.addItem(tr("✓ Vytvořit/Aktualizovat"), "do")
+        self.cmb_bulk_action.addItem(tr("✗ Přeskočit"), "skip")
+        self.cmb_bulk_action.currentIndexChanged.connect(self._on_bulk_action)
+        bulk_bar.addWidget(self.cmb_bulk_action)
+        bulk_bar.addSpacing(12)
+        btn_sel_all = QPushButton(tr("☑ Vše"))
+        btn_sel_all.clicked.connect(self.table_select_all)
+        btn_sel_none = QPushButton(tr("☐ Nic"))
+        btn_sel_none.clicked.connect(lambda: self.table.clearSelection())
+        bulk_bar.addWidget(btn_sel_all)
+        bulk_bar.addWidget(btn_sel_none)
+        bulk_bar.addStretch()
+        pp_lay.addLayout(bulk_bar)
+
         # Splitter: nahoře tabulka řádků, dole detail vybraného řádku
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.setChildrenCollapsible(False)
@@ -412,7 +446,8 @@ class StagImportDialog(QDialog):
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        # Vícevýběr (Ctrl/Shift) — umožní hromadné nastavení role/stavu/akce.
+        self.table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setMinimumHeight(180)
         h = self.table.horizontalHeader()
@@ -808,6 +843,76 @@ class StagImportDialog(QDialog):
         rows = self.table.selectionModel().selectedRows()
         if rows and rows[0].row() == row_idx:
             self._render_record_detail(row_idx)
+
+    # --- hromadné nastavení vybraných řádků ---------------------------------
+
+    def table_select_all(self) -> None:
+        """Vybere všechny řádky náhledu (pro hromadné nastavení)."""
+        if self.table.rowCount():
+            self.table.selectAll()
+
+    def _selected_row_indexes(self) -> list[int]:
+        return sorted(
+            {ix.row() for ix in self.table.selectionModel().selectedRows()}
+        )
+
+    def _bulk_rows_or_hint(self) -> list[int]:
+        """Vrátí vybrané řádky; když žádné, ukáže hint v lbl_info a vrátí []."""
+        rows = self._selected_row_indexes()
+        if not rows:
+            self.lbl_info.setText(
+                tr("⚠ Nejdřív vyber řádky (Ctrl/Shift klik) nebo „☑ Vše\".")
+            )
+        return rows
+
+    def _on_bulk_role(self, idx: int) -> None:
+        if idx <= 0:   # placeholder
+            return
+        value = self.cmb_bulk_role.currentData()
+        self.cmb_bulk_role.setCurrentIndex(0)   # reset na placeholder
+        rows = self._bulk_rows_or_hint()
+        for i in rows:
+            cb = self.row_widgets[i]["cb_role"]
+            j = cb.findData(value)
+            if j >= 0:
+                cb.setCurrentIndex(j)
+        if rows:
+            self.lbl_info.setText(
+                tr("✓ Role nastavena u {n} řádků.").format(n=len(rows)))
+
+    def _on_bulk_status(self, idx: int) -> None:
+        if idx <= 0:
+            return
+        value = self.cmb_bulk_status.currentData()
+        self.cmb_bulk_status.setCurrentIndex(0)
+        rows = self._bulk_rows_or_hint()
+        for i in rows:
+            cb = self.row_widgets[i]["cb_status"]
+            j = cb.findData(value)
+            if j >= 0:
+                cb.setCurrentIndex(j)
+        if rows:
+            self.lbl_info.setText(
+                tr("✓ Stav nastaven u {n} řádků.").format(n=len(rows)))
+
+    def _on_bulk_action(self, idx: int) -> None:
+        if idx <= 0:
+            return
+        mode = self.cmb_bulk_action.currentData()   # "do" / "skip"
+        self.cmb_bulk_action.setCurrentIndex(0)
+        rows = self._bulk_rows_or_hint()
+        for i in rows:
+            cb = self.row_widgets[i]["cb_action"]
+            if mode == "skip":
+                j = cb.findData(ACTION_SKIP)
+                if j >= 0:
+                    cb.setCurrentIndex(j)
+            else:
+                # první volba řádku = Vytvořit/Aktualizovat (dle existence v DB)
+                cb.setCurrentIndex(0)
+        if rows:
+            self.lbl_info.setText(
+                tr("✓ Akce nastavena u {n} řádků.").format(n=len(rows)))
 
     def _render_record_detail(self, row_idx: int) -> None:
         if row_idx < 0 or row_idx >= len(self.row_widgets):
