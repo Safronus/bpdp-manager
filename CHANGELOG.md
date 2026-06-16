@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.2] - 2026-06-16
+
+### Fixed
+- **Seed složení komisí: doplněn David Malaník (a varianta z 19. 6.) do zelené
+  Mgr (NSWI) komise.** Složení komisí je v gitu (`komise_szz.json`) a pro členy
+  **autoritativní** (PDF je nepřepisuje) — zelená Mgr komise tam měla jen
+  složení ze 17.–18. 6., takže člen **Ing. David Malaník, Ph.D.** (zasedající
+  19. 6.) v aplikaci nebyl vidět. Doplněni členové z 19. 6.: předseda
+  prof. Matoušek, místopředseda prof. Jašek a člen David Malaník (uvedeni jsou
+  členové obou dnů; model nerozlišuje složení po dnech — viz `note`).
+  *Projeví se po reloadu seedu (restart / „🔄 Načíst komise znovu").*
+
 ## [2.9.1] - 2026-06-16
 
 ### Fixed

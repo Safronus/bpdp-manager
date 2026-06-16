@@ -148,16 +148,19 @@
       "color": "zelená",
       "program_label": "Informační technologie — specializace Softwarové inženýrství",
       "dates": ["17. 6. 2026", "18. 6. 2026", "19. 6. 2026"],
-      "note": "Složení se 19. 6. liší (předseda prof. Ing. Radomil Matoušek, Ph.D.).",
+      "note": "Složení se 19. 6. liší (předseda Matoušek místo Bujoka, místopředseda Jašek, navíc David Malaník) — uvedeni jsou členové obou dnů (model nerozlišuje složení po dnech).",
       "members": [
         {"role": "Předseda", "name": "doc. RNDr. Petr Bujok, Ph.D."},
+        {"role": "Předseda", "name": "prof. Ing. Radomil Matoušek, Ph.D."},
         {"role": "Místopředseda", "name": "prof. Ing. Roman Šenkeřík, Ph.D."},
         {"role": "Místopředseda", "name": "prof. Ing. Marek Kubalčík, Ph.D."},
+        {"role": "Místopředseda", "name": "prof. Mgr. Roman Jašek, Ph.D."},
         {"role": "Tajemník", "name": "Ing. Tomáš Martínek, Ph.D."},
         {"role": "Člen", "name": "Ing. Pavel Vařacha, Ph.D."},
         {"role": "Člen", "name": "Ing. Radek Vala, Ph.D."},
         {"role": "Člen", "name": "Ing. Tomáš Sysala, Ph.D."},
-        {"role": "Člen", "name": "Ing. Petr Černý"}
+        {"role": "Člen", "name": "Ing. Petr Černý"},
+        {"role": "Člen", "name": "Ing. David Malaník, Ph.D."}
       ]
     },
     {
