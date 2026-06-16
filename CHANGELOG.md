@@ -5,6 +5,22 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.5] - 2026-06-16
+
+### Fixed
+- **Záložka „Státnice & průběh" se na menším rozlišení / úzkém okně už
+  nerozsype.** Tři panely byly v `QHBoxLayout` s **napevno** počítanými šířkami
+  boků (`setFixedWidth`) + pojistkou se „podlahou" 0.3, takže pod určitou
+  šířkou boky přerostly střed a sekce se **překrývaly** (graf přes PDF strom,
+  HTML tabulky zmáčknuté na svislý text).
+  - Sloupce jsou nově ve **vodorovném `QSplitter`u** — nikdy se nepřekrývají
+    (ořezávají), uživatel je může **přetáhnout**. Šířky řídí `_fit_panels` přes
+    `setSizes` (na velkém monitoru **součet = šířka okna → beze změny vzhledu**;
+    na úzkém Qt poměrně zmenší dle minim panelů).
+  - Spodní **statistika** (komise+graf | členové) je taky splitter a pod ~640 px
+    se **přepne svisle** (pod sebe), aby tabulky dostaly plnou šířku.
+  - Velký monitor (2560/4K) ověřen jako **vizuálně i rozměrově identický**.
+
 ## [2.8.4] - 2026-06-16
 
 ### Added

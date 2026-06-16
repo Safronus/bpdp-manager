@@ -975,7 +975,14 @@ clicking **opens them in the system viewer**). **Right, a separate panel
 complete for the **selected year** (current by default), **independent of the
 selected committee**; width again fits content. The **nearest** upcoming
 defence is highlighted with a live **countdown** ("in X min"). On open the
-current academic year is selected. The **📆 Add to calendar** button (above
+current academic year is selected.
+
+> **Smaller resolution / narrow window.** The three panels use **draggable
+> splitters** — on a large monitor they look as before (widths fit content),
+> but on a narrow window they **don't overlap**: they shrink and you can drag
+> the dividers manually. The bottom **statistics** (committees+chart | members)
+> switch from side-by-side to **stacked** on a narrow window so the tables get
+> full width and don't wrap. The **📆 Add to calendar** button (above
 the schedule) exports the **upcoming** defences of the selected year: in the
 dialog you choose supervised/opposed (both by default), a reminder (default
 **15 min before**) and the target calendar — **Apple Calendar** / **Outlook**

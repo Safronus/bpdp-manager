@@ -262,9 +262,16 @@ class KomiseTab(QWidget):
 
         # ── 3 panely: vlevo komise+PDF (dle obsahu), uprostřed detail komise,
         #    vpravo nezávislý harmonogram (dle obsahu); prostřední bere zbytek.
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(8)
+        # QSplitter (ne fixed-width QHBoxLayout) → na malém okně se panely
+        # zmenší/ořežou (nikdy nepřekrývají) a uživatel je může přetáhnout.
+        # Na velkém monitoru zůstává rozložení stejné: _fit_panels dá splitteru
+        # přes setSizes přesně dopočítané šířky (součet = šířka → bez škálování).
+        self.cols_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.cols_splitter.setHandleWidth(8)
+        self.cols_splitter.setChildrenCollapsible(True)
+        # Po ručním přetažení přestaneme auto-dopočítávat šířky (necháme volbu
+        # uživatele) — viz _on_cols_splitter_moved / _fit_panels.
+        self._cols_user_adjusted = False
 
         left = QSplitter(Qt.Orientation.Vertical)
         self.tree = QTreeWidget()
@@ -336,7 +343,7 @@ class KomiseTab(QWidget):
         lc = QVBoxLayout(self.left_container)
         lc.setContentsMargins(0, 0, 0, 0)
         lc.addWidget(left)
-        row.addWidget(self.left_container)
+        self.cols_splitter.addWidget(self.left_container)
 
         # Prostřední panel: nahoře detail komise (členové + studenti) / přehled,
         # který na výšku FITUJE OBSAH; dole sekce statistiky obhajob, která bere
@@ -388,18 +395,26 @@ class KomiseTab(QWidget):
         lcl.addWidget(self.stats_committee, stretch=1)
         lcl.addWidget(self.stats_chart, stretch=1)
 
-        stats_cols = QHBoxLayout()
-        stats_cols.setContentsMargins(0, 0, 0, 0)
-        stats_cols.addWidget(left_col, stretch=1)
-        stats_cols.addWidget(self.stats_members, stretch=1)
-        sbl.addLayout(stats_cols, stretch=1)
+        # Komise+graf | členové — splitter, jehož orientaci přepínáme podle
+        # šířky: na úzkém okně se přepne na SVISLE (pod sebe), aby tabulky
+        # dostaly plnou šířku a nelámaly se po písmenech. Na širokém zůstává
+        # vedle sebe (= dnešní vzhled).
+        self.stats_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.stats_splitter.setHandleWidth(8)
+        self.stats_splitter.setChildrenCollapsible(False)
+        self.stats_splitter.addWidget(left_col)
+        self.stats_splitter.addWidget(self.stats_members)
+        self.stats_splitter.setStretchFactor(0, 1)
+        self.stats_splitter.setStretchFactor(1, 1)
+        sbl.addWidget(self.stats_splitter, stretch=1)
 
         mid = QWidget()
+        mid.setMinimumWidth(300)
         ml = QVBoxLayout(mid)
         ml.setContentsMargins(0, 0, 0, 0)
         ml.addWidget(self.detail)            # nahoře: fituje obsah na výšku
         ml.addWidget(stats_box, stretch=1)   # dole: bere zbývající výšku
-        row.addWidget(mid, stretch=1)
+        self.cols_splitter.addWidget(mid)
 
         # Pravý panel: nezávislý „Můj harmonogram obhajob" pro vybraný rok.
         self.harmonogram_view = QTextBrowser()
@@ -415,9 +430,24 @@ class KomiseTab(QWidget):
         self.btn_add_calendar.clicked.connect(self._on_add_to_calendar)
         rcl.addWidget(self.btn_add_calendar)
         rcl.addWidget(self.harmonogram_view)
-        row.addWidget(self.right_container)
+        self.cols_splitter.addWidget(self.right_container)
 
-        outer.addLayout(row, stretch=1)
+        # Minima panelů: auto-fit (setSizes) je nesmí přerůst; pod nimi se
+        # ořezává (ne překrývá). Prostřední je chráněný širším minimem.
+        self.left_container.setMinimumWidth(150)
+        self.right_container.setMinimumWidth(150)
+        self.cols_splitter.setStretchFactor(0, 0)
+        self.cols_splitter.setStretchFactor(1, 1)   # extra šířku bere prostřední
+        self.cols_splitter.setStretchFactor(2, 0)
+        self.cols_splitter.splitterMoved.connect(self._on_cols_splitter_moved)
+        outer.addWidget(self.cols_splitter, stretch=1)
+
+        # Malá minima vnitřních widgetů, ať se obsah dá na úzkém monitoru
+        # zmenšit (jinak by intrinsic minima bránila zmenšení a pravý panel by
+        # se ořízl). Na velkém monitoru se nic nemění — šířky řídí _fit_panels.
+        for _w in (self.tree, self.pdf_tree, self.detail, self.stats_committee,
+                   self.stats_members, self.stats_chart, self.harmonogram_view):
+            _w.setMinimumWidth(60)
 
         self._right_year = None
         self.refresh()
@@ -755,12 +785,17 @@ class KomiseTab(QWidget):
         return cols + tree.indentation() * 3 + 36
 
     def _fit_panels(self) -> None:
-        """Levý i pravý panel napevno dle obsahu; prostřední bere zbytek.
+        """Šířky panelů dle obsahu; prostřední bere zbytek (přes splitter).
 
         Levý = šířka **stromu komisí** (ne PDF seznamu — ten může být širší
-        kvůli dlouhým názvům a eliduje se), aby za komisemi nebyla mezera.
-        Boky se zmenší poměrně, jen kdyby prostřednímu nezbylo ~320 px.
+        kvůli dlouhým názvům a eliduje se), pravý = obsah harmonogramu. Na
+        velkém okně součet vyjde přesně = šířka okna → splitter nic neškáluje
+        (= dnešní vzhled). Na úzkém okně setSizes Qt poměrně zmenší (respektuje
+        minima panelů) → panely se ořežou, **nepřekrývají**. Po ručním
+        přetažení uživatelem (``_cols_user_adjusted``) už šířky nepřepisujeme.
         """
+        if self._cols_user_adjusted:
+            return
         self.tree.expandAll()
         total = self.width() or 1400
         lw = max(220, self._tree_width(self.tree))
@@ -772,12 +807,26 @@ class KomiseTab(QWidget):
             rw = 300   # prázdný harmonogram nemá rozšiřovat pravý panel
         # Pravý panel musí pojmout i tlačítko „Přidat do kalendáře".
         rw = max(rw, self.btn_add_calendar.sizeHint().width() + 24)
-        avail = total - 320
-        if lw + rw > avail > 0:
-            scale = max(0.3, avail / (lw + rw))
-            lw, rw = int(lw * scale), int(rw * scale)
-        self.left_container.setFixedWidth(lw)
-        self.right_container.setFixedWidth(rw)
+        mid_w = max(360, total - lw - rw)
+        self.cols_splitter.setSizes([lw, mid_w, rw])
+
+    def _on_cols_splitter_moved(self, *_args) -> None:
+        """Uživatel přetáhl rozhraní panelů → přestaň auto-dopočítávat šířky."""
+        self._cols_user_adjusted = True
+
+    def _fit_stats_orientation(self) -> None:
+        """Statistika (komise+graf | členové): pod prahem na sebe, jinak vedle.
+
+        Na velkém monitoru je sekce široká → zůstává vodorovně (dnešní vzhled);
+        teprve na úzkém okně se přepne svisle, aby tabulky dostaly plnou šířku.
+        """
+        w = self.stats_splitter.width()
+        if w <= 0:
+            return
+        want = (Qt.Orientation.Vertical if w < 640
+                else Qt.Orientation.Horizontal)
+        if self.stats_splitter.orientation() != want:
+            self.stats_splitter.setOrientation(want)
 
     def _fit_detail_height(self) -> None:
         """Horní detail (komise/přehled) na výšku fituje obsah.
@@ -798,11 +847,13 @@ class KomiseTab(QWidget):
     def showEvent(self, event) -> None:  # noqa: N802 (Qt API)
         super().showEvent(event)
         self._fit_panels()
+        self._fit_stats_orientation()
         self._fit_detail_height()
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt API)
         super().resizeEvent(event)
         self._fit_panels()
+        self._fit_stats_orientation()
         self._fit_detail_height()
 
     # ── detail (prostřední) + harmonogram (pravý) ─────────────────────────

@@ -1094,6 +1094,13 @@ panel 📅 Můj harmonogram obhajob** — vždy kompletní pro **vybraný rok**
 (default aktuální), **nezávislý na vybrané komisi**; šířka opět dle obsahu.
 U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **odpočet**
 („za X min", živě). Po otevření je vybraný aktuální akademický rok.
+
+> **Menší rozlišení / úzké okno.** Tři panely jsou v **posuvných rozhraních**
+> (splitter) — na velkém monitoru vypadají jako dřív (šířky dle obsahu), na
+> úzkém okně se ale **nepřekrývají**: zmenší se a dělící čáry mezi nimi si
+> můžeš **ručně přetáhnout**. Spodní **statistika** (komise+graf | členové) se
+> na úzkém okně přepne z „vedle sebe" na **pod sebe**, aby tabulky dostaly
+> plnou šířku a nelámaly se.
 Tlačítkem **📆 Přidat do kalendáře** (nad harmonogramem) exportuješ
 **nadcházející** obhajoby vybraného roku do kalendáře: v dialogu zvolíš
 vedené/oponované (defaultně obojí), připomínku (defaultně **15 min předem**)

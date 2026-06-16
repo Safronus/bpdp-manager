@@ -287,6 +287,45 @@ def test_highlighting_works_on_seed_committee(service) -> None:
     assert cervena_leaf.data(1, ROLE_VO) == (1, 0)
 
 
+def test_komise_tab_responsive_layout(service) -> None:
+    """Responzivní layout záložky Státnice: na velkém okně sloupce vedle sebe
+    (statistika vodorovně = dnešní vzhled), na úzkém se statistika přepne svisle
+    a sloupce se umí zmenšit (splitter → nikdy se nepřekrývají)."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
+
+    from bpdpmanager.ui.komise_tab import KomiseTab
+
+    QApplication.instance() or QApplication([])
+    win = QMainWindow()
+    tabs = QTabWidget()
+    win.setCentralWidget(tabs)
+    tab = KomiseTab(service)
+    tabs.addTab(tab, "S")
+
+    # Tři sloupce ve splitteru (ne fixed-width) → nepřekrývají se a umí se
+    # zmenšit hluboko pod šířku okna ze screenshotu (~1100).
+    assert tab.cols_splitter.count() == 3
+    assert tab.cols_splitter.minimumSizeHint().width() < 900
+
+    # Velké okno: prostřední bere zbytek, statistika vedle sebe (vodorovně).
+    win.resize(2200, 1300)
+    win.show()
+    QApplication.processEvents()
+    QApplication.processEvents()
+    assert tab.stats_splitter.orientation() == Qt.Orientation.Horizontal
+    big = tab.cols_splitter.sizes()
+    assert big[1] > big[0] and big[1] > big[2]
+
+    # Úzké okno: statistika se přepne pod sebe (svisle).
+    win.resize(1000, 760)
+    QApplication.processEvents()
+    QApplication.processEvents()
+    assert tab.stats_splitter.orientation() == Qt.Orientation.Vertical
+
+    win.close()
+
+
 def test_my_defense_schedule(service) -> None:
     """Harmonogram: vedené + oponované sloty chronologicky, s komisí (kde)."""
     from bpdpmanager.models import OpposingThesis, Student, Thesis
