@@ -787,6 +787,12 @@ class MainWindow(QMainWindow):
         # Tichá kontrola STAG na pozadí (krátce po startu, ať se okno stihne
         # vykreslit). Indikátor v proužku + odznaky na záložkách.
         self._stag_checker: object | None = None
+        self._stag_pending_dismissed = False
+        self._last_stag_ts = ""
+        # Pending změny z minulého běhu obnov HNED (synchronně) — uživatel je
+        # vidí i po restartu (a než doběhne auto-kontrola). Důležité pro edge
+        # case: po startu hned kliknu na „Detaily…".
+        self._restore_stag_pending()
         QTimer.singleShot(900, lambda: self._start_stag_check(auto=True))
 
         # Indikátor připojení ke STAG: aktivní ping na pozadí po startu a pak
@@ -1218,9 +1224,15 @@ class MainWindow(QMainWindow):
         )
 
     def _dismiss_stag_banner(self) -> None:
-        """Zavření proužku = potvrzení změn → schovat a smazat odznaky 🔄
-        na záložkách (jinak by visely až do dalšího STAG checku / restartu)."""
+        """Zavření proužku ✕ = schovat + smazat odznaky 🔄. Stav „zavřeno" se
+        **pamatuje i po restartu** (proužek zůstane skrytý, dokud další kontrola
+        nepřinese něco nového)."""
         self._stag_banner.setVisible(False)
+        self._stag_pending_dismissed = True
+        # Zapamatuj „zavřeno" na disk (pending data necháme — kdyby přibylo nové).
+        result = getattr(self, "_last_stag_result", None)
+        if result is not None and result.ok and result.total_changes > 0:
+            self._persist_stag_pending(result)
         if any(self._stag_badges.values()):
             self._stag_badges.clear()
             self._refresh_tab_labels()
@@ -1232,24 +1244,22 @@ class MainWindow(QMainWindow):
             self._stag_banner.setVisible(False)
 
     def _on_stag_check_done(self, result) -> None:
-        """Zobrazí výsledek tiché kontroly (proužek + odznaky na záložkách)."""
+        """Zobrazí výsledek tiché kontroly (proužek + odznaky na záložkách).
+
+        Úspěšná kontrola je **autoritativní** — nahradí pending (vyřešené zmizí,
+        nové přibudou). Neúspěšná (offline) **nemaže** pending z minulého běhu.
+        Pending se ukládá na disk, takže přežije restart.
+        """
         from datetime import date, datetime
 
         self._stag_checker = None
-        self._last_stag_result = result
         ts = datetime.now().strftime("%H:%M")
-        # Zaznamenej úspěšnou kontrolu — auto-kontrola pak dnes už neběží.
-        if result.ok and self.profile_manager:
-            self.profile_manager.set_ui_pref(
-                "stag_autocheck_date", date.today().isoformat()
-            )
-
-        # Odznaky 🔄 na záložkách (jen aktuální + oponentury).
-        self._stag_badges[id(self.tab_current)] = result.supervised_changes if result.ok else 0
-        self._stag_badges[id(self.tab_opposing)] = result.opposing_changes if result.ok else 0
-        self._refresh_tab_labels()
 
         if not result.ok:
+            # Offline → ponech dříve zjištěné pending změny (nemaž je).
+            prev = getattr(self, "_last_stag_result", None)
+            if prev is not None and prev.ok and prev.total_changes > 0:
+                return
             self._set_stag_banner(
                 f"⚠ STAG: kontrolu se nepodařilo dokončit ({result.error}). "
                 f"Naposledy {ts}.",
@@ -1257,7 +1267,28 @@ class MainWindow(QMainWindow):
             )
             return
 
+        # Přibylo něco nového oproti dříve zobrazenému? → znovu ukázat proužek.
+        prev = getattr(self, "_last_stag_result", None)
+        prev_keys = prev.change_keyset() if prev is not None else set()
+        if result.change_keyset() - prev_keys:
+            self._stag_pending_dismissed = False
+
+        self._last_stag_result = result
+        self._last_stag_ts = ts
+        if self.profile_manager:
+            self.profile_manager.set_ui_pref(
+                "stag_autocheck_date", date.today().isoformat()
+            )
+        self._persist_stag_pending(result)   # přežije restart (prázdné = vyřešeno)
+
+        # Odznaky 🔄 — skryté, když je proužek zavřený nebo nejsou změny.
+        show = result.total_changes > 0 and not self._stag_pending_dismissed
+        self._stag_badges[id(self.tab_current)] = result.supervised_changes if show else 0
+        self._stag_badges[id(self.tab_opposing)] = result.opposing_changes if show else 0
+        self._refresh_tab_labels()
+
         if result.total_changes == 0:
+            self._stag_pending_dismissed = False
             self._set_stag_banner(
                 f"✓ STAG zkontrolováno v {ts} — <b>vše aktuální</b> "
                 f"(prošlo {result.checked} prací). Detaily ↓",
@@ -1267,6 +1298,13 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(15000, self._auto_hide_stag_banner)
             return
 
+        if self._stag_pending_dismissed:
+            return   # uživatel proužek zavřel a nic nového nepřibylo
+
+        self._show_changes_banner(result, ts)
+
+    def _show_changes_banner(self, result, ts: str) -> None:
+        """Proužek se souhrnem změn (vedené / oponentury / nové práce)."""
         parts: list[str] = []
         if result.supervised_changes:
             parts.append(f"{result.supervised_changes}× vedená práce")
@@ -1274,11 +1312,54 @@ class MainWindow(QMainWindow):
             parts.append(f"{result.opposing_changes}× oponentura")
         if result.new_works:
             parts.append(f"🆕 {result.new_works}× nová práce ve STAG")
+        when = f" v {ts}" if ts else ""
         self._set_stag_banner(
-            f"🔄 STAG zkontrolováno v {ts} — <b>změny: {', '.join(parts)}</b>. "
+            f"🔄 STAG zkontrolováno{when} — <b>změny: {', '.join(parts)}</b>. "
             "Klikni na „Detaily…“.",
             "#fff8e1", show_open=True,
         )
+
+    def _persist_stag_pending(self, result) -> None:
+        """Uloží pending změny na disk (nebo vyprázdní, když je vše vyřešeno)."""
+        if self.service is None:
+            return
+        if not result.ok or result.total_changes == 0:
+            self.service.save_stag_pending_changes({})
+            return
+        data = result.to_pending()
+        data["ts"] = self._last_stag_ts
+        data["dismissed"] = self._stag_pending_dismissed
+        self.service.save_stag_pending_changes(data)
+
+    def _restore_stag_pending(self) -> None:
+        """Po startu obnoví pending změny z disku (proužek + „Detaily…").
+
+        Klíčové: nečeká na (jen jednou denně běžící) auto-kontrolu a pokryje
+        edge case „po startu hned kliknu na Detaily…" — `_last_stag_result` je
+        k dispozici synchronně už při startu.
+        """
+        if self.service is None:
+            return
+        try:
+            d = self.service.load_stag_pending_changes()
+        except Exception:
+            return
+        if not d:
+            return
+        from .stag_check import StagCheckResult
+
+        result = StagCheckResult.from_pending(d)
+        if result.total_changes == 0:
+            return
+        self._last_stag_result = result
+        self._last_stag_ts = d.get("ts", "") or ""
+        self._stag_pending_dismissed = bool(d.get("dismissed"))
+        show = not self._stag_pending_dismissed
+        self._stag_badges[id(self.tab_current)] = result.supervised_changes if show else 0
+        self._stag_badges[id(self.tab_opposing)] = result.opposing_changes if show else 0
+        self._refresh_tab_labels()
+        if show:
+            self._show_changes_banner(result, self._last_stag_ts)
 
     def _show_stag_changes(self) -> None:
         """Otevře rychlý náhled změn ze STAG; odtud lze přejít na Import.
@@ -1304,20 +1385,22 @@ class MainWindow(QMainWindow):
         if dlg.did_sync:
             self._start_stag_check()
 
-    def _run_stag_sync_subset(self, opposing: bool) -> bool:
+    def _run_stag_sync_subset(self, opposing: bool, ids=None) -> bool:
         """Aktualizace ze STAG pro subset z tiché kontroly (vedené/oponované).
 
         Volá se **inline z detailu** (okno se nezavírá): otevře `StagSyncDialog`
         jen s dotčenými pracemi, po aplikaci obnoví pohledy a vrátí, zda se něco
-        změnilo. Banner/odznaky se **nepřepočítávají tady** — to udělá
-        :meth:`_show_stag_changes` až po zavření detailu.
+        změnilo. ``ids`` předává detail z vlastního výsledku (robustní, kdyby
+        mezitím doběhla nová kontrola). Banner/odznaky se **nepřepočítávají
+        tady** — to udělá :meth:`_show_stag_changes` až po zavření detailu.
         """
         from .stag_sync_dialog import ROLE_OPPONENT, ROLE_SUPERVISOR, StagSyncDialog
 
-        result = getattr(self, "_last_stag_result", None)
-        if result is None:
-            return False
-        ids = result.opposing_ids if opposing else result.supervised_ids
+        if ids is None:
+            result = getattr(self, "_last_stag_result", None)
+            if result is None:
+                return False
+            ids = result.opposing_ids if opposing else result.supervised_ids
         if not ids:
             return False
         dlg = StagSyncDialog(

@@ -718,6 +718,15 @@ the check found changes in both supervised **and** opposed theses, you handle
 STAG** remains for **new theses** you don't have in the app yet. The check is
 **read-only**; offline it reports quietly.
 
+> **Changes survive a restart.** Detected changes are stored with the profile,
+> so after closing and reopening the app you **see the banner and "Details…"
+> right away** — even if today's automatic check already ran (it runs at most
+> once a day). The next check **merges** results (resolved ones disappear, new
+> ones are added); an offline check **does not erase** previously detected
+> changes. The **✕** hides the banner and the "dismissed" state is
+> **remembered across restarts** — it reappears once a check finds **something
+> new**.
+
 ### 🟢 STAG connection indicator (toolbar)
 
 On the right of the toolbar is a **STAG** indicator: 🟢 = reachable, 🔴 =

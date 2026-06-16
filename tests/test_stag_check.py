@@ -157,17 +157,17 @@ def test_preview_dialog_inline_both(service) -> None:
         opposing=["B — DP · změna"], opposing_ids=["o1"],
         new=[],
     )
-    calls: list[bool] = []
+    calls: list = []
 
-    def fake_sync(opposing: bool) -> bool:
-        calls.append(opposing)
+    def fake_sync(opposing: bool, ids=None) -> bool:
+        calls.append((opposing, tuple(ids or ())))
         return True   # něco se změnilo
 
     dlg = chk.StagChangesPreviewDialog(r, on_sync=fake_sync)
     assert dlg.btn_sync_sup.isEnabled() and dlg.btn_sync_opp.isEnabled()
 
     dlg.btn_sync_sup.click()
-    assert calls == [False]
+    assert calls == [(False, ("t1",))]        # předá ID z vlastního výsledku
     assert dlg.did_sync
     assert not dlg.btn_sync_sup.isEnabled()   # vedené vyřízeno (zašedlé)
     assert dlg.btn_sync_opp.isEnabled()       # oponované pořád aktivní
@@ -175,7 +175,7 @@ def test_preview_dialog_inline_both(service) -> None:
     assert not dlg.open_sync_supervised and not dlg.open_sync_opposing
 
     dlg.btn_sync_opp.click()
-    assert calls == [False, True]
+    assert calls == [(False, ("t1",)), (True, ("o1",))]
     assert not dlg.btn_sync_opp.isEnabled()   # i oponované vyřízeno
 
 
@@ -191,7 +191,7 @@ def test_preview_dialog_no_change_keeps_button(service) -> None:
         opposing=[], opposing_ids=[],
         new=[],
     )
-    dlg = chk.StagChangesPreviewDialog(r, on_sync=lambda opposing: False)
+    dlg = chk.StagChangesPreviewDialog(r, on_sync=lambda opposing, ids=None: False)
     dlg.btn_sync_sup.click()
     assert dlg.btn_sync_sup.isEnabled()   # nic se nezměnilo → zůstává aktivní
     assert not dlg.did_sync
@@ -207,3 +207,46 @@ def test_offline_marks_not_ok(service, monkeypatch) -> None:
     r = chk.compute_stag_check(service, "Tester")
     assert r.ok is False
     assert r.error
+
+
+def test_stag_pending_persist_roundtrip(service) -> None:
+    """Pending změny se uloží a načtou (přežijí restart); prázdné = vyřešeno."""
+    assert service.load_stag_pending_changes() == {}
+    r = chk.StagCheckResult(
+        ok=True, checked=3,
+        supervised=["A — BP"], supervised_ids=["t1"],
+        opposing=["B — DP"], opposing_ids=["o1"],
+        new=["C — nová"],
+    )
+    service.save_stag_pending_changes({**r.to_pending(), "ts": "09:30", "dismissed": False})
+    loaded = service.load_stag_pending_changes()
+    assert loaded["supervised_ids"] == ["t1"] and loaded["opposing_ids"] == ["o1"]
+    assert loaded["ts"] == "09:30" and loaded["dismissed"] is False
+
+    r2 = chk.StagCheckResult.from_pending(loaded)
+    assert r2.ok and r2.total_changes == 3
+    assert r2.supervised_ids == ["t1"] and r2.new == ["C — nová"]
+
+    service.save_stag_pending_changes({})   # vše vyřešeno
+    assert service.load_stag_pending_changes() == {}
+
+
+def test_stag_pending_ignores_other_year(service) -> None:
+    """Pending z jiného akademického roku se ignoruje (čistý start)."""
+    import json
+
+    p = service._stag_pending_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        json.dumps({"academic_year": "1999/2000",
+                    "pending": {"supervised_ids": ["x"]}}),
+        encoding="utf-8")
+    assert service.load_stag_pending_changes() == {}
+
+
+def test_change_keyset_detects_new() -> None:
+    """change_keyset rozliší, co přibylo (pro re-show proužku po další kontrole)."""
+    a = chk.StagCheckResult(ok=True, supervised_ids=["t1"], opposing_ids=["o1"])
+    b = chk.StagCheckResult(ok=True, supervised_ids=["t1"], opposing_ids=["o1", "o2"])
+    assert b.change_keyset() - a.change_keyset() == {"o2"}
+    assert not (a.change_keyset() - b.change_keyset())

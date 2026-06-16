@@ -5,6 +5,28 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.3] - 2026-06-16
+
+### Added
+- **Změny tiché kontroly STAG přežijí restart (perzistentní „schránka").**
+  Zjištěné změny se ukládají k profilu (`stag_pending_changes.json`, tagováno
+  akademickým rokem) → po startu se proužek + **„Detaily…"** ukážou **hned**,
+  i když dnešní automatická kontrola (běží 1× denně) už proběhla.
+  - Edge case ošetřen: `_last_stag_result` je k dispozici **synchronně už při
+    startu**, takže „po startu hned kliknu na Detaily…" funguje (než/zatímco
+    doběhne kontrola).
+  - Další kontrola výsledky **sloučí** — úspěšná je autoritativní (vyřešené
+    zmizí, nové přibudou); **offline** kontrola dříve zjištěné změny
+    **nesmaže**.
+  - **✕** proužek schová a stav „zavřeno" se **pamatuje i po restartu**; znovu
+    se ukáže, až kontrola najde **něco nového** (`change_keyset`).
+
+### Internal
+- Service: `load/save_stag_pending_changes` (vzor `komise_defense_states`).
+- `StagCheckResult`: `to_pending` / `from_pending` / `change_keyset`.
+- Detail aktualizace předává cílová ID z vlastního výsledku (robustní, kdyby
+  mezitím doběhla nová kontrola).
+
 ## [2.8.2] - 2026-06-16
 
 ### Changed

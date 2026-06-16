@@ -70,6 +70,35 @@ class StagCheckResult:
     def total_changes(self) -> int:
         return self.supervised_changes + self.opposing_changes + self.new_works
 
+    def change_keyset(self) -> set:
+        """Množina „klíčů" změn (ID prací + popisy nových) — pro detekci, zda
+        další kontrola přinesla **něco nového** (vs. už zobrazené)."""
+        return set(self.supervised_ids) | set(self.opposing_ids) | set(self.new)
+
+    def to_pending(self) -> dict:
+        """Serializace pending změn pro uložení na disk (přežití restartu)."""
+        return {
+            "supervised": self.supervised,
+            "supervised_ids": self.supervised_ids,
+            "opposing": self.opposing,
+            "opposing_ids": self.opposing_ids,
+            "new": self.new,
+            "checked": self.checked,
+        }
+
+    @classmethod
+    def from_pending(cls, d: dict) -> StagCheckResult:
+        """Rekonstrukce z uložených pending změn (po restartu) — vždy ``ok``."""
+        return cls(
+            ok=True,
+            checked=int(d.get("checked", 0) or 0),
+            supervised=list(d.get("supervised", [])),
+            opposing=list(d.get("opposing", [])),
+            new=list(d.get("new", [])),
+            supervised_ids=list(d.get("supervised_ids", [])),
+            opposing_ids=list(d.get("opposing_ids", [])),
+        )
+
 
 def _missing_kind_labels(stag_files, local_kinds: set) -> list[str]:
     """Vrátí popisky druhů souborů, které STAG nabízí, ale u práce je nemáš."""
@@ -293,7 +322,10 @@ class StagChangesPreviewDialog(QDialog):
                 self.open_sync_supervised = True
             self.accept()
             return
-        changed = bool(self._on_sync(opposing))
+        # Předáme ID z VLASTNÍHO výsledku dialogu (ne z hlavního okna) — kdyby
+        # mezitím doběhla nová kontrola, aktualizujeme přesně to, co vidíš.
+        ids = self.result.opposing_ids if opposing else self.result.supervised_ids
+        changed = bool(self._on_sync(opposing, ids))
         if not changed:
             return   # uživatel nic neaplikoval → tlačítko necháme aktivní
         self.did_sync = True

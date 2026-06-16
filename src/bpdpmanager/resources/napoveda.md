@@ -822,6 +822,14 @@ je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze
 zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
 Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.
 
+> **Změny přežijí restart.** Zjištěné změny se ukládají k profilu, takže po
+> zavření a znovuotevření aplikace **proužek i „Detaily…" hned vidíš** — i když
+> dnešní automatická kontrola už proběhla (ta běží nejvýš 1× denně). Další
+> kontrola výsledky **sloučí** (vyřešené zmizí, nové přibudou); offline kontrola
+> dříve zjištěné změny **nesmaže**. **Křížkem ✕** proužek schováš a stav
+> „zavřeno" se **pamatuje i po restartu** — znovu se ukáže, až kontrola najde
+> **něco nového**.
+
 ### 🟢 Indikátor připojení ke STAG (v toolbaru)
 
 Vpravo v toolbaru je ukazatel **STAG**: 🟢 = dostupný, 🔴 = nedostupný,

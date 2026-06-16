@@ -2916,6 +2916,49 @@ class ThesisService:
             pass
 
     @staticmethod
+    def _stag_pending_path() -> Path:
+        return app_data_dir() / "stag_pending_changes.json"
+
+    def load_stag_pending_changes(self) -> dict:
+        """Načte uložené pending změny tiché kontroly STAG (z minulého běhu).
+
+        Díky tomu se po restartu proužek + „Detaily…" ukážou hned, i když dnešní
+        auto-kontrola už proběhla. Vrací ``{}``, když soubor chybí, je poškozený
+        nebo je z **jiného akademického roku** (nový rok = čistý stav).
+        """
+        import json
+
+        try:
+            data = json.loads(self._stag_pending_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        if data.get("academic_year") != self.current_academic_year():
+            return {}
+        pending = data.get("pending")
+        return pending if isinstance(pending, dict) else {}
+
+    def save_stag_pending_changes(self, pending: dict) -> None:
+        """Uloží pending změny tiché kontroly STAG lokálně k profilu.
+
+        Tagováno aktuálním akademickým rokem (po přechodu na nový rok se cache
+        ignoruje). ``pending={}`` cache vyprázdní (vše vyřešeno).
+        """
+        import json
+
+        path = self._stag_pending_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps({"academic_year": self.current_academic_year(),
+                            "pending": pending},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8")
+        except OSError:
+            pass
+
+    @staticmethod
     def _komise_seed_pdf_dir() -> Path:
         """Složka s PDF složení komisí dodanými v gitu (veřejná data)."""
         return Path(__file__).resolve().parent.parent / "resources" / "komise_pdfs"
