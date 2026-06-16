@@ -784,15 +784,6 @@ class MainWindow(QMainWindow):
         # vykreslit). Indikátor v proužku + odznaky na záložkách.
         self._stag_checker: object | None = None
         QTimer.singleShot(900, lambda: self._start_stag_check(auto=True))
-
-        # Indikátor připojení ke STAG: aktivní ping na pozadí po startu a pak
-        # každých 5 minut (+ ruční přes klik na indikátor).
-        self._stag_pinger: object | None = None
-        self._stag_ping_timer = QTimer(self)
-        self._stag_ping_timer.setInterval(5 * 60_000)
-        self._stag_ping_timer.timeout.connect(self._maybe_ping_stag)
-        self._stag_ping_timer.start()
-        QTimer.singleShot(1200, self._maybe_ping_stag)
         # Tichá kontrola aktualizací aplikace (GitHub CHANGELOG.md).
         self._update_checker: object | None = None
         QTimer.singleShot(1500, self._start_update_check)
@@ -1007,43 +998,6 @@ class MainWindow(QMainWindow):
         checker.finished.connect(self._on_stag_check_done)
         self._stag_checker = checker
         checker.start()
-
-    # --- indikátor připojení ke STAG ----------------------------------------
-    def _ping_stag_now(self) -> None:
-        """Ruční ověření připojení (klik na indikátor) — zkusí hned."""
-        self._maybe_ping_stag(force=True)
-
-    def _maybe_ping_stag(self, force: bool = False) -> None:
-        """Spustí ping STAGu na pozadí (pokud už neběží)."""
-        from .stag_check import StagConnectivityChecker
-
-        if getattr(self, "_stag_pinger", None) is not None:
-            return
-        if hasattr(self, "_stag_status_btn"):
-            self._stag_status_btn.setText("⏳ STAG…")
-        pinger = StagConnectivityChecker(parent=self)
-        pinger.finished.connect(self._on_stag_connectivity)
-        self._stag_pinger = pinger
-        pinger.start()
-
-    def _on_stag_connectivity(self, ok: bool, detail: str) -> None:
-        from datetime import datetime
-
-        self._stag_pinger = None
-        if not hasattr(self, "_stag_status_btn"):
-            return
-        stamp = datetime.now().strftime("%H:%M")
-        if ok:
-            self._stag_status_btn.setText("🟢 STAG")
-            self._stag_status_btn.setToolTip(
-                tr("STAG dostupný (ověřeno {time}). Klikni pro nové ověření.")
-                .format(time=stamp))
-        else:
-            self._stag_status_btn.setText("🔴 STAG")
-            self._stag_status_btn.setToolTip(
-                tr("STAG nedostupný (ověřeno {time}): {detail}\n"
-                   "Klikni pro nové ověření.")
-                .format(time=stamp, detail=detail or tr("bez spojení")))
 
     def _stag_checked_today(self) -> bool:
         from datetime import date
@@ -1387,29 +1341,22 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        # Spacer → následující prvky (import, Aktualizace prací, Profil, …)
-        # odsune doprava.
+        # ── Skupina: Import (tyrkysová) ─────────────────────────────────
+        add(
+            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
+            "Import dat z CSV exportu STAG (getKvalifikacniPrace*.csv) — "
+            "vytvoří nebo aktualizuje vedené BP/DP a oponentské posudky.",
+        )
+        add(
+            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
+            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
+            "posudky, soubory) — vytvoří novou práci.",
+        )
+
+        # Spacer → následující prvky (Aktualizace prací, Profil, …) odsune doprava.
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
-
-        # ── Indikátor připojení ke STAG (aktivní ping na pozadí) ────────
-        self._stag_status_btn = QToolButton()
-        self._stag_status_btn.setAutoRaise(True)
-        self._stag_status_btn.setText("⚪ STAG")
-        self._stag_status_btn.setToolTip(
-            tr("Připojení ke STAG — klikni pro okamžité ověření."))
-        self._stag_status_btn.clicked.connect(self._ping_stag_now)
-        toolbar.addWidget(self._stag_status_btn)
-        toolbar.addSeparator()
-
-        # ── Import ze STAG (vedle Aktualizace prací) ────────────────────
-        add(
-            tr("📥 Import ze STAG…"), self._import_from_stag, self._GROUP_IMPORT,
-            "Stáhne práci přímo ze STAG (stag.utb.cz) — dle studenta nebo "
-            "hromadně tvé vedené / oponované; vytvoří nebo aktualizuje "
-            "vedené BP/DP a oponentské posudky.",
-        )
 
         # ── Rozbalovací „Aktualizace prací" (vpravo) ────────────────────
         self._checks_button = QToolButton()
@@ -1439,13 +1386,6 @@ class MainWindow(QMainWindow):
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
-
-        # ── Import práce ze ZIP (za Aktualizace prací) ──────────────────
-        add(
-            tr("📦 Import práce ze ZIP…"), self._import_thesis_zip, self._GROUP_IMPORT,
-            "Naimportuje práci z dříve vyexportovaného ZIP balíku (data, stav, "
-            "posudky, soubory) — vytvoří novou práci.",
-        )
 
         toolbar.addSeparator()
 
@@ -1660,21 +1600,9 @@ class MainWindow(QMainWindow):
             backup_path=data_dir / "db.json.bak",
             backup_manager=BackupManager(data_dir),
         )
-        try:
-            self.service.reset(new_repo)
-            # Nově vytvořený profil dostane výchozí obory + šablony.
-            self.service.maybe_seed_defaults()
-        except OSError as exc:
-            # Typicky iCloud/Dropbox „odlehčil" db.json a bez sítě timeout —
-            # neshazuj aplikaci, jen to oznam (service zůstal na původním profilu).
-            QMessageBox.critical(
-                self, tr("Přepnutí profilu"),
-                tr("Data profilu se nepodařilo načíst — soubor je možná "
-                   "v cloudové složce (iCloud/Dropbox) a bez připojení k síti "
-                   "ho nelze stáhnout.\n\nZkus to po obnovení internetu, nebo "
-                   "přesuň data profilu mimo cloudovou složku.\n\n{err}")
-                .format(err=exc))
-            return
+        self.service.reset(new_repo)
+        # Nově vytvořený profil dostane výchozí obory + šablony.
+        self.service.maybe_seed_defaults()
 
         # Refresh UI a window title
         self.setWindowTitle(self._compose_title())

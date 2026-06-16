@@ -706,6 +706,13 @@ buď **podle studenta** (tlačítko *🔎 Stáhnout práci dle studenta*), nebo
 **hromadně tvoje práce** (níže). Ruční výběr CSV souboru se zrušil — vše
 obstará stažení ze STAG.
 
+Vpravo nahoře je **indikátor jména z profilu**: ✓ *Jméno z profilu: …* (vše
+připraveno) / ⚠ *Jméno není v profilu* (doplň v 👤). Jméno z profilu řídí
+**auto-detekci role** (vedoucí/oponent) i **hromadné stažení**. Nic dalšího
+nastavovat nemusíš — chybějící **studenti, oponenti, vedoucí i obory** se při
+importu **doplní automaticky** (před zápisem je vypíše *Souhrn před importem*;
+jen nenamapovaný obor případně zvolíš/založíš v náhledu).
+
 > **Hromadně všechny moje práce:** v import dialogu jsou tlačítka
 > **🎓 Moje vedené práce…**, **🧐 Moje oponentury…** a
 > **🎓🧐 Vedené + oponované…** (najde najednou obě role a sloučí je do

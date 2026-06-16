@@ -606,6 +606,13 @@ STAG** (stag.utb.cz) — either **by student** (the *🔎 Download thesis by
 student* button) or **your theses in bulk** (below). Manual CSV-file selection
 was removed — downloading from STAG handles everything.
 
+Top-right shows a **profile-name indicator**: ✓ *Name from profile: …* (ready)
+/ ⚠ *Name not in profile* (set it in 👤). The profile name drives **role
+auto-detection** (supervisor/opponent) and **bulk download**. Nothing else
+needs setting up — missing **students, opponents, supervisors and programmes**
+are **created automatically** during import (listed in the *Summary before
+import*; only an unmapped programme may need picking/creating in the preview).
+
 > **All my theses in bulk:** the import dialog has **🎓 My supervised
 > theses…**, **🧐 My opposed theses…** and **🎓🧐 Supervised + opposed…**
 > (finds both roles at once and merges them into one preview). Each opens a

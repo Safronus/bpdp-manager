@@ -296,21 +296,29 @@ class StagImportDialog(QDialog):
         outer.setContentsMargins(14, 14, 14, 14)
         outer.setSpacing(10)
 
-        # ── Tvoje jméno (vpravo nahoře; titulek okna stačí) ─────────────────
-        default_user_name = ""
+        # ── Indikátor jména z profilu (vpravo nahoře) ───────────────────────
+        # Role (vedoucí/oponent) i hromadné stažení se řídí jménem z PROFILU;
+        # tady ho jen ukážeme jako stav „připraveno k importu" (změna v 👤).
+        self._user_name = ""
         if profile_manager and profile_manager.active:
-            default_user_name = profile_manager.active.user_name or ""
-        self.ed_user_name = QLineEdit(default_user_name)
-        self.ed_user_name.setPlaceholderText(tr("např. Petr Žáček"))
-        self.ed_user_name.setMaximumWidth(240)
-        self.ed_user_name.setToolTip(
-            tr("Použije se k auto-detekci role: ve `vedouciJmeno` → „Vedu“, "
-            "v `oponentJmeno` → „Oponuji“. Per řádek lze přepsat v náhledu.")
-        )
+            self._user_name = (profile_manager.active.user_name or "").strip()
+        lbl_name = QLabel()
+        if self._user_name:
+            lbl_name.setText(
+                tr("✓ Jméno z profilu: {name}").format(name=self._user_name))
+            lbl_name.setStyleSheet("color:#2e7d32;font-weight:bold;")
+            lbl_name.setToolTip(tr(
+                "Použije se k auto-detekci role (vedoucí/oponent) a k hromadnému "
+                "stažení tvých prací. Změníš ho v profilu (👤)."))
+        else:
+            lbl_name.setText(tr("⚠ Jméno není v profilu — nastav v 👤"))
+            lbl_name.setStyleSheet("color:#e65100;font-weight:bold;")
+            lbl_name.setToolTip(tr(
+                "Bez jména v profilu nepůjde auto-detekce role ani hromadné "
+                "stažení tvých prací. Doplň ho v profilu (👤)."))
         name_row = QHBoxLayout()
         name_row.addStretch()
-        name_row.addWidget(QLabel(tr("Tvoje jméno:")))
-        name_row.addWidget(self.ed_user_name)
+        name_row.addWidget(lbl_name)
         outer.addLayout(name_row)
 
         # ── Formulář (zarovnaný doleva) ─────────────────────────────────────
@@ -511,7 +519,7 @@ class StagImportDialog(QDialog):
         z výsledku vyhledávání (veřejné CSV ho nemá) a uloží se jeho zdrojové
         CSV (``source_csv``), aby se k práci připojilo to správné.
         """
-        user_name = self.ed_user_name.text().strip()
+        user_name = self._user_name   # z profilu (role-detekce v CSV)
         all_records: list[ParsedRecord] = []
         skipped = 0
         encoding: str | None = None
@@ -544,23 +552,7 @@ class StagImportDialog(QDialog):
             records=all_records,
             skipped=skipped,
         )
-        self._persist_user_name(user_name)
         self._populate_preview()
-
-    def _persist_user_name(self, user_name: str) -> None:
-        """Uloží user_name do aktivního profilu (pro příští předvyplnění)."""
-        if (
-            self.profile_manager is not None
-            and self.profile_manager.active is not None
-            and user_name
-            and self.profile_manager.active.user_name != user_name
-        ):
-            try:
-                self.profile_manager.set_user_name(
-                    self.profile_manager.active.id, user_name
-                )
-            except Exception:  # noqa: BLE001
-                pass
 
     def _populate_preview(self) -> None:
         if self.import_file is None:
@@ -2277,10 +2269,10 @@ class StagDownloadDialog(QDialog):
         person_row.addWidget(self._role_label)
         person_row.addWidget(self.rb_supervisor)
         person_row.addWidget(self.rb_opponent)
-        person_widget = QWidget()
-        person_widget.setLayout(person_row)
+        self._person_widget = QWidget()
+        self._person_widget.setLayout(person_row)
         self._person_form_label = QLabel(tr("Příjmení vedoucího/oponenta"))
-        form.addRow(self._person_form_label, person_widget)
+        form.addRow(self._person_form_label, self._person_widget)
 
         outer.addLayout(form)
 
@@ -2411,13 +2403,11 @@ class StagDownloadDialog(QDialog):
                 self.rb_supervisor.setChecked(True)
             elif auto_role == "opponent":
                 self.rb_opponent.setChecked(True)
-            # (pro „both" se hledají obě role — přepínač nehraje roli)
-            # Skryj přepínač role — dialog je zamčený.
-            self._role_label.setVisible(False)
-            self.rb_supervisor.setVisible(False)
-            self.rb_opponent.setVisible(False)
-            self._person_form_label.setText(tr("Příjmení (= tvoje)"))
-            self.ed_person.setPlaceholderText(tr("tvé příjmení z profilu"))
+            # Hromadný režim hledá podle tvého příjmení z profilu (předvyplněné
+            # v ed_person) — pole „Příjmení (= tvoje)" je bezpředmětné, skryj ho
+            # celé (i přepínač role).
+            self._person_form_label.setVisible(False)
+            self._person_widget.setVisible(False)
             QTimer.singleShot(0, self._do_search)
 
     # --- akce ----------------------------------------------------------------

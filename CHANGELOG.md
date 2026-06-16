@@ -7,6 +7,17 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+## [2.6.3] - 2026-06-16
+
+### Changed
+- **„Tvoje jméno" v import dialogu je teď indikátor, ne editovatelné pole.**
+  Ukazuje jméno z profilu jako stav připravenosti: ✓ *Jméno z profilu: …* /
+  ⚠ *Jméno není v profilu* (doplň v 👤). Role i hromadné stažení se řídí
+  jménem z profilu (konzistentní s vyhledáváním); odpadlo matoucí přepisování
+  profilu „bokem".
+- **Pole „Příjmení (= tvoje)" se v hromadném režimu** (Moje vedené/oponované/
+  obojí) **skryje** — je bezpředmětné (hledá se podle tvého příjmení z profilu).
+
 ## [2.6.2] - 2026-06-16
 
 ### Removed

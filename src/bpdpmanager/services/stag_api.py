@@ -780,33 +780,6 @@ def _build_result(
 # ── Modul-level convenience ──────────────────────────────────────────────────
 
 
-def check_reachable(timeout: float = 5.0) -> tuple[bool, str]:
-    """Rychlé ověření dostupnosti STAGu (pro indikátor připojení).
-
-    Pošle lehký HEAD na :data:`BASE_URL`. Vrací ``(True, "")`` když server
-    **odpoví** (jakýkoli HTTP stav = spojení i TLS jsou v pořádku), jinak
-    ``(False, popis)`` — rozliší offline / TLS / timeout. Nestahuje žádný obsah.
-    """
-    import ssl
-    import urllib.error
-    import urllib.request
-
-    req = urllib.request.Request(
-        BASE_URL, method="HEAD", headers={"User-Agent": _USER_AGENT}
-    )
-    try:
-        ctx = ssl.create_default_context()
-        with urllib.request.urlopen(req, timeout=timeout, context=ctx):
-            return True, ""
-    except urllib.error.HTTPError:
-        return True, ""  # server odpověděl (např. 403/405) → spojení funguje
-    except ssl.SSLError as exc:
-        return False, f"TLS/certifikát: {exc}"
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        reason = getattr(exc, "reason", exc)
-        return False, f"nedostupný: {reason}"
-
-
 def search_theses(
     student_surname: str,
     person_surname: str = "",

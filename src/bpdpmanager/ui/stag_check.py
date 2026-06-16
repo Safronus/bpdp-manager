@@ -516,30 +516,6 @@ def fetch_committee_defense_states(
     return out
 
 
-class StagConnectivityChecker(QObject):
-    """Na vlákně ověří dostupnost STAGu; výsledek pošle signálem (pro indikátor)."""
-
-    finished = Signal(bool, str)  # (dostupný, popis chyby)
-
-    def __init__(self, timeout: float = 5.0, parent=None) -> None:
-        super().__init__(parent)
-        self._timeout = timeout
-        self._thread: threading.Thread | None = None
-
-    def start(self) -> None:
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-
-    def _run(self) -> None:
-        from ..services import stag_api
-
-        try:
-            ok, detail = stag_api.check_reachable(self._timeout)
-        except Exception as exc:  # výsledek nesmí shodit vlákno
-            ok, detail = False, str(exc)
-        self.finished.emit(ok, detail)
-
-
 class KomiseStatsChecker(QObject):
     """Na vlákně zjistí kategorie obhajob studentů zadaných komisí (s cache)."""
 
