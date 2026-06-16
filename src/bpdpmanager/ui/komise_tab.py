@@ -29,7 +29,6 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSplitter,
-    QStackedWidget,
     QStyle,
     QStyledItemDelegate,
     QTabWidget,
@@ -384,45 +383,28 @@ class KomiseTab(QWidget):
         stats_hdr.addWidget(self.btn_refresh_stats)
         sbl.addLayout(stats_hdr)
 
-        # Dvě tabulky vedle sebe (na poloviny): vlevo komise (+ graf pod ní),
-        # vpravo členové komise.
+        # Statistika je VŽDY ve 3 záložkách (na velkém i malém rozlišení) —
+        # každá sekce dostane plnou šířku a vlastní posuvníky. Sjednocené,
+        # konzistentní a bez křehkého přeparentování mezi režimy.
         self.stats_committee = QTextBrowser()
         self.stats_committee.setOpenExternalLinks(False)
         self.stats_members = QTextBrowser()
         self.stats_members.setOpenExternalLinks(False)
         self.stats_chart = _DefenseBarChart()
 
-        # Graf v scroll area (vlastní svislý/vodorovný posuvník, když je málo
-        # místa) — používá se v záložkovém režimu i ve „wide" sloupci.
+        # Graf ve scroll area (vlastní svislý/vodorovný posuvník, když je málo
+        # místa).
         self.stats_chart_scroll = QScrollArea()
         self.stats_chart_scroll.setWidgetResizable(True)
         self.stats_chart_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.stats_chart_scroll.setWidget(self.stats_chart)
 
-        self._left_col = QWidget()
-        self._left_col_layout = QVBoxLayout(self._left_col)
-        self._left_col_layout.setContentsMargins(0, 0, 0, 0)
-        self._left_col_layout.addWidget(self.stats_committee, stretch=1)
-        self._left_col_layout.addWidget(self.stats_chart, stretch=1)
-
-        # WIDE režim: komise+graf | členové vedle sebe (= dnešní vzhled).
-        self.stats_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.stats_splitter.setHandleWidth(8)
-        self.stats_splitter.setChildrenCollapsible(False)
-        self.stats_splitter.addWidget(self._left_col)
-        self.stats_splitter.addWidget(self.stats_members)
-        self.stats_splitter.setStretchFactor(0, 1)
-        self.stats_splitter.setStretchFactor(1, 1)
-
-        # NARROW režim: 3 záložky (každá plná šířka + scrollbary v případě
-        # nutnosti). Přepíná se podle šířky (_fit_stats_mode).
         self.stats_tabs = QTabWidget()
         self.stats_tabs.setDocumentMode(True)
-
-        self.stats_stack = QStackedWidget()
-        self.stats_stack.addWidget(self.stats_splitter)   # page 0 = wide
-        self.stats_stack.addWidget(self.stats_tabs)       # page 1 = narrow
-        self._stats_narrow = False
-        sbl.addWidget(self.stats_stack, stretch=1)
+        self.stats_tabs.addTab(self.stats_committee, tr("📋 Podle komise"))
+        self.stats_tabs.addTab(self.stats_chart_scroll, tr("📊 Graf"))
+        self.stats_tabs.addTab(self.stats_members, tr("👤 Podle členů"))
+        sbl.addWidget(self.stats_tabs, stretch=1)
 
         mid = QWidget()
         mid.setMinimumWidth(300)
@@ -830,47 +812,6 @@ class KomiseTab(QWidget):
         """Uživatel přetáhl rozhraní panelů → přestaň auto-dopočítávat šířky."""
         self._cols_user_adjusted = True
 
-    def _fit_stats_mode(self) -> None:
-        """Statistika: na širokém okně komise+graf | členové vedle sebe (dnešní
-        vzhled), pod prahem **záložkový režim** (každá sekce plná šířka).
-
-        Práh ~820 px = aby vedle sebe byly tabulky, jen když má každá ~400 px
-        (jinak se hlavičky lámou po písmenech). Na velkém monitoru je sekce
-        mnohem širší → zůstává vedle sebe.
-        """
-        w = self.stats_stack.width()
-        if w <= 0:
-            return
-        self._apply_stats_mode(w < 820)
-
-    def _apply_stats_mode(self, narrow: bool) -> None:
-        """Přepne statistiku mezi „vedle sebe" (wide) a „záložky" (narrow).
-
-        3 widgety (komise / graf / členové) se přeparentují mezi splitterem
-        a QTabWidget. Reparentuje se jen při skutečné změně režimu.
-        """
-        if narrow == self._stats_narrow:
-            return
-        self._stats_narrow = narrow
-        # Vyjmi widgety z aktuálního umístění (setParent(None) je odebere
-        # z layoutu / splitteru / záložky). Graf nejdřív vyndej ze scroll area
-        # a odepni i samotnou scroll area (jinak by v tabech zůstala prázdná).
-        self.stats_chart_scroll.takeWidget()
-        for w in (self.stats_committee, self.stats_members,
-                  self.stats_chart, self.stats_chart_scroll):
-            w.setParent(None)
-        if narrow:
-            self.stats_chart_scroll.setWidget(self.stats_chart)
-            self.stats_tabs.addTab(self.stats_committee, tr("📋 Podle komise"))
-            self.stats_tabs.addTab(self.stats_chart_scroll, tr("📊 Graf"))
-            self.stats_tabs.addTab(self.stats_members, tr("👤 Podle členů"))
-            self.stats_stack.setCurrentWidget(self.stats_tabs)
-        else:
-            self._left_col_layout.addWidget(self.stats_committee, stretch=1)
-            self._left_col_layout.addWidget(self.stats_chart, stretch=1)
-            self.stats_splitter.addWidget(self.stats_members)
-            self.stats_stack.setCurrentWidget(self.stats_splitter)
-
     def _fit_detail_height(self) -> None:
         """Horní detail (komise/přehled) na výšku fituje obsah.
 
@@ -890,13 +831,11 @@ class KomiseTab(QWidget):
     def showEvent(self, event) -> None:  # noqa: N802 (Qt API)
         super().showEvent(event)
         self._fit_panels()
-        self._fit_stats_mode()
         self._fit_detail_height()
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt API)
         super().resizeEvent(event)
         self._fit_panels()
-        self._fit_stats_mode()
         self._fit_detail_height()
 
     # ── detail (prostřední) + harmonogram (pravý) ─────────────────────────

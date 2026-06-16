@@ -980,11 +980,10 @@ current academic year is selected.
 > **Smaller resolution / narrow window.** The three panels use **draggable
 > splitters** — on a large monitor they look as before (widths fit content),
 > but on a narrow window they **don't overlap**: they shrink and you can drag
-> the dividers manually. The bottom **statistics** (committees+chart | members)
-> are side-by-side on a wide window (current look), but on a narrow window they
-> switch to a **tabbed mode** — *📋 By committee*, *📊 Chart*, *👤 By member*
-> as three **tabs**, each getting **full width** (tables don't wrap) with
-> **scrollbars** when needed. The **📆 Add to calendar** button (above
+> the dividers manually. The bottom **statistics** are **always in three tabs**
+> — *📋 By committee*, *📊 Chart*, *👤 By member* — on both large and small
+> resolutions. Each gets **full width** (tables don't wrap) with **scrollbars**
+> when needed (the chart sits in a scroll area). The **📆 Add to calendar** button (above
 the schedule) exports the **upcoming** defences of the selected year: in the
 dialog you choose supervised/opposed (both by default), a reminder (default
 **15 min before**) and the target calendar — **Apple Calendar** / **Outlook**

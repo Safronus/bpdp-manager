@@ -288,9 +288,8 @@ def test_highlighting_works_on_seed_committee(service) -> None:
 
 
 def test_komise_tab_responsive_layout(service) -> None:
-    """Responzivní layout záložky Státnice: na velkém okně sloupce vedle sebe
-    a statistika side-by-side (dnešní vzhled), na úzkém se statistika přepne do
-    záložkového režimu a sloupce se umí zmenšit (splitter → nepřekrývají se)."""
+    """Layout záložky Státnice: sloupce ve splitteru (nepřekrývají se, umí se
+    zmenšit); statistika je VŽDY ve 3 záložkách (velké i malé rozlišení)."""
     from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
 
     from bpdpmanager.ui.komise_tab import KomiseTab
@@ -307,31 +306,23 @@ def test_komise_tab_responsive_layout(service) -> None:
     assert tab.cols_splitter.count() == 3
     assert tab.cols_splitter.minimumSizeHint().width() < 900
 
-    # Velké okno: prostřední bere zbytek, statistika vedle sebe (NE záložky).
+    # Statistika = 3 záložky (Podle komise / Graf / Podle členů) — sjednoceno.
+    assert tab.stats_tabs.count() == 3
+
+    # Velké okno: prostřední sloupec bere zbytek; statistika pořád 3 záložky.
     win.resize(2200, 1300)
     win.show()
     QApplication.processEvents()
     QApplication.processEvents()
-    assert tab._stats_narrow is False
-    assert tab.stats_stack.currentWidget() is tab.stats_splitter
     big = tab.cols_splitter.sizes()
     assert big[1] > big[0] and big[1] > big[2]
+    assert tab.stats_tabs.count() == 3
 
-    # Úzké okno: statistika se přepne do záložek (3 záložky, plná šířka).
+    # Malé okno: beze změny režimu statistiky (taky 3 záložky).
     win.resize(1000, 760)
     QApplication.processEvents()
     QApplication.processEvents()
-    assert tab._stats_narrow is True
-    assert tab.stats_stack.currentWidget() is tab.stats_tabs
     assert tab.stats_tabs.count() == 3
-
-    # Zpět na velké → zase vedle sebe (přeparentování tam i zpět funguje).
-    win.resize(2200, 1300)
-    QApplication.processEvents()
-    QApplication.processEvents()
-    assert tab._stats_narrow is False
-    assert tab.stats_stack.currentWidget() is tab.stats_splitter
-    assert tab.stats_tabs.count() == 0
 
     win.close()
 

@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.7] - 2026-06-16
+
+### Fixed
+- **Statistika obhajob: sjednoceno na záložky i na velkém rozlišení.** Na
+  velkém monitoru (side-by-side režim z 2.8.6) **mizely tabulky** *Podle komise*
+  a *Podle členů* (zbyl jen graf) — přepínání wide/narrow s přeparentováním bylo
+  křehké. Sekce je **nově vždy ve třech záložkách** (*📋 Podle komise*,
+  *📊 Graf*, *👤 Podle členů*) na velkém i malém rozlišení — konzistentní,
+  každá v plné šířce + posuvníky, **bez přeparentování** mezi režimy.
+  Odstraněn duální režim (`stats_splitter` / `stats_stack` /
+  `_apply_stats_mode`).
+
 ## [2.8.6] - 2026-06-16
 
 ### Changed

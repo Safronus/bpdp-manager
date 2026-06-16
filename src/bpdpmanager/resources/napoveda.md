@@ -1098,11 +1098,10 @@ U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **od
 > **Menší rozlišení / úzké okno.** Tři panely jsou v **posuvných rozhraních**
 > (splitter) — na velkém monitoru vypadají jako dřív (šířky dle obsahu), na
 > úzkém okně se ale **nepřekrývají**: zmenší se a dělící čáry mezi nimi si
-> můžeš **ručně přetáhnout**. Spodní **statistika** (komise+graf | členové) je
-> na širokém okně vedle sebe (dnešní vzhled), ale na úzkém se přepne do
-> **záložkového režimu** — *📋 Podle komise*, *📊 Graf*, *👤 Podle členů* jako
-> tři **záložky**, kde každá dostane **plnou šířku** (tabulky se nelámou) a
-> v případě nutnosti má **posuvníky**.
+> můžeš **ručně přetáhnout**. Spodní **statistika** je **vždy ve třech
+> záložkách** — *📋 Podle komise*, *📊 Graf*, *👤 Podle členů* — na velkém
+> i malém rozlišení. Každá dostane **plnou šířku** (tabulky se nelámou) a
+> v případě nutnosti má **posuvníky** (graf je v posuvné ploše).
 Tlačítkem **📆 Přidat do kalendáře** (nad harmonogramem) exportuješ
 **nadcházející** obhajoby vybraného roku do kalendáře: v dialogu zvolíš
 vedené/oponované (defaultně obojí), připomínku (defaultně **15 min předem**)
