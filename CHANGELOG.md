@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.8] - 2026-06-16
+
+### Fixed
+- **Prostřední detail komise (s rozpisem po dnech) se na úzkém okně už
+  nenafoukne do výšky.** Dřív se obsah, který se nevešel na šířku (termíny
+  „15. 6. 2026, 16. 6. 2026…"), **zalamoval** a detail narostl přes celý
+  prostřední panel. Nově se **nezalamuje** (`NoWrap`) a při nedostatečné šířce
+  se přidá **vodorovný posuvník**; výška se počítá z nezalomeného obsahu
+  (`_fit_detail_height`) + místo na posuvník. Na velkém monitoru beze změny
+  (obsah se vejde, posuvník se neukáže).
+
 ## [2.8.7] - 2026-06-16
 
 ### Fixed

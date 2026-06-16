@@ -355,6 +355,11 @@ class KomiseTab(QWidget):
         # změť) — odkaz na PDF otevřeme systémově, web v prohlížeči.
         self.detail.setOpenLinks(False)
         self.detail.anchorClicked.connect(self._open_detail_link)
+        # Bez zalamování — na úzkém okně se obsah (termíny po dnech) nevejde na
+        # šířku, ale místo nafouknutí do výšky se přidá **vodorovný posuvník**.
+        self.detail.setLineWrapMode(QTextBrowser.LineWrapMode.NoWrap)
+        self.detail.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         # Horní detail se výškově přizpůsobuje obsahu (viz _fit_detail_height).
         self.detail.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -815,16 +820,20 @@ class KomiseTab(QWidget):
     def _fit_detail_height(self) -> None:
         """Horní detail (komise/přehled) na výšku fituje obsah.
 
-        Zbývající výšku prostředního panelu pak dostane sekce statistiky. Aby
-        statistice vždy zbylo místo, výška detailu je zastropovaná na ~65 %
-        panelu (delší detail pak má vlastní posuvník).
+        Bez zalamování (NoWrap) — výšku počítáme z **přirozené** výšky obsahu
+        (řádky na jeden řádek), takže se detail při úzkém okně nenafoukne do
+        výšky; když se obsah nevejde na šířku, přidá se **vodorovný posuvník**
+        (a započítá se jeho výška). Zbývající výšku panelu dostane statistika;
+        výška detailu je zastropovaná na ~65 % (delší detail má svislý posuvník).
         """
         doc = self.detail.document()
-        vp_w = self.detail.viewport().width()
-        if vp_w > 0:
-            doc.setTextWidth(vp_w)
+        doc.setTextWidth(-1)   # bez zalamování → přirozená (nezalomená) výška
         frame = 2 * self.detail.frameWidth()
         content = int(doc.size().height()) + frame + 6
+        # Když je obsah širší než viewport, bude vodorovný posuvník → přidej
+        # jeho výšku, ať neukrojí poslední řádek.
+        if doc.idealWidth() > self.detail.viewport().width() + 1:
+            content += self.detail.horizontalScrollBar().sizeHint().height()
         cap = max(160, int(self.height() * 0.65))
         self.detail.setFixedHeight(max(60, min(content, cap)))
 

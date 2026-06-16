@@ -1089,7 +1089,9 @@ a seznam **PDF souborů** — šířka levého panelu se **automaticky přizpůs
 obsahu**. **Uprostřed** detail výběru: klik na **rok / stupeň** ukáže přehled
 všech komisí dané skupiny, klik na **konkrétní komisi** její složení, rozpis
 a **zdrojová PDF** té komise (dodané složení dle stupně+oboru + její rozpis;
-klik je **otevře systémově**). **Vpravo samostatný
+klik je **otevře systémově**). Detail se **nezalamuje** — když se obsah (termíny
+po dnech) nevejde na šířku, místo nafouknutí do výšky se přidá **vodorovný
+posuvník**. **Vpravo samostatný
 panel 📅 Můj harmonogram obhajob** — vždy kompletní pro **vybraný rok**
 (default aktuální), **nezávislý na vybrané komisi**; šířka opět dle obsahu.
 U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **odpočet**

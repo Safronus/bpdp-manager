@@ -290,7 +290,12 @@ def test_highlighting_works_on_seed_committee(service) -> None:
 def test_komise_tab_responsive_layout(service) -> None:
     """Layout záložky Státnice: sloupce ve splitteru (nepřekrývají se, umí se
     zmenšit); statistika je VŽDY ve 3 záložkách (velké i malé rozlišení)."""
-    from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
+    from PySide6.QtWidgets import (
+        QApplication,
+        QMainWindow,
+        QTabWidget,
+        QTextBrowser,
+    )
 
     from bpdpmanager.ui.komise_tab import KomiseTab
 
@@ -305,6 +310,10 @@ def test_komise_tab_responsive_layout(service) -> None:
     # zmenšit hluboko pod šířku okna ze screenshotu (~1100).
     assert tab.cols_splitter.count() == 3
     assert tab.cols_splitter.minimumSizeHint().width() < 900
+
+    # Horní detail nezalamuje → na úzku se nenafoukne do výšky, ale dá vodorovný
+    # posuvník.
+    assert tab.detail.lineWrapMode() == QTextBrowser.LineWrapMode.NoWrap
 
     # Statistika = 3 záložky (Podle komise / Graf / Podle členů) — sjednoceno.
     assert tab.stats_tabs.count() == 3

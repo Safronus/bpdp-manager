@@ -970,7 +970,9 @@ content**. **Middle** the selection detail: clicking a **year / level** shows
 an overview of all committees in that group, clicking a **specific committee**
 its composition, schedule and the committee's **source PDFs** (shipped
 composition for its level+programme + the schedule the slots were read from;
-clicking **opens them in the system viewer**). **Right, a separate panel
+clicking **opens them in the system viewer**). The detail **does not wrap** —
+when the content (dates per day) doesn't fit the width, a **horizontal
+scrollbar** is added instead of growing tall. **Right, a separate panel
 📅 My defence schedule** — always
 complete for the **selected year** (current by default), **independent of the
 selected committee**; width again fits content. The **nearest** upcoming
