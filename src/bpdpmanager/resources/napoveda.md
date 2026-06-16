@@ -71,11 +71,12 @@ V **👤 → 🗂 Správa profilů**:
 Jakmile máš nastavené **jméno** (krok 2), je nejrychlejší start **hromadně
 stáhnout své práce přímo ze STAG**:
 
-1. Toolbar **📥 Import ze STAG…**
-2. **🎓 Moje vedené práce…** — najde a předvybere všechny tvé vedené práce
+1. Toolbar **📥 Import ze STAG…** (vše v jednom okně, ve dvou krocích).
+2. **🎓 Vedené práce** — najde a předvybere všechny tvé vedené práce
    (historické i aktuální) podle jména z profilu.
-3. **🧐 Moje oponentury…** — totéž pro práce, kde jsi oponent.
-4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané**. Práce se založí hned;
+3. **🧐 Oponentury** — totéž pro práce, kde jsi oponent.
+4. Zaškrtni, co chceš, a **⬇ Stáhnout vybrané** (okno se přepne na náhled).
+   Práce se založí hned;
    **přílohy se dotáhnou na pozadí** (průběh dole ve stavovém řádku). U velkého
    objemu příloh můžeš zvolit *„Jen data (bez příloh)"* — gigabajty plných
    textů dotáhneš později cíleně. Stav a chybějící soubory pak průběžně doplníš
@@ -702,10 +703,18 @@ V dialogu:
 
 ## Import ze STAG
 
-Toolbar **📥 Import ze STAG…** stáhne práci **přímo ze STAG** (stag.utb.cz) —
-buď **podle studenta** (tlačítko *🔎 Stáhnout práci dle studenta*), nebo
-**hromadně tvoje práce** (níže). Ruční výběr CSV souboru se zrušil — vše
-obstará stažení ze STAG.
+Toolbar **📥 Import ze STAG…** stáhne práci **přímo ze STAG** (stag.utb.cz).
+Celé je to v **jednom okně, ve dvou krocích**:
+
+1. **🔎 Najít a stáhnout** — vyhledej **podle studenta** (příjmení studenta +
+   vedoucího/oponenta), nebo klikni na **hromadné** tlačítko *🎓 Vedené práce
+   / 🧐 Oponentury / 🎓🧐 Vedené + oponované* (hledá podle jména z profilu).
+   Zaškrtni nalezené práce a dej **⬇ Stáhnout vybrané**.
+2. **📋 Náhled a import** — okno se přepne na náhled stažených prací; zkontroluj
+   role/stav/obor a dej **📥 Provést import**. Tlačítkem **„← Zpět na hledání"**
+   se vrátíš na krok 1 (přidat / změnit). Dřív to byla dvě samostatná okna.
+
+Ruční výběr CSV souboru se zrušil — vše obstará stažení ze STAG.
 
 Vpravo nahoře je **indikátor jména z profilu**: ✓ *Jméno z profilu: …* (vše
 připraveno) / ⚠ *Jméno není v profilu* (doplň v 👤). Jméno z profilu řídí
@@ -714,13 +723,12 @@ nastavovat nemusíš — chybějící **studenti, oponenti, vedoucí i obory** s
 importu **doplní automaticky** (před zápisem je vypíše *Souhrn před importem*;
 jen nenamapovaný obor případně zvolíš/založíš v náhledu).
 
-> **Hromadně všechny moje práce:** v import dialogu jsou tlačítka
-> **🎓 Moje vedené práce…**, **🧐 Moje oponentury…** a
-> **🎓🧐 Vedené + oponované…** (najde najednou obě role a sloučí je do
-> jednoho náhledu). Každé otevře dialog
-> **uzamčený na danou roli** (žádné přepínání). Najdou ve STAG podle
-> tvého jména z profilu **všechny** práce dané role (historické, aktuální
-> i vypsané na další rok), seřazené **dle akademického roku**. Příjmení nemusí
+> **Hromadně všechny moje práce:** v kroku 1 jsou tlačítka
+> **🎓 Vedené práce**, **🧐 Oponentury** a **🎓🧐 Vedené + oponované**
+> (najde najednou obě role a sloučí je do jednoho náhledu). Každé rovnou
+> **vyhledá** ve STAG podle tvého jména z profilu **všechny** práce dané role
+> (historické, aktuální i vypsané na další rok), seřazené **dle akademického
+> roku**. Příjmení nemusí
 > být jednoznačné (víc vedoucích stejného příjmení) — proto je zapnutý filtr
 > **„Jen moje práce (dle celého jména)"**, který ponechá jen práce s tvým
 > celým jménem. Filtr lze vypnout. Navíc je tu volba **„od roku"** — vyber

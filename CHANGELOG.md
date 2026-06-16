@@ -5,6 +5,27 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.8.0] - 2026-06-16
+
+### Changed
+- **Import a stahování ze STAG je teď v JEDNOM okně (dva kroky).** Dřív se
+  z import okna otvíralo druhé modální okno „Stáhnout práci ze STAG"; nově je
+  vše v jednom okně přes `QStackedWidget`:
+  - **Krok 1 „🔎 Najít a stáhnout"** — hledání podle studenta + hromadné
+    zkratky **🎓 Vedené práce / 🧐 Oponentury / 🎓🧐 Vedené + oponované**
+    (rovnou hledají dle jména z profilu), výsledky, *⬇ Stáhnout vybrané* /
+    *📎 Stáhnout jen soubory*.
+  - **Krok 2 „📋 Náhled a import"** — náhled stažených prací (role/stav/obor)
+    + *📥 Provést import*, s tlačítkem **„← Zpět na hledání"** pro přidání /
+    změnu stažených prací.
+  - Po *Stáhnout vybrané* se okno přepne na náhled (místo zavírání modálu);
+    transakční import i stahování příloh na pozadí (2.7.0) zůstávají beze změny.
+
+### Internal
+- `StagDownloadDialog` lze vložit jako panel (`embedded=True`) do sloučeného
+  okna; hromadný režim vytažen do `enter_bulk_mode()` (sdílí konstruktor i
+  inline zkratky). Komunikace přes signály `accepted`/`rejected`.
+
 ## [2.7.0] - 2026-06-16
 
 ### Changed

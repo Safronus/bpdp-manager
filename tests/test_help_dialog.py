@@ -26,12 +26,12 @@ def qapp():
 def test_tutorial_recommends_stag_download(qapp) -> None:
     """Tutoriál (sekce Začínáme) doporučí prvotní stažení prací ze STAG."""
     section = _extract_section(_napoveda_path().read_text(encoding="utf-8"), "Začínáme")
-    assert "Moje vedené práce" in section
-    assert "Moje oponentury" in section
+    assert "Vedené práce" in section
+    assert "Oponentury" in section
     # a první spuštěcí dialog ho z té sekce renderuje
     dlg = FirstRunDialog()
     md = dlg.view.toMarkdown() if hasattr(dlg.view, "toMarkdown") else dlg.view.toHtml()
-    assert "vedené práce" in md or "oponentury" in md
+    assert "Vedené práce" in md or "Oponentury" in md
 
 
 def test_enter_searches_not_closes(qapp) -> None:

@@ -68,11 +68,12 @@ In **👤 → 🗂 Profile management**:
 Once your **name** is set (step 2), the fastest start is a **bulk download of
 your theses directly from STAG**:
 
-1. Toolbar **📥 Import from STAG…**
-2. **🎓 My supervised theses…** — finds and pre-selects all your supervised
-   theses (historical and current) by your profile name.
-3. **🧐 My opposed theses…** — the same for theses where you are the opponent.
-4. Tick what you want and **⬇ Download selected**. The theses are created right
+1. Toolbar **📥 Import from STAG…** (all in one window, in two steps).
+2. **🎓 Supervised** — finds and pre-selects all your supervised theses
+   (historical and current) by your profile name.
+3. **🧐 Opposed** — the same for theses where you are the opponent.
+4. Tick what you want and **⬇ Download selected** (the window switches to the
+   preview). The theses are created right
    away; **attachments are fetched in the background** (progress in the status
    bar at the bottom). For large attachment volumes choose *"Data only (no
    attachments)"* — gigabytes of full texts can be fetched later via *🔄 Update…*
@@ -604,9 +605,18 @@ In the dialog:
 ## Import from STAG
 
 The **📥 Import from STAG…** toolbar button downloads a thesis **directly from
-STAG** (stag.utb.cz) — either **by student** (the *🔎 Download thesis by
-student* button) or **your theses in bulk** (below). Manual CSV-file selection
-was removed — downloading from STAG handles everything.
+STAG** (stag.utb.cz). It is all in **one window, in two steps**:
+
+1. **🔎 Find and download** — search **by student** (student + supervisor/
+   opponent surname), or click a **bulk** button *🎓 Supervised / 🧐 Opposed /
+   🎓🧐 Supervised + opposed* (searches by your profile name). Tick the found
+   theses and click **⬇ Download selected**.
+2. **📋 Preview and import** — the window switches to a preview of the
+   downloaded theses; check role/status/programme and click **📥 Run import**.
+   The **"← Back to search"** button returns to step 1 (add / change). These
+   used to be two separate windows.
+
+Manual CSV-file selection was removed — downloading from STAG handles everything.
 
 Top-right shows a **profile-name indicator**: ✓ *Name from profile: …* (ready)
 / ⚠ *Name not in profile* (set it in 👤). The profile name drives **role
@@ -615,11 +625,11 @@ needs setting up — missing **students, opponents, supervisors and programmes**
 are **created automatically** during import (listed in the *Summary before
 import*; only an unmapped programme may need picking/creating in the preview).
 
-> **All my theses in bulk:** the import dialog has **🎓 My supervised
-> theses…**, **🧐 My opposed theses…** and **🎓🧐 Supervised + opposed…**
-> (finds both roles at once and merges them into one preview). Each opens a
-> dialog **locked to that role**. They find **all** theses of the role in STAG by
-> your profile name (historical, current and listed for next year), sorted
+> **All my theses in bulk:** step 1 has **🎓 Supervised**, **🧐 Opposed** and
+> **🎓🧐 Supervised + opposed** (finds both roles at once and merges them into
+> one preview). Each immediately **searches** STAG by your profile name and
+> finds **all** theses of the role (historical, current and listed for next
+> year), sorted
 > **by academic year**. A surname may be ambiguous, so the **"Only my theses
 > (by full name)"** filter is on by default (can be turned off). There is also
 > a **"from year"** dropdown — pick an academic year to show only theses of

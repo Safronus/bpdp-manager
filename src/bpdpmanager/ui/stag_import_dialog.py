@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QTextBrowser,
@@ -333,59 +334,61 @@ class StagImportDialog(QDialog):
         name_row.addWidget(lbl_name)
         outer.addLayout(name_row)
 
-        # ── Formulář (zarovnaný doleva) ─────────────────────────────────────
-        form = QFormLayout()
-        form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        # Stažení jedné práce podle studenta (vyhledání ve veřejném STAG).
-        btn_stag_dl = QPushButton(tr("🔎 Stáhnout práci dle studenta"))
-        btn_stag_dl.setToolTip(
-            tr("Najdi a stáhni práci přímo ze STAG podle příjmení studenta "
-            "a vedoucího/oponenta (bez přihlášení).")
-        )
-        btn_stag_dl.clicked.connect(self._open_stag_download)
-        row_single = QHBoxLayout()
-        row_single.addWidget(btn_stag_dl)
-        row_single.addStretch()
-        form.addRow(tr("Podle studenta"), row_single)
+        # ── Profilové příjmení pro hromadné hledání ─────────────────────────
+        tokens = [
+            t.strip(".,")
+            for t in self._user_name.replace(",", " ").split()
+            if t.strip(".,")
+        ]
+        self._profile_surname = tokens[-1] if tokens else ""  # příjmení
 
-        # Hromadné stažení všech mých prací ze STAG (napříč roky).
-        btn_my_led = QPushButton(tr("🎓 Moje vedené práce…"))
-        btn_my_led.setToolTip(
-            tr("Najde ve STAG všechny práce, kde jsi vedoucí (historické, aktuální "
-            "i vypsané) — podle tvého jména z profilu. Vybereš, co naimportovat.")
-        )
-        btn_my_led.clicked.connect(lambda: self._open_stag_download(auto_role="supervisor"))
-        btn_my_opp = QPushButton(tr("🧐 Moje oponentury…"))
-        btn_my_opp.setToolTip(
-            tr("Najde ve STAG všechny práce, kde jsi oponent — podle tvého jména "
-            "z profilu. Vybereš, co naimportovat.")
-        )
-        btn_my_opp.clicked.connect(lambda: self._open_stag_download(auto_role="opponent"))
-        btn_my_both = QPushButton(tr("🎓🧐 Vedené + oponované…"))
-        btn_my_both.setToolTip(
-            tr("Najde najednou tvé vedené i oponované práce (podle jména "
-            "z profilu) a sloučí je do jednoho náhledu.")
-        )
-        btn_my_both.clicked.connect(lambda: self._open_stag_download(auto_role="both"))
-        row_bulk = QHBoxLayout()
-        row_bulk.addWidget(btn_my_led)
-        row_bulk.addWidget(btn_my_opp)
-        row_bulk.addWidget(btn_my_both)
-        row_bulk.addStretch()
-        form.addRow(tr("Hromadně ze STAG"), row_bulk)
+        # ── Sloučené okno: dva kroky v jednom (QStackedWidget) ──────────────
+        # Krok 1 = najít a stáhnout ze STAG; Krok 2 = náhled stažených prací
+        # + import. Dřív to byla dvě samostatná okna (Import → modální Stáhnout).
+        self._stack = QStackedWidget()
 
-        # Stav práce se určí automaticky z dat STAG (heuristika z datumů
-        # zadání/odevzdání/obhajoby), lze ho přepsat v náhledu; řádky bez dat
-        # → „V řešení". Nový student se založí automaticky z dat STAG —
-        # e-mail/telefon/obor lze doplnit kdykoli ve správě studentů.
+        # ── KROK 1: hledání + stažení (embedovaný StagDownloadDialog panel) ──
+        self._page_search = QWidget()
+        ps_lay = QVBoxLayout(self._page_search)
+        ps_lay.setContentsMargins(0, 0, 0, 0)
+        ps_lay.setSpacing(8)
+        bulk_row = QHBoxLayout()
+        bulk_row.addWidget(QLabel(tr("Hromadně ze STAG:")))
+        btn_my_led = QPushButton(tr("🎓 Vedené práce"))
+        btn_my_led.setToolTip(tr(
+            "Najde ve STAG všechny práce, kde jsi vedoucí (dle jména z profilu)."))
+        btn_my_led.clicked.connect(lambda: self._start_bulk("supervisor"))
+        btn_my_opp = QPushButton(tr("🧐 Oponentury"))
+        btn_my_opp.setToolTip(tr(
+            "Najde ve STAG všechny práce, kde jsi oponent (dle jména z profilu)."))
+        btn_my_opp.clicked.connect(lambda: self._start_bulk("opponent"))
+        btn_my_both = QPushButton(tr("🎓🧐 Vedené + oponované"))
+        btn_my_both.setToolTip(tr(
+            "Najde najednou tvé vedené i oponované práce a sloučí je do náhledu."))
+        btn_my_both.clicked.connect(lambda: self._start_bulk("both"))
+        bulk_row.addWidget(btn_my_led)
+        bulk_row.addWidget(btn_my_opp)
+        bulk_row.addWidget(btn_my_both)
+        bulk_row.addStretch()
+        ps_lay.addLayout(bulk_row)
 
-        outer.addLayout(form)
+        self._search_panel = StagDownloadDialog(
+            default_person_surname=self._profile_surname, parent=self,
+            service=self.service, user_full_name=self._user_name, embedded=True,
+        )
+        self._search_panel.accepted.connect(self._on_search_panel_accepted)
+        self._search_panel.rejected.connect(self._on_search_panel_rejected)
+        ps_lay.addWidget(self._search_panel, stretch=1)
+        self._stack.addWidget(self._page_search)
 
-        # ── Náhled tabulky + detail panel ──────────────────────────────────
-        self.lbl_info = QLabel(tr("Stáhni práci ze STAG (tlačítka výše) pro náhled."))
+        # ── KROK 2: náhled stažených prací + import ─────────────────────────
+        self._page_preview = QWidget()
+        pp_lay = QVBoxLayout(self._page_preview)
+        pp_lay.setContentsMargins(0, 0, 0, 0)
+        pp_lay.setSpacing(8)
+        self.lbl_info = QLabel(tr("Stáhni práci ze STAG (krok 1) pro náhled."))
         self.lbl_info.setStyleSheet("color:#888;")
-        outer.addWidget(self.lbl_info)
+        pp_lay.addWidget(self.lbl_info)
 
         # Splitter: nahoře tabulka řádků, dole detail vybraného řádku
         splitter = QSplitter(Qt.Orientation.Vertical)
@@ -448,10 +451,13 @@ class StagImportDialog(QDialog):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         splitter.setSizes([360, 280])
-        outer.addWidget(splitter, stretch=1)
+        pp_lay.addWidget(splitter, stretch=1)
 
-        # ── Tlačítka ────────────────────────────────────────────────────────
+        # ── Tlačítka kroku 2 ────────────────────────────────────────────────
         row = QHBoxLayout()
+        btn_back = QPushButton(tr("← Zpět na hledání"))
+        btn_back.setToolTip(tr("Vrátí se na krok 1 (přidat / změnit stažené práce)."))
+        btn_back.clicked.connect(self._go_back_to_search)
         self.btn_import = QPushButton(tr("📥 Provést import"))
         self.btn_import.setEnabled(False)
         self.btn_import.clicked.connect(self._execute_import)
@@ -460,71 +466,75 @@ class StagImportDialog(QDialog):
         self.btn_import.setFont(f)
         btn_cancel = QPushButton(tr("Zavřít"))
         btn_cancel.clicked.connect(self.reject)
+        row.addWidget(btn_back)
         row.addStretch()
         row.addWidget(btn_cancel)
         row.addWidget(self.btn_import)
-        outer.addLayout(row)
+        pp_lay.addLayout(row)
+        self._stack.addWidget(self._page_preview)
 
-        # Velikost: pohodlná, ale **nikdy nepřeteče obrazovku** (menší rozlišení).
+        # Start na kroku 1 (hledání); po stažení se přepne na náhled.
+        outer.addWidget(self._stack, stretch=1)
+        self._stack.setCurrentWidget(self._page_search)
+
+        # Velikost: pohodlná (krok 1 = hledání + výsledky potřebuje výšku), ale
+        # **nikdy nepřeteče obrazovku** (menší rozlišení).
         screen = self.screen() or QApplication.primaryScreen()
         avail = screen.availableGeometry() if screen else None
         if avail is not None:
-            w = min(1240, int(avail.width() * 0.92))
-            h = min(820, int(avail.height() * 0.92))
+            w = min(1320, int(avail.width() * 0.92))
+            h = min(940, int(avail.height() * 0.92))
             self.resize(w, h)
             self.setMaximumSize(avail.width(), avail.height())
         else:
-            self.resize(1240, 820)
+            self.resize(1320, 940)
 
     # --- akce ----------------------------------------------------------------
 
-    def _open_stag_download(self, auto_role: str | None = None) -> None:
-        """Otevře dialog pro přímé vyhledání + stažení CSV ze STAG.
-
-        ``auto_role`` ("supervisor"/"opponent"/"both") = hromadné stažení mých
-        prací dané role (resp. vedených i oponovaných) — předvyplní a rovnou
-        hledá podle jména z profilu. Po stažení rovnou načte náhled.
-        """
-        user_name = ""
-        if self.profile_manager and self.profile_manager.active:
-            user_name = self.profile_manager.active.user_name or ""
-        tokens = [
-            t.strip(".,")
-            for t in user_name.replace(",", " ").split()
-            if t.strip(".,")
-        ]
-        default_surname = tokens[-1] if tokens else ""  # příjmení = poslední token
-
-        if auto_role and not default_surname:
+    def _start_bulk(self, auto_role: str) -> None:
+        """Hromadné hledání (vedené/oponované/obojí) v panelu kroku 1."""
+        if not self._profile_surname:
             QMessageBox.information(
                 self, tr("Chybí jméno"),
                 tr("Pro hromadné stažení doplň své jméno v profilu "
                 "(👤 → Tvoje jméno)."),
             )
             return
+        self._search_panel.enter_bulk_mode(auto_role)
 
-        dlg = StagDownloadDialog(
-            default_person_surname=default_surname, parent=self, service=self.service,
-            auto_role=auto_role, user_full_name=user_name,
-        )
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            return
-        if dlg.files_only_done:
+    def _on_search_panel_accepted(self) -> None:
+        """Panel hledání „dokončil" (Stáhnout vybrané / Jen soubory)."""
+        panel = self._search_panel
+        if panel.files_only_done:
             # Soubory byly připojeny rovnou k existující práci v DB — žádný CSV
-            # import. Naviguj na práci a zavři dialog, MainWindow refreshne.
-            self.focus_thesis_id = dlg.focus_thesis_id
-            self.focus_opposing_id = dlg.focus_opposing_id
+            # import. Naviguj na práci a zavři okno, MainWindow refreshne.
+            self.focus_thesis_id = panel.focus_thesis_id
+            self.focus_opposing_id = panel.focus_opposing_id
             self.accept()
             return
-        if dlg.result_items:
-            # Zapamatuj si přílohy vybrané ke stažení — po (transakčním) založení
-            # prací se z nich poskládají joby a stáhnou se na pozadí.
-            self._stag_pending_files = dict(dlg.pending_files)
+        if panel.result_items:
+            # Přílohy vybrané ke stažení — po (transakčním) založení prací se
+            # z nich poskládají joby a stáhnou se na pozadí.
+            self._stag_pending_files = dict(panel.pending_files)
             self._stag_pending_labels = {
-                r.adipidno: r.student_full for (_p, r) in dlg.result_items
+                r.adipidno: r.student_full for (_p, r) in panel.result_items
             }
-            # Po stažení (i více prací najednou) rovnou načti náhled.
-            self._load_preview_from_stag(dlg.result_items)
+            self._load_preview_from_stag(panel.result_items)
+            self._stack.setCurrentWidget(self._page_preview)   # přepni na krok 2
+
+    def _on_search_panel_rejected(self) -> None:
+        """„Zrušit" v panelu hledání — zavři celé okno (nic ještě v náhledu),
+        jinak zůstaň na náhledu (rozdělaný import se nezahodí)."""
+        if not self.row_widgets:
+            self.reject()
+        else:
+            self._search_panel.show()   # panel se po reject() schoval
+            self._stack.setCurrentWidget(self._page_preview)
+
+    def _go_back_to_search(self) -> None:
+        """Krok 2 → krok 1 (přidat / změnit stažené práce)."""
+        self._search_panel.show()   # po předchozím accept() se schoval
+        self._stack.setCurrentWidget(self._page_search)
 
     def _load_preview_from_stag(
         self, items: list[tuple[Path, "stag_api.StagThesisResult"]]
@@ -2207,8 +2217,16 @@ class StagDownloadDialog(QDialog):
     def __init__(
         self, default_person_surname: str = "", parent=None, *, service=None,
         auto_role: str | None = None, user_full_name: str = "",
+        embedded: bool = False,
     ) -> None:
         super().__init__(parent)
+        # ``embedded`` = panel uvnitř sloučeného import okna (QStackedWidget);
+        # nepoužívá se jako samostatné top-level okno (žádné minSize/resize).
+        self._embedded = embedded
+        if embedded:
+            # Vlož se jako běžný child widget, ne samostatné dialogové okno
+            # (jinak by ho Qt::Dialog flag mohl vykreslit zvlášť).
+            self.setWindowFlags(Qt.WindowType.Widget)
         # Vícevýběr: ``result_items`` = stažené práce (cesta k CSV + STAG meta).
         self.result_items: list[tuple[Path, stag_api.StagThesisResult]] = []
         # Zpětná kompatibilita (první stažená) — některý starší kód to čte.
@@ -2229,10 +2247,11 @@ class StagDownloadDialog(QDialog):
         self.focus_opposing_id: str | None = None
 
         self.setWindowTitle(tr("Stáhnout práci ze STAG"))
-        # Vyšší a širší — u hromadného stažení bývá výsledků hodně a sloupec
-        # „Práce" (student + dlouhý název) potřebuje šířku dle obsahu.
-        self.setMinimumSize(1000, 980)
-        self.resize(1440, 1470)
+        if not embedded:
+            # Samostatné okno: vyšší a širší — u hromadného stažení bývá výsledků
+            # hodně a sloupec „Práce" (student + název) potřebuje šířku dle obsahu.
+            self.setMinimumSize(1000, 980)
+            self.resize(1440, 1470)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 14, 14, 14)
@@ -2241,6 +2260,7 @@ class StagDownloadDialog(QDialog):
         title = QLabel(tr("🌐 Stáhnout práci ze STAG"))
         title.setStyleSheet("font-size:16px;font-weight:bold;")
         outer.addWidget(title)
+        self._title_label = title
 
         intro = QLabel(
             tr("Vyhledá veřejné záznamy kvalifikačních prací na "
@@ -2258,6 +2278,7 @@ class StagDownloadDialog(QDialog):
 
         # ── Vyhledávací formulář ────────────────────────────────────────────
         form = QFormLayout()
+        self._search_form = form
 
         self.ed_student = QLineEdit()
         self.ed_student.setPlaceholderText(tr("např. Pohanka (nepovinné při hledání dle vedoucího)"))
@@ -2394,33 +2415,50 @@ class StagDownloadDialog(QDialog):
         row.addWidget(self.btn_download)
         outer.addLayout(row)
 
-        # Hromadný režim — uzamkni roli (žádné přepínání), vypni studenta
-        # a rovnou hledej.
+        # Hromadný režim — uzamkni roli, vypni studenta a rovnou hledej.
         if auto_role:
-            if auto_role == "both":
-                what = "vedené i oponované práce"
-            elif auto_role == "supervisor":
-                what = "vedené práce"
-            else:
-                what = "oponentury"
-            self.setWindowTitle(f"Stáhnout moje {what} ze STAG")
-            title.setText(f"🌐 Moje {what} ze STAG")
-            self.ed_student.clear()
+            self._enter_bulk_mode(auto_role)
+
+    def enter_bulk_mode(self, auto_role: str) -> None:
+        """Veřejně přepne panel do hromadného režimu (sloučené import okno).
+
+        Na rozdíl od konstruktoru **neskrývá** pole studenta ani přepínač role
+        (uživatel může pak rovnou hledat manuálně), jen předvyplní a vyhledá.
+        """
+        self._enter_bulk_mode(auto_role, hide_fields=False)
+
+    def _enter_bulk_mode(
+        self, auto_role: str, *, hide_fields: bool = True
+    ) -> None:
+        """Hromadný režim: hledá podle příjmení z profilu (v ``ed_person``) a
+        zapne filtr „jen moje". ``hide_fields`` skryje pole studenta i přepínač
+        role (samostatné okno); ve sloučeném okně je necháme viditelné."""
+        self._auto_role = auto_role
+        if auto_role == "both":
+            what = "vedené i oponované práce"
+        elif auto_role == "supervisor":
+            what = "vedené práce"
+        else:
+            what = "oponentury"
+        self.setWindowTitle(f"Stáhnout moje {what} ze STAG")
+        self._title_label.setText(f"🌐 Moje {what} ze STAG")
+        self.ed_student.clear()
+        self.chk_only_mine.setChecked(True)
+        self.chk_only_mine.setVisible(True)
+        if auto_role == "supervisor":
+            self.rb_supervisor.setChecked(True)
+        elif auto_role == "opponent":
+            self.rb_opponent.setChecked(True)
+        if hide_fields:
             self.ed_student.setEnabled(False)
             self.ed_student.setVisible(False)
-            student_lbl = form.labelForField(self.ed_student)
+            student_lbl = self._search_form.labelForField(self.ed_student)
             if student_lbl is not None:
                 student_lbl.setVisible(False)
-            if auto_role == "supervisor":
-                self.rb_supervisor.setChecked(True)
-            elif auto_role == "opponent":
-                self.rb_opponent.setChecked(True)
-            # Hromadný režim hledá podle tvého příjmení z profilu (předvyplněné
-            # v ed_person) — pole „Příjmení (= tvoje)" je bezpředmětné, skryj ho
-            # celé (i přepínač role).
+            # Pole „Příjmení (= tvoje)" je bezpředmětné — skryj i přepínač role.
             self._person_form_label.setVisible(False)
             self._person_widget.setVisible(False)
-            QTimer.singleShot(0, self._do_search)
+        QTimer.singleShot(0, self._do_search)
 
     # --- akce ----------------------------------------------------------------
 

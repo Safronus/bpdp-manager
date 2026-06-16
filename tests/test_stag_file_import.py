@@ -160,6 +160,39 @@ def test_build_download_jobs_respects_selection_and_role(
     assert j_op.kind == AttachmentKind.OPPONENT_REVIEW
 
 
+def test_merged_dialog_two_steps(qapp, service: ThesisService) -> None:
+    """Sloučené okno: dva kroky v QStackedWidget, start na hledání."""
+    dlg = StagImportDialog(service)
+    assert dlg._stack.count() == 2
+    assert dlg._stack.currentWidget() is dlg._page_search   # start = krok 1
+    assert dlg._search_panel._embedded is True
+    # Krok 2 a zpět
+    dlg._stack.setCurrentWidget(dlg._page_preview)
+    dlg._go_back_to_search()
+    assert dlg._stack.currentWidget() is dlg._page_search
+
+
+def test_merged_dialog_files_only_closes_window(qapp, service: ThesisService) -> None:
+    """„Jen soubory" v panelu → okno se zavře (accept) s focus_*."""
+    dlg = StagImportDialog(service)
+    dlg._search_panel.files_only_done = True
+    dlg._search_panel.focus_thesis_id = "tid-X"
+    seen = []
+    dlg.accepted.connect(lambda: seen.append(True))
+    dlg._on_search_panel_accepted()
+    assert seen == [True]
+    assert dlg.focus_thesis_id == "tid-X"
+
+
+def test_merged_dialog_reject_when_empty_closes(qapp, service: ThesisService) -> None:
+    """„Zrušit" v panelu při prázdném náhledu → zavře celé okno (reject)."""
+    dlg = StagImportDialog(service)
+    seen = []
+    dlg.rejected.connect(lambda: seen.append(True))
+    dlg._on_search_panel_rejected()
+    assert seen == [True]
+
+
 def test_mainwindow_stag_attach_fn_attaches_and_cleans_temp(
     qapp, tmp_path: Path, service: ThesisService
 ) -> None:
