@@ -5,6 +5,27 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.11.0] - 2026-06-17
+
+### Added
+- **Státnice (admin): průběh SZZ z portálu „Zapisovatel u státnic" — 1. fáze.**
+  Nová položka v toolbaru **🔄 Aktualizace prací → 🏛 Státnice (admin)…**
+  otevře okno s **vestavěným prohlížečem** (QtWebEngine), kde se vedoucí přihlásí
+  do portálu STAG (heslo se **nikam neukládá** — drží se jen cookie session
+  v profilové složce `…/szz_webview`, vedle `db.json`). Po přihlášení:
+  - **indikátor stavu** 🔴 nepřihlášen / ⚠️ chybí role *Zapisovatel státnic* /
+    🟢 přihlášen (role OK),
+  - **náhled kompletního SZZ záznamu studenta** dle **osobního čísla**:
+    předměty SZZ (zkoušející, známka, body, **otázky** z průběhu), obhajoba
+    (hodnocení, vedoucí/oponent, zkoušející), celkový výsledek (Prospěl/Neprospěl,
+    komise) — vše klíčované **os. číslem**, žádné párování podle jména.
+  - **Soukromí:** vestavěný prohlížeč **blokuje třetí-stranní trackery**
+    (Meta pixel, Google Analytics…) a vynucuje češtinu.
+  - **Bez nové závislosti** — QtWebEngine je už součástí `PySide6`.
+  - Funkce **vyžaduje roli ZAPISOVATEL STÁTNIC** ve STAG; bez ní je zamčená.
+  - Data se zatím jen zobrazují; **ukládání do cache, tichá inkrementální
+    kontrola a statistiky** přijdou v dalších fázích.
+
 ## [2.10.0] - 2026-06-17
 
 ### Changed

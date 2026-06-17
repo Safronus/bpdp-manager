@@ -1201,6 +1201,21 @@ obor); místnost se neeviduje.
   profilu), takže po restartu se statistika i graf ukáží **hned z disku** a STAG
   se neptá znovu na už zjištěné studenty (cache je vázaná na akademický rok —
   nový rok začíná čistý).
+- **🏛 Státnice (admin) — průběh SZZ** (toolbar *🔄 Aktualizace prací → 🏛 Státnice
+  (admin)…*). Pro vedoucího s rolí **ZAPISOVATEL STÁTNIC** ve STAG: data o
+  *průběhu* státnic (známky z předmětů, kdo zkoušel, výsledek obhajoby a celkový
+  výsledek SZZ) jsou v portálu STAG dostupná jen po přihlášení. Okno má
+  **vestavěný prohlížeč** — přihlásíš se jako normálně (**heslo se nikam
+  neukládá**, drží se jen cookie session v profilové složce `…/szz_webview`).
+  Nahoře je **indikátor stavu**: 🔴 nepřihlášen / ⚠️ chybí role *Zapisovatel
+  státnic* / 🟢 přihlášen. Po přihlášení klikni **🔄 Obnovit stav**, zadej
+  **osobní číslo** studenta a **▶ Načíst studenta** — aplikace sama projde
+  portál a zobrazí **kompletní SZZ záznam**: předměty (zkoušející, známka, body,
+  **otázky** z průběhu), obhajobu (hodnocení, vedoucí/oponent) a celkový výsledek
+  (Prospěl/Neprospěl, komise). Vše klíčované **osobním číslem** (žádné párování
+  podle jména). Vestavěný prohlížeč **blokuje sledovače** (Meta pixel, Google
+  Analytics…). *(1. fáze — ukládání do cache, tichá kontrola a statistiky přijdou
+  později.)*
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

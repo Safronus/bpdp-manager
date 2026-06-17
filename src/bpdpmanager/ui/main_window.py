@@ -1712,6 +1712,14 @@ class MainWindow(QMainWindow):
             "nabídne nápravu."
         ))
         act_swapped.triggered.connect(self._repair_swapped_documents)
+        checks_menu.addSeparator()
+        act_szz = checks_menu.addAction(tr("🏛 Státnice (admin) — průběh SZZ…"))
+        act_szz.setToolTip(tr(
+            "Přihlášení do portálu Zapisovatel u státnic a stažení průběhu "
+            "SZZ (předměty, zkoušející, výsledek). Vyžaduje roli "
+            "ZAPISOVATEL STÁTNIC ve STAG."
+        ))
+        act_szz.triggered.connect(self._open_szz_admin)
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
@@ -2454,6 +2462,24 @@ class MainWindow(QMainWindow):
         )
         dlg.data_changed.connect(self._refresh_all)
         dlg.exec()
+
+    def _open_szz_admin(self) -> None:
+        """Admin okno SZZ — přihlášení do portálu Zapisovatel u státnic."""
+        try:
+            from ..services.szz_portal import SzzPortalSession
+            from .szz_admin_dialog import SzzAdminDialog
+        except ImportError as exc:
+            QMessageBox.warning(
+                self, tr("Státnice (admin)"),
+                tr("Vestavěný prohlížeč (QtWebEngine) není dostupný:") + f"\n{exc}")
+            return
+        # Session žije po dobu běhu okna (profil přežije zavření dialogu →
+        # přihlášení a cookies zůstanou; správné pořadí destrukce).
+        if getattr(self, "_szz_session", None) is None:
+            from ..config import app_data_dir
+            self._szz_session = SzzPortalSession(
+                app_data_dir() / "szz_webview", self)
+        SzzAdminDialog(self._szz_session, self).exec()
 
     def _check_stag_consistency(self) -> None:
         """Kontrola: které soubory STAG nabízí a v DB chybí (+ dostažení)."""

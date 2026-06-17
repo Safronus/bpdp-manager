@@ -1087,6 +1087,22 @@ location = committee (colour + programme); rooms are not tracked.
   profile folder), so after a restart the statistics and chart show
   **immediately from disk** and STAG isn't re-queried for already-known students
   (the cache is tied to the academic year — a new year starts empty).
+- **🏛 State exams (admin) — SZZ progress** (toolbar *🔄 Thesis updates → 🏛 State
+  exams (admin)…*). For a supervisor with the **STATE-EXAM RECORDER** role
+  (*Zapisovatel státnic*) in STAG: data about the *progress* of state exams
+  (subject grades, who examined, defence result and the overall SZZ result) is
+  only available in the STAG portal after login. The window has an **embedded
+  browser** — you log in as usual (the **password is never stored**; only a
+  session cookie is kept in the profile folder `…/szz_webview`). A **status
+  indicator** at the top shows 🔴 logged out / ⚠️ missing the *recorder* role /
+  🟢 logged in. After logging in click **🔄 Refresh status**, type a student's
+  **personal number** and **▶ Load student** — the app drives the portal itself
+  and shows the **complete SZZ record**: subjects (examiner, grade, points,
+  **questions** from the procedure), the defence (grade, supervisor/opponent) and
+  the overall result (passed/failed, committee). Everything is keyed by
+  **personal number** (no name matching). The embedded browser **blocks trackers**
+  (Meta pixel, Google Analytics…). *(Phase 1 — caching, the silent check and
+  statistics come later.)*
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing
