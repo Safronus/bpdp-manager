@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.8] - 2026-06-17
+
+### Added
+- **Tichá kontrola STAG ukazuje v proužku průběh.** Při automatickém i ručním
+  spuštění proužek během kontroly zobrazuje *„⏳ Kontroluji STAG… X/Y prací
+  (zbývá …)"* — kolik evidovaných prací (vedené *V řešení* + oponentury
+  aktuálního roku se STAG ID) už zkontrolováno z kolika. `compute_stag_check`
+  / `StagChecker` dostaly `progress(hotovo, celkem)` (signál z vlákna do
+  proužku), obdoba průběhu u statistiky komisí.
+
 ## [2.9.7] - 2026-06-17
 
 ### Fixed

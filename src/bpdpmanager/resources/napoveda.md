@@ -828,7 +828,9 @@ tichou kontrolu. **📥 Import ze STAG** zůstává pro **nové práce**, které
 v aplikaci nemáš. Tlačítko **Detaily…** je dostupné i když
 je vše aktuální (ať si můžeš ověřit, co kontrola prošla). Kontrolu lze kdykoli **ručně
 zopakovat** tlačítkem **🔄 Zkontrolovat**; **proužek skryješ** křížkem.
-Kontrola je **jen pro čtení** (nic nemění); offline tiše oznámí neúspěch.
+Během kontroly (automatické i ruční) proužek ukazuje **průběh** —
+*„⏳ Kontroluji STAG… X/Y prací (zbývá …)"*. Kontrola je **jen pro čtení**
+(nic nemění); offline tiše oznámí neúspěch.
 
 > **Změny přežijí restart.** Zjištěné změny se ukládají k profilu, takže po
 > zavření a znovuotevření aplikace **proužek i „Detaily…" hned vidíš** — i když

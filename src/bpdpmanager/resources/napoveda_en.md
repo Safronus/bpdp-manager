@@ -723,8 +723,9 @@ pre-filled and pre-checked, just confirm. **The preview stays open** — when
 the check found changes in both supervised **and** opposed theses, you handle
 **both roles one after another** in a single open (a handled section is marked
 *✓ updated*); no need to wait for the next silent check. **📥 Import from
-STAG** remains for **new theses** you don't have in the app yet. The check is
-**read-only**; offline it reports quietly.
+STAG** remains for **new theses** you don't have in the app yet. While checking
+(automatic or manual) the banner shows **progress** — *"⏳ Checking STAG… X/Y
+theses (… left)"*. The check is **read-only**; offline it reports quietly.
 
 > **Changes survive a restart.** Detected changes are stored with the profile,
 > so after closing and reopening the app you **see the banner and "Details…"

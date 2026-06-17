@@ -234,6 +234,29 @@ def test_stag_pending_persist_roundtrip(service) -> None:
     assert service.load_stag_pending_changes() == {}
 
 
+def test_compute_reports_progress(service, monkeypatch) -> None:
+    """Tichá kontrola hlásí průběh: (0, N) … (N, N) přes evidované práce."""
+    s = Student(first_name="Jan", last_name="Novák")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, status=ThesisStatus.IN_PROGRESS,
+                                 academic_year="2024/2025", student_id=s.id,
+                                 adipidno="111"))
+    service.upsert_thesis(Thesis(type=ThesisType.DP, status=ThesisStatus.IN_PROGRESS,
+                                 academic_year="2024/2025", student_id=s.id,
+                                 adipidno="222"))
+    service.upsert_opposing_thesis(OpposingThesis(
+        type=ThesisType.BP, academic_year=service.current_academic_year(),
+        student_first_name="Eva", student_last_name="Malá", adipidno="333"))
+    _patch(monkeypatch, fetch_map={"111": ("R", [], ""), "222": ("R", [], ""),
+                                   "333": ("R", [], "")})
+    seen: list[tuple[int, int]] = []
+    chk.compute_stag_check(service, "Tester",
+                           progress=lambda d, t: seen.append((d, t)))
+    assert seen[0] == (0, 3)            # start: 0 z 3
+    assert seen[-1] == (3, 3)           # konec: 3 z 3
+    assert [d for d, _ in seen] == [0, 1, 2, 3]
+
+
 def test_stag_pending_ignores_other_year(service) -> None:
     """Pending z jiného akademického roku se ignoruje (čistý start)."""
     import json

@@ -1016,9 +1016,20 @@ class MainWindow(QMainWindow):
             "⏳ Kontroluji změny ve STAG…", "#e3f2fd", show_open=False
         )
         checker = StagChecker(self.service, user_name, user_surname, parent=self)
+        checker.progress.connect(self._on_stag_check_progress)
         checker.finished.connect(self._on_stag_check_done)
         self._stag_checker = checker
         checker.start()
+
+    def _on_stag_check_progress(self, done: int, total: int) -> None:
+        """Průběh tiché kontroly v proužku: kolik prací zkontrolováno z kolika."""
+        if total <= 0:
+            return  # není co kontrolovat (nech „Kontroluji…" / výsledek)
+        self._set_stag_banner(
+            f"⏳ Kontroluji STAG… {done}/{total} prací "
+            f"(zbývá {total - done})",
+            "#e3f2fd", show_open=False,
+        )
 
     # --- indikátor připojení ke STAG ----------------------------------------
     def _ping_stag_now(self) -> None:

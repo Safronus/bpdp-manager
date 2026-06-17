@@ -152,66 +152,86 @@ def _academic_year_of(date_str: str) -> str:
 
 
 def compute_stag_check(
-    service, user_full_name: str = "", user_surname: str = ""
+    service, user_full_name: str = "", user_surname: str = "", progress=None
 ) -> StagCheckResult:
     """Spočítá počty změn ve STAG (read-only). Vhodné volat z vlákna.
 
     ``user_surname`` = explicitní příjmení z profilu (přesné hledání i u dvojího
     jména); prázdné = odhad z celého jména (``_surname_of``).
+    ``progress(hotovo, celkem)`` (volitelně) hlásí průběh kontroly evidovaných
+    prací (vedené „V řešení" + oponentury aktuálního roku se STAG ID).
     """
     r = StagCheckResult()
     attempts = 0
     failures = 0
     current = service.current_academic_year()
 
-    db_adip: set[str] = {t.adipidno for t in service.list_theses() if t.adipidno}
-    db_adip |= {o.adipidno for o in service.list_opposing_theses() if o.adipidno}
+    theses = service.list_theses()
+    opposing = service.list_opposing_theses()
+    db_adip: set[str] = {t.adipidno for t in theses if t.adipidno}
+    db_adip |= {o.adipidno for o in opposing if o.adipidno}
+
+    # Kandidáti ke kontrole — z nich se počítá průběh „X z Y prací".
+    sup_candidates = [
+        t for t in theses
+        if t.status == ThesisStatus.IN_PROGRESS and t.adipidno
+    ]
+    opp_candidates = [
+        o for o in opposing if o.academic_year == current and o.adipidno
+    ]
+    r.total = len(sup_candidates) + len(opp_candidates)
+    done = 0
+    if progress is not None:
+        progress(done, r.total)
 
     # 1) Vedené práce „V řešení" se STAG ID.
-    for t in service.list_theses():
-        if t.status != ThesisStatus.IN_PROGRESS or not t.adipidno:
-            continue
+    for t in sup_candidates:
         attempts += 1
-        r.total += 1
         code, files, err = _fetch_target_state(t.adipidno)
         if err:
             failures += 1
-            continue
-        r.checked += 1
-        local_kinds = {a.kind for a in t.attachments if a.is_current}
-        mapped = STAG_STATE_TO_STATUS.get(code)
-        status_changed = mapped is not None and mapped != t.status
-        missing = _missing_kind_labels(files, local_kinds)
-        student = service.get_student(t.student_id) if t.student_id else None
-        name = student.full_name if student else "(bez studenta)"
-        base = f"{name} — {t.type.value} {t.academic_year}"
-        if status_changed or missing:
-            r.supervised.append(f"{base} · {_change_note(status_changed, missing)}")
-            r.supervised_ids.append(t.id)
         else:
-            r.up_to_date.append(f"{base} (vedená)")
+            r.checked += 1
+            local_kinds = {a.kind for a in t.attachments if a.is_current}
+            mapped = STAG_STATE_TO_STATUS.get(code)
+            status_changed = mapped is not None and mapped != t.status
+            missing = _missing_kind_labels(files, local_kinds)
+            student = service.get_student(t.student_id) if t.student_id else None
+            name = student.full_name if student else "(bez studenta)"
+            base = f"{name} — {t.type.value} {t.academic_year}"
+            if status_changed or missing:
+                r.supervised.append(
+                    f"{base} · {_change_note(status_changed, missing)}")
+                r.supervised_ids.append(t.id)
+            else:
+                r.up_to_date.append(f"{base} (vedená)")
+        done += 1
+        if progress is not None:
+            progress(done, r.total)
 
     # 2) Oponentury aktuálního roku se STAG ID.
-    for o in service.list_opposing_theses():
-        if o.academic_year != current or not o.adipidno:
-            continue
+    for o in opp_candidates:
         attempts += 1
-        r.total += 1
         code, files, err = _fetch_target_state(o.adipidno)
         if err:
             failures += 1
-            continue
-        r.checked += 1
-        local_kinds = {a.kind for a in o.attachments if a.is_current}
-        code_changed = bool(code) and code != o.stag_state_code
-        missing = _missing_kind_labels(files, local_kinds)
-        name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
-        base = f"{name} — {o.type.value} {o.academic_year}"
-        if code_changed or missing:
-            r.opposing.append(f"{base} · {_change_note(code_changed, missing)}")
-            r.opposing_ids.append(o.id)
         else:
-            r.up_to_date.append(f"{base} (oponentura)")
+            r.checked += 1
+            local_kinds = {a.kind for a in o.attachments if a.is_current}
+            code_changed = bool(code) and code != o.stag_state_code
+            missing = _missing_kind_labels(files, local_kinds)
+            name = (f"{o.student_last_name} {o.student_first_name}".strip()
+                    or "(student)")
+            base = f"{name} — {o.type.value} {o.academic_year}"
+            if code_changed or missing:
+                r.opposing.append(
+                    f"{base} · {_change_note(code_changed, missing)}")
+                r.opposing_ids.append(o.id)
+            else:
+                r.up_to_date.append(f"{base} (oponentura)")
+        done += 1
+        if progress is not None:
+            progress(done, r.total)
 
     # 3) Nové práce ve STAG (dle CELÉHO jména — ne jen příjmení, ať nepočítáme
     #    jmenovce), které v DB nemáš. Příjmení pro hledání: explicitní z profilu,
@@ -250,7 +270,8 @@ def compute_stag_check(
 class StagChecker(QObject):
     """Spustí ``compute_stag_check`` na vlákně a výsledek pošle signálem."""
 
-    finished = Signal(object)  # StagCheckResult
+    finished = Signal(object)       # StagCheckResult
+    progress = Signal(int, int)     # (hotovo, celkem) — průběh kontroly prací
 
     def __init__(self, service, user_full_name: str = "", user_surname: str = "",
                  parent=None) -> None:
@@ -266,7 +287,10 @@ class StagChecker(QObject):
 
     def _run(self) -> None:
         try:
-            result = compute_stag_check(self._service, self._user, self._user_surname)
+            result = compute_stag_check(
+                self._service, self._user, self._user_surname,
+                progress=lambda d, t: self.progress.emit(d, t),
+            )
         except Exception as exc:  # noqa: BLE001 — výsledek nesmí shodit vlákno
             result = StagCheckResult(ok=False, error=str(exc))
         # Signál se z vlákna doručí do hlavního vlákna (QueuedConnection).
