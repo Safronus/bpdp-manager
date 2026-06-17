@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.9] - 2026-06-17
+
+### Fixed
+- **Stav obhajoby: tituly ve jméně studenta už nerozbijí párování.** Příjmení
+  pro hledání ve STAG se bralo jako poslední token jména — u jména s titulem
+  **za** jménem (např. „Bc. Jiří Gába DiS.") to vrátilo titul („DiS"), hledalo
+  se podle něj → nic → student „Bez obhajoby", ač měl DUO. Nově se příjmení
+  (`_surname_of`) i porovnávací jméno v `_match_committee_result` berou **bez
+  titulů** (`strip_academic_titles`). Jména bez titulů beze změny. (Ověřeno
+  naživo: 74759 „Bc. Jiří Gába DiS." → Gába → DUO → „Obhájeno".)
+
 ## [2.9.8] - 2026-06-17
 
 ### Added

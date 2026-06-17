@@ -270,6 +270,32 @@ def test_stag_pending_ignores_other_year(service) -> None:
     assert service.load_stag_pending_changes() == {}
 
 
+def test_surname_of_strips_titles() -> None:
+    """Příjmení se bere bez titulů (i titul ZA jménem jako „DiS."/„Ph.D.")."""
+    assert chk._surname_of("Bc. Jiří Gába DiS.") == "Gába"
+    assert chk._surname_of("Petr Žáček") == "Žáček"            # beze změny
+    assert chk._surname_of("Ing. et Ing. Erik Král, Ph.D.") == "Král"
+    assert chk._surname_of("Zuzana Komínková Oplatková") == "Oplatková"
+
+
+def test_match_committee_handles_titled_slot_name() -> None:
+    """Jméno studenta s tituly (Bc. … DiS.) se napáruje — tituly se ignorují."""
+    from types import SimpleNamespace
+
+    from bpdpmanager.services.stag_api import StagThesisResult
+
+    results = [
+        StagThesisResult(adipidno="X", surname="Gába", name="Jiří",
+                         type_label="diplomová", year="2026",
+                         defense_date="17.06.2026", status_code="DUO"),
+    ]
+    slot = SimpleNamespace(student_name="Bc. Jiří Gába DiS.", date="17. 6. 2026")
+    com = SimpleNamespace(level="Mgr", academic_year="2025/2026",
+                          dates=["17. 6. 2026"])
+    m = chk._match_committee_result(results, slot, com)
+    assert m is not None and m.adipidno == "X" and m.status_code == "DUO"
+
+
 def test_match_committee_prefers_current_year_not_namesake() -> None:
     """Jmenovec s obhajobou z minulého roku (rok 2025, DUO) nesmí přebít
     rozpracovanou práci letošní komise (prázdný rok, DBPOO). Rok obhajoby se

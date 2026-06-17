@@ -130,7 +130,13 @@ def _person_role(role: str) -> str:
 
 
 def _surname_of(full_name: str) -> str:
-    tokens = [t.strip(".,") for t in (full_name or "").replace(",", " ").split()
+    """Příjmení = poslední token jména **bez titulů**. Titul za jménem
+    („Bc. Jiří Gába DiS.") by jinak vyšel jako příjmení („DiS") a hledání ve
+    STAG by selhalo."""
+    from ..services.komise_stats import strip_academic_titles
+
+    cleaned = strip_academic_titles(full_name or "")
+    tokens = [t.strip(".,") for t in cleaned.replace(",", " ").split()
               if t.strip(".,")]
     return tokens[-1] if tokens else ""
 
@@ -550,7 +556,9 @@ def _match_committee_result(results, slot, committee):
     z **prokazatelně jiného roku** se zahodí (ochrana proti jmenovcům z minulých
     let). Vrací :class:`StagThesisResult` nebo ``None``.
     """
-    slot_set = set(_fold_name(slot.student_name).split())
+    # Jméno studenta bez titulů (Bc./DiS./Ph.D. … se neporovnávají jako jméno).
+    from ..services.komise_stats import strip_academic_titles
+    slot_set = set(_fold_name(strip_academic_titles(slot.student_name)).split())
     if not slot_set:
         return None
     level = (committee.level or "").strip().lower()
