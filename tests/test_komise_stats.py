@@ -16,7 +16,7 @@ from bpdpmanager.services.komise_stats import (
     CAT_DEFENDED,
     CAT_FAILED,
     CAT_NONE,
-    CAT_UNFINISHED,
+    CATEGORIES,
     category_from_code,
     committee_defense_stats,
     czech_sort_key,
@@ -29,11 +29,23 @@ def test_category_from_code() -> None:
     assert category_from_code("DUO") == CAT_DEFENDED
     assert category_from_code("DBUO") == CAT_FAILED
     assert category_from_code("OPUNO") == CAT_FAILED
-    assert category_from_code("ND") == CAT_UNFINISHED
+    assert category_from_code("ND") == CAT_NONE      # „Nedokončeno" se needviduje
     assert category_from_code("R") == CAT_NONE
     assert category_from_code("DBPOO") == CAT_NONE
     assert category_from_code("") == CAT_NONE
     assert category_from_code("XYZ") == CAT_NONE
+
+
+def test_categories_have_no_unfinished() -> None:
+    """Kategorie obhajob jsou jen 3 (bez „Nedokončeno"); stará cache s
+    „unfinished" spadne do „Bez obhajoby"."""
+    assert CATEGORIES == (CAT_DEFENDED, CAT_FAILED, CAT_NONE)
+    c = _committee("modrá", "Bc", "SWI", ["A B"], [("09:00", "A1", "Jan Stale")])
+    stats = committee_defense_stats([c], {slot_key("A1", "Jan Stale"): "unfinished"})
+    row = stats["by_color"][0]
+    assert "unfinished" not in row
+    assert row[CAT_NONE] == 1            # stará „unfinished" → bez obhajoby
+    assert row["total"] == 1
 
 
 def test_slot_key_prefers_personal_number() -> None:

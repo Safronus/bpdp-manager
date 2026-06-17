@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.10] - 2026-06-17
+
+### Changed
+- **Statistika obhajob (Státnice průběh): odebrána kategorie „Nedokončeno".**
+  Student na státnicích logicky práci dokončil, takže kategorie nedává smysl.
+  Statistika i graf mají teď **3 kategorie** — *Obhájeno / Neobhájeno / Bez
+  obhajoby*. STAG kód `ND` spadá do **„Bez obhajoby"**. Stará cache se stavem
+  „unfinished" se bezpečně přemapuje na „Bez obhajoby" (žádný pád). Týká se
+  **jen** statistiky obhajob komisí — stav práce *Nedokončeno*
+  (`ThesisStatus.NOT_COMPLETED`) ve zbytku aplikace (toku/Historie) zůstává.
+
 ## [2.9.9] - 2026-06-17
 
 ### Fixed

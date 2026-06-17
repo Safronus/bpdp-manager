@@ -14,30 +14,29 @@ from __future__ import annotations
 
 import unicodedata
 
-# 4 kategorie výsledku obhajoby.
+# Kategorie výsledku obhajoby. „Nedokončeno" se ZÁMĚRNĚ neeviduje — student na
+# státnicích logicky práci dokončil, takže „ND" spadá do „Bez obhajoby".
 CAT_DEFENDED = "defended"
 CAT_FAILED = "failed"
-CAT_UNFINISHED = "unfinished"
 CAT_NONE = "none"  # bez obhajoby: čeká / v řešení / nenalezeno / dosud nezjištěno
 
-CATEGORIES = (CAT_DEFENDED, CAT_FAILED, CAT_UNFINISHED, CAT_NONE)
+CATEGORIES = (CAT_DEFENDED, CAT_FAILED, CAT_NONE)
 
 CATEGORY_LABELS = {
     CAT_DEFENDED: "Obhájeno",
     CAT_FAILED: "Neobhájeno",
-    CAT_UNFINISHED: "Nedokončeno",
     CAT_NONE: "Bez obhajoby",
 }
 
 # Stavy, které jsou „hotové" (znovu se ze STAG nedotazují).
-TERMINAL = frozenset({CAT_DEFENDED, CAT_FAILED, CAT_UNFINISHED})
+TERMINAL = frozenset({CAT_DEFENDED, CAT_FAILED})
 
 # STAG kód → kategorie.
 _CODE_TO_CAT = {
     "DUO": CAT_DEFENDED,
     "DBUO": CAT_FAILED,
     "OPUNO": CAT_FAILED,
-    "ND": CAT_UNFINISHED,
+    "ND": CAT_NONE,    # nedokončeno → „bez obhajoby" (kategorie se needviduje)
     "R": CAT_NONE,
     "DBPOO": CAT_NONE,
 }
@@ -124,8 +123,12 @@ def student_name_key(name: str) -> str:
 def _slot_category(slot, states: dict) -> str:
     pn = (slot.personal_number or "").strip().upper()
     if pn and pn in states:
-        return states[pn]
-    return states.get(student_name_key(slot.student_name), CAT_NONE)
+        cat = states[pn]
+    else:
+        cat = states.get(student_name_key(slot.student_name), CAT_NONE)
+    # Stará cache mohla mít kategorii, která už neexistuje (např. „unfinished")
+    # → spadne do „bez obhajoby".
+    return cat if cat in CATEGORIES else CAT_NONE
 
 
 def _empty_counts() -> dict:

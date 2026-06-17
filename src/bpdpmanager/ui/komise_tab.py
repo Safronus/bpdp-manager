@@ -1581,14 +1581,14 @@ class _DefenseBarChart(QWidget):
     vlevo osa Y s mřížkou, pod skupinou barva komise, nahoře legenda stavů.
     """
 
-    _ALPHAS = (255, 200, 145, 90)  # defended, failed, unfinished, none
+    _ALPHAS = (255, 200, 90)  # defended (nejtmavší), failed, none (nejsvětlejší)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._groups: list[dict] = []
         self.setMinimumHeight(240)
         self.setToolTip(
-            "Sloupce zleva: Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby "
+            "Sloupce zleva: Obhájeno / Neobhájeno / Bez obhajoby "
             "(tmavší = obhájeno). Barva sloupců = barva komise."
         )
 
@@ -1676,7 +1676,8 @@ class _DefenseBarChart(QWidget):
         gap = 14
         gw = max(20, (plot_w - gap * (n - 1)) / n)
         bgap = 3
-        bw = max(4, (gw - bgap * 3) / 4)
+        n_cat = max(1, len(CATEGORIES))   # počet sloupců ve skupině (kategorie)
+        bw = max(4, (gw - bgap * (n_cat - 1)) / n_cat)
         x = left + gap / 2 if n == 1 else left
         for g in self._groups:
             for i, cnt in enumerate(g["counts"]):

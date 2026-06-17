@@ -1170,11 +1170,12 @@ obor); místnost se neeviduje.
   komise je samostatná sekce; **horní detail se výškově přizpůsobuje obsahu**
   (členové + rozpis) a statistika dole **zabere zbývající výšku** panelu. Jsou tu
   **dvě tabulky vedle sebe (na poloviny)**: **vlevo podle barvy komise**
-  (kolik studentů komise *Obhájeno / Neobhájeno / Nedokončeno / Bez obhajoby* —
+  (kolik studentů komise *Obhájeno / Neobhájeno / Bez obhajoby* —
   **počet i procento**, + řádek Σ) a **vpravo podle členů komise** (každému členovi
   součet studentů jeho komisí v týchž kategoriích; **řazeno podle příjmení**
-  s českou diakritikou). **Pod tabulkou komisí je sloupcový graf**: per komise
-  4 sloupce (4 stavy vedle sebe), barva sloupců = **barva komise**, odstín dle
+  s českou diakritikou). *„Nedokončeno" se needviduje — student na státnicích
+  logicky práci dokončil.* **Pod tabulkou komisí je sloupcový graf**: per komise
+  3 sloupce (3 stavy vedle sebe), barva sloupců = **barva komise**, odstín dle
   stavu (tmavší = obhájeno → světlejší = bez obhajoby), nad sloupci počet.
   **Rozsah se řídí výběrem vlevo**: vybraná komise → jen ona, vybraný rok/stupeň
   → celý rok, jinak **všechny roky**. Stavy se zjišťují **ze STAG podle jména**
