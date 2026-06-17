@@ -755,7 +755,12 @@ def _build_result(
     year = ""
     defense_date = ""
     for c in cells:
-        if not type_label and _TYPE_KEYWORD_RE.search(c):
+        # Typ práce je KRÁTKÁ buňka („bakalářská" / „diplomová" …) — nikdy ne
+        # název/anotace. Délkový strop + klíčové slovo na začátku slova brání
+        # tomu, aby dlouhý název se slovem typu (např. „…diplomových prací…")
+        # byl omylem vzat za typ. (Když typ nenajdeme, filtr typu se vynechá —
+        # raději nefiltrovat než chybně vyřadit.)
+        if not type_label and len(c) <= 40 and _TYPE_KEYWORD_RE.search(c):
             type_label = c
         if not year:
             md = _DATE_RE.search(c)

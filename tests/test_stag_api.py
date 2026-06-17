@@ -103,6 +103,20 @@ def test_type_not_confused_by_master_in_title() -> None:
     assert "FreeMASTER" in r.title
 
 
+def test_type_not_taken_from_long_title_with_type_word() -> None:
+    """I když název obsahuje CELÉ slovo typu („diplomových"), typ se z dlouhého
+    názvu nevezme — bere se jen krátká buňka typu. Fiktivní data."""
+    page = _page(
+        _row(
+            "99002", "Nový", "Adam",
+            "Srovnání diplomových prací na fakultě a jejich kvalita",
+            "bakalářská", "Vedlejší Jan", "Oponent Petr", "16.06.2026",
+        )
+    )
+    r = stag_api._parse_results(page)[0]
+    assert r.type_label == "bakalářská"      # ne dlouhý název s „diplomových"
+
+
 def test_parse_multiple_results_dedup_and_fields() -> None:
     page = _page(
         _row(

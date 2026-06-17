@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.7] - 2026-06-17
+
+### Fixed
+- **Párování stavu obhajoby: typ práce se nikdy nebere z názvu/anotace.**
+  Doplněk k 2.9.6 — typ (BP/DP) se rozpozná jen z **krátké buňky** typu, ne
+  z dlouhého textu. I když název obsahuje **celé** slovo typu (např.
+  „…diplomových prací…"), nezamění se za typ → komise práci podle typu chybně
+  nevyřadí. Vyhodnocení stavu tak bere v potaz jen **jméno studenta, typ práce,
+  akademický rok a stav práce** — název ani anotace do něj nevstupují.
+
 ## [2.9.6] - 2026-06-17
 
 ### Fixed
