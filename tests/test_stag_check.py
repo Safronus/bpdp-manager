@@ -247,6 +247,36 @@ def test_stag_pending_ignores_other_year(service) -> None:
     assert service.load_stag_pending_changes() == {}
 
 
+def test_match_committee_prefers_current_year_not_namesake() -> None:
+    """Jmenovec s obhajobou z minulého roku (rok 2025, DUO) nesmí přebít
+    rozpracovanou práci letošní komise (prázdný rok, DBPOO). Rok obhajoby se
+    bere z data slotu (2026), ne z akademického roku „2025/2026" (ten obsahuje
+    i „2025"). Fiktivní data."""
+    from types import SimpleNamespace
+
+    from bpdpmanager.services.stag_api import StagThesisResult
+
+    results = [
+        StagThesisResult(adipidno="OLD", surname="Nováková", name="Jana",
+                         type_label="diplomová", year="2025", status_code="DUO"),
+        StagThesisResult(adipidno="CUR", surname="Nováková", name="Jana",
+                         type_label="diplomová", year="", status_code="DBPOO"),
+    ]
+    com = SimpleNamespace(
+        level="Mgr", academic_year="2025/2026",
+        dates=["17. 6. 2026", "18. 6. 2026", "19. 6. 2026"])
+
+    # Rok z data slotu (2026) → jmenovec z 2025 (DUO) se zahodí.
+    slot = SimpleNamespace(student_name="Jana Nováková", date="19. 6. 2026")
+    m = chk._match_committee_result(results, slot, com)
+    assert m is not None and m.adipidno == "CUR" and m.status_code == "DBPOO"
+
+    # Bez data slotu fallback na data komise (taky 2026) → stejný výsledek.
+    slot2 = SimpleNamespace(student_name="Jana Nováková", date="")
+    m2 = chk._match_committee_result(results, slot2, com)
+    assert m2 is not None and m2.adipidno == "CUR"
+
+
 def test_compute_uses_explicit_surname(service, monkeypatch) -> None:
     """Hledání nových prací bere EXPLICITNÍ příjmení z profilu (přesné i
     u dvojího jména); prázdné = fallback na poslední token celého jména."""

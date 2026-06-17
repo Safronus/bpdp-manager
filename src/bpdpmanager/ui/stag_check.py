@@ -515,7 +515,16 @@ def _match_committee_result(results, slot, committee):
         return None
     level = (committee.level or "").strip().lower()
     type_kw = "bakal" if level == "bc" else "diplom" if level == "mgr" else ""
-    target_years = set(re.findall(r"\d{4}", committee.academic_year or ""))
+    # Rok obhajoby ber z KONKRÉTNÍHO data slotu (nejpřesnější), jinak z dat
+    # komise; akademický rok je až poslední záchrana — „2025/2026" obsahuje
+    # i „2025", což kolidovalo s obhajobou JMENOVCE z minulého roku (rok 2025,
+    # stav DUO) a chybně ji upřednostnilo před rozpracovanou prací (prázdný rok,
+    # DBPOO). Po odstranění diakritiky navíc „Križanová" == „Křížanová".
+    target_years = (
+        set(re.findall(r"\d{4}", slot.date or ""))
+        or {y for d in committee.dates for y in re.findall(r"\d{4}", d)}
+        or set(re.findall(r"\d{4}", committee.academic_year or ""))
+    )
 
     candidates = []
     for r in results:
@@ -524,15 +533,15 @@ def _match_committee_result(results, slot, committee):
             continue
         if type_kw and r.type_label and type_kw not in r.type_label.lower():
             continue
-        # Známý rok obhajoby mimo akademický rok komise → jmenovec z jiných let.
+        # Známý rok obhajoby mimo rok obhajoby komise → jmenovec z jiných let.
         if target_years and r.year and r.year not in target_years:
             continue
         candidates.append(r)
 
     if not candidates:
         return None
-    # Preferuj práci s rokem obhajoby PŘÍMO v akademickém roce komise, pak se
-    # stavem; bez vyplněného roku ber až jako poslední (nelze rozlišit jistě).
+    # Preferuj práci s rokem obhajoby PŘÍMO v roce komise, pak se stavem; bez
+    # vyplněného roku ber až jako poslední (nelze rozlišit jistě).
     exact = [r for r in candidates if r.year in target_years]
     pool = exact or candidates
     return next((r for r in pool if r.status_code), pool[0])

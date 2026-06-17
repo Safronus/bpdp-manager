@@ -5,6 +5,19 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.3] - 2026-06-17
+
+### Fixed
+- **Stav obhajoby u státnic: student chybně „obhájeno" kvůli jmenovci z minulého
+  roku.** Při „🔄 Aktualizovat" v záložce *Státnice průběh* se stav studenta
+  hledal ve STAG dle příjmení a rok obhajoby se porovnával s **akademickým
+  rokem** komise „2025/2026" — ten ale obsahuje i „2025", takže obhajoba
+  **jmenovce** z roku 2025 (stav DUO) přebila **rozpracovanou** práci letošní
+  komise (prázdný rok, stav DBPOO). Po odstranění diakritiky navíc „Križanová"
+  splyne s „Křížanová". Nově se rok obhajoby bere z **data konkrétního slotu**
+  (resp. z dat komise) — jmenovec z jiného roku se zahodí a student s DBPOO
+  zůstane správně „Bez obhajoby". (Ověřeno na reálném záznamu ze STAG.)
+
 ## [2.9.2] - 2026-06-16
 
 ### Fixed
