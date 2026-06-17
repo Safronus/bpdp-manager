@@ -277,6 +277,39 @@ def test_match_committee_prefers_current_year_not_namesake() -> None:
     assert m2 is not None and m2.adipidno == "CUR"
 
 
+def test_academic_year_of() -> None:
+    """Akademický rok z celého data: měsíc ≥ 9 → rok/rok+1, jinak rok-1/rok."""
+    assert chk._academic_year_of("4. 6. 2025") == "2024/2025"
+    assert chk._academic_year_of("04.06.2025") == "2024/2025"
+    assert chk._academic_year_of("15. 9. 2025") == "2025/2026"
+    assert chk._academic_year_of("") == ""
+    assert chk._academic_year_of("2025") == ""   # neúplné datum → nevylučovat
+
+
+def test_match_committee_academic_year_excludes_namesake_same_calendar_year() -> None:
+    """Jmenovec s obhajobou v červnu 2025 (kalendářní rok 2025 je v „2025/2026",
+    ale akademický rok je 2024/2025) se vyřadí i bez data slotu — díky kontrole
+    akademického roku z CELÉHO data. Fiktivní data."""
+    from types import SimpleNamespace
+
+    from bpdpmanager.services.stag_api import StagThesisResult
+
+    results = [
+        StagThesisResult(adipidno="OLD", surname="Nováková", name="Jana",
+                         type_label="diplomová", year="2025",
+                         defense_date="04.06.2025", status_code="DUO"),
+        StagThesisResult(adipidno="CUR", surname="Nováková", name="Jana",
+                         type_label="diplomová", year="", defense_date="",
+                         status_code="DBPOO"),
+    ]
+    # Slot i komise BEZ konkrétních dat → rok by spadl na „2025/2026"; jmenovce
+    # z června 2025 vyřadí až kontrola akademického roku.
+    slot = SimpleNamespace(student_name="Jana Nováková", date="")
+    com = SimpleNamespace(level="Mgr", academic_year="2025/2026", dates=[])
+    m = chk._match_committee_result(results, slot, com)
+    assert m is not None and m.adipidno == "CUR" and m.status_code == "DBPOO"
+
+
 def test_force_rechecks_cached_terminal_state(monkeypatch) -> None:
     """Ruční „Aktualizovat" (force) re-ověří i terminální stav z cache, aby
     opravil dříve CHYBNĚ zacachované „obhájeno" (jmenovec). Tichá kontrola

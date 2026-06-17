@@ -135,6 +135,22 @@ def _surname_of(full_name: str) -> str:
     return tokens[-1] if tokens else ""
 
 
+def _academic_year_of(date_str: str) -> str:
+    """Akademický rok z CELÉHO data obhajoby (měsíc ≥ 9 → rok/rok+1, jinak
+    rok-1/rok). „4. 6. 2025" → „2024/2025"; „15. 9. 2025" → „2025/2026".
+
+    Přesnější než kalendářní rok — červnová obhajoba 2025 patří do ak. roku
+    2024/2025, takže ji v komisi 2025/2026 vyřadíme, i když „2025" je součástí
+    řetězce „2025/2026". Prázdné/neúplné datum → „" (rozpracováno → nevylučovat).
+    """
+    m = re.search(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})", date_str or "")
+    if not m:
+        return ""
+    mon, yr = int(m.group(2)), int(m.group(3))
+    start = yr if mon >= 9 else yr - 1
+    return f"{start}/{start + 1}"
+
+
 def compute_stag_check(
     service, user_full_name: str = "", user_surname: str = ""
 ) -> StagCheckResult:
@@ -525,6 +541,12 @@ def _match_committee_result(results, slot, committee):
         or {y for d in committee.dates for y in re.findall(r"\d{4}", d)}
         or set(re.findall(r"\d{4}", committee.academic_year or ""))
     )
+    # Akademický rok komise (pro vyřazení jmenovců z jiného ak. roku). Když ho
+    # komise nemá, vezmi aktuální (Státnice průběh = běžící ročník).
+    com_ay = (committee.academic_year or "").strip()
+    if not com_ay:
+        from ..services.thesis_service import ThesisService
+        com_ay = ThesisService.current_academic_year()
 
     candidates = []
     for r in results:
@@ -536,6 +558,13 @@ def _match_committee_result(results, slot, committee):
         # Známý rok obhajoby mimo rok obhajoby komise → jmenovec z jiných let.
         if target_years and r.year and r.year not in target_years:
             continue
+        # Přesnější: akademický rok z CELÉHO data obhajoby musí sedět na rok
+        # komise (červnová obhajoba 2025 = 2024/2025 → vyřadí jmenovce, i když
+        # „2025" je v „2025/2026"). Prázdné datum (rozpracováno) projde.
+        if com_ay:
+            r_ay = _academic_year_of(r.defense_date)
+            if r_ay and r_ay != com_ay:
+                continue
         candidates.append(r)
 
     if not candidates:

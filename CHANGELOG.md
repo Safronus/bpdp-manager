@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.5] - 2026-06-17
+
+### Fixed
+- **Stav obhajoby: navázáno i na akademický rok komise (přesnější vyřazení
+  jmenovců).** Doplněk k 2.9.3 — kromě kalendářního roku z data slotu se shoda
+  ověřuje i proti **akademickému roku** komise, spočítanému z **celého data
+  obhajoby** výsledku (měsíc ≥ 9 → rok/rok+1). Červnová obhajoba 2025 je tak
+  rozpoznána jako ak. rok 2024/2025 a v komisi 2025/2026 se vyřadí, i když „2025"
+  je součástí „2025/2026" — a to **i když slot/komise nemají vyplněné datum**
+  (kde dřív zbýval jen široký odhad z akademického roku). Rozpracovaná práce
+  (prázdné datum) projde dál.
+
 ## [2.9.4] - 2026-06-17
 
 ### Fixed
