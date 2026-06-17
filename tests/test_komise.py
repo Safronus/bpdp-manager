@@ -601,7 +601,9 @@ def test_right_harmonogram_independent_and_countdown(service) -> None:
                                  student_id=s.id, status=ThesisStatus.IN_PROGRESS))
     now = datetime.now()
     near = now + timedelta(minutes=8)
-    dstr = f"{now.day}. {now.month}. {now.year}"
+    # Datum odvozeno z `near` (ne `now`) — jinak by se u přelomu půlnoci čas
+    # přehoupl na další den, ale datum zůstalo dnešní → slot „v minulosti".
+    dstr = f"{near.day}. {near.month}. {near.year}"
     service.apply_komise_import([], [
         ParsedSchedule(color="červená", academic_year=cur, level="Bc", obor="SWI",
                        program_label="SWI", dates=[dstr],
