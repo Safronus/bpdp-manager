@@ -5,6 +5,23 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.6] - 2026-06-17
+
+### Fixed
+- **Student „Bez obhajoby" i když obhájil — typ práce zaměněn s názvem.** Stav
+  obhajoby se hledá ve STAG a páruje i podle typu (BP/DP). Typ se ale poznával
+  podle klíčových slov kdekoli v textu, takže název práce se slovem obsahujícím
+  „master" (např. „FreeMASTER") se zaměnil za typ → komise práci podle typu
+  vyřadila → student zůstal „Bez obhajoby", ač měl DUO. Nově se typ pozná jen na
+  **začátku slova** (`\b`). (Ověřeno na reálném záznamu ze STAG.)
+
+### Changed
+- **„🔄 Aktualizovat" u státnic už nekontroluje úplně všechny práce** (revert
+  chování z 2.9.4). Terminální stavy (obhájeno/neobhájeno/nedokončeno) se z cache
+  zase přeskakují — jsou konečné. Chybně zjištěné stavy se opraví i tak: nesedící
+  zůstávají „bez obhajoby" (ne-terminální), takže se přepočítají při dalším
+  „Aktualizovat" (díky opravám párování v 2.9.3/2.9.5/2.9.6).
+
 ## [2.9.5] - 2026-06-17
 
 ### Fixed

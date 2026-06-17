@@ -87,6 +87,22 @@ def test_parse_single_result() -> None:
     assert "Pohanka Josef" in r.display_label
 
 
+def test_type_not_confused_by_master_in_title() -> None:
+    """Název se slovem obsahujícím „master" (např. „FreeMASTER") se nesmí
+    zaměnit za typ práce — typ se pozná jen na ZAČÁTKU slova. (Jinak by komise
+    práci podle typu chybně vyřadila → student „Bez obhajoby".) Fiktivní data."""
+    page = _page(
+        _row(
+            "99001", "Nový", "Adam",
+            "Vývoj nástroje FreeMASTER pro vizualizaci",
+            "bakalářská", "Vedlejší Jan", "Oponent Petr", "16.06.2026",
+        )
+    )
+    r = stag_api._parse_results(page)[0]
+    assert r.type_label == "bakalářská"      # ne název s „FreeMASTER"
+    assert "FreeMASTER" in r.title
+
+
 def test_parse_multiple_results_dedup_and_fields() -> None:
     page = _page(
         _row(

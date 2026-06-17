@@ -657,6 +657,11 @@ _TYPE_KEYWORDS = (
     "dissertation",
     "rigoróz",
 )
+# Typ práce poznáme jen na ZAČÁTKU slova (\b) — jinak by „master" uvnitř názvu
+# („FreeMASTER") zaměnilo název za typ a komise by práci špatně vyřadila.
+_TYPE_KEYWORD_RE = re.compile(
+    r"\b(?:" + "|".join(_TYPE_KEYWORDS) + r")", re.IGNORECASE
+)
 
 
 def _clean(fragment: str) -> str:
@@ -750,8 +755,7 @@ def _build_result(
     year = ""
     defense_date = ""
     for c in cells:
-        low = c.lower()
-        if not type_label and any(k in low for k in _TYPE_KEYWORDS):
+        if not type_label and _TYPE_KEYWORD_RE.search(c):
             type_label = c
         if not year:
             md = _DATE_RE.search(c)

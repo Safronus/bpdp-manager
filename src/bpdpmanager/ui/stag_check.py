@@ -607,10 +607,12 @@ def fetch_committee_defense_states(
     for c in committees:
         for s in c.slots:
             key = slot_key(s.personal_number, s.student_name)
-            # Terminální stav z cache se znovu nedotazuje (úspora) — ALE ruční
-            # „Aktualizovat" (force) re-ověří i terminální, ať se opraví i dříve
-            # CHYBNĚ zacachovaný stav (např. obhájeno z jmenovce).
-            if not force and out.get(key) in TERMINAL:
+            # Terminální stav (obhájeno/neobhájeno/nedokončeno) se z cache znovu
+            # nedotazuje — je konečný a nemění se. „Aktualizovat" tak nekontroluje
+            # úplně vše, jen zbývající (ne-terminální) studenty. Chybně zjištěný
+            # stav se opraví sám: nesedící stavy zůstávají „bez obhajoby"
+            # (ne-terminální), takže se přepočítají při dalším „Aktualizovat".
+            if out.get(key) in TERMINAL:
                 continue
             dt = ThesisService._parse_slot_dt(s.date, s.time)
             if force:

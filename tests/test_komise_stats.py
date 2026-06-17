@@ -197,9 +197,8 @@ def test_nice_step() -> None:
 
 
 def test_force_queries_before_defense_time(monkeypatch) -> None:
-    """force=True (ruční Aktualizovat) dotáže i studenty PŘED časem obhajoby
-    a nově **re-ověří i terminální** stav z cache (aby se opravil dříve chybně
-    zacachovaný stav, např. obhájeno z jmenovce)."""
+    """force=True (ruční Aktualizovat) dotáže i studenty PŘED časem obhajoby,
+    ale terminální (z cache) přeskočí (nekontroluje úplně vše)."""
     from bpdpmanager.services import stag_api
     from bpdpmanager.services.komise_stats import CAT_DEFENDED, slot_key
     from bpdpmanager.ui import stag_check
@@ -219,14 +218,14 @@ def test_force_queries_before_defense_time(monkeypatch) -> None:
         None, [c], now, {}, progress=lambda d, t: seen_quiet.append((d, t)))
     assert seen_quiet[0][1] == 0
 
-    # Ruční (force=True): dotáže OBA — i A1, který je v cache jako obhájeno
-    # (re-ověření kvůli opravě chybně zacachovaného stavu).
+    # Ruční (force=True): dotáže jen A2; A1 je v cache jako obhájeno (terminální
+    # → přeskočen, aby „Aktualizovat" nekontrolovalo úplně vše).
     prior = {slot_key("A1", "Anna Vedena"): CAT_DEFENDED}
     seen_force: list[tuple[int, int]] = []
     stag_check.fetch_committee_defense_states(
         None, [c], now, prior, force=True,
         progress=lambda d, t: seen_force.append((d, t)))
-    assert seen_force[0][1] == 2   # A1 (terminální) i A2 — force re-ověřuje
+    assert seen_force[0][1] == 1   # jen A2 (A1 terminální → přeskočen)
 
 
 def test_quiet_check_only_current_day(monkeypatch) -> None:
