@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.11.1] - 2026-06-18
+
+### Changed
+- **Státnice (admin): tlačítko přesunuto do menu 👤 profil** (z *🔄 Aktualizace
+  prací*) — patří k účtu/přihlášení podobně jako *Nastavení e-mailu*.
+- **`.gitignore`:** přidána pojistka `szz_webview/` (session vestavěného
+  prohlížeče STAG). Session přitom standardně žije v **datové složce profilu**
+  (mimo repo) — ukládá se jen **cookie** (expiruje), **nikdy heslo**, takže do
+  Gitu nemůže uniknout.
+
 ## [2.11.0] - 2026-06-17
 
 ### Added

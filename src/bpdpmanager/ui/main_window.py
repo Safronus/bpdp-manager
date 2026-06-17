@@ -1712,14 +1712,6 @@ class MainWindow(QMainWindow):
             "nabídne nápravu."
         ))
         act_swapped.triggered.connect(self._repair_swapped_documents)
-        checks_menu.addSeparator()
-        act_szz = checks_menu.addAction(tr("🏛 Státnice (admin) — průběh SZZ…"))
-        act_szz.setToolTip(tr(
-            "Přihlášení do portálu Zapisovatel u státnic a stažení průběhu "
-            "SZZ (předměty, zkoušející, výsledek). Vyžaduje roli "
-            "ZAPISOVATEL STÁTNIC ve STAG."
-        ))
-        act_szz.triggered.connect(self._open_szz_admin)
         self._checks_button.setMenu(checks_menu)
         self._tint_widget(self._checks_button, self._GROUP_IMPORT)
         toolbar.addWidget(self._checks_button)
@@ -1893,6 +1885,14 @@ class MainWindow(QMainWindow):
         )
         act_email.triggered.connect(self._open_email_settings)
         act_email.setEnabled(active is not None)
+        act_szz = menu.addAction(tr("🏛 Státnice (admin) — průběh SZZ…"))
+        act_szz.setToolTip(tr(
+            "Přihlášení do portálu Zapisovatel u státnic a stažení průběhu "
+            "SZZ (předměty, zkoušející, výsledek). Vyžaduje roli "
+            "ZAPISOVATEL STÁTNIC ve STAG. Heslo se neukládá."
+        ))
+        act_szz.triggered.connect(self._open_szz_admin)
+        act_szz.setEnabled(active is not None)
         menu.addSeparator()
         act_manage = menu.addAction(tr("🗂 Správa profilů…"))
         act_manage.triggered.connect(self._action_manage_profiles)

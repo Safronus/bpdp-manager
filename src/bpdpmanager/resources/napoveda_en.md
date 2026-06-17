@@ -1087,7 +1087,7 @@ location = committee (colour + programme); rooms are not tracked.
   profile folder), so after a restart the statistics and chart show
   **immediately from disk** and STAG isn't re-queried for already-known students
   (the cache is tied to the academic year — a new year starts empty).
-- **🏛 State exams (admin) — SZZ progress** (toolbar *🔄 Thesis updates → 🏛 State
+- **🏛 State exams (admin) — SZZ progress** (toolbar *👤 profile → 🏛 State
   exams (admin)…*). For a supervisor with the **STATE-EXAM RECORDER** role
   (*Zapisovatel státnic*) in STAG: data about the *progress* of state exams
   (subject grades, who examined, defence result and the overall SZZ result) is

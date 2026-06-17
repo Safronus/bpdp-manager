@@ -1201,7 +1201,7 @@ obor); místnost se neeviduje.
   profilu), takže po restartu se statistika i graf ukáží **hned z disku** a STAG
   se neptá znovu na už zjištěné studenty (cache je vázaná na akademický rok —
   nový rok začíná čistý).
-- **🏛 Státnice (admin) — průběh SZZ** (toolbar *🔄 Aktualizace prací → 🏛 Státnice
+- **🏛 Státnice (admin) — průběh SZZ** (toolbar *👤 profil → 🏛 Státnice
   (admin)…*). Pro vedoucího s rolí **ZAPISOVATEL STÁTNIC** ve STAG: data o
   *průběhu* státnic (známky z předmětů, kdo zkoušel, výsledek obhajoby a celkový
   výsledek SZZ) jsou v portálu STAG dostupná jen po přihlášení. Okno má
