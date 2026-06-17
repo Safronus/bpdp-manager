@@ -1104,8 +1104,14 @@ location = committee (colour + programme); rooms are not tracked.
   (Meta pixel, Google Analytics…). **Fetched records are cached** (`szz_results.json`
   in the profile folder, keyed by personal number, tagged by academic year) — the
   **📂 From cache** button shows a stored record **without logging in**; on open the
-  window shows how many records are cached. *(The silent check and statistics come
-  in later phases.)*
+  window shows how many records are cached. **Bulk committee check:** **🔄 Check
+  remaining** (fetches only students without a final result — finished ones in the
+  cache are skipped), **🔁 Check all** (re-fetch everyone) and **⏹ Stop**; after
+  login **today's** students are also checked silently (once). Progress „⏳ Checking
+  SZZ X/Y" runs next to the buttons and results are saved incrementally (nothing is
+  checked twice). If the **session expires**, the check stops and asks for re-login;
+  after **🔄 Refresh status** it **resumes seamlessly**. *(Statistics come in the
+  next phase.)*
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

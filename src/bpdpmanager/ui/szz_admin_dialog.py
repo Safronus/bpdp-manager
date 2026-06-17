@@ -22,13 +22,17 @@ from PySide6.QtWidgets import (
 )
 
 from ..i18n import tr
+from ..services.szz_parser import szz_to_check
 from ..services.szz_portal import (
     PORTAL_URL,
     STATUS_LOGGED_OUT,
     STATUS_NO_ROLE,
     STATUS_READY,
+    SzzBatchChecker,
     SzzPortalSession,
 )
+
+_MUTED = "#9aa0a6"
 
 _STATUS_UI = {
     STATUS_LOGGED_OUT: ("🔴", "Nepřihlášen — přihlas se ve STAG", "#e53935"),
@@ -75,6 +79,8 @@ class SzzAdminDialog(QDialog):
         self.session = session
         self.service = service
         self._alive = True   # async callbacky nesmí sáhnout na zavřený dialog
+        self._batch = None
+        self._auto_done = False   # tichá kontrola dnešních proběhla?
 
         root = QVBoxLayout(self)
 
@@ -101,6 +107,29 @@ class SzzAdminDialog(QDialog):
         bar.addWidget(self.btn_cache)
         root.addLayout(bar)
 
+        # Druhý řádek — hromadná inkrementální kontrola komisí.
+        bar2 = QHBoxLayout()
+        bar2.addWidget(QLabel(tr("Hromadná kontrola komisí:")))
+        self.btn_remaining = QPushButton("🔄 " + tr("Zkontrolovat zbývající"))
+        self.btn_remaining.setToolTip(tr(
+            "Stáhne SZZ studentů komisí, kteří ještě nemají hotový výsledek "
+            "(hotové v cache se přeskočí)."))
+        self.btn_remaining.clicked.connect(lambda: self._start_batch(force=False))
+        bar2.addWidget(self.btn_remaining)
+        self.btn_all = QPushButton("🔁 " + tr("Zkontrolovat všechny"))
+        self.btn_all.setToolTip(tr("Znovu stáhne VŠECHNY studenty komisí (i hotové)."))
+        self.btn_all.clicked.connect(lambda: self._start_batch(force=True))
+        bar2.addWidget(self.btn_all)
+        self.btn_stop = QPushButton("⏹ " + tr("Stop"))
+        self.btn_stop.clicked.connect(self._stop_batch)
+        self.btn_stop.setEnabled(False)
+        bar2.addWidget(self.btn_stop)
+        self.lbl_progress = QLabel("")
+        self.lbl_progress.setStyleSheet(f"color:{_MUTED};")
+        bar2.addWidget(self.lbl_progress)
+        bar2.addStretch(1)
+        root.addLayout(bar2)
+
         split = QSplitter(Qt.Orientation.Horizontal)
         self.view = QWebEngineView()
         self.view.setPage(self.session.login_page())
@@ -119,6 +148,7 @@ class SzzAdminDialog(QDialog):
         # redirecty na login portál vyhodnotí jako „neautorizovaný požadavek".
         # Stav se zjistí až tlačítkem „Obnovit stav" (po přihlášení).
         self.btn_fetch.setEnabled(False)
+        self._set_batch_enabled(False)
         self.lbl_status.setText(
             "⏳ " + tr("Přihlas se vlevo, pak klikni 🔄 Obnovit stav"))
         self.out.setPlainText(self._cache_summary())
@@ -143,10 +173,91 @@ class SzzAdminDialog(QDialog):
         if not self._alive:
             return
         icon, text, color = _STATUS_UI.get(
-            status, ("⏳", tr("Neznámý stav"), "#9aa0a6"))
+            status, ("⏳", tr("Neznámý stav"), _MUTED))
         self.lbl_status.setText(f"{icon} {tr(text)}")
         self.lbl_status.setStyleSheet(f"font-weight:bold; color:{color};")
-        self.btn_fetch.setEnabled(status == STATUS_READY)
+        ready = status == STATUS_READY
+        self.btn_fetch.setEnabled(ready)
+        self._set_batch_enabled(ready)
+        # Tichá kontrola dnešních studentů po prvním přihlášení (jednou).
+        if ready and not self._auto_done:
+            self._auto_done = True
+            self._start_batch(force=False, today_only=True, silent=True)
+
+    # ── hromadná inkrementální kontrola ───────────────────────────────────
+    def _set_batch_enabled(self, enabled: bool) -> None:
+        self.btn_remaining.setEnabled(enabled)
+        self.btn_all.setEnabled(enabled)
+
+    def _committee_oscisla(self, today_only: bool = False) -> list:
+        import re
+        from datetime import date
+
+        cur = self.service.current_academic_year()
+        today = date.today()
+        out: list[str] = []
+        for c in self.service.list_committees():
+            if c.academic_year and c.academic_year != cur:
+                continue
+            for s in c.slots:
+                pn = (s.personal_number or "").strip()
+                if not pn:
+                    continue
+                if today_only:
+                    nums = re.findall(r"\d+", s.date or "")
+                    if len(nums) < 3 or (int(nums[2]), int(nums[1]),
+                                         int(nums[0])) != (today.year,
+                                                           today.month, today.day):
+                        continue
+                out.append(pn.upper())
+        return out
+
+    def _start_batch(self, force: bool, today_only: bool = False,
+                     silent: bool = False) -> None:
+        if self._batch is not None:
+            return
+        oscisla = self._committee_oscisla(today_only=today_only)
+        to_check = szz_to_check(oscisla, self.service.load_szz_results(), force)
+        if not to_check:
+            if not silent:
+                self.lbl_progress.setText("✅ " + tr("Nic ke kontrole (vše hotové)."))
+            return
+        self._set_batch_enabled(False)
+        self.btn_stop.setEnabled(True)
+        self.lbl_progress.setText(f"⏳ 0/{len(to_check)}")
+        self._batch = SzzBatchChecker(self.session, self.service, to_check, self)
+        self._batch.progress.connect(self._batch_progress)
+        self._batch.finished.connect(self._batch_done)
+        self._batch.start()
+
+    def _batch_progress(self, done: int, total: int, oc: str) -> None:
+        if self._alive:
+            self.lbl_progress.setText(
+                f"⏳ {tr('Kontroluji SZZ')} {done}/{total}…")
+
+    def _batch_done(self, stats: dict) -> None:
+        self._batch = None
+        if not self._alive:
+            return
+        self.btn_stop.setEnabled(False)
+        n = len(self.service.load_szz_results())
+        if stats.get("logged_out"):
+            self._auto_done = False          # po re-loginu plynule pokračovat
+            self.lbl_progress.setText("⏳ " + tr("Session vypršela"))
+            self.out.setPlainText("⏳ " + tr(
+                "Session vypršela během kontroly — přihlas se vlevo a klikni "
+                "🔄 Obnovit stav (kontrola plynule pokračuje, hotové se přeskočí)."))
+            self._set_status(STATUS_LOGGED_OUT)
+            return
+        self._set_batch_enabled(True)
+        self.lbl_progress.setText(
+            f"✅ {tr('Hotovo')}: {stats['checked']} {tr('zkontrolováno')}, "
+            f"{stats['failed']} {tr('chyb')} · 💾 {tr('v cache')}: {n}")
+
+    def _stop_batch(self) -> None:
+        if self._batch is not None:
+            self._batch.stop()
+            self.lbl_progress.setText("⏹ " + tr("Zastavuji…"))
 
     # ── testovací stažení jednoho studenta ────────────────────────────────
     def _fetch(self) -> None:

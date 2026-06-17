@@ -192,3 +192,23 @@ def merge_pages(*recs: SzzRecord) -> SzzRecord:
 def is_terminal(rec: SzzRecord) -> bool:
     """Hotový výsledek (už se nekontroluje): celkový výsledek studia vyplněn."""
     return bool(rec.overall and rec.overall.vysledek_studia)
+
+
+def szz_to_check(oscisla, cache: dict, force: bool) -> list[str]:
+    """Které osobní čísla zkontrolovat: deduplikuje a (není-li ``force``)
+    **přeskočí hotové** (terminal v cache) — inkrementální/aditivní kontrola.
+
+    Zachovává pořadí. ``cache`` je ``{os_cislo: SzzRecord}`` z
+    ``ThesisService.load_szz_results()``.
+    """
+    out: list[str] = []
+    for oc in oscisla:
+        oc = (oc or "").strip()
+        if not oc or oc in out:
+            continue
+        if not force:
+            rec = cache.get(oc)
+            if rec is not None and getattr(rec, "terminal", False):
+                continue
+        out.append(oc)
+    return out

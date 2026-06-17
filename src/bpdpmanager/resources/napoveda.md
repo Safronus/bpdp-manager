@@ -1217,8 +1217,14 @@ obor); místnost se neeviduje.
   Analytics…). **Stažené záznamy se ukládají do cache** (`szz_results.json` ve
   složce profilu, klíč = os. číslo, tagováno akademickým rokem) — tlačítkem
   **📂 Z cache** je po zadání os. čísla zobrazíš **i bez přihlášení**; po startu
-  okno ukáže, kolik záznamů je uloženo. *(Tichá inkrementální kontrola a
-  statistiky přijdou v dalších fázích.)*
+  okno ukáže, kolik záznamů je uloženo. **Hromadná kontrola komisí:**
+  **🔄 Zkontrolovat zbývající** (stáhne jen studenty bez hotového výsledku —
+  hotové se přeskočí), **🔁 Zkontrolovat všechny** (i hotové) a **⏹ Stop**; po
+  přihlášení se navíc **tiše zkontrolují dnešní** studenti (jednou). Vedle
+  tlačítek běží průběh „⏳ Kontroluji SZZ X/Y" a výsledky se průběžně ukládají do
+  cache (aditivně, nic se nekontroluje dvakrát). Když **vyprší session**, kontrola
+  se zastaví, vyzve k re-loginu a po **🔄 Obnovit stav** **plynule pokračuje**.
+  *(Statistiky přijdou v další fázi.)*
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

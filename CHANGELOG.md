@@ -5,6 +5,20 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.13.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): tichá inkrementální kontrola SZZ (F3).** V okně přibyla
+  **hromadná kontrola studentů komisí**: **🔄 Zkontrolovat zbývající** (stáhne jen
+  ty **bez hotového výsledku** — hotové v cache se přeskočí), **🔁 Zkontrolovat
+  všechny** (znovu i hotové) a **⏹ Stop**. Po přihlášení se navíc **automaticky
+  tiše zkontrolují dnešní** studenti (jednou). Vedle tlačítek běží **průběh**
+  „⏳ Kontroluji SZZ X/Y…"; výsledky se průběžně ukládají do cache (klíč = osobní
+  číslo, aditivně — nic se nekontroluje dvakrát). Když během kontroly **vyprší
+  session**, kontrola se zastaví a vyzve k re-loginu — po **🔄 Obnovit stav**
+  plynule pokračuje (hotové se přeskočí). Klíčováno **osobním číslem** studentů
+  komisí (z rozpisů). Heslo se stále neukládá.
+
 ## [2.12.0] - 2026-06-18
 
 ### Added

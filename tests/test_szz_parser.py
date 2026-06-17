@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from bpdpmanager.models.szz_result import SzzOverall, SzzRecord
 from bpdpmanager.services.szz_parser import (
     detect_page_name,
     has_zapisovatel_role,
@@ -9,6 +10,7 @@ from bpdpmanager.services.szz_parser import (
     is_terminal,
     merge_pages,
     parse_page,
+    szz_to_check,
 )
 
 # ── syntetické fixtures (struktura jako portál, data fiktivní) ─────────────
@@ -146,3 +148,22 @@ def test_merge_pages_and_terminal_flag() -> None:
 def test_not_terminal_without_overall() -> None:
     merged = merge_pages(parse_page(PAGE_SUBJECTS), parse_page(PAGE_DEFENSE))
     assert not is_terminal(merged) and not merged.terminal
+
+
+def _terminal_rec(oc):
+    return SzzRecord(os_cislo=oc, terminal=True,
+                     overall=SzzOverall(vysledek_studia="Prospěl"))
+
+
+def test_szz_to_check_skips_terminal_and_dedups() -> None:
+    cache = {"A1": _terminal_rec("A1"),
+             "A2": SzzRecord(os_cislo="A2", terminal=False)}
+    # A1 hotový → přeskočit; A2 rozdělaný → kontrolovat; A3 neznámý → kontrolovat;
+    # duplicitní A3 a prázdné se odfiltrují.
+    got = szz_to_check(["A1", "A2", "A3", "A3", "", "  "], cache, force=False)
+    assert got == ["A2", "A3"]
+
+
+def test_szz_to_check_force_includes_all() -> None:
+    cache = {"A1": _terminal_rec("A1")}
+    assert szz_to_check(["A1", "A2", "A1"], cache, force=True) == ["A1", "A2"]

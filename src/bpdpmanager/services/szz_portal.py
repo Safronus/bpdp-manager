@@ -203,3 +203,61 @@ class SzzPortalSession(QObject):
             self._fetcher.progress.connect(on_progress)
         self._fetcher.finished.connect(on_done)
         self._fetcher.start()
+
+
+class SzzBatchChecker(QObject):
+    """Inkrementální kontrola seznamu os. čísel (sekvenčně, s ukládáním do cache).
+
+    Pro každé os. číslo stáhne SZZ záznam a uloží do cache (``upsert_szz_result``).
+    Při vypršení session (``STATUS_LOGGED_OUT``) se zastaví a nahlásí to
+    (``finished`` s ``logged_out=True``) — UI vyzve k re-loginu a po něm se
+    kontrola spustí znovu (hotové se díky cache přeskočí).
+    """
+
+    progress = Signal(int, int, str)   # done, total, current_os
+    finished = Signal(dict)            # {checked, failed, total, logged_out, stopped}
+
+    def __init__(self, session: SzzPortalSession, service,
+                 oscisla, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self.session = session
+        self.service = service
+        self.queue = list(oscisla)
+        self.total = len(self.queue)
+        self.done = 0
+        self.checked = 0
+        self.failed = 0
+        self.logged_out = False
+        self._stop = False
+
+    def stop(self) -> None:
+        self._stop = True
+
+    def start(self) -> None:
+        self._next()
+
+    def _next(self) -> None:
+        if self._stop or not self.queue:
+            return self._finish()
+        oc = self.queue.pop(0)
+        self.progress.emit(self.done, self.total, oc)
+        self.session.fetch_student(oc, self._on_one)
+
+    def _on_one(self, rec, error: str) -> None:
+        if error == STATUS_LOGGED_OUT:
+            self.logged_out = True
+            return self._finish()
+        if rec is not None and getattr(rec, "os_cislo", ""):
+            self.service.upsert_szz_result(rec)
+            self.checked += 1
+        else:
+            self.failed += 1
+        self.done += 1
+        self._next()
+
+    def _finish(self) -> None:
+        self.finished.emit({
+            "checked": self.checked, "failed": self.failed,
+            "total": self.total, "logged_out": self.logged_out,
+            "stopped": self._stop,
+        })
