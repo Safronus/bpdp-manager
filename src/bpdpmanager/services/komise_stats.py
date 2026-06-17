@@ -12,6 +12,7 @@ Dvě statistiky:
 
 from __future__ import annotations
 
+import re
 import unicodedata
 
 # Kategorie výsledku obhajoby. „Nedokončeno" se ZÁMĚRNĚ neeviduje — student na
@@ -106,8 +107,6 @@ _TITLE_TOKENS = frozenset({
 
 def strip_academic_titles(name: str) -> str:
     """Odebere z jména akademické tituly (Ing., Bc., Ph.D., doc., …, i „et")."""
-    import re
-
     parts = re.split(r"[\s,]+", name or "")
     kept = [p for p in parts
             if p and fold_name(p.replace(".", "")) not in _TITLE_TOKENS]
@@ -135,12 +134,18 @@ def _empty_counts() -> dict:
     return dict.fromkeys(CATEGORIES, 0)
 
 
+def _date_sort_key(d: str) -> tuple:
+    """Řadicí klíč data „17. 6. 2026" → (rok, měsíc, den); neznámé na konec."""
+    m = re.search(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})", d or "")
+    return (m.group(3), int(m.group(2)), int(m.group(1))) if m else ("9999", 99, 99)
+
+
 def committee_defense_stats(committees, states: dict | None) -> dict:
     """Agregace stavů obhajob přes ``committees``.
 
     Vrací ``{"by_color": [...], "by_member": [...], "totals": {...}}``:
-    - ``by_color`` — řádek na komisi (barva + stupeň + obor) s počty kategorií
-      a ``total`` (počet slotů),
+    - ``by_color`` — řádek na komisi (barva + stupeň + obor) s počty kategorií,
+      ``total`` (počet slotů) a ``by_day`` (rozpad počtů po dnech rozpisu),
     - ``by_member`` — řádek na člena (dle jména, napříč komisemi) s počty
       studentů jeho komisí,
     - ``totals`` — souhrnné počty kategorií za celý rozsah.
@@ -154,11 +159,20 @@ def committee_defense_stats(committees, states: dict | None) -> dict:
 
     for c in committees:
         counts = _empty_counts()
+        day_counts: dict[str, dict] = {}
         for s in c.slots:
-            counts[_slot_category(s, states)] += 1
+            cat = _slot_category(s, states)
+            counts[cat] += 1
+            day = (s.date or "").strip() or "—"
+            day_counts.setdefault(day, _empty_counts())[cat] += 1
         total = sum(counts.values())
         for cat in CATEGORIES:
             totals[cat] += counts[cat]
+        by_day = [
+            {"date": day, **dc, "total": sum(dc.values())}
+            for day, dc in day_counts.items()
+        ]
+        by_day.sort(key=lambda e: _date_sort_key(e["date"]))
         by_color.append({
             "color": c.color,
             "level": c.level,
@@ -166,6 +180,7 @@ def committee_defense_stats(committees, states: dict | None) -> dict:
             "academic_year": c.academic_year,
             **counts,
             "total": total,
+            "by_day": by_day,
         })
         for m in c.members:
             key = fold_name(m.name)

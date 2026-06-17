@@ -1057,10 +1057,15 @@ location = committee (colour + programme); rooms are not tracked.
   **right, by committee member** (each member's sum of students across their
   committees, same categories; **sorted by surname** with Czech collation).
   *"Not finished" is intentionally not tracked — a student at the state exams
-  has, by definition, finished the thesis.* **Below the committee table is a bar
-  chart**: 3 bars per committee (the 3 states side by side), bar colour =
-  **committee colour**, shade by state (darker = defended → lighter = no defence
-  yet), count above each bar. **Scope
+  has, by definition, finished the thesis.* **The 📊 Chart tab shows a bar
+  chart**: 3 bars per committee (the 3 categories side by side), bar colour =
+  **committee colour**. The category is shown by an **icon below each bar** —
+  ✓ *Defended* (green), ✗ *Failed* (red), ○ *No defence yet* (grey); the count is
+  above each bar. A **zero category** is drawn as a small stub with "0" (no
+  confusing empty gap). Each bar is split into **segments per schedule day** with
+  separators; a tall enough segment shows the **date**, and the **full per-day
+  breakdown with dates is always in the bar's tooltip** (on hover) — even for
+  short bars. **Scope
   follows the tree selection**: a selected committee → that one, a selected
   year/level → the whole year, otherwise **all years**. Statuses come **from
   STAG matched by name** (refined by Bc/Mgr type and the **committee's academic

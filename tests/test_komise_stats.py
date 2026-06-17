@@ -98,6 +98,32 @@ def test_committee_defense_stats_by_color_and_member() -> None:
     assert by_member["Eva Členka"]["total"] == 3
 
 
+def test_committee_defense_stats_by_day() -> None:
+    """``by_color`` má rozpad ``by_day`` (řazený dle data) s počty kategorií."""
+    c = Committee(
+        academic_year="2025/2026", color="zelená", level="Mgr", obor="NSWI",
+        slots=[
+            DefenseSlot(date="18. 6. 2026", time="09:00", personal_number="A1",
+                        student_name="Anna Prvni"),
+            DefenseSlot(date="17. 6. 2026", time="09:00", personal_number="A2",
+                        student_name="Petr Druhy"),
+            DefenseSlot(date="17. 6. 2026", time="10:00", personal_number="A3",
+                        student_name="Jan Treti"),
+        ],
+    )
+    states = {"A1": CAT_DEFENDED, "A2": CAT_DEFENDED, "A3": CAT_FAILED}
+    stats = committee_defense_stats([c], states)
+    by_day = stats["by_color"][0]["by_day"]
+
+    # Dny seřazené chronologicky (17. před 18.).
+    assert [d["date"] for d in by_day] == ["17. 6. 2026", "18. 6. 2026"]
+    d17, d18 = by_day
+    assert d17[CAT_DEFENDED] == 1 and d17[CAT_FAILED] == 1 and d17["total"] == 2
+    assert d18[CAT_DEFENDED] == 1 and d18["total"] == 1
+    # Součet přes dny odpovídá agregátu komise.
+    assert stats["by_color"][0][CAT_DEFENDED] == 2
+
+
 def test_member_surname_strips_titles() -> None:
     assert member_surname("prof. Ing. Jan Mareš, Ph.D.") == "Mareš"
     assert member_surname("Ing. et Ing. Erik Král, Ph.D.") == "Král"

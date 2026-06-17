@@ -1174,9 +1174,14 @@ obor); místnost se neeviduje.
   **počet i procento**, + řádek Σ) a **vpravo podle členů komise** (každému členovi
   součet studentů jeho komisí v týchž kategoriích; **řazeno podle příjmení**
   s českou diakritikou). *„Nedokončeno" se needviduje — student na státnicích
-  logicky práci dokončil.* **Pod tabulkou komisí je sloupcový graf**: per komise
-  3 sloupce (3 stavy vedle sebe), barva sloupců = **barva komise**, odstín dle
-  stavu (tmavší = obhájeno → světlejší = bez obhajoby), nad sloupci počet.
+  logicky práci dokončil.* **V záložce 📊 Graf je sloupcový graf**: per komise
+  3 sloupce (3 kategorie vedle sebe), barva sloupců = **barva komise**.
+  Kategorii poznáš podle **ikony pod sloupcem** — ✓ *Obhájeno* (zeleně),
+  ✗ *Neobhájeno* (červeně), ○ *Bez obhajoby* (šedě); nad sloupci je počet.
+  **Nulová kategorie** se kreslí jako malá patka s „0" (žádné matoucí prázdné
+  místo). Sloupec je rozdělen na **segmenty po dnech rozpisu** s oddělovači;
+  do dostatečně vysokého segmentu se vepíše **datum** a **plný rozpad po dnech
+  s datem je vždy v tooltipu** (najetím myší na sloupec) — i pro nízké sloupce.
   **Rozsah se řídí výběrem vlevo**: vybraná komise → jen ona, vybraný rok/stupeň
   → celý rok, jinak **všechny roky**. Stavy se zjišťují **ze STAG podle jména**
   studenta (zpřesněno typem Bc/Mgr a **akademickým rokem komise** — práce

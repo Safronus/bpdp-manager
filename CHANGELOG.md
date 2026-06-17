@@ -5,6 +5,22 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.10.0] - 2026-06-17
+
+### Changed
+- **Graf „Statistika obhajob" (Státnice průběh): čitelnější + rozpad po dnech.**
+  - Kategorie už nejde poznat jen podle odstínu — pod každým sloupcem je teď
+    **ikona** (✓ *Obhájeno* zeleně, ✗ *Neobhájeno* červeně, ○ *Bez obhajoby*
+    šedě). Barva sloupce dál drží barvu komise.
+  - **Nulová kategorie** se kreslí jako malá patka s „0" — žádné matoucí prázdné
+    místo, všechny tři sloupce jsou vždy na svém místě.
+  - Sloupec je rozdělen na **segmenty po dnech rozpisu** s tenkými oddělovači;
+    do dostatečně vysokého segmentu se vepíše **datum** (krátce, např. „17.6."),
+    a **plný rozpad po dnech s datem je vždy v tooltipu** sloupce (najetím myší)
+    — řeší to i úzké/nízké sloupce, kam se datum nevejde.
+  - `committee_defense_stats` nově u každé komise vrací `by_day` (počty kategorií
+    po dnech, řazené chronologicky).
+
 ## [2.9.10] - 2026-06-17
 
 ### Changed

@@ -12,7 +12,7 @@ from __future__ import annotations
 import unicodedata
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -1574,22 +1574,29 @@ def _nice_step(value: int, divisions: int = 4) -> int:
 
 
 class _DefenseBarChart(QWidget):
-    """Sloupcový graf obhajob: per komise (barva) 4 sloupce stavů vedle sebe.
+    """Sloupcový graf obhajob: per komise (barva) 3 sloupce kategorií vedle sebe.
 
-    Barva sloupců = barva komise; jednotlivé stavy se liší **průhledností**
-    (tmavší = obhájeno → světlejší = bez obhajoby). Nad sloupci je počet,
-    vlevo osa Y s mřížkou, pod skupinou barva komise, nahoře legenda stavů.
+    Sloupce mají barvu komise (skupina), kategorii poznáš podle **ikony** pod
+    sloupcem (✓ Obhájeno zeleně, ✗ Neobhájeno červeně, ○ Bez obhajoby šedě);
+    nulová kategorie se kreslí jako malá patka s „0", takže nevzniká matoucí
+    mezera. Sloupec je dál rozdělen na **segmenty po dnech rozpisu** s oddělovači;
+    datum se vepíše do dostatečně vysokého segmentu a vždy je v tooltipu sloupce.
     """
 
-    _ALPHAS = (255, 200, 90)  # defended (nejtmavší), failed, none (nejsvětlejší)
+    # Odstín barvy komise podle kategorie (jen jemný náznak; rozhoduje ikona).
+    _ALPHAS = (255, 205, 120)  # defended (nejtmavší) → none (nejsvětlejší)
+    # Sémantická barva ikony kategorie (pořadí = CATEGORIES).
+    _ICON_COLORS = ("#2e7d32", "#c62828", "#9e9e9e")
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._groups: list[dict] = []
-        self.setMinimumHeight(240)
+        self._hit_rects: list[tuple] = []   # (QRectF, group, cat_index) pro tooltip
+        self.setMinimumHeight(260)
         self.setToolTip(
-            "Sloupce zleva: Obhájeno / Neobhájeno / Bez obhajoby "
-            "(tmavší = obhájeno). Barva sloupců = barva komise."
+            "Sloupce: Obhájeno (✓) / Neobhájeno (✗) / Bez obhajoby (○). "
+            "Barva sloupců = barva komise; segmenty = dny rozpisu. "
+            "Najetím na sloupec se zobrazí rozpad po dnech s datem."
         )
 
     def set_data(self, by_color: list[dict]) -> None:
@@ -1597,21 +1604,92 @@ class _DefenseBarChart(QWidget):
 
         groups: list[dict] = []
         for r in by_color or []:
+            days = [
+                {"date": d.get("date") or "",
+                 "counts": [d.get(c, 0) for c in CATEGORIES]}
+                for d in (r.get("by_day") or [])
+            ]
             groups.append({
                 "label": r.get("color") or "?",
                 "sub": " · ".join(x for x in (r.get("level"), r.get("obor")) if x),
                 "hex": committee_color_hex(r.get("color") or ""),
                 "counts": [r.get(c, 0) for c in CATEGORIES],
+                "days": days,
             })
         self._groups = groups
         self.update()
 
+    @staticmethod
+    def _short_day(date_str: str) -> str:
+        """„17. 6. 2026" → „17.6." (pro vepsání do segmentu)."""
+        import re
+
+        m = re.search(r"(\d{1,2})\.\s*(\d{1,2})\.", date_str or "")
+        return f"{int(m.group(1))}.{int(m.group(2))}." if m else ""
+
+    @staticmethod
+    def _contrast_on(hexcol: str) -> QColor:
+        """Černá/bílá podle jasu barvy komise — čitelnost datumu v segmentu."""
+        c = QColor(hexcol)
+        lum = 0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()
+        return QColor("#1a1a1a") if lum > 150 else QColor("#ffffff")
+
+    def _draw_icon(self, p: QPainter, cat_index: int, cx: float, cy: float,
+                   r: float) -> None:
+        """Ikona kategorie (✓ / ✗ / ○) jako tvar v sémantické barvě."""
+        col = QColor(self._ICON_COLORS[cat_index])
+        pen = QPen(col, 2)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        if cat_index == 0:        # ✓ obhájeno
+            path = [(cx - r, cy), (cx - r * 0.3, cy + r * 0.7), (cx + r, cy - r * 0.8)]
+            p.drawPolyline([QPointF(*pt) for pt in path])
+        elif cat_index == 1:      # ✗ neobhájeno
+            p.drawLine(QPointF(cx - r, cy - r), QPointF(cx + r, cy + r))
+            p.drawLine(QPointF(cx + r, cy - r), QPointF(cx - r, cy + r))
+        else:                     # ○ bez obhajoby
+            p.drawEllipse(QPointF(cx, cy), r * 0.85, r * 0.85)
+
+    def _tooltip_at(self, pos) -> str:
+        from ..services.komise_stats import CATEGORIES, CATEGORY_LABELS
+
+        for rect, g, i in self._hit_rects:
+            if rect.contains(pos.x(), pos.y()):
+                cat = CATEGORIES[i]
+                lines = [f"{g['label']}"
+                         + (f" — {g['sub']}" if g["sub"] else ""),
+                         f"{tr(CATEGORY_LABELS[cat])}: {g['counts'][i]}"]
+                for d in g.get("days", []):
+                    c = d["counts"][i]
+                    if c:
+                        lines.append(f"   {d['date'] or '—'}: {c}")
+                return "\n".join(lines)
+        return ""
+
+    def event(self, e) -> bool:
+        from PySide6.QtCore import QEvent
+        from PySide6.QtWidgets import QToolTip
+
+        if e.type() == QEvent.Type.ToolTip:
+            text = self._tooltip_at(e.pos())
+            if text:
+                QToolTip.showText(e.globalPos(), text, self)
+            else:
+                QToolTip.hideText()
+            return True
+        return super().event(e)
+
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt API)
         from ..services.komise_stats import CATEGORIES, CATEGORY_LABELS
 
+        self._hit_rects = []
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         text_col = self.palette().windowText().color()
+        win_bg = self.palette().window().color()
         muted = QColor(_MUTED)
         grid = QColor(_MUTED)
         grid.setAlpha(55)
@@ -1629,7 +1707,7 @@ class _DefenseBarChart(QWidget):
             p.end()
             return
 
-        left, right, top, bottom = 42, 12, 44, 48
+        left, right, top, bottom = 42, 12, 44, 54
         plot_w = max(20, w - left - right)
         plot_h = max(20, h - top - bottom)
         base_y = top + plot_h
@@ -1638,22 +1716,18 @@ class _DefenseBarChart(QWidget):
         top_val = step * (maxv // step + (1 if maxv % step else 0))
         top_val = max(top_val, step)
 
-        # Legenda nahoře (odstupňovaná šeď = stav; pořadí = pořadí sloupců).
+        # Legenda nahoře: ikona kategorie + popisek.
         p.setFont(sub_font)
         lx = left
         for i, cat in enumerate(CATEGORIES):
-            sw = QColor(120, 120, 120)
-            sw.setAlpha(self._ALPHAS[i])
-            p.fillRect(lx, 8, 14, 14, sw)
-            p.setPen(QPen(muted, 1))
-            p.drawRect(lx, 8, 14, 14)
+            self._draw_icon(p, i, lx + 7, 15, 6)
             label = tr(CATEGORY_LABELS[cat])
             tw = p.fontMetrics().horizontalAdvance(label)
             p.setPen(text_col)
             p.drawText(lx + 18, 8, tw + 6, 16,
                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                        label)
-            lx += 18 + tw + 16
+            lx += 18 + tw + 18
 
         # Osa Y s mřížkou a popisky hodnot.
         p.setFont(sub_font)
@@ -1678,28 +1752,68 @@ class _DefenseBarChart(QWidget):
         bgap = 3
         n_cat = max(1, len(CATEGORIES))   # počet sloupců ve skupině (kategorie)
         bw = max(4, (gw - bgap * (n_cat - 1)) / n_cat)
+        nub = 3                           # výška „patky" u nulové kategorie
         x = left + gap / 2 if n == 1 else left
         for g in self._groups:
-            for i, cnt in enumerate(g["counts"]):
+            days = g.get("days") or []
+            for i in range(n_cat):
                 bx = x + i * (bw + bgap)
+                cnt = g["counts"][i]
                 bh = (cnt / top_val) * plot_h
-                col = QColor(g["hex"])
-                col.setAlpha(self._ALPHAS[i])
-                p.fillRect(int(bx), int(base_y - bh), int(bw), int(bh), col)
-                if cnt:
-                    p.setPen(text_col)
-                    p.setFont(sub_font)
-                    p.drawText(int(bx - 3), int(base_y - bh - 16),
-                               int(bw + 6), 14, Qt.AlignmentFlag.AlignHCenter,
-                               str(cnt))
+                base_col = QColor(g["hex"])
+                # Plocha sloupce pro tooltip (celá výška grafu nad osou).
+                self._hit_rects.append(
+                    (QRectF(bx, top, bw, plot_h), g, i))
+                if cnt <= 0:
+                    col = QColor(base_col)
+                    col.setAlpha(self._ALPHAS[i])
+                    p.fillRect(int(bx), int(base_y - nub), int(bw), nub, col)
+                else:
+                    seg = [d for d in days if d["counts"][i] > 0]
+                    if not seg:           # bez denních dat → jeden segment
+                        seg = [{"date": "", "counts": g["counts"]}]
+                    y0 = base_y
+                    for di, d in enumerate(seg):
+                        sh = (d["counts"][i] / top_val) * plot_h
+                        seg_top = y0 - sh
+                        col = QColor(base_col)
+                        col.setAlpha(self._ALPHAS[i])
+                        p.fillRect(int(bx), int(seg_top), int(bw),
+                                   round(sh), col)
+                        if di < len(seg) - 1:   # oddělovač mezi dny
+                            p.setPen(QPen(win_bg, 1))
+                            p.drawLine(int(bx), int(seg_top),
+                                       int(bx + bw), int(seg_top))
+                        short = self._short_day(d["date"])
+                        if short and sh >= 22 and bw >= 9:
+                            p.save()
+                            p.translate(bx + bw / 2, seg_top + sh / 2)
+                            p.rotate(-90)
+                            df = QFont(self.font())
+                            df.setPointSize(7)
+                            p.setFont(df)
+                            p.setPen(self._contrast_on(g["hex"]))
+                            p.drawText(QRectF(-sh / 2, -7, sh, 14),
+                                       Qt.AlignmentFlag.AlignCenter, short)
+                            p.restore()
+                        y0 = seg_top
+                # Počet nad sloupcem (i u nuly).
+                top_of_bar = base_y - (bh if cnt > 0 else nub)
+                p.setPen(text_col)
+                p.setFont(sub_font)
+                p.drawText(int(bx - 4), int(top_of_bar - 16), int(bw + 8), 14,
+                           Qt.AlignmentFlag.AlignHCenter, str(cnt))
+                # Ikona kategorie pod sloupcem.
+                self._draw_icon(p, i, bx + bw / 2, base_y + 11, 5)
+            # Popisek skupiny (barva komise) + podtitul (stupeň · obor).
             p.setPen(text_col)
             p.setFont(base_font)
-            p.drawText(int(x), base_y + 4, int(gw), 16,
+            p.drawText(int(x), base_y + 22, int(gw), 16,
                        Qt.AlignmentFlag.AlignHCenter, g["label"])
             if g["sub"]:
                 p.setFont(sub_font)
                 p.setPen(muted)
-                p.drawText(int(x), base_y + 22, int(gw), 14,
+                p.drawText(int(x), base_y + 40, int(gw), 14,
                            Qt.AlignmentFlag.AlignHCenter, g["sub"])
             x += gw + gap
         p.end()
