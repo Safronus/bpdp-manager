@@ -1101,8 +1101,11 @@ location = committee (colour + programme); rooms are not tracked.
   **questions** from the procedure), the defence (grade, supervisor/opponent) and
   the overall result (passed/failed, committee). Everything is keyed by
   **personal number** (no name matching). The embedded browser **blocks trackers**
-  (Meta pixel, Google Analytics…). *(Phase 1 — caching, the silent check and
-  statistics come later.)*
+  (Meta pixel, Google Analytics…). **Fetched records are cached** (`szz_results.json`
+  in the profile folder, keyed by personal number, tagged by academic year) — the
+  **📂 From cache** button shows a stored record **without logging in**; on open the
+  window shows how many records are cached. *(The silent check and statistics come
+  in later phases.)*
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

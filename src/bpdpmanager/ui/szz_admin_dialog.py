@@ -67,12 +67,13 @@ def _format_record(rec) -> str:
 
 
 class SzzAdminDialog(QDialog):
-    def __init__(self, session: SzzPortalSession,
+    def __init__(self, session: SzzPortalSession, service,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("Státnice (admin) — Zapisovatel u státnic"))
         self.resize(1300, 860)
         self.session = session
+        self.service = service
         self._alive = True   # async callbacky nesmí sáhnout na zavřený dialog
 
         root = QVBoxLayout(self)
@@ -94,6 +95,10 @@ class SzzAdminDialog(QDialog):
         self.btn_fetch = QPushButton("▶ " + tr("Načíst studenta"))
         self.btn_fetch.clicked.connect(self._fetch)
         bar.addWidget(self.btn_fetch)
+        self.btn_cache = QPushButton("📂 " + tr("Z cache"))
+        self.btn_cache.setToolTip(tr("Zobrazit uložený záznam (bez STAG)."))
+        self.btn_cache.clicked.connect(self._from_cache)
+        bar.addWidget(self.btn_cache)
         root.addLayout(bar)
 
         split = QSplitter(Qt.Orientation.Horizontal)
@@ -116,6 +121,14 @@ class SzzAdminDialog(QDialog):
         self.btn_fetch.setEnabled(False)
         self.lbl_status.setText(
             "⏳ " + tr("Přihlas se vlevo, pak klikni 🔄 Obnovit stav"))
+        self.out.setPlainText(self._cache_summary())
+
+    def _cache_summary(self) -> str:
+        n = len(self.service.load_szz_results())
+        if not n:
+            return "📂 " + tr("Cache je zatím prázdná.")
+        return (f"📂 {tr('V cache')}: {n} {tr('záznamů')}. "
+                + tr("Zadej os. číslo a klikni 📂 Z cache."))
 
     # ── stav přihlášení/role ──────────────────────────────────────────────
     def _refresh_status(self) -> None:
@@ -145,6 +158,21 @@ class SzzAdminDialog(QDialog):
         self.out.setPlainText(f"▶ {tr('Načítám')} {oc}…")
         self.session.fetch_student(oc, self._fetch_done, self._fetch_progress)
 
+    def _from_cache(self) -> None:
+        oc = self.os_input.text().strip()
+        if not oc:
+            self.out.setPlainText(tr("Zadej os. číslo."))
+            return
+        rec = self.service.load_szz_results().get(oc)
+        if rec is None:
+            self.out.setPlainText(
+                "📂 " + tr("Pro toto os. číslo není nic v cache."))
+            return
+        tag = tr("hotovo") if rec.terminal else tr("neúplné")
+        stamp = f" ({rec.fetched_at}, {tag})" if rec.fetched_at else f" ({tag})"
+        self.out.setPlainText(
+            "📂 " + tr("Z cache") + stamp + "\n\n" + _format_record(rec))
+
     def _fetch_progress(self, msg: str) -> None:
         if not self._alive:
             return
@@ -162,4 +190,8 @@ class SzzAdminDialog(QDialog):
         if rec is None:
             self.out.setPlainText("⚠️ " + tr("Student nenalezen nebo se nepodařilo načíst."))
             return
-        self.out.setPlainText("✅ " + tr("Hotovo") + "\n\n" + _format_record(rec))
+        self.service.upsert_szz_result(rec)
+        n = len(self.service.load_szz_results())
+        self.out.setPlainText(
+            "✅ " + tr("Hotovo") + f" — 💾 {tr('uloženo do cache')} ({n})\n\n"
+            + _format_record(rec))

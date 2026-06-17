@@ -1214,8 +1214,11 @@ obor); místnost se neeviduje.
   **otázky** z průběhu), obhajobu (hodnocení, vedoucí/oponent) a celkový výsledek
   (Prospěl/Neprospěl, komise). Vše klíčované **osobním číslem** (žádné párování
   podle jména). Vestavěný prohlížeč **blokuje sledovače** (Meta pixel, Google
-  Analytics…). *(1. fáze — ukládání do cache, tichá kontrola a statistiky přijdou
-  později.)*
+  Analytics…). **Stažené záznamy se ukládají do cache** (`szz_results.json` ve
+  složce profilu, klíč = os. číslo, tagováno akademickým rokem) — tlačítkem
+  **📂 Z cache** je po zadání os. čísla zobrazíš **i bez přihlášení**; po startu
+  okno ukáže, kolik záznamů je uloženo. *(Tichá inkrementální kontrola a
+  statistiky přijdou v dalších fázích.)*
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

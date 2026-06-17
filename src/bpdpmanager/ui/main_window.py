@@ -2479,7 +2479,7 @@ class MainWindow(QMainWindow):
             from ..config import app_data_dir
             self._szz_session = SzzPortalSession(
                 app_data_dir() / "szz_webview", self)
-        SzzAdminDialog(self._szz_session, self).exec()
+        SzzAdminDialog(self._szz_session, self.service, self).exec()
 
     def _check_stag_consistency(self) -> None:
         """Kontrola: které soubory STAG nabízí a v DB chybí (+ dostažení)."""

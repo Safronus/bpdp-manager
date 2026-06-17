@@ -2958,6 +2958,78 @@ class ThesisService:
         except OSError:
             pass
 
+    # ── cache průběhu SZZ (admin, z portálu Zapisovatel u státnic) ────────
+    @staticmethod
+    def _szz_results_path() -> Path:
+        return app_data_dir() / "szz_results.json"
+
+    def load_szz_results(self) -> dict:
+        """Načte lokální cache SZZ záznamů (z minulého běhu).
+
+        Vrací ``{os_cislo: SzzRecord}``; prázdné, když soubor chybí, je
+        poškozený nebo je z **jiného akademického roku** (nový rok = čistá
+        tabulka). Díky tomu se po startu data ukážou hned z disku, bez STAG.
+        """
+        import json
+
+        from ..models.szz_result import SzzRecord
+
+        try:
+            data = json.loads(self._szz_results_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        if data.get("academic_year") != self.current_academic_year():
+            return {}
+        results = data.get("results")
+        if not isinstance(results, dict):
+            return {}
+        out: dict = {}
+        for oc, rec in results.items():
+            try:
+                out[oc] = SzzRecord.model_validate(rec)
+            except (ValueError, TypeError):
+                continue
+        return out
+
+    def save_szz_results(self, results: dict) -> None:
+        """Uloží cache SZZ záznamů lokálně k profilu (tagováno akad. rokem)."""
+        import json
+
+        payload = {
+            oc: (rec.model_dump() if hasattr(rec, "model_dump") else rec)
+            for oc, rec in results.items()
+        }
+        path = self._szz_results_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps({"academic_year": self.current_academic_year(),
+                            "results": payload},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8")
+        except OSError:
+            pass
+
+    def upsert_szz_result(self, record) -> dict:
+        """Přidá/aktualizuje jeden SZZ záznam (klíč = os. číslo) a uloží.
+
+        Doplní ``fetched_at`` (čas stažení) a ``terminal`` (hotový výsledek).
+        Vrací celou aktuální cache ``{os_cislo: SzzRecord}``.
+        """
+        from datetime import datetime
+
+        from .szz_parser import is_terminal
+
+        results = self.load_szz_results()
+        if getattr(record, "os_cislo", ""):
+            record.fetched_at = datetime.now().isoformat(timespec="seconds")
+            record.terminal = is_terminal(record)
+            results[record.os_cislo] = record
+            self.save_szz_results(results)
+        return results
+
     @staticmethod
     def _komise_seed_pdf_dir() -> Path:
         """Složka s PDF složení komisí dodanými v gitu (veřejná data)."""

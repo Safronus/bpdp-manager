@@ -5,6 +5,19 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.12.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): cache průběhu SZZ (F2).** Stažený SZZ záznam studenta se
+  nově **ukládá lokálně** do `szz_results.json` v profilové složce (vedle
+  `db.json`) — klíč = **osobní číslo**, tagováno **akademickým rokem**, s
+  příznakem **„hotovo"** (terminal = vyplněný celkový výsledek). Po otevření okna
+  se ukáže **počet záznamů v cache** a tlačítkem **📂 Z cache** zobrazíš uložený
+  záznam studenta **bez přihlášení / bez STAG**. Po přechodu na nový akademický
+  rok se cache ignoruje (čistá tabulka). Heslo se stále neukládá. `ThesisService`
+  dostal `load_szz_results` / `save_szz_results` / `upsert_szz_result` (vzor jako
+  `komise_defense_states.json`).
+
 ## [2.11.1] - 2026-06-18
 
 ### Changed
