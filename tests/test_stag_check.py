@@ -277,6 +277,36 @@ def test_match_committee_prefers_current_year_not_namesake() -> None:
     assert m2 is not None and m2.adipidno == "CUR"
 
 
+def test_force_rechecks_cached_terminal_state(monkeypatch) -> None:
+    """Ruční „Aktualizovat" (force) re-ověří i terminální stav z cache, aby
+    opravil dříve CHYBNĚ zacachované „obhájeno" (jmenovec). Tichá kontrola
+    (force=False) terminální stav z cache šetří."""
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    from bpdpmanager.services.komise_stats import CAT_DEFENDED, CAT_NONE, slot_key
+    from bpdpmanager.services.stag_api import StagThesisResult
+
+    slot = SimpleNamespace(personal_number="A24999", student_name="Jana Nováková",
+                           date="10. 6. 2026", time="09:00")
+    com = SimpleNamespace(level="Mgr", academic_year="2025/2026",
+                          dates=["10. 6. 2026"], slots=[slot])
+    key = slot_key("A24999", "Jana Nováková")
+    prior = {key: CAT_DEFENDED}   # dříve chybně zacachováno
+
+    monkeypatch.setattr(chk.stag_api, "search_theses", lambda *a, **k: [
+        StagThesisResult(adipidno="X", surname="Nováková", name="Jana",
+                         type_label="diplomová", year="", status_code="DBPOO")])
+    now = datetime(2026, 6, 17, 12, 0)
+
+    # Tichá kontrola: terminální z cache se přeskočí (zůstane defended).
+    out = chk.fetch_committee_defense_states(None, [com], now, prior, force=False)
+    assert out[key] == CAT_DEFENDED
+    # Ruční „Aktualizovat": re-ověří a opraví na „Bez obhajoby".
+    out2 = chk.fetch_committee_defense_states(None, [com], now, prior, force=True)
+    assert out2[key] == CAT_NONE
+
+
 def test_compute_uses_explicit_surname(service, monkeypatch) -> None:
     """Hledání nových prací bere EXPLICITNÍ příjmení z profilu (přesné i
     u dvojího jména); prázdné = fallback na poslední token celého jména."""

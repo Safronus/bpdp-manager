@@ -578,7 +578,10 @@ def fetch_committee_defense_states(
     for c in committees:
         for s in c.slots:
             key = slot_key(s.personal_number, s.student_name)
-            if out.get(key) in TERMINAL:
+            # Terminální stav z cache se znovu nedotazuje (úspora) — ALE ruční
+            # „Aktualizovat" (force) re-ověří i terminální, ať se opraví i dříve
+            # CHYBNĚ zacachovaný stav (např. obhájeno z jmenovce).
+            if not force and out.get(key) in TERMINAL:
                 continue
             dt = ThesisService._parse_slot_dt(s.date, s.time)
             if force:

@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.9.4] - 2026-06-17
+
+### Fixed
+- **„🔄 Aktualizovat" u státnic teď opraví i dříve chybně zjištěný stav.**
+  Terminální stavy (obhájeno/neobhájeno/nedokončeno) se z cache znovu
+  nedotazovaly — takže chybně zacachované „obhájeno" (viz 2.9.3) by zůstalo
+  i po opětovném „Aktualizovat". Ruční „Aktualizovat" (force) nově **re-ověří
+  i terminální** stavy → oprava se projeví bez nutnosti mazat cache. Tichá
+  kontrola na pozadí terminální stavy dál šetří (nedotazuje).
+
 ## [2.9.3] - 2026-06-17
 
 ### Fixed
