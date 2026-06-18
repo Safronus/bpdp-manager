@@ -2309,8 +2309,8 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
         f"<th style='{rh}color:{_MUTED};'>{escape(tr('Zk./den'))}</th>"
         f"<th style='padding:2px 14px 2px 0;text-align:right;white-space:nowrap;"
         f"color:{_MUTED};'>{escape(tr('Doma/cizí'))}</th>"
-        f"<th style='padding:2px 0;text-align:left;color:{_MUTED};'>"
-        f"{escape(tr('Komise'))}</th>")
+        f"<th style='padding:2px 0;text-align:left;white-space:nowrap;"
+        f"color:{_MUTED};'>{escape(tr('Komise'))}</th>")
     rows = ""
     for i, r in enumerate(examiners, 1):
         dni = r.get("dni") or 0

@@ -1259,7 +1259,8 @@ obor); místnost se neeviduje.
   Medián je **odolnější vůči počtu zkoušení / odlehlým známkám** než průměr —
   rozdíl Ø vs medián ukáže zešikmení. Sloupec **Zk./den** ukazuje **počet
   zkoušení na den** (dílčí zkoušky ÷ **počet dní komise**, jejímž je členem — byl
-  tam celé období, i když zrovna nezkoušel; v závorce počet dní). **Rozložení
+  tam celé období, i když zrovna nezkoušel; započítají se jen dny, které **už
+  proběhly** (≤ dnešek), budoucí ne; v závorce počet dní). **Rozložení
   A-F** je rozdělené **po sloupcích** (A/B/C/D/E/F zvlášť, zarovnané pod sebe —
   stejně i v *Per komise* a *Per předmět SZZ*). U jména je
   **pořadové číslo** (dle zvoleného řazení) a **barevný puntík vlastní komise**.

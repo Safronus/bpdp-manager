@@ -1148,7 +1148,8 @@ location = committee (colour + programme); rooms are not tracked.
   is **more robust against the number of exams / outlier grades** than the mean —
   an Ø vs median gap reveals skew. The **Zk./den** column shows **exams per day**
   (subject exams ÷ the **number of committee days** they are a member of — present
-  the whole period, even on days they didn't examine; day count in brackets). The
+  the whole period, even on days they didn't examine; only days that have **already
+  passed** (≤ today) count, not future ones; day count in brackets). The
   **A-F distribution** is split **into columns** (A/B/C/D/E/F each, aligned under
   each other — same in *Per committee* and *Per SZZ subject*). The name shows a
   **rank number** (per the chosen sort) and a **coloured dot of the own

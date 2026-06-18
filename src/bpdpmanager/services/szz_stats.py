@@ -101,14 +101,36 @@ def _norm_date(s: str) -> str:
     return f"{int(m.group(1))}.{int(m.group(2))}.{m.group(3)}" if m else (s or "").strip()
 
 
-def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
+def _parse_date(s: str):
+    """„15. 6. 2026" / „15.6.2026" → ``datetime.date`` (nebo ``None``)."""
+    import re
+    from datetime import date
+
+    m = re.match(r"\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{2,4})", s or "")
+    if not m:
+        return None
+    d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    if y < 100:
+        y += 2000
+    try:
+        return date(y, mo, d)
+    except ValueError:
+        return None
+
+
+def szz_admin_stats(records: dict, committees, all_committees=None,
+                    today=None) -> dict:
     """Agregace záznamů v rozsahu daném ``committees`` (prázdné → všechny).
 
     ``all_committees`` (nepovinné) slouží k určení **„svojí" komise zkoušejícího**
     napříč celým rokem (členství je nezávislé na výběru); když chybí, použije se
-    ``committees``. Vrací ``{totals, by_komise, by_examiner, by_predmet, dist,
-    fails}``.
+    ``committees``. ``today`` (nepovinné, default dnešek) = referenční den pro
+    „Zk./den" — budoucí dny komise se ještě nezapočítají. Vrací ``{totals,
+    by_komise, by_examiner, by_predmet, dist, fails}``.
     """
+    if today is None:
+        from datetime import date
+        today = date.today()
     in_scope = _scope_oscisla(committees)
     recs = [r for oc, r in (records or {}).items()
             if (not in_scope) or (oc or "").strip().upper() in in_scope]
@@ -124,12 +146,14 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                     os_to_name.setdefault(pn, nm)
 
     # Členství zkoušejících → barvy „jejich" komisí + DNY těch komisí (na „za den":
-    # člen je v komisi všechny její dny, i když zrovna nezkouší). Jméno bez titulů.
+    # člen je v komisi všechny její dny, i když zrovna nezkouší). Jen dny, které
+    # UŽ proběhly (≤ dnešek) — budoucí dny se nepočítají. Jméno bez titulů.
     member_colors: dict = {}
     member_dates: dict = {}
     for c in (all_committees if all_committees is not None else committees):
         col = (c.color or "").strip().lower()
-        cdates = {_norm_date(d) for d in (getattr(c, "dates", []) or []) if d}
+        cdates = {_norm_date(d) for d in (getattr(c, "dates", []) or []) if d
+                  and (_parse_date(d) is None or _parse_date(d) <= today)}
         for m in getattr(c, "members", []) or []:
             k = _name_set(m.name)
             if not k:

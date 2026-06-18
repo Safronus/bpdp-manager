@@ -152,7 +152,7 @@ def test_by_examiner_per_day() -> None:
     assert "days" not in ex["100"]
 
 
-def test_per_day_counts_all_committee_days() -> None:
+def _per_day_committee():
     from bpdpmanager.models.komise import Committee, CommitteeMember
 
     def _r(oc, dt):
@@ -160,17 +160,34 @@ def test_per_day_counts_all_committee_days() -> None:
             os_cislo=oc, overall=SzzOverall(komise="fialová", vysledek_zkousek="A"),
             subjects=[SubjectExam(predmet="AZINF", znamka="A",
                                   zkousejici="Jan Novák", ucitidno="100", datum=dt)])
+    # Novák je člen komise se 4 dny, ale zkoušel jen 2 dny (15. a 16.).
     recs = {"A1": _r("A1", "15.6.2026"), "A2": _r("A2", "15.6.2026"),
             "A3": _r("A3", "16.6.2026"), "A4": _r("A4", "16.6.2026")}
-    # Novák je člen komise se 4 dny, ale zkoušel jen 2 dny.
     coms = [Committee(
         color="fialová",
         dates=["15. 6. 2026", "16. 6. 2026", "17. 6. 2026", "18. 6. 2026"],
         members=[CommitteeMember(name="doc. Ing. Jan Novák, Ph.D.")])]
-    ex = {r["ucitidno"]: r
-          for r in szz_admin_stats(recs, [], coms)["by_examiner"]}["100"]
-    # dny = všechny dny komise (4), ne jen dny zkoušení (2) → 4/4 = 1,0
-    assert ex["dni"] == 4 and ex["per_day"] == 1.0
+    return recs, coms
+
+
+def test_per_day_counts_all_committee_days() -> None:
+    from datetime import date
+
+    recs, coms = _per_day_committee()
+    # dnešek po všech dnech komise → všechny dny (4), ne jen dny zkoušení (2)
+    ex = {r["ucitidno"]: r for r in
+          szz_admin_stats(recs, [], coms, today=date(2026, 6, 18))["by_examiner"]}
+    assert ex["100"]["dni"] == 4 and ex["100"]["per_day"] == 1.0
+
+
+def test_per_day_excludes_future_committee_days() -> None:
+    from datetime import date
+
+    recs, coms = _per_day_committee()
+    # dnešek = 16.; dny komise 17. a 18. jsou budoucí → nepočítají se (dni=2)
+    ex = {r["ucitidno"]: r for r in
+          szz_admin_stats(recs, [], coms, today=date(2026, 6, 16))["by_examiner"]}
+    assert ex["100"]["dni"] == 2 and ex["100"]["per_day"] == 2.0
 
 
 def test_by_examiner_per_day_none_without_dates() -> None:

@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.28.1] - 2026-06-18
+
+### Fixed
+- **„Zk./den" počítá jen dny komise, které UŽ proběhly (≤ dnešek).** Dříve se
+  počítaly i **budoucí** dny komise → zkoušející měli uměle moc dní a nízké
+  „za den". Nově se berou jen dny do dneška (dle dat komise a aktuálního dne);
+  budoucí dny se přičtou, až nastanou.
+- **Hlavička „Komise" v „Per zkoušející" se už nezalamuje** (když jsou data užší
+  než titulek) — `nowrap`.
+
 ## [2.28.0] - 2026-06-18
 
 ### Added
