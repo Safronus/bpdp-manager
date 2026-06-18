@@ -2502,9 +2502,12 @@ class MainWindow(QMainWindow):
         sess = self._ensure_szz_session()
         on_update = (lambda oc, cb: sess.fetch_student(oc, cb)) if sess else None
         on_login = self._open_szz_admin if sess else None
-        SzzStudentDialog(os_cislo, jmeno, self.service, on_update=on_update,
-                         on_open_login=on_login, parent=self).exec()
-        if getattr(self, "tab_komise", None) is not None:
+        dlg = SzzStudentDialog(os_cislo, jmeno, self.service, on_update=on_update,
+                               on_open_login=on_login, parent=self)
+        dlg.exec()
+        # Přerenderuj jen když dialog cache skutečně změnil (aktualizace ze STAG) —
+        # při pouhém nahlédnutí by zbytečný setHtml jinak skočil scroll na začátek.
+        if dlg.changed and getattr(self, "tab_komise", None) is not None:
             self.tab_komise.rerender_stats()
 
     def _check_stag_consistency(self) -> None:

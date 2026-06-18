@@ -5,6 +5,14 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.19.1] - 2026-06-18
+
+### Fixed
+- **„Průběh SZZ" už po zavření souhrnu studenta neskáče na začátek.** Otevření
+  a zavření okna **Souhrn SZZ** (z odkazu ve výpisu, rozpisu i harmonogramu)
+  zachová **vyscrollovanou pozici** sekce. Pozice se drží i po reálné aktualizaci
+  ze STAG; a pokud jsi jen nahlédl (bez změny), záložka se ani nepřekresluje.
+
 ## [2.19.0] - 2026-06-18
 
 ### Added

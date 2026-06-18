@@ -1063,7 +1063,12 @@ class KomiseTab(QWidget):
             # průběh SZZ vidět hned (nezávisle na výběru/rozpisech).
             szz = szz_admin_stats(szz_cache, [])
             szz_scope = tr("vše (cache)")
+        # Zachovej pozici scrollu — setHtml jinak skočí na začátek (rerender se
+        # spouští i po zavření souhrnu studenta / po stažení dat).
+        _szz_sb = self.stats_szz.verticalScrollBar()
+        _szz_pos = _szz_sb.value()
         self.stats_szz.setHtml(_stats_szz_html(szz, szz_scope, len(szz_cache)))
+        _szz_sb.setValue(_szz_pos)
         self.lbl_szz_status.setText(_szz_status_line(szz_cache))
 
     def _refresh_stats_now(self) -> None:

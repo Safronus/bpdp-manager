@@ -66,6 +66,34 @@ def test_szz_fails_html_and_labels() -> None:
     assert labels == ["Jan", "A3"]
 
 
+def test_szz_student_dialog_changed_flag() -> None:
+    # Pouhé nahlédnutí → changed False (volající nepřerenderuje, scroll zůstane).
+    # Aktualizace ze STAG (upsert) → changed True.
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.models.szz_result import SzzRecord
+    from bpdpmanager.ui.szz_student_dialog import SzzStudentDialog
+
+    QApplication.instance() or QApplication([])
+
+    class _Svc:
+        def __init__(self) -> None:
+            self.store: dict = {}
+
+        def load_szz_results(self) -> dict:
+            return dict(self.store)
+
+        def upsert_szz_result(self, rec) -> None:
+            self.store[rec.os_cislo] = rec
+
+    svc = _Svc()
+    dlg = SzzStudentDialog("A1", "Jan", svc, on_update=lambda oc, cb: None)
+    assert dlg.changed is False
+    dlg._updated(SzzRecord(os_cislo="A1"), "")   # úspěšná aktualizace
+    assert dlg.changed is True and "A1" in svc.store
+    dlg.deleteLater()
+
+
 def test_szz_avg_heat_gradient() -> None:
     from bpdpmanager.ui.komise_tab import _heat_color, _szz_avg_heat
 

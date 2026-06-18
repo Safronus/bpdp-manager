@@ -110,6 +110,7 @@ class SzzStudentDialog(QDialog):
         self._on_update = on_update           # callable(os_cislo, callback)
         self._on_open_login = on_open_login   # callable() — otevři přihlášení
         self._alive = True
+        self.changed = False                  # cache změněna → volající přerenderuje
         self.setWindowTitle(tr("Souhrn SZZ — ") + (self.jmeno or self.os_cislo))
         self.resize(560, 520)
 
@@ -163,11 +164,13 @@ class SzzStudentDialog(QDialog):
             return
         if rec is not None and getattr(rec, "os_cislo", ""):
             self.service.upsert_szz_result(rec)
+            self.changed = True
             self.lbl.setText("✅ " + tr("Aktualizováno"))
         elif error == "not_found":
             from ..models.szz_result import SzzRecord
             self.service.upsert_szz_result(
                 SzzRecord(os_cislo=self.os_cislo, unavailable=True))
+            self.changed = True
             self.lbl.setText("⏳ " + tr("Zatím nedostupné"))
         else:
             self.lbl.setText("⚠ " + tr("Nepodařilo se načíst"))
