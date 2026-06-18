@@ -1230,8 +1230,10 @@ obor); místnost se neeviduje.
 - **🏛 Průběh SZZ (záložka ve Statistice obhajob).** Stažená data se vykreslí
   v záložce **🏛 Průběh SZZ** (vedle *Podle komise / Graf / Podle členů*).
   **Respektuje výběr v stromu** (komise / rok / vše) a počítá **číselný průměr
-  známek** (A=1 … F=6, FX=F). Obsahuje: **souhrn** (studentů, prospělo %, Ø),
-  **per komise** (prospělo/neprospělo + rozložení A–F + Ø), **per zkoušející**
+  známek** (A=1 … F=6, FX=F). Klasifikace **prospěl (A-E) / neprospěl (F) / bez
+  známky** (nevyplněno). Obsahuje: **souhrn** (studentů, prospělo % / neprospělo /
+  bez známky, Ø), **per komise** (✓ prospělo / ✗ neprospělo / **? bez známky** +
+  rozložení A–F + Ø), **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — náročnost + Ø), **per předmět SZZ**
   (počet + rozložení + Ø), **graf rozložení** známek (celkové / obhajoby /
   předmětů) a **otázky** z průběhu po předmětech. Nahoře v záložce je tlačítko

@@ -61,6 +61,25 @@ def test_szz_admin_stats_basic() -> None:
     assert st["questions"]["AZINF"] == ["Q1", "Q2"]
 
 
+def test_bez_znamky() -> None:
+    records = {
+        "A1": _rec("A1", "fialová", "A", True, []),     # prospěl (A)
+        "A2": _rec("A2", "fialová", "F", False, []),    # neprospěl (F)
+        "A3": _rec("A3", "fialová", "", None, []),      # overall, ale bez známky
+        "A4": SzzRecord(os_cislo="A4"),                  # vůbec bez overall
+    }
+    st = szz_admin_stats(records, [])
+    t = st["totals"]
+    assert t["students"] == 4
+    assert t["prospel"] == 1 and t["neprospel"] == 1 and t["bez_znamky"] == 2
+
+    km = {r["komise"]: r for r in st["by_komise"]}
+    assert km["fialová"]["n"] == 3          # A1/A2/A3 mají overall
+    assert km["fialová"]["pass"] == 1
+    assert km["fialová"]["fail"] == 1
+    assert km["fialová"]["none"] == 1       # A3 bez známky
+
+
 def test_scope_filters_records() -> None:
     records = {"A1": _rec("A1", "fialová", "A", True, []),
                "A9": _rec("A9", "zelená", "B", True, [])}

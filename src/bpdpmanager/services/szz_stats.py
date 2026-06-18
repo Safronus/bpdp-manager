@@ -35,6 +35,19 @@ def _avg(dist: dict):
     return round(s / n, 1)
 
 
+_PASS = ("A", "B", "C", "D", "E")
+
+
+def _pass_fail_none(dist: dict, n: int) -> tuple:
+    """(prospěl, neprospěl, bez známky) z rozložení A-F a počtu ``n``.
+
+    Prospěl = A-E, neprospěl = F/FX, zbytek (n - ohodnocení) = bez známky.
+    """
+    passed = sum(dist.get(g, 0) for g in _PASS)
+    failed = dist.get("F", 0)
+    return passed, failed, max(0, n - passed - failed)
+
+
 def _scope_oscisla(committees) -> set:
     out: set = set()
     for c in committees:
@@ -59,24 +72,15 @@ def szz_admin_stats(records: dict, committees) -> dict:
     predmet: dict = {}
     questions: dict = {}
     dist_overall, dist_defense, dist_subj = _empty_dist(), _empty_dist(), _empty_dist()
-    students = prospel = neprospel = 0
+    students = 0
 
     for r in recs:
         students += 1
         ov = getattr(r, "overall", None)
         if ov:
-            if ov.prospel is True:
-                prospel += 1
-            elif ov.prospel is False:
-                neprospel += 1
             kgrp = komise.setdefault(ov.komise or "?", {
-                "komise": ov.komise or "?", "n": 0, "pass": 0, "fail": 0,
-                "dist": _empty_dist()})
+                "komise": ov.komise or "?", "n": 0, "dist": _empty_dist()})
             kgrp["n"] += 1
-            if ov.prospel is True:
-                kgrp["pass"] += 1
-            elif ov.prospel is False:
-                kgrp["fail"] += 1
             kl = _letter(ov.vysledek_zkousek)
             if kl:
                 kgrp["dist"][kl] += 1
@@ -114,12 +118,16 @@ def szz_admin_stats(records: dict, committees) -> dict:
         rows = list(d.values())
         for row in rows:
             row["avg"] = _avg(row["dist"])
+            row["pass"], row["fail"], row["none"] = _pass_fail_none(
+                row["dist"], row["n"])
         rows.sort(key=sort_key)
         return rows
 
+    t_pass, t_fail, t_none = _pass_fail_none(dist_overall, students)
     return {
-        "totals": {"students": students, "prospel": prospel,
-                   "neprospel": neprospel, "avg": _avg(dist_overall)},
+        "totals": {"students": students, "prospel": t_pass,
+                   "neprospel": t_fail, "bez_znamky": t_none,
+                   "avg": _avg(dist_overall)},
         "by_komise": _rows(komise, lambda r: r["komise"]),
         "by_examiner": _rows(examiner, lambda r: (-r["n"], r["jmeno"] or "")),
         "by_predmet": _rows(predmet, lambda r: r["predmet"]),

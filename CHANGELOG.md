@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.14.4] - 2026-06-18
+
+### Changed
+- **Státnice (admin): statistiky rozlišují i „bez známky".** Dřív se počítalo
+  jen *Prospěl* (A-E) / *Neprospěl* (F) a studenti **bez vyplněné známky** mizeli
+  mezi nimi. Nově je v souhrnu i **Bez známky N** a u komisí přibyl šedý **„?N"**
+  (nehodnocení). Klasifikace prospěl/neprospěl/bez známky je nově podle **známky**
+  (A-E / F / prázdné).
+
 ## [2.14.3] - 2026-06-18
 
 ### Fixed

@@ -1117,8 +1117,10 @@ location = committee (colour + programme); rooms are not tracked.
 - **🏛 SZZ progress (tab in Defense statistics).** Fetched data is rendered in the
   **🏛 SZZ progress** tab (next to *By committee / Chart / By member*). It
   **respects the tree selection** (committee / year / all) and computes a
-  **numeric grade average** (A=1 … F=6, FX=F): **summary** (students, passed %, Ø),
-  **per committee** (passed/failed + A–F distribution + Ø), **per examiner** (how
+  **numeric grade average** (A=1 … F=6, FX=F). Classification **passed (A-E) /
+  failed (F) / no grade** (blank): **summary** (students, passed % / failed / no
+  grade, Ø), **per committee** (✓ passed / ✗ failed / **? no grade** + A–F
+  distribution + Ø), **per examiner** (how
   many subjects each examined and which grades they give — strictness + Ø),
   **per SZZ subject** (count + distribution + Ø), a **grade-distribution chart**
   (overall / defense / subjects) and **questions** from the procedure grouped by

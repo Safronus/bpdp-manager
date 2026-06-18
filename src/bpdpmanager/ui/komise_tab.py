@@ -1667,7 +1667,9 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
         f" &nbsp;·&nbsp; <span style='color:#2e7d32;'>{escape(tr('Prospělo'))} "
         f"{tot.get('prospel', 0)} ({pct})</span> &nbsp;·&nbsp; "
         f"<span style='color:#c62828;'>{escape(tr('Neprospělo'))} "
-        f"{tot.get('neprospel', 0)}</span> &nbsp;·&nbsp; {escape(tr('Ø známka'))} "
+        f"{tot.get('neprospel', 0)}</span> &nbsp;·&nbsp; "
+        f"<span style='color:{_MUTED};'>{escape(tr('Bez známky'))} "
+        f"{tot.get('bez_znamky', 0)}</span> &nbsp;·&nbsp; {escape(tr('Ø známka'))} "
         f"<b>{_szz_avg_cell(tot.get('avg'))}</b></p>")
 
     def _table(title_html, rows_html, head_label):
@@ -1687,6 +1689,8 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
         dot = committee_color_hex(r["komise"])
         res = (f"<span style='color:#2e7d32;'>{r['pass']}✓</span> "
                f"<span style='color:#c62828;'>{r['fail']}✗</span>")
+        if r.get("none"):
+            res += f" <span style='color:{_MUTED};'>{r['none']}?</span>"
         rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                  f"<span style='color:{dot};'>●</span> {escape(r['komise'])} "
                  f"<span style='color:{_MUTED};font-size:10px;'>{res}</span></td>"
