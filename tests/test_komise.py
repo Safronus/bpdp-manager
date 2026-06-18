@@ -886,3 +886,18 @@ def test_komise_tab_smoke(service, tmp_path) -> None:
     html = tab._committee_html(service.list_committees()[0])
     assert "data:image/png;base64" in html
     assert "předseda" in tab._role_badge_cache  # badge se vygeneroval
+
+
+def test_deleted_seed_committee_not_reseeded(service) -> None:
+    """Smazaná seed komise se po restartu (dalším seedu) NEvrátí; reset ji vrátí."""
+    service.load_komise_seed()
+    coms = service.list_committees()
+    assert coms
+    n0 = len(coms)
+    target = coms[0]
+    service.delete_committee(target.id)
+    assert len(service.list_committees()) == n0 - 1
+    service.load_komise_seed()                         # simulace restartu
+    assert len(service.list_committees()) == n0 - 1    # nevrátila se
+    service.reset_committees_from_seed()               # čistý reset
+    assert len(service.list_committees()) == n0        # zpět vše

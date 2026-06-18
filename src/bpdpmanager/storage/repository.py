@@ -40,6 +40,9 @@ class Database(BaseModel):
     proposals: list[ThesisProposal] = Field(default_factory=list)
     # v15 (2.3.0): komise SZZ — složení + rozpis studentů z fakultních PDF.
     committees: list[Committee] = Field(default_factory=list)
+    # v17 (2.28.x): klíče seed komisí, které uživatel smazal — ať se při startu
+    # znovu nenaseedují z komise_szz.json (jinak by se smazaná komise vrátila).
+    suppressed_komise_keys: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod

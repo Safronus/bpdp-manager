@@ -2744,6 +2744,11 @@ class ThesisService:
         db.committees.append(committee)
         self.save()
 
+    @staticmethod
+    def _komise_key(year: str, level: str, obor: str, color: str) -> str:
+        """Klíč komise pro seed/tombstone: rok|stupeň|obor|barva."""
+        return f"{year or ''}|{level or ''}|{obor or ''}|{color or ''}"
+
     def delete_committee(self, committee_id: str, *,
                          purge_stats: bool = False) -> int:
         """Smaže komisi. ``purge_stats`` navíc **vyčistí statistiky obhajob** —
@@ -2753,6 +2758,12 @@ class ThesisService:
         db = self._db
         target = next((c for c in db.committees if c.id == committee_id), None)
         db.committees = [c for c in db.committees if c.id != committee_id]
+        # Zapamatuj smazání, ať se komise při startu znovu nenaseeduje z JSONu.
+        if target is not None:
+            key = self._komise_key(target.academic_year, target.level,
+                                   target.obor, target.color)
+            if key not in db.suppressed_komise_keys:
+                db.suppressed_komise_keys.append(key)
         self.save()
         if purge_stats and target is not None:
             return self._purge_committee_stats(target, db.committees)
@@ -2843,11 +2854,15 @@ class ThesisService:
             ]
             return cands[0] if len(cands) == 1 else None
 
+        suppressed = set(getattr(db, "suppressed_komise_keys", []) or [])
         for entry in data.get("committees", []):
             year = entry.get("academic_year", "")
             level = entry.get("level", "")
             obor = entry.get("obor", "")
             color = entry.get("color", "")
+            # Komisi, kterou uživatel smazal, znovu nenaseeduj.
+            if self._komise_key(year, level, obor, color) in suppressed:
+                continue
             members = [
                 CommitteeMember(role=m.get("role", "Člen"), name=m.get("name", ""))
                 for m in entry.get("members", [])
@@ -2878,9 +2893,11 @@ class ThesisService:
         Úklid starých (před 2.5.0) lokálně naimportovaných komisí, které
         „nesedí" (chybí obor, duplicity, zmíchané barvy). **Sloty studentů
         z dříve nahraných PDF se ztratí** — rozpisy je potřeba naimportovat
-        znovu (napojí se už na správné komise). Vrací statistiku seedu.
+        znovu (napojí se už na správné komise). Zruší i evidenci smazaných
+        komisí (čistý reset → vrátí se i dříve smazané). Vrací statistiku seedu.
         """
         self._db.committees = []
+        self._db.suppressed_komise_keys = []
         return self.load_komise_seed()
 
     def komise_store_pdf(self, source: Path, academic_year: str, *,

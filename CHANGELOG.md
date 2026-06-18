@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.28.2] - 2026-06-18
+
+### Fixed
+- **Smazaná komise se po restartu už nevrací.** Seedované komise
+  (`komise_szz.json`) se při startu znovu vytvářely, takže **smazaná komise se
+  po restartu objevila zpět**. Nově se smazání **pamatuje** (klíč komise) a při
+  startu se taková komise znovu nenaseeduje. *„🔄 Načíst komise znovu"* tuto
+  evidenci vyčistí (čistý reset → vrátí i dříve smazané). Schéma DB v17.
+
 ## [2.28.1] - 2026-06-18
 
 ### Fixed

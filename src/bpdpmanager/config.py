@@ -30,7 +30,9 @@ APP_NAME = "bpdpmanager"
 #      default None, bez datové migrace — stará data se načtou jako None).
 # v16 (2.5.0): Committee.obor (rodina oboru aplikace) — odlišuje komise stejné
 #      barvy/stupně; default "", bez datové migrace (stará data dostanou "").
-SCHEMA_VERSION = 16
+# v17 (2.28.x): Database.suppressed_komise_keys — klíče smazaných seed komisí,
+#      ať se po restartu znovu nenaseedují; default [], bez datové migrace.
+SCHEMA_VERSION = 17
 ENV_DATA_DIR = "BPDPMANAGER_DATA_DIR"
 
 # Výchozí obory FAI UTB včetně STAG zkratek (AppKód → STAG kód).

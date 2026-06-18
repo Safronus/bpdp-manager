@@ -1309,8 +1309,9 @@ obor); místnost se neeviduje.
   (rozpisy) a `komise/<rok>/slozeni/` (složení) ve složce profilu; odkazy na
   zdrojová PDF jsou v detailu komise. Pravý klik na komisi → *Smazat komisi*
   — odebere komisi **i kompletně ze statistik obhajob** (stavy obhajob + stažené
-  SZZ záznamy jejích studentů; studenty sdílené s jinou komisí zachová). Zdrojová
-  PDF na disku zůstanou.
+  SZZ záznamy jejích studentů; studenty sdílené s jinou komisí zachová). Smazání
+  se **pamatuje**, takže se komise **po restartu znovu nenaseeduje** (nevrátí se;
+  *„🔄 Načíst komise znovu"* to vyresetuje). Zdrojová PDF na disku zůstanou.
 - **📎 PDF soubory** (panel pod stromem) ukazuje PDF po akademických rocích,
   rozdělené na **Složení komisí**, **Rozpisy studentů** a **Nezařazené
   (starší import)** — to jsou PDF z první verze načítání (často se špatným
