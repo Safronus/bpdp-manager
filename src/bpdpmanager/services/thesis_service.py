@@ -3095,11 +3095,12 @@ class ThesisService:
         Path(path).write_bytes(encrypt(raw, password))
         return len(cache)
 
-    def import_szz_results(self, path, password: str) -> tuple[int, str]:
-        """Naimportuje zašifrovaný export (po zadání hesla) — **sloučí** do cache.
+    def read_szz_export(self, path, password: str) -> tuple[dict, str]:
+        """Dešifruje a rozparsuje export — **bez uložení** (na náhled/varování).
 
-        Vrací ``(počet naimportovaných, akademický_rok_souboru)``. ``ValueError``
-        při špatném hesle / poškozeném souboru, ``OSError`` při čtení.
+        Vrací ``({os_cislo: SzzRecord}, akademický_rok_souboru)``; prázdný dict =
+        soubor bez záznamů. ``ValueError`` při špatném hesle / poškozeném či cizím
+        souboru, ``OSError`` při čtení.
         """
         import json
 
@@ -3113,17 +3114,34 @@ class ThesisService:
             raise ValueError("Dešifrovaná data nejsou platná.") from e
         results = (data or {}).get("results")
         if not isinstance(results, dict):
-            raise ValueError("Export neobsahuje žádné záznamy.")
-        merged = self.load_szz_results()
-        n = 0
+            raise ValueError("Soubor není export průběhu SZZ.")
+        out: dict = {}
         for oc, rec in results.items():
             try:
-                merged[oc] = SzzRecord.model_validate(rec)
-                n += 1
+                out[oc] = SzzRecord.model_validate(rec)
             except (ValueError, TypeError):
                 continue
+        return out, str((data or {}).get("academic_year") or "")
+
+    def merge_szz_results(self, records: dict) -> int:
+        """Sloučí ``{os_cislo: SzzRecord}`` do cache (shodná os. čísla přepíše).
+
+        Vrací počet sloučených záznamů. Prázdný vstup nic nemění.
+        """
+        if not records:
+            return 0
+        merged = self.load_szz_results()
+        merged.update(records)
         self.save_szz_results(merged)
-        return n, str((data or {}).get("academic_year") or "")
+        return len(records)
+
+    def import_szz_results(self, path, password: str) -> tuple[int, str]:
+        """Pohodlný wrapper: ``read_szz_export`` + ``merge_szz_results`` (sloučí).
+
+        Vrací ``(počet naimportovaných, akademický_rok_souboru)``.
+        """
+        records, year = self.read_szz_export(path, password)
+        return self.merge_szz_results(records), year
 
     @staticmethod
     def _komise_seed_pdf_dir() -> Path:

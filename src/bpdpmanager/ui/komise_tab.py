@@ -837,8 +837,9 @@ class KomiseTab(QWidget):
         pw = ask_password(self, title, tr("Zadej heslo k souboru."))
         if not pw:
             return
+        # 1) Jen dešifruj + rozparsuj (BEZ uložení) — ať můžeme varovat předem.
         try:
-            n, year = self.service.import_szz_results(path, pw)
+            records, year = self.service.read_szz_export(path, pw)
         except ValueError as e:           # špatné heslo / poškozený / cizí soubor
             QMessageBox.warning(self, title, str(e))
             return
@@ -846,14 +847,46 @@ class KomiseTab(QWidget):
             QMessageBox.warning(
                 self, title, tr("Soubor nelze přečíst: ") + str(e))
             return
-        self.rerender_stats()
+        if not records:
+            QMessageBox.information(
+                self, title, tr("Soubor neobsahuje žádné SZZ záznamy."))
+            return
+        # 2) Jiný akademický rok než aktuální → potvrzení (data se tagují aktuálním).
         cur = self.service.current_academic_year()
-        extra = ("" if year in ("", cur) else
-                 tr(" Pozor: data jsou za rok {y} (aktuální {c}).").format(
-                     y=year, c=cur))
+        if year and year != cur and not self._confirm(
+                title, tr("Data jsou za rok {y}, ale aktuální rok je {c}. "
+                          "Naimportují se do roku {c}. Pokračovat?")
+                .format(y=year, c=cur)):
+            return
+        # 3) Přepsání stávající cache → potvrzení (kolik se přepíše).
+        existing = self.service.load_szz_results()
+        if existing:
+            overlap = len(set(records) & set(existing))
+            msg = tr("Import sloučí {n} záznamů do stávající cache ({e}).").format(
+                n=len(records), e=len(existing))
+            if overlap:
+                msg += " " + tr("{o} shodných osobních čísel se PŘEPÍŠE.").format(
+                    o=overlap)
+            if not self._confirm(title, msg + " " + tr("Pokračovat?")):
+                return
+        # 4) Aplikuj.
+        n = self.service.merge_szz_results(records)
+        self.rerender_stats()
+        # Bez nahraných komisí/rozpisů chybí jména a doma/cizí — upozorni.
+        note = ("" if self.service.list_committees() else
+                tr(" Nemáš nahrané komise/rozpisy — jména a doma/cizí se "
+                   "nezobrazí; nahraj PDF rozpisy přes 📄 Import."))
         QMessageBox.information(
             self, title,
-            tr("Naimportováno: {n} záznamů.").format(n=n) + extra)
+            tr("Naimportováno: {n} záznamů.").format(n=n) + note)
+
+    def _confirm(self, title: str, text: str) -> bool:
+        from PySide6.QtWidgets import QMessageBox
+
+        return QMessageBox.question(
+            self, title, text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
 
     def _open_detail_link(self, url) -> None:
         """Klik na odkaz v detailu: SZZ souhrn / PDF systémově / web v prohlížeči."""

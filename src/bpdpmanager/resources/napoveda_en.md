@@ -1178,7 +1178,12 @@ location = committee (colour + programme); rooms are not tracked.
   (**PBKDF2-HMAC-SHA256** + **AES-256-GCM**; the password is never stored, and is
   confirmed on export), import **merges** the records into the cache after you
   pick the file and enter the password. A wrong password / corrupt file is
-  detected (it never decrypts garbage).
+  detected (it never decrypts garbage). Import first only **checks** the file and
+  **warns**: empty/foreign file, a **different academic year** (asks for
+  confirmation) and **overwriting the existing cache** (shows how many records and
+  how many matching IDs will be overwritten). With no committees/schedules loaded
+  it still imports, just notes that names and own/other won't show (records group
+  by the committee colour from the data).
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

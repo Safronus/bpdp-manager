@@ -5,6 +5,19 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.26.2] - 2026-06-18
+
+### Changed
+- **Import „Průběh SZZ": varování a kontroly před přepsáním.** Import teď soubor
+  nejdřív jen **dešifruje a zkontroluje** (bez uložení) a podle toho varuje:
+  - **prázdný / nečitelný soubor** → upozorní (neimportuje nic);
+  - **jiný akademický rok** než aktuální → vyžádá si **potvrzení**;
+  - **přepsání stávající cache** → ukáže, kolik záznamů se sloučí a **kolik
+    shodných os. čísel se přepíše**, a čeká na potvrzení;
+  - **bez nahraných komisí/rozpisů** → po importu upozorní, že se nezobrazí
+    jména a doma/cizí (data se ale naimportují a ukážou seskupená dle barvy
+    komise z těch záznamů).
+
 ## [2.26.1] - 2026-06-18
 
 ### Changed

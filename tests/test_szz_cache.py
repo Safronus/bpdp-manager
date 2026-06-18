@@ -78,6 +78,36 @@ def test_export_import_roundtrip(service, tmp_path) -> None:
     assert cache["A100"].subjects[0].predmet == "AZINF"
 
 
+def test_read_szz_export_does_not_save(service, tmp_path) -> None:
+    service.upsert_szz_result(SzzRecord(os_cislo="A1"))
+    path = tmp_path / "e.szzenc"
+    service.export_szz_results(path, "pw")
+    service.save_szz_results({})                     # vymaž cache
+    records, year = service.read_szz_export(path, "pw")
+    assert set(records) == {"A1"} and year == service.current_academic_year()
+    assert service.load_szz_results() == {}          # read NEUKLÁDÁ
+    assert service.merge_szz_results(records) == 1   # merge teprve uloží
+    assert set(service.load_szz_results()) == {"A1"}
+
+
+def test_read_szz_export_empty_results(service, tmp_path) -> None:
+    path = tmp_path / "e.szzenc"
+    service.export_szz_results(path, "pw")           # prázdná cache → results={}
+    records, _year = service.read_szz_export(path, "pw")
+    assert records == {}                             # ne chyba, jen prázdno
+
+
+def test_merge_szz_overwrites_overlapping(service) -> None:
+    service.upsert_szz_result(
+        SzzRecord(os_cislo="A1", overall=SzzOverall(komise="stará")))
+    n = service.merge_szz_results({
+        "A1": SzzRecord(os_cislo="A1", overall=SzzOverall(komise="nová")),
+        "A2": SzzRecord(os_cislo="A2")})
+    assert n == 2
+    cache = service.load_szz_results()
+    assert cache["A1"].overall.komise == "nová" and "A2" in cache   # přepsáno
+
+
 def test_import_wrong_password_raises(service, tmp_path) -> None:
     service.upsert_szz_result(SzzRecord(os_cislo="A1"))
     path = tmp_path / "e.szzenc"

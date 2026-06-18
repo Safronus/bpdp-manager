@@ -1289,7 +1289,11 @@ obor); místnost se neeviduje.
   zašifrovaný **heslem** (**PBKDF2-HMAC-SHA256** + **AES-256-GCM**; heslo se
   nikam neukládá, vyžaduje potvrzení), import data po zvolení souboru a zadání
   hesla **sloučí** do cache. Špatné heslo / poškozený soubor se pozná (nedešifruje
-  se nesmysl).
+  se nesmysl). Import nejdřív soubor **jen zkontroluje** a **varuje**: prázdný/cizí
+  soubor, **jiný akademický rok** (vyžádá potvrzení) i **přepsání stávající
+  cache** (ukáže, kolik záznamů a kolik shodných os. čísel se přepíše). Bez
+  nahraných komisí/rozpisů data naimportuje, jen upozorní, že se nezobrazí jména
+  a doma/cizí (záznamy se seskupí dle barvy komise z dat).
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).
