@@ -1113,12 +1113,21 @@ class KomiseTab(QWidget):
         """Komise pro statistiku dle výběru ve stromu + popisek rozsahu.
 
         Komise → jen ta; rok/stupeň → komise toho roku; jinak (default) →
-        všechny roky.
+        všechny roky. Respektuje přepínač **„Jen komise s mými studenty"** —
+        když je zapnutý, statistiky počítají jen z komisí, kde mám studenta.
         """
         items = self.tree.selectedItems()
         item = items[0] if items else None
         kind = item.data(0, ROLE_KIND) if item is not None else None
         all_committees = self.service.list_committees()
+        mine = self.chk_mine.isChecked()
+        if mine:
+            roles = self.service.komise_student_roles()
+            all_committees = [
+                c for c in all_committees
+                if any(self._slot_role(s, roles) in ("led", "opp")
+                       for s in c.slots)]
+        suffix = tr(" · jen moje") if mine else ""
         if kind == "committee":
             c = self.service.get_committee(item.data(0, ROLE_COMMITTEE_ID))
             if c is not None:
@@ -1127,8 +1136,8 @@ class KomiseTab(QWidget):
         if kind in ("year", "level"):
             year = item.data(0, ROLE_YEAR)
             return ([c for c in all_committees if c.academic_year == year],
-                    f"rok {year}")
-        return all_committees, "všechny roky"
+                    f"rok {year}{suffix}")
+        return all_committees, tr("všechny roky") + suffix
 
     def rerender_stats(self) -> None:
         """Znovu vykreslí statistiku (např. po stažení SZZ dat v admin okně)."""

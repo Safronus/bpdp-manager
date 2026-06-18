@@ -5,6 +5,14 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.25.2] - 2026-06-18
+
+### Fixed
+- **„Jen komise s mými studenty" teď filtruje i Statistiku obhajob.** Přepínač
+  dříve měnil jen strom komisí, ale statistiky (vč. *Průběh SZZ*) ho ignorovaly.
+  Nově se při zapnutí počítají **jen z komisí, kde mám studenta** (rozsah to
+  uvádí „· jen moje").
+
 ## [2.25.1] - 2026-06-18
 
 ### Changed
