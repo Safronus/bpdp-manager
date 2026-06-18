@@ -64,3 +64,20 @@ def test_szz_fails_html_and_labels() -> None:
                            {"os": "A1", "jmeno": "Jan"},
                            {"os": "A3", "jmeno": ""}])
     assert labels == ["Jan", "A3"]
+
+
+def test_szz_avg_heat_gradient() -> None:
+    from bpdpmanager.ui.komise_tab import _heat_color, _szz_avg_heat
+
+    # okraje a střed heatmapy
+    assert _heat_color(0.0) == "#43a047"     # zelená (nejhodnější)
+    assert _heat_color(1.0) == "#e53935"     # červená (nejpřísnější)
+    assert _heat_color(0.5) == "#f9a825"     # amber uprostřed
+    assert _heat_color(-1) == "#43a047" and _heat_color(2) == "#e53935"  # ořez
+
+    # nejnižší Ø zeleně, nejvyšší červeně, formát s čárkou
+    assert "#43a047" in _szz_avg_heat(1.6, 1.6, 3.0)
+    assert "#e53935" in _szz_avg_heat(3.0, 1.6, 3.0)
+    assert "2,0" in _szz_avg_heat(2.0, 1.6, 3.0)
+    # bez známky → neutrální „-" (žádný gradient)
+    assert ">-<" in _szz_avg_heat(None, 1.6, 3.0)

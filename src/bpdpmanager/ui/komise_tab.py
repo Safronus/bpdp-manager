@@ -1825,6 +1825,37 @@ def _szz_avg_cell(avg) -> str:
     return "-" if avg is None else f"{avg:.1f}".replace(".", ",")
 
 
+def _heat_color(t: float) -> str:
+    """``t`` ∈ [0,1] → barva heatmapy: 0 = zelená, 0,5 = amber, 1 = červená.
+
+    Pro náročnost zkoušejícího: nejnižší průměr (nejhodnější) → zelená,
+    nejvyšší → červená. Čitelné na tmavém pozadí.
+    """
+    t = max(0.0, min(1.0, t))
+    # Dvě úsečky: zelená → amber (t ≤ 0,5), amber → červená (t > 0,5).
+    if t <= 0.5:
+        c0, c1, f = (67, 160, 71), (249, 168, 37), t / 0.5
+    else:
+        c0, c1, f = (249, 168, 37), (229, 57, 53), (t - 0.5) / 0.5
+    r = round(c0[0] + (c1[0] - c0[0]) * f)
+    g = round(c0[1] + (c1[1] - c0[1]) * f)
+    b = round(c0[2] + (c1[2] - c0[2]) * f)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _szz_avg_heat(avg, lo, hi) -> str:
+    """Ø buňka obarvená gradientem dle náročnosti (``lo``/``hi`` = min/max Ø).
+
+    Bez známky (``avg is None``) zůstává neutrální „-"; když je jen jeden
+    průměr (``hi == lo``), nedává smysl gradient → neutrální.
+    """
+    if avg is None:
+        return f"<span style='color:{_MUTED};'>-</span>"
+    t = (avg - lo) / (hi - lo) if (hi is not None and hi > lo) else 0.5
+    return (f"<b style='color:{_heat_color(t)};'>"
+            f"{_szz_avg_cell(avg)}</b>")
+
+
 def _szz_status_line(cache: dict) -> str:
     """Indikace stavu SZZ cache: počet, hotových a naposledy staženo."""
     if not cache:
@@ -1900,18 +1931,24 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                   + escape(tr("— rozložení = celkový výsledek SZZ")) + "</span></h4>",
                   rows, escape(tr("Komise")))
 
-    # Per zkoušející
+    # Per zkoušející — Ø obarvené gradientem náročnosti (nejnižší Ø zeleně,
+    # nejvyšší červeně; normalizováno přes zobrazené zkoušející).
+    examiners = szz.get("by_examiner", [])
+    _avgs = [r["avg"] for r in examiners if r["avg"] is not None]
+    _lo, _hi = (min(_avgs), max(_avgs)) if _avgs else (None, None)
     rows = ""
-    for r in szz.get("by_examiner", []):
+    for r in examiners:
         rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                  f"{escape(r['jmeno'] or '?')}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
-                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+                 f"<td style='padding:2px 0;text-align:right;'>"
+                 f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td></tr>")
     out += _table("<h4 style='margin:12px 0 2px;'>🧑‍🏫 "
                   + escape(tr("Per zkoušející (náročnost)"))
                   + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
-                  + escape(tr("— předmětové zkoušky")) + "</span></h4>", rows,
+                  + escape(tr("— předmětové zkoušky, Ø zeleně=nejhodnější … "
+                              "červeně=nejpřísnější")) + "</span></h4>", rows,
                   escape(tr("Zkoušející")))
 
     # Per předmět

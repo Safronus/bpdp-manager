@@ -1247,7 +1247,9 @@ obor); místnost se neeviduje.
   ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø),
   **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — **dílčí předmětové zkoušky**, náročnost
-  + Ø), **per předmět SZZ** (počet + rozložení + Ø), **graf rozložení známek po
+  + Ø; sloupec **Ø** je obarvený **gradientem náročnosti** — *nejnižší průměr
+  zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*), **per předmět SZZ**
+  (počet + rozložení + Ø), **graf rozložení známek po
   dimenzích** a **otázky** z průběhu po předmětech. **Dimenze se počítají zvlášť**
   (proto se počty F mezi sekcemi liší): *předmětové zkoušky (dílčí)*, *celkový
   výsledek z předmětů*, *obhajoba práce* a *celkový výsledek SZZ*; **per komise**

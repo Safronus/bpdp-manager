@@ -1132,8 +1132,10 @@ location = committee (colour + programme); rooms are not tracked.
   no access yet — recorded and retried): **summary** (students, passed % / failed
   / no grade / unavailable, Ø), **per committee** (✓ passed / ✗ failed / **? no
   grade** / **⏳ unavailable** + A–F distribution + Ø), **per examiner** (how
-  many subjects each examined and which grades they give — strictness + Ø),
-  **per SZZ subject** (count + distribution + Ø), a **grade distribution by
+  many subjects each examined and which grades they give — strictness + Ø; the
+  **Ø** column is shaded by a **strictness gradient** — *lowest average green =
+  most lenient … highest red = strictest*), **per SZZ subject** (count +
+  distribution + Ø), a **grade distribution by
   dimension** and **questions** from the procedure grouped by subject. **Dimensions
   are counted separately** (that's why F counts differ between sections): *subject
   exams*, *overall result for courses*, *thesis defence* and *overall SZZ result*;

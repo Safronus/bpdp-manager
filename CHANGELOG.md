@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.19.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): barevný gradient náročnosti u „Per zkoušející".** Sloupec
+  **Ø** v tabulce *Per zkoušející (náročnost)* je obarvený heatmapou: **nejnižší
+  průměr (nejhodnější) zeleně**, přes amber, až po **nejvyšší průměr (nejpřísnější)
+  červeně**. Normalizováno přes zobrazené zkoušející — náročnost je vidět na první
+  pohled.
+
 ## [2.18.2] - 2026-06-18
 
 ### Fixed
