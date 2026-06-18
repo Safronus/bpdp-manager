@@ -92,6 +92,15 @@ def _name_set(name: str) -> frozenset:
     return frozenset(student_name_key(name).split())
 
 
+def _norm_date(s: str) -> str:
+    """Datum na kanonický tvar ``D.M.RRRR`` — sjednotí „15. 6. 2026" (rozpis PDF)
+    a „15.6.2026" (portál), ať se dají dny porovnávat/sjednocovat."""
+    import re
+
+    m = re.match(r"\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{2,4})", s or "")
+    return f"{int(m.group(1))}.{int(m.group(2))}.{m.group(3)}" if m else (s or "").strip()
+
+
 def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
     """Agregace záznamů v rozsahu daném ``committees`` (prázdné → všechny).
 
@@ -114,14 +123,21 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                 if nm:
                     os_to_name.setdefault(pn, nm)
 
-    # Členství zkoušejících → barvy „jejich" komisí (jméno bez titulů → barvy).
+    # Členství zkoušejících → barvy „jejich" komisí + DNY těch komisí (na „za den":
+    # člen je v komisi všechny její dny, i když zrovna nezkouší). Jméno bez titulů.
     member_colors: dict = {}
+    member_dates: dict = {}
     for c in (all_committees if all_committees is not None else committees):
         col = (c.color or "").strip().lower()
+        cdates = {_norm_date(d) for d in (getattr(c, "dates", []) or []) if d}
         for m in getattr(c, "members", []) or []:
             k = _name_set(m.name)
-            if k and col:
+            if not k:
+                continue
+            if col:
                 member_colors.setdefault(k, set()).add(col)
+            if cdates:
+                member_dates.setdefault(k, set()).update(cdates)
 
     komise: dict = {}
     examiner: dict = {}
@@ -196,7 +212,7 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                 e["n"] += 1
                 if sl:
                     e["dist"][sl] += 1
-                d = (s.datum or "").strip()   # počet různých dní → zkoušení/den
+                d = _norm_date(s.datum)   # dny, kdy zkoušel (kanonicky)
                 if d:
                     e["days"].add(d)
                 if komise_color:   # rozpad dle barvy komise + doma/cizí
@@ -228,6 +244,14 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                 dist_defense[dl] += 1
                 if dl == "F":   # neobhájil (předseda komise se neuvádí)
                     fails["defense"].append({"os": oc, "jmeno": nm})
+
+    # „Za den": ke dnům, kdy zkoušející zkoušel, přidej VŠECHNY dny komisí, kde je
+    # členem (byl tam celé období, i když daný den nezkoušel). Bez členství zůstanou
+    # jen dny, kdy zkoušel (nemáme jak zjistit jeho přítomnost).
+    for e in examiner.values():
+        md = member_dates.get(_name_set(e["jmeno"]))
+        if md:
+            e["days"] |= md
 
     def _rows(d: dict, sort_key) -> list:
         rows = list(d.values())

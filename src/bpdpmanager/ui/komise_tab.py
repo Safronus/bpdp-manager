@@ -1827,18 +1827,6 @@ _GRADE_COLORS = {"A": "#2e7d32", "B": "#7cb342", "C": "#f9a825",
                  "D": "#ef6c00", "E": "#e64a19", "F": "#c62828"}
 
 
-def _szz_dist_inline(dist: dict) -> str:
-    """Kompaktní barevné rozložení známek: A6 B5 C3 … (0 = šedě)."""
-    from ..services.szz_stats import GRADES
-
-    parts = []
-    for g in GRADES:
-        c = dist.get(g, 0)
-        col = _GRADE_COLORS[g] if c else _MUTED
-        parts.append(f"<span style='color:{col};'>{g}{c}</span>")
-    return "&nbsp; ".join(parts)
-
-
 def _fail_labels(items: list) -> list:
     """Z fails-položek vrátí jména (nebo os. číslo) studentů, dedup dle os. čísla."""
     seen: set = set()
@@ -2076,6 +2064,15 @@ def _szz_dist_cells(dist: dict) -> str:
     return cells
 
 
+def _szz_grade_heads() -> str:
+    """6 hlaviček A-F (každá barvou své známky) — k sloupcům z ``_szz_dist_cells``."""
+    from ..services.szz_stats import GRADES
+
+    return "".join(
+        f"<th style='padding:2px 6px 2px 0;text-align:right;"
+        f"color:{_GRADE_COLORS[g]};'>{g}</th>" for g in GRADES)
+
+
 def _szz_examiner_name(idx: int, r: dict) -> str:
     """Pořadí (dle aktuálního řazení) + puntík(y) vlastní komise + jméno."""
     from html import escape
@@ -2149,15 +2146,14 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
         o_pad = "2px 10px 2px 0" if extra_heads else "2px 0"
         h = (f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
              f"{head_label}</th>"
-             f"<th style='padding:2px 10px 2px 0;text-align:right;color:{_MUTED};'>"
-             f"{escape(tr('Počet'))}</th>"
-             f"<th style='padding:2px 10px 2px 0;text-align:left;color:{_MUTED};'>"
-             f"{escape(tr('Rozložení A-F'))}</th>"
-             f"<th style='padding:{o_pad};text-align:right;color:{_MUTED};'>Ø</th>")
+             f"<th style='padding:2px 10px 2px 0;text-align:right;white-space:"
+             f"nowrap;color:{_MUTED};'>{escape(tr('Počet'))}</th>"
+             + _szz_grade_heads()
+             + f"<th style='padding:{o_pad};text-align:right;color:{_MUTED};'>Ø</th>")
         for i, eh in enumerate(extra_heads):
             pad = "2px 0" if i == len(extra_heads) - 1 else "2px 10px 2px 0"
-            h += (f"<th style='padding:{pad};text-align:right;color:{_MUTED};'>"
-                  f"{escape(eh)}</th>")
+            h += (f"<th style='padding:{pad};text-align:right;white-space:nowrap;"
+                  f"color:{_MUTED};'>{escape(eh)}</th>")
         return (title_html + "<table style='border-collapse:collapse;'><tr>"
                 + h + "</tr>" + rows_html + "</table>")
 
@@ -2175,8 +2171,9 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                  f"<span style='color:{dot};'>●</span> {escape(r['komise'])} "
                  f"<span style='color:{_MUTED};font-size:10px;'>{res}</span></td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
-                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
-                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+                 + _szz_dist_cells(r["dist"])
+                 + f"<td style='padding:2px 0;text-align:right;'>"
+                 f"{_szz_avg_cell(r['avg'])}</td></tr>")
     komise_html = _table(
         "<h4 style='margin:10px 0 2px;'>🎨 " + escape(tr("Per komise"))
         + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
@@ -2189,8 +2186,9 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
         rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                  f"{escape(r['predmet'])}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
-                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
-                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+                 + _szz_dist_cells(r["dist"])
+                 + f"<td style='padding:2px 0;text-align:right;'>"
+                 f"{_szz_avg_cell(r['avg'])}</td></tr>")
     predmet_html = _table(
         "<h4 style='margin:10px 0 2px;'>📚 " + escape(tr("Per předmět SZZ"))
         + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
@@ -2226,23 +2224,19 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
         examiners.sort(key=lambda r: (r.get(_metric) is None,
                                       -(r.get(_metric) or 0), -r["n"],
                                       r["jmeno"] or ""))
-    # Hlavička: # Zkoušející | Počet | A B C D E F (po sloupcích) | Ø | Medián |
+    # Hlavička: Zkoušející | Počet | A B C D E F (po sloupcích) | Ø | Medián |
     # Zk./den | Doma/cizí | Komise. Rozložení A-F je po sloupcích → zarovnané.
-    from ..services.szz_stats import GRADES
-    grade_heads = "".join(
-        f"<th style='padding:2px 6px 2px 0;text-align:right;"
-        f"color:{_GRADE_COLORS[g]};'>{g}</th>" for g in GRADES)
-    rh = "padding:2px 10px 2px 0;text-align:right;"
+    rh = "padding:2px 10px 2px 0;text-align:right;white-space:nowrap;"
     header = (
         f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
         f"{escape(tr('Zkoušející'))}</th>"
         f"<th style='{rh}color:{_MUTED};'>{escape(tr('Počet'))}</th>"
-        + grade_heads
+        + _szz_grade_heads()
         + f"<th style='{rh}color:{_MUTED};'>Ø</th>"
         f"<th style='{rh}color:{_MUTED};'>{escape(tr('Medián'))}</th>"
         f"<th style='{rh}color:{_MUTED};'>{escape(tr('Zk./den'))}</th>"
-        f"<th style='padding:2px 14px 2px 0;text-align:right;color:{_MUTED};'>"
-        f"{escape(tr('Doma/cizí'))}</th>"
+        f"<th style='padding:2px 14px 2px 0;text-align:right;white-space:nowrap;"
+        f"color:{_MUTED};'>{escape(tr('Doma/cizí'))}</th>"
         f"<th style='padding:2px 0;text-align:left;color:{_MUTED};'>"
         f"{escape(tr('Komise'))}</th>")
     rows = ""

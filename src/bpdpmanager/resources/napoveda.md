@@ -1255,9 +1255,10 @@ obor); místnost se neeviduje.
   náročnosti** — *nejnižší zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*.
   Medián je **odolnější vůči počtu zkoušení / odlehlým známkám** než průměr —
   rozdíl Ø vs medián ukáže zešikmení. Sloupec **Zk./den** ukazuje **počet
-  zkoušení na den** (dílčí zkoušky ÷ počet různých dní, kdy zkoušel; v závorce
-  počet dní) — zohledňuje, že někdo je v komisi víc dní. **Rozložení A-F** je
-  rozdělené **po sloupcích** (A/B/C/D/E/F zvlášť, zarovnané pod sebe). U jména je
+  zkoušení na den** (dílčí zkoušky ÷ **počet dní komise**, jejímž je členem — byl
+  tam celé období, i když zrovna nezkoušel; v závorce počet dní). **Rozložení
+  A-F** je rozdělené **po sloupcích** (A/B/C/D/E/F zvlášť, zarovnané pod sebe —
+  stejně i v *Per komise* a *Per předmět SZZ*). U jména je
   **pořadové číslo** (dle zvoleného řazení) a **barevný puntík vlastní komise**.
   Sloupec **Doma/cizí** zdůrazňuje, kolik zkoušející zkoušel **ve své** vs
   **cizí** komisi (svoje komise se určí spárováním jména se členy komisí), sloupec

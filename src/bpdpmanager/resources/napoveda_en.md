@@ -1144,11 +1144,12 @@ location = committee (colour + programme); rooms are not tracked.
   gradient** — *lowest green = most lenient … highest red = strictest*. The median
   is **more robust against the number of exams / outlier grades** than the mean —
   an Ø vs median gap reveals skew. The **Zk./den** column shows **exams per day**
-  (subject exams ÷ the number of distinct days examined; day count in brackets) —
-  accounting for some examiners sitting more days than others. The **A-F
-  distribution** is split **into columns** (A/B/C/D/E/F each, aligned under each
-  other). The name shows a **rank number** (per the chosen sort) and a **coloured
-  dot of the own committee**. The **Doma/cizí** column highlights how much the
+  (subject exams ÷ the **number of committee days** they are a member of — present
+  the whole period, even on days they didn't examine; day count in brackets). The
+  **A-F distribution** is split **into columns** (A/B/C/D/E/F each, aligned under
+  each other — same in *Per committee* and *Per SZZ subject*). The name shows a
+  **rank number** (per the chosen sort) and a **coloured dot of the own
+  committee**. The **Doma/cizí** column highlights how much the
   examiner sat in **their own vs another** committee (own committees matched by
   name), and the **Komise** column breaks the exams down **by committee colour**
   with counts (**coloured dots ●**). The **sort: by count · average · median ·

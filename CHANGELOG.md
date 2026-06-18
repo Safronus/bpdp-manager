@@ -5,6 +5,20 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.27.0] - 2026-06-18
+
+### Fixed
+- **„Zk./den" počítá dny správně — celé období v komisi, ne jen dny zkoušení.**
+  Dříve se bral jen počet dní, kdy zkoušející **opravdu zkoušel**; nově se počítá
+  z **počtu dní komise**, jejímž je členem (byl tam celé období, i když daný den
+  nezkoušel). Když členství nedohledáme, zůstává původní (dny zkoušení).
+- **Hlavička „Počet" se v „Per zkoušející" už nezalamuje** (nastaven `nowrap`).
+
+### Changed
+- **Rozložení A-F je po sloupcích (A/B/C/D/E/F) i v „Per komise" a „Per předmět
+  SZZ".** Stejné jako v *Per zkoušející* — známky **zarovnané pod sebe**, sloupce
+  sedí na obsah a řádek se nezalamuje.
+
 ## [2.26.3] - 2026-06-18
 
 ### Added
