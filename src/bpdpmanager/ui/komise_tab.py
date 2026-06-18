@@ -129,6 +129,34 @@ def _defense_state_badge(states: dict | None, pnum: str, name: str) -> str:
     return f" <span style='color:{color};font-weight:bold;'>{emoji} {tr(label)}</span>"
 
 
+def _szz_student_anchor(os_cislo: str, name: str, inner_html: str) -> str:
+    """Obalí jméno studenta odkazem ``szz:OSCISLO?n=NAME`` (klik/kontext → souhrn SZZ).
+
+    Vypadá jako normální text; klik (i pravý) otevře souhrn SZZ studenta.
+    Bez osobního čísla vrátí ``inner_html`` beze změny.
+    """
+    from urllib.parse import quote
+
+    oc = (os_cislo or "").strip()
+    if not oc:
+        return inner_html
+    href = "szz:" + oc + "?n=" + quote(name or "")
+    return (f"<a href=\"{href}\" style=\"color:inherit;text-decoration:none;\" "
+            f"title=\"Souhrn SZZ studenta\">{inner_html}</a>")
+
+
+def _parse_szz_href(href: str):
+    """``szz:OSCISLO?n=NAME`` → ``(os_cislo, jmeno)`` nebo ``None``."""
+    from urllib.parse import unquote
+
+    if not href or not str(href).startswith("szz:"):
+        return None
+    oc, _, q = str(href)[4:].partition("?")
+    oc = oc.strip()
+    name = unquote(q[2:]) if q.startswith("n=") else ""
+    return (oc, name) if oc else None
+
+
 class StudentsVODelegate(QStyledItemDelegate):
     """Sloupec „Studenti V/O": vedené číslo v modrém a oponované v červeném
     zaobleném badge vedle sebe (styl jako známky u prací). Prázdné = beze
@@ -202,7 +230,8 @@ class KomiseTab(QWidget):
     """Komise SZZ: strom roků/komisí + detail (složení, rozpis, zvýraznění)."""
 
     changed = Signal()
-    open_szz_admin = Signal()   # požadavek otevřít okno Státnice (admin)
+    open_szz_admin = Signal()         # požadavek otevřít okno Státnice (admin)
+    open_szz_student = Signal(str, str)   # (os_cislo, jmeno) → souhrn SZZ studenta
 
     def __init__(self, service: ThesisService, parent=None, *,
                  profile_manager=None) -> None:
@@ -444,6 +473,15 @@ class KomiseTab(QWidget):
         # Pravý panel: nezávislý „Můj harmonogram obhajob" pro vybraný rok.
         self.harmonogram_view = QTextBrowser()
         self.harmonogram_view.setOpenExternalLinks(False)
+        self.harmonogram_view.setOpenLinks(False)
+        self.harmonogram_view.anchorClicked.connect(self._handle_szz_url)
+        self.harmonogram_view.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self.harmonogram_view.customContextMenuRequested.connect(
+            lambda p: self._szz_context_menu(self.harmonogram_view, p))
+        self.detail.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.detail.customContextMenuRequested.connect(
+            lambda p: self._szz_context_menu(self.detail, p))
         self.right_container = QWidget()
         rcl = QVBoxLayout(self.right_container)
         rcl.setContentsMargins(0, 0, 0, 0)
@@ -692,10 +730,35 @@ class KomiseTab(QWidget):
                 out.append(p)
         return out
 
+    def _handle_szz_url(self, url) -> bool:
+        """Odkaz ``szz:OSCISLO?n=NAME`` → otevři souhrn SZZ studenta."""
+        if url.scheme() != "szz":
+            return False
+        from PySide6.QtCore import QUrlQuery
+
+        oc = url.path().strip()
+        if oc:
+            self.open_szz_student.emit(oc, QUrlQuery(url).queryItemValue("n"))
+        return True
+
+    def _szz_context_menu(self, view, pos) -> None:
+        """Kontextové menu nad studentem (zachová standardní + přidá Souhrn SZZ)."""
+        menu = view.createStandardContextMenu(pos)
+        parsed = _parse_szz_href(view.anchorAt(pos))
+        if parsed:
+            menu.addSeparator()
+            act = menu.addAction(tr("📋 Souhrn SZZ studenta…"))
+            act.triggered.connect(
+                lambda _c=False, oc=parsed[0], jm=parsed[1]:
+                self.open_szz_student.emit(oc, jm))
+        menu.exec(view.viewport().mapToGlobal(pos))
+
     def _open_detail_link(self, url) -> None:
-        """Klik na odkaz v detailu: PDF/soubor otevři systémově, web v prohlížeči."""
+        """Klik na odkaz v detailu: SZZ souhrn / PDF systémově / web v prohlížeči."""
         from ._os_actions import open_path
 
+        if self._handle_szz_url(url):
+            return
         if url.isLocalFile() or url.scheme() == "file":
             p = Path(url.toLocalFile())
             if p.exists():
@@ -1305,7 +1368,7 @@ class KomiseTab(QWidget):
                         f"<td style='padding:1px 12px 1px 0;color:{_MUTED};'>"
                         f"{escape(s.personal_number)}</td>"
                         f"<td style='padding:1px 4px;{style}'>"
-                        f"{escape(s.student_name)}{badge}</td>"
+                        f"{_szz_student_anchor(s.personal_number, s.student_name, escape(s.student_name))}{badge}</td>"
                         f"<td style='padding:1px 0 1px 8px;'>{state}</td></tr>"
                     )
                 sched_html += "</table>"
@@ -2101,7 +2164,7 @@ def _schedule_section_html(entries: list[dict], heading: str,
                 f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
                 f"<td style='padding:2px 4px;{style}'>{badge} "
-                f"{escape(e['student_name'])}{pnum}</td>"
+                f"{_szz_student_anchor(e['personal_number'], e['student_name'], escape(e['student_name']))}{pnum}</td>"
                 f"<td style='padding:2px 0 2px 8px;white-space:nowrap;'>{cd}</td></tr>"
             )
         out += "</table>"

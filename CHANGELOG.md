@@ -5,6 +5,19 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.17.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): souhrn SZZ studenta přímo z rozpisu / harmonogramu.** Klik
+  (i pravý → kontextové menu **📋 Souhrn SZZ studenta…**) na studenta v **rozpisu
+  komise** (prostřední panel) nebo v **Můj harmonogram** (pravý panel) otevře okno
+  se **souhrnem výsledků SZZ** studenta: předměty (zkoušející + známka), obhajoba,
+  celkový výsledek (vč. *z předmětů*). Čte se **z lokální cache** — funguje i bez
+  přihlášení; když student výsledky nemá, okno to **vhodně zobrazí**. Tlačítkem
+  **🔄 Aktualizovat ze STAG** stáhneš čerstvá data (vyžaduje přihlášení — jinak
+  nabídne **proklik na přihlášení**). Nenalezený student se uloží jako „zatím
+  nedostupný".
+
 ## [2.16.0] - 2026-06-18
 
 ### Changed

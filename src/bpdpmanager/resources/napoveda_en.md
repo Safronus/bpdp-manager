@@ -1035,6 +1035,13 @@ location = committee (colour + programme); rooms are not tracked.
   **when and where** the students you **supervise** (🎓) and **oppose** (🧐)
   defend. "Where" is the committee (colour + programme). Your personal
   timetable of when and at which committee to be. Filled from imported schedules.
+- **📋 Student SZZ summary (click / right-click).** Clicking a **student's name**
+  in the committee schedule (middle panel) or in *My defence schedule* (right-click
+  → *Student SZZ summary…*) opens a window with that student's **SZZ result summary**
+  (subjects + examiners + grades, defence, overall result). It reads from the **cache**
+  (works without logging in); if there's no data it says so. The **🔄 Update from
+  STAG** button fetches fresh data (requires login — otherwise offers a link to log
+  in). *(Admin feature — see State exams (admin).)*
 - **10-minute reminder.** While the app is running, **10 minutes before** a
   defence of your supervised/opposed student (per the schedule) a
   **notification** pops up (system tray bubble, otherwise a window) telling

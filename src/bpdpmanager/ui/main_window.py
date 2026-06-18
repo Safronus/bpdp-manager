@@ -706,6 +706,7 @@ class MainWindow(QMainWindow):
         self.tab_komise.changed.connect(self._update_status)
         self.tab_komise.changed.connect(self._update_komise_tab_title)
         self.tab_komise.open_szz_admin.connect(self._open_szz_admin)
+        self.tab_komise.open_szz_student.connect(self._open_szz_student)
         self.tabs.addTab(self.tab_komise, self._komise_tab_title())
         self.tabs.addTab(self.tab_stats, tr("📊 Statistiky"))
 
@@ -2464,24 +2465,45 @@ class MainWindow(QMainWindow):
         dlg.data_changed.connect(self._refresh_all)
         dlg.exec()
 
-    def _open_szz_admin(self) -> None:
-        """Admin okno SZZ — přihlášení do portálu Zapisovatel u státnic."""
-        try:
-            from ..services.szz_portal import SzzPortalSession
-            from .szz_admin_dialog import SzzAdminDialog
-        except ImportError as exc:
-            QMessageBox.warning(
-                self, tr("Státnice (admin)"),
-                tr("Vestavěný prohlížeč (QtWebEngine) není dostupný:") + f"\n{exc}")
-            return
-        # Session žije po dobu běhu okna (profil přežije zavření dialogu →
-        # přihlášení a cookies zůstanou; správné pořadí destrukce).
+    def _ensure_szz_session(self):
+        """Vrátí sdílenou SzzPortalSession (lazy); ``None``, když chybí QtWebEngine.
+
+        Session žije po dobu běhu okna (profil přežije zavření dialogu →
+        přihlášení a cookies zůstanou; správné pořadí destrukce).
+        """
         if getattr(self, "_szz_session", None) is None:
+            try:
+                from ..services.szz_portal import SzzPortalSession
+            except ImportError:
+                return None
             from ..config import app_data_dir
             self._szz_session = SzzPortalSession(
                 app_data_dir() / "szz_webview", self)
-        SzzAdminDialog(self._szz_session, self.service, self).exec()
+        return self._szz_session
+
+    def _open_szz_admin(self) -> None:
+        """Admin okno SZZ — přihlášení do portálu Zapisovatel u státnic."""
+        sess = self._ensure_szz_session()
+        if sess is None:
+            QMessageBox.warning(
+                self, tr("Státnice (admin)"),
+                tr("Vestavěný prohlížeč (QtWebEngine) není dostupný."))
+            return
+        from .szz_admin_dialog import SzzAdminDialog
+        SzzAdminDialog(sess, self.service, self).exec()
         # Po stažení/kontrole se mohla změnit cache → obnov záložku Průběh SZZ.
+        if getattr(self, "tab_komise", None) is not None:
+            self.tab_komise.rerender_stats()
+
+    def _open_szz_student(self, os_cislo: str, jmeno: str) -> None:
+        """Souhrn výsledků SZZ studenta (z cache; volitelně aktualizace ze STAG)."""
+        from .szz_student_dialog import SzzStudentDialog
+
+        sess = self._ensure_szz_session()
+        on_update = (lambda oc, cb: sess.fetch_student(oc, cb)) if sess else None
+        on_login = self._open_szz_admin if sess else None
+        SzzStudentDialog(os_cislo, jmeno, self.service, on_update=on_update,
+                         on_open_login=on_login, parent=self).exec()
         if getattr(self, "tab_komise", None) is not None:
             self.tab_komise.rerender_stats()
 

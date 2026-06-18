@@ -1155,6 +1155,13 @@ obor); místnost se neeviduje.
   **kdy a kde** obhajují studenti, které **vedeš** (🎓) i **oponuješ** (🧐).
   „Kde" je komise (barva + obor). Tvůj osobní rozvrh, kdy a u které komise máš
   být. Naplní se z naimportovaných rozpisů.
+- **📋 Souhrn SZZ studenta (klik / pravý klik).** Klik na **jméno studenta**
+  v rozpisu komise (prostřední panel) nebo v *Můj harmonogram* (pravý klik →
+  *Souhrn SZZ studenta…*) otevře okno se **souhrnem výsledků SZZ** toho studenta
+  (předměty + zkoušející + známky, obhajoba, celkový výsledek). Čte se **z cache**
+  (funguje i bez přihlášení); když data nejsou, okno to řekne. Tlačítkem
+  **🔄 Aktualizovat ze STAG** stáhneš čerstvá data (vyžaduje přihlášení — jinak
+  nabídne proklik na přihlášení). *(Admin funkce — viz Státnice (admin).)*
 - **Připomínka 10 minut předem.** Když aplikace běží, **10 minut před**
   obhajobou tvého vedeného/oponovaného studenta (dle harmonogramu) vyskočí
   **oznámení** (systémová bublina, jinak okno) s tím, kdo, kdy a u které
