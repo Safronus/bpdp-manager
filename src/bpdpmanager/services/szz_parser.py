@@ -62,9 +62,18 @@ def _textarea(block: str, name: str) -> str:
     return _clean(m.group(1)) if m else ""
 
 
+_VALID_GRADES = ("A", "B", "C", "D", "E", "F", "FX")
+
+
 def _letter(text: str) -> str:
-    """„A - výborně" → „A"."""
-    return text.split(" - ")[0].strip() if text else ""
+    """Známku z textu volby: „A - výborně" → „A".
+
+    Vrací jen **platnou** známku (A-F/FX); placeholder nevyplněné volby
+    („--- Nevyplněno ---") nebo cokoli jiného → ``""`` (nehodnoceno). Díky tomu
+    se nehodnocený student nepovažuje za „hotového".
+    """
+    g = (text or "").split(" - ")[0].strip().upper()
+    return g if g in _VALID_GRADES else ""
 
 
 # ── detekce stránky / role / přihlášení ───────────────────────────────────
@@ -190,13 +199,15 @@ def merge_pages(*recs: SzzRecord) -> SzzRecord:
 
 
 def is_terminal(rec: SzzRecord) -> bool:
-    """Hotový výsledek (už se nekontroluje): vyplněná celková **ZNÁMKA** SZZ.
+    """Hotový výsledek (už se nekontroluje): vyplněná **platná** celková ZNÁMKA SZZ.
 
-    Záměrně se řídí známkou (``vysledek_zkousek``), ne textem „Prospěl/Neprospěl"
-    (``vysledek_studia``) — ten může mít default i u nehodnocených, takže by se
-    studenti „bez známky" nesprávně přeskakovali při kontrole zbývajících.
+    Řídí se známkou (``vysledek_zkousek``), ne textem „Prospěl/Neprospěl"
+    (``vysledek_studia``) — ten může mít default i u nehodnocených. Známku navíc
+    **validuje** přes :func:`_letter`, takže placeholder „--- Nevyplněno ---"
+    (i ve starší cache) se nebere jako hotový → studenti „bez známky" se znovu
+    zkontrolují.
     """
-    return bool(rec.overall and rec.overall.vysledek_zkousek)
+    return bool(rec.overall) and _letter(rec.overall.vysledek_zkousek) != ""
 
 
 def szz_to_check(oscisla, cache: dict, force: bool) -> list[str]:

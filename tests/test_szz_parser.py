@@ -170,6 +170,19 @@ def test_szz_to_check_force_includes_all() -> None:
     assert szz_to_check(["A1", "A2", "A1"], cache, force=True) == ["A1", "A2"]
 
 
+def test_placeholder_grade_not_terminal() -> None:
+    # Nevyplněná celková známka má ve STAG text „--- Nevyplněno ---" (NE prázdný
+    # řetězec). Nesmí se brát jako hotová — jinak „zbývající" ignoruje studenty
+    # bez známky (platí i pro starší cache, kde je placeholder uložený).
+    from bpdpmanager.services.szz_parser import _letter
+
+    assert _letter("--- Nevyplněno ---") == "" and _letter("A - výborně") == "A"
+    rec = SzzRecord(os_cislo="A8", overall=SzzOverall(
+        vysledek_zkousek="--- Nevyplněno ---", vysledek_studia="Prospěl"))
+    assert not is_terminal(rec)
+    assert szz_to_check(["A8"], {"A8": rec}, force=False) == ["A8"]
+
+
 def test_szz_to_check_rechecks_bez_znamky_and_unavailable() -> None:
     # „Bez známky" (text výsledku studia vyplněn, ale BEZ známky) NENÍ hotový →
     # musí se znovu zkontrolovat. Stejně tak „nedostupné". (Regrese: dřív se

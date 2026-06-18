@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.15.3] - 2026-06-18
+
+### Fixed
+- **Státnice (admin): „🔄 Zkontrolovat zbývající" teď opravdu dobere i „bez
+  známky".** Nevyplněná celková známka má ve STAG **text** „--- Nevyplněno ---"
+  (ne prázdný řetězec), takže předchozí oprava (2.15.2) ji pořád brala jako
+  „hotovou" a přeskakovala. Nově se známka **validuje** — za hotové se bere jen
+  **platná známka A–F/FX**. Platí i pro **stávající cache** (vyhodnocuje se živě),
+  takže „zbývající" doplní *nedostupné* i *bez známky* bez nutnosti cokoli mazat.
+
 ## [2.15.2] - 2026-06-18
 
 ### Fixed
