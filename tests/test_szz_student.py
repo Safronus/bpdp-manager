@@ -111,6 +111,24 @@ def test_szz_examiner_sort_toggle_and_order() -> None:
     assert _order("per_day") == ["Střední", "Mírný", "Přísný"]   # 8,0/5,0/2,0
 
 
+def test_szz_komise_cells_home_foreign() -> None:
+    from bpdpmanager.ui.komise_tab import _szz_homeforeign_cell, _szz_komise_cell
+
+    r = {"own": 2, "foreign": 1, "own_colors": {"fialová"},
+         "colors": {"fialová": 2, "modrá": 1}}
+    # doma/cizí souhrn
+    hf = _szz_homeforeign_cell(r)
+    assert "<b>2</b>" in hf and "/1" in hf
+    # vlastní komise = domeček ⌂ (vede, v barvě fialové), cizí = tečka ●
+    cell = _szz_komise_cell(r)
+    assert "⌂" in cell and "●" in cell
+    assert cell.index("⌂") < cell.index("●")           # vlastní napřed
+    assert "#8e24aa" in cell                            # fialová barva u domečku
+    # prázdné → pomlčka
+    assert _szz_komise_cell({"colors": {}}) == _szz_homeforeign_cell(
+        {"own": 0, "foreign": 0})
+
+
 def test_szz_student_dialog_changed_flag() -> None:
     # Pouhé nahlédnutí → changed False (volající nepřerenderuje, scroll zůstane).
     # Aktualizace ze STAG (upsert) → changed True.

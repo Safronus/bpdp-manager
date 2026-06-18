@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.24.1] - 2026-06-18
+
+### Changed
+- **Státnice (admin): sloupec „Komise" u zkoušejících čitelnější a zarovnaný.**
+  Rozdělen na dva zarovnané sloupce: **Doma/cizí** (souhrn *ve své / cizí* komisi,
+  zarovnaný vpravo) a **Komise** (barevný rozpad). Ve sloupci Komise je teď
+  **vlastní komise = domeček ⌂** v její barvě (řadí se první), **cizí = tečka ●**
+  — tečky/domečky tak začínají zarovnaně pod sebou (prefix „🏠N cizí M" je pryč).
+
 ## [2.24.0] - 2026-06-18
 
 ### Added

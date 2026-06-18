@@ -188,7 +188,7 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                 e = examiner.setdefault(ekey, {
                     "jmeno": s.zkousejici, "ucitidno": s.ucitidno, "n": 0,
                     "dist": _empty_dist(), "days": set(),
-                    "colors": {}, "own": 0, "foreign": 0})
+                    "colors": {}, "own": 0, "foreign": 0, "own_colors": set()})
                 e["n"] += 1
                 if sl:
                     e["dist"][sl] += 1
@@ -198,6 +198,7 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                 if komise_color:   # rozpad dle barvy komise + doma/cizí
                     e["colors"][komise_color] = e["colors"].get(komise_color, 0) + 1
                     own = member_colors.get(_name_set(s.zkousejici), set())
+                    e["own_colors"] = own   # barvy „jeho" komisí (na domeček ⌂)
                     if komise_color in own:
                         e["own"] += 1
                     else:

@@ -1254,12 +1254,13 @@ obor); místnost se neeviduje.
   Medián je **odolnější vůči počtu zkoušení / odlehlým známkám** než průměr —
   rozdíl Ø vs medián ukáže zešikmení. Sloupec **Zk./den** ukazuje **počet
   zkoušení na den** (dílčí zkoušky ÷ počet různých dní, kdy zkoušel; v závorce
-  počet dní) — zohledňuje, že někdo je v komisi víc dní. Sloupec **Komise**
-  ukazuje rozpad zkoušení **dle barvy komise** (barevné tečky s počty) a zvlášť
-  **🏠 ve své** vs **cizí** komisi — kolik zkoušející zkoušel v komisi, kde je
-  členem, vs v cizích (svoje komise se určí spárováním jména se členy komisí).
-  Přepínač v nadpisu **řadit: počtem · průměrem · mediánem · za den** mění řazení
-  zobrazených zkoušejících), **per předmět SZZ**
+  počet dní) — zohledňuje, že někdo je v komisi víc dní. Sloupec **Doma/cizí**
+  zdůrazňuje, kolik zkoušející zkoušel **ve své** vs **cizí** komisi (svoje komise
+  se určí spárováním jména se členy komisí), sloupec **Komise** ukazuje rozpad
+  **dle barvy komise** s počty — **vlastní komise = domeček ⌂** v její barvě
+  (řadí se první), **cizí = tečka ●**. Přepínač v nadpisu **řadit: počtem ·
+  průměrem · mediánem · za den** mění řazení zobrazených zkoušejících),
+  **per předmět SZZ**
   (počet + rozložení + Ø) a **graf rozložení známek po
   dimenzích**. (Otázky/průběh tu **nejsou** — jsou nenormované; najdeš je jen
   v *Souhrnu SZZ studenta*.) **Dimenze se počítají zvlášť**

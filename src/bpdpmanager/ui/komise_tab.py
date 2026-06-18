@@ -1905,25 +1905,30 @@ def _szz_examiner_sort_toggle(active: str) -> str:
             + sep.join(_opt(m, lbl) for m, lbl in opts) + "</span>")
 
 
+def _szz_homeforeign_cell(r: dict) -> str:
+    """Souhrn doma/cizí: kolik zkoušejcí zkoušel ve své vs cizí komisi."""
+    own, foreign = r.get("own", 0), r.get("foreign", 0)
+    if not (own or foreign):
+        return f"<span style='color:{_MUTED};'>—</span>"
+    return f"<b>{own}</b><span style='color:{_MUTED};'>/{foreign}</span>"
+
+
 def _szz_komise_cell(r: dict) -> str:
-    """Rozpad zkoušení zkoušejícího dle barvy komise + zdůraznění doma/cizí.
-
-    🏠 = ve své komisi (je členem), „cizí" = v jiné. Pak barevné tečky komisí
-    s počty (jen barvy, obory se neslučují zvlášť).
+    """Rozpad zkoušení dle barvy komise; **vlastní** komise = domeček ⌂ v její
+    barvě, **cizí** = tečka ● v barvě. Vlastní napřed → tečky/domečky se zarovnají.
     """
-    from html import escape
-
     colors = r.get("colors") or {}
     if not colors:
         return f"<span style='color:{_MUTED};'>—</span>"
-    own, foreign = r.get("own", 0), r.get("foreign", 0)
-    dots = ""
-    for color, cnt in sorted(colors.items(), key=lambda kv: (-kv[1], kv[0])):
-        dots += (f"<span style='color:{committee_color_hex(color)};'>●</span>"
-                 f"<span style='color:{_MUTED};font-size:10px;'>{cnt}</span> ")
-    summary = (f"🏠<b>{own}</b> <span style='color:{_MUTED};'>"
-               f"{escape(tr('cizí'))} {foreign}</span>")
-    return f"{summary}&nbsp; {dots}"
+    own_colors = r.get("own_colors") or set()
+    items = sorted(colors.items(),
+                   key=lambda kv: (kv[0] not in own_colors, -kv[1], kv[0]))
+    out = ""
+    for color, cnt in items:
+        glyph = "⌂" if color in own_colors else "●"
+        out += (f"<span style='color:{committee_color_hex(color)};'>{glyph}</span>"
+                f"<span style='color:{_MUTED};font-size:10px;'>{cnt}</span> ")
+    return out
 
 
 def _stats_szz_html(szz: dict, scope: str, cache_count: int,
@@ -2024,6 +2029,8 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                  f"{_szz_avg_heat(r.get('median'), _lo, _hi)}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;white-space:nowrap;'>"
                  f"{per_day}</td>"
+                 f"<td style='padding:2px 14px 2px 0;text-align:right;white-space:nowrap;'>"
+                 f"{_szz_homeforeign_cell(r)}</td>"
                  f"<td style='padding:2px 0;white-space:nowrap;'>"
                  f"{_szz_komise_cell(r)}</td></tr>")
     title = ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
@@ -2032,10 +2039,12 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
              + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
              + escape(tr("Ø i medián: zeleně = nejhodnější … červeně = "
                          "nejpřísnější (medián odolnější vůči počtu). Zk./den = "
-                         "zkoušení na den (v závorce dny). Komise: 🏠 ve své / "
-                         "cizí v jiné komisi + barvy komisí, kde zkoušel.")) + "</p>")
+                         "zkoušení na den (v závorce dny). Doma/cizí = ve své / "
+                         "cizí komisi; barvy komisí, kde zkoušel — vlastní komise "
+                         "domeček ⌂, cizí tečka ●.")) + "</p>")
     out += _table(title, rows, escape(tr("Zkoušející")),
-                  extra_heads=(tr("Medián"), tr("Zk./den"), tr("Komise")))
+                  extra_heads=(tr("Medián"), tr("Zk./den"),
+                               tr("Doma/cizí"), tr("Komise")))
 
     # Per předmět
     rows = ""

@@ -183,6 +183,7 @@ def test_by_examiner_komise_own_foreign() -> None:
           for r in szz_admin_stats(recs, [], coms)["by_examiner"]}["100"]
     assert ex["own"] == 2 and ex["foreign"] == 1
     assert ex["colors"] == {"fialová": 2, "modrá": 1}
+    assert ex["own_colors"] == {"fialová"}   # na vykreslení domečku ⌂
 
 
 def test_defense_distribution() -> None:

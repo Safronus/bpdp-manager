@@ -1141,12 +1141,13 @@ location = committee (colour + programme); rooms are not tracked.
   is **more robust against the number of exams / outlier grades** than the mean —
   an Ø vs median gap reveals skew. The **Zk./den** column shows **exams per day**
   (subject exams ÷ the number of distinct days examined; day count in brackets) —
-  accounting for some examiners sitting more days than others. The **Komise**
-  column breaks the exams down **by committee colour** (coloured dots with counts)
-  and highlights **🏠 own vs other** committee — how much the examiner sat in the
-  committee they are a member of vs others (own committees matched by name). The
-  **sort: by count · average · median · per day** toggle in the heading switches
-  the ordering of the listed examiners), **per SZZ subject** (count +
+  accounting for some examiners sitting more days than others. The **Doma/cizí**
+  column highlights how much the examiner sat in **their own vs another** committee
+  (own committees matched by name), and the **Komise** column breaks the exams down
+  **by committee colour** with counts — the **own committee is a house ⌂** in its
+  colour (sorted first), **others are dots ●**. The **sort: by count · average ·
+  median · per day** toggle in the heading switches the ordering of the listed
+  examiners), **per SZZ subject** (count +
   distribution + Ø) and a **grade distribution by
   dimension**. (Questions/procedure are **not** here — they are non-standardised;
   find them only in the *Student SZZ summary*.) **Dimensions
