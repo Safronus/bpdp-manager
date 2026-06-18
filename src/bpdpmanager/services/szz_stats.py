@@ -66,20 +66,37 @@ def szz_admin_stats(records: dict, committees) -> dict:
     in_scope = _scope_oscisla(committees)
     recs = [r for oc, r in (records or {}).items()
             if (not in_scope) or (oc or "").strip().upper() in in_scope]
+    os_to_color = {}
+    for c in committees:
+        for s in c.slots:
+            pn = (s.personal_number or "").strip().upper()
+            if pn:
+                os_to_color.setdefault(pn, c.color or "?")
 
     komise: dict = {}
     examiner: dict = {}
     predmet: dict = {}
     questions: dict = {}
     dist_overall, dist_defense, dist_subj = _empty_dist(), _empty_dist(), _empty_dist()
-    students = 0
+    students = nedostupne = 0
+
+    def _komise(color):
+        return komise.setdefault(color, {"komise": color, "n": 0,
+                                         "nedostupne": 0, "dist": _empty_dist()})
 
     for r in recs:
         students += 1
+        if getattr(r, "unavailable", False):
+            # Zatím nedostupné (komise neproběhla / nemáme přístup) — nepočítá se
+            # do známek, jen se eviduje (i u komise, dle rozpisu).
+            nedostupne += 1
+            color = os_to_color.get((r.os_cislo or "").strip().upper())
+            if color:
+                _komise(color)["nedostupne"] += 1
+            continue
         ov = getattr(r, "overall", None)
         if ov:
-            kgrp = komise.setdefault(ov.komise or "?", {
-                "komise": ov.komise or "?", "n": 0, "dist": _empty_dist()})
+            kgrp = _komise(ov.komise or "?")
             kgrp["n"] += 1
             kl = _letter(ov.vysledek_zkousek)
             if kl:
@@ -123,11 +140,12 @@ def szz_admin_stats(records: dict, committees) -> dict:
         rows.sort(key=sort_key)
         return rows
 
-    t_pass, t_fail, t_none = _pass_fail_none(dist_overall, students)
+    # Známky se počítají jen z dostupných (nedostupné jsou samostatná kategorie).
+    t_pass, t_fail, t_none = _pass_fail_none(dist_overall, students - nedostupne)
     return {
         "totals": {"students": students, "prospel": t_pass,
                    "neprospel": t_fail, "bez_znamky": t_none,
-                   "avg": _avg(dist_overall)},
+                   "nedostupne": nedostupne, "avg": _avg(dist_overall)},
         "by_komise": _rows(komise, lambda r: r["komise"]),
         "by_examiner": _rows(examiner, lambda r: (-r["n"], r["jmeno"] or "")),
         "by_predmet": _rows(predmet, lambda r: r["predmet"]),

@@ -71,3 +71,5 @@ class SzzRecord(BaseModel):
     overall: SzzOverall | None = None
     fetched_at: str = ""             # ISO timestamp posledního stažení
     terminal: bool = False           # True = výsledek hotový (už nekontrolovat)
+    unavailable: bool = False        # zatím nedostupné (nemáme přístup / komise
+    #                                  ještě neproběhla) — nezahazovat, zkusit znovu

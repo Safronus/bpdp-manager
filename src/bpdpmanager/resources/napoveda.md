@@ -1208,8 +1208,10 @@ obor); místnost se neeviduje.
   **vestavěný prohlížeč** — přihlásíš se jako normálně (**heslo se nikam
   neukládá**, drží se jen cookie session v profilové složce `…/szz_webview`).
   Nahoře je **indikátor stavu**: 🔴 nepřihlášen / ⚠️ chybí role *Zapisovatel
-  státnic* / 🟢 přihlášen. Po přihlášení klikni **🔄 Obnovit stav**, zadej
-  **osobní číslo** studenta a **▶ Načíst studenta** — aplikace sama projde
+  státnic* / 🟢 přihlášen. Stav se zjišťuje **automaticky** (po přihlášení
+  indikátor sám naskočí) a **periodicky** (hlídá vypršení session) — tlačítko
+  **🔄 Obnovit stav** je tak jen na vynucení. Zadej **osobní číslo** studenta
+  a **▶ Načíst studenta** — aplikace sama projde
   portál a zobrazí **kompletní SZZ záznam**: předměty (zkoušející, známka, body,
   **otázky** z průběhu), obhajobu (hodnocení, vedoucí/oponent) a celkový výsledek
   (Prospěl/Neprospěl, komise). Vše klíčované **osobním číslem** (žádné párování
@@ -1231,9 +1233,11 @@ obor); místnost se neeviduje.
   v záložce **🏛 Průběh SZZ** (vedle *Podle komise / Graf / Podle členů*).
   **Respektuje výběr v stromu** (komise / rok / vše) a počítá **číselný průměr
   známek** (A=1 … F=6, FX=F). Klasifikace **prospěl (A-E) / neprospěl (F) / bez
-  známky** (nevyplněno). Obsahuje: **souhrn** (studentů, prospělo % / neprospělo /
-  bez známky, Ø), **per komise** (✓ prospělo / ✗ neprospělo / **? bez známky** +
-  rozložení A–F + Ø), **per zkoušející**
+  známky** (nevyplněno) / **nedostupné** (⏳ komise ještě neproběhla / zatím bez
+  přístupu — eviduje se a zkouší znovu). Obsahuje: **souhrn** (studentů, prospělo
+  % / neprospělo / bez známky / nedostupné, Ø), **per komise** (✓ prospělo /
+  ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø),
+  **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — náročnost + Ø), **per předmět SZZ**
   (počet + rozložení + Ø), **graf rozložení** známek (celkové / obhajoby /
   předmětů) a **otázky** z průběhu po předmětech. Nahoře v záložce je tlačítko

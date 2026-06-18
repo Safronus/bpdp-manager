@@ -12,7 +12,7 @@ zobrazují se v záložce „Průběh SZZ" ve Statistice obhajob.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QDialog,
@@ -35,6 +35,7 @@ from ..services.szz_portal import (
     STATUS_READY,
     SzzBatchChecker,
     SzzPortalSession,
+    status_from_html,
 )
 
 _MUTED = "#9aa0a6"
@@ -86,6 +87,7 @@ class SzzAdminDialog(QDialog):
         self._alive = True   # async callbacky nesmí sáhnout na zavřený dialog
         self._batch = None
         self._auto_done = False   # tichá kontrola dnešních proběhla?
+        self._last_status = None
 
         root = QVBoxLayout(self)
 
@@ -138,6 +140,9 @@ class SzzAdminDialog(QDialog):
         split = QSplitter(Qt.Orientation.Horizontal)
         self.view = QWebEngineView()
         self.view.setPage(self.session.login_page())
+        # Stav přihlášení se zjišťuje AUTOMATICKY z každého načtení této stránky
+        # (přihlásíš se → indikátor se sám přepne; žádné souběžné načítání).
+        self.view.page().loadFinished.connect(self._on_view_loaded)
         self.view.load(QUrl(PORTAL_URL))
         split.addWidget(self.view)
         self.out = QPlainTextEdit()
@@ -154,9 +159,13 @@ class SzzAdminDialog(QDialog):
         # Stav se zjistí až tlačítkem „Obnovit stav" (po přihlášení).
         self.btn_fetch.setEnabled(False)
         self._set_batch_enabled(False)
-        self.lbl_status.setText(
-            "⏳ " + tr("Přihlas se vlevo, pak klikni 🔄 Obnovit stav"))
+        self.lbl_status.setText("⏳ " + tr("Zjišťuji stav…"))
         self.out.setPlainText(self._cache_summary())
+        # Periodická kontrola stavu (zachytí vypršení session během nečinnosti).
+        self._poll = QTimer(self)
+        self._poll.setInterval(180_000)   # 3 min
+        self._poll.timeout.connect(self._poll_status)
+        self._poll.start()
 
     def _cache_summary(self) -> str:
         n = len(self.service.load_szz_results())
@@ -167,8 +176,27 @@ class SzzAdminDialog(QDialog):
 
     # ── stav přihlášení/role ──────────────────────────────────────────────
     def _refresh_status(self) -> None:
+        if self._batch is not None:   # bg_page právě dělá dávku
+            return
         self.lbl_status.setText("⏳ " + tr("Zjišťuji stav…"))
         self.session.check_status(self._set_status)
+
+    def _on_view_loaded(self, ok: bool) -> None:
+        # Stav se zjistí z obsahu právě načtené přihlašovací stránky.
+        if self._alive and ok:
+            self.view.page().toHtml(self._status_from_view_html)
+
+    def _status_from_view_html(self, html: str) -> None:
+        if self._alive:
+            self._set_status(status_from_html(html))
+
+    def _poll_status(self) -> None:
+        # Periodicky obnov stav — jen když jsme přihlášení a neběží dávka
+        # (zachytí vypršení session během nečinnosti).
+        if not self._alive or self._batch is not None:
+            return
+        if self._last_status in (STATUS_READY, STATUS_NO_ROLE):
+            self.session.check_status(self._set_status)
 
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt API)
         self._alive = False
@@ -177,6 +205,7 @@ class SzzAdminDialog(QDialog):
     def _set_status(self, status: str) -> None:
         if not self._alive:
             return
+        self._last_status = status
         icon, text, color = _STATUS_UI.get(
             status, ("⏳", tr("Neznámý stav"), _MUTED))
         self.lbl_status.setText(f"{icon} {tr(text)}")
@@ -264,9 +293,11 @@ class SzzAdminDialog(QDialog):
             self._set_status(STATUS_LOGGED_OUT)
             return
         self._set_batch_enabled(True)
+        unavail = stats.get("unavailable", 0)
+        unavail_txt = f", {unavail} {tr('nedostupných')}" if unavail else ""
         self.lbl_progress.setText(
             f"✅ {tr('Hotovo')}: {stats['checked']} {tr('zkontrolováno')}, "
-            f"{stats['failed']} {tr('chyb')} · 💾 {tr('v cache')}: {n}")
+            f"{stats['failed']} {tr('chyb')}{unavail_txt} · 💾 {tr('v cache')}: {n}")
 
     def _stop_batch(self) -> None:
         if self._batch is not None:

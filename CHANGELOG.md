@@ -5,6 +5,21 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.15.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): stav připojení se zjišťuje automaticky a periodicky.**
+  Indikátor 🔴/⚠️/🟢 se přepne **sám** podle načtené stránky (přihlásíš se →
+  indikátor naskočí) a periodicky (každé 3 min, jen když jsi přihlášený) se
+  kontroluje **vypršení session** — není nutné klikat „🔄 Obnovit stav".
+
+### Changed
+- **„Nenalezen ve STAG" → „zatím nedostupné".** Když student ještě nemá záznam
+  (komise teprve proběhne / zatím nemáš k záznamům přístup), **nezahodí se to
+  jako chyba**, ale **eviduje jako „nedostupné" (⏳)** — ve statistice je
+  samostatná kategorie (souhrn *Nedostupné N*, u komisí *N⏳*) a při další
+  kontrole se to **zkusí znovu** (až komise proběhne, doplní se reálný výsledek).
+
 ## [2.14.4] - 2026-06-18
 
 ### Changed

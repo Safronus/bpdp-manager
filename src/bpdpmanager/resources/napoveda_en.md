@@ -1095,7 +1095,9 @@ location = committee (colour + programme); rooms are not tracked.
   browser** — you log in as usual (the **password is never stored**; only a
   session cookie is kept in the profile folder `…/szz_webview`). A **status
   indicator** at the top shows 🔴 logged out / ⚠️ missing the *recorder* role /
-  🟢 logged in. After logging in click **🔄 Refresh status**, type a student's
+  🟢 logged in. The status updates **automatically** (it flips after you log in)
+  and **periodically** (watches for session expiry) — the **🔄 Refresh status**
+  button is just to force it. Type a student's
   **personal number** and **▶ Load student** — the app drives the portal itself
   and shows the **complete SZZ record**: subjects (examiner, grade, points,
   **questions** from the procedure), the defence (grade, supervisor/opponent) and
@@ -1118,9 +1120,10 @@ location = committee (colour + programme); rooms are not tracked.
   **🏛 SZZ progress** tab (next to *By committee / Chart / By member*). It
   **respects the tree selection** (committee / year / all) and computes a
   **numeric grade average** (A=1 … F=6, FX=F). Classification **passed (A-E) /
-  failed (F) / no grade** (blank): **summary** (students, passed % / failed / no
-  grade, Ø), **per committee** (✓ passed / ✗ failed / **? no grade** + A–F
-  distribution + Ø), **per examiner** (how
+  failed (F) / no grade** (blank) / **unavailable** (⏳ committee not held yet /
+  no access yet — recorded and retried): **summary** (students, passed % / failed
+  / no grade / unavailable, Ø), **per committee** (✓ passed / ✗ failed / **? no
+  grade** / **⏳ unavailable** + A–F distribution + Ø), **per examiner** (how
   many subjects each examined and which grades they give — strictness + Ø),
   **per SZZ subject** (count + distribution + Ø), a **grade-distribution chart**
   (overall / defense / subjects) and **questions** from the procedure grouped by

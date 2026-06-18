@@ -80,6 +80,20 @@ def test_bez_znamky() -> None:
     assert km["fialová"]["none"] == 1       # A3 bez známky
 
 
+def test_nedostupne() -> None:
+    records = {
+        "A1": _rec("A1", "fialová", "A", True, []),         # prospěl
+        "A2": SzzRecord(os_cislo="A2", unavailable=True),    # zatím nedostupné
+    }
+    st = szz_admin_stats(records, [_committee("fialová", ["A1", "A2"])])
+    t = st["totals"]
+    assert t["students"] == 2
+    assert t["prospel"] == 1 and t["nedostupne"] == 1
+    assert t["bez_znamky"] == 0       # nedostupné NENÍ „bez známky"
+    km = {r["komise"]: r for r in st["by_komise"]}
+    assert km["fialová"]["n"] == 1 and km["fialová"]["nedostupne"] == 1
+
+
 def test_scope_filters_records() -> None:
     records = {"A1": _rec("A1", "fialová", "A", True, []),
                "A9": _rec("A9", "zelená", "B", True, [])}

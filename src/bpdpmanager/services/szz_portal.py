@@ -25,6 +25,7 @@ from PySide6.QtWebEngineCore import (
     QWebEngineUrlRequestInterceptor,
 )
 
+from ..models.szz_result import SzzRecord
 from .szz_parser import (
     KNOWN_PAGES,
     detect_page_name,
@@ -58,7 +59,8 @@ class _TrackerBlocker(QWebEngineUrlRequestInterceptor):
             info.block(True)
 
 
-def _status_from_html(html_text: str) -> str:
+def status_from_html(html_text: str) -> str:
+    """Stav přihlášení/role z HTML portálu (STATUS_*)."""
     if not is_logged_in(html_text):
         return STATUS_LOGGED_OUT
     if not has_zapisovatel_role(html_text):
@@ -245,7 +247,7 @@ class SzzPortalSession(QObject):
                 page.loadFinished.disconnect(on_load)
             except (RuntimeError, TypeError):
                 pass
-            page.toHtml(lambda h: callback(_status_from_html(h)))
+            page.toHtml(lambda h: callback(status_from_html(h)))
 
         page.loadFinished.connect(on_load)
         page.load(QUrl(PORTAL_URL))
@@ -282,6 +284,7 @@ class SzzBatchChecker(QObject):
         self.done = 0
         self.checked = 0
         self.failed = 0
+        self.unavailable = 0
         self.logged_out = False
         self._stop = False
         self._current = ""
@@ -314,10 +317,15 @@ class SzzBatchChecker(QObject):
                               f" ({ov.vysledek_zkousek or '?'})")
             else:
                 self.log.emit(f"{oc} ✓ staženo (zatím bez výsledku)")
+        elif error == "not_found":
+            # Nenalezen = zatím nedostupné (komise ještě neproběhla / nemáme
+            # přístup) → zapamatuj jako nedostupné a příště zkus znovu.
+            self.service.upsert_szz_result(SzzRecord(os_cislo=oc, unavailable=True))
+            self.unavailable += 1
+            self.log.emit(f"{oc} ⏳ zatím nedostupné (komise možná ještě neproběhla)")
         else:
             self.failed += 1
-            reason = {"not_found": "nenalezen ve STAG",
-                      "timeout": "timeout (přeskočeno)"}.get(error, "chyba")
+            reason = {"timeout": "timeout (přeskočeno)"}.get(error, "chyba")
             self.log.emit(f"{oc} ✗ {reason}")
         self.done += 1
         self._next()
@@ -325,6 +333,6 @@ class SzzBatchChecker(QObject):
     def _finish(self) -> None:
         self.finished.emit({
             "checked": self.checked, "failed": self.failed,
-            "total": self.total, "logged_out": self.logged_out,
-            "stopped": self._stop,
+            "unavailable": self.unavailable, "total": self.total,
+            "logged_out": self.logged_out, "stopped": self._stop,
         })
