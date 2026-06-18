@@ -66,6 +66,41 @@ def test_szz_fails_html_and_labels() -> None:
     assert labels == ["Jan", "A3"]
 
 
+def test_szz_examiner_sort_toggle_and_order() -> None:
+    from bpdpmanager.ui.komise_tab import (
+        _stats_szz_html,
+        _szz_examiner_sort_toggle,
+    )
+
+    # přepínač: aktivní tučně, druhý jako klikací odkaz szzsort:
+    t_count = _szz_examiner_sort_toggle("count")
+    assert "<b" in t_count and 'href="szzsort:avg"' in t_count
+    assert 'href="szzsort:count"' in _szz_examiner_sort_toggle("avg")
+
+    def _ex(name, n, avg):
+        return {"jmeno": name, "ucitidno": name, "n": n,
+                "dist": dict.fromkeys("ABCDEF", 0), "avg": avg,
+                "pass": 0, "fail": 0, "none": 0}
+
+    szz = {
+        "totals": {"students": 3, "prospel": 3, "neprospel": 0,
+                   "bez_znamky": 0, "nedostupne": 0, "avg": 2.0},
+        "by_komise": [], "by_predmet": [], "dist": {}, "fails": {},
+        "questions": {},
+        "by_examiner": [_ex("Mírný", 37, 1.6), _ex("Přísný", 20, 3.0),
+                        _ex("Střední", 25, 2.0)],
+    }
+
+    def _order(mode):
+        seg = _stats_szz_html(szz, "x", 3, mode).split("Per zkoušející")[1]
+        seg = seg.split("Per předmět")[0]
+        return sorted(["Mírný", "Přísný", "Střední"], key=seg.find)
+
+    # avg = nejpřísnější první (nejvyšší Ø); default drží pořadí ze service.
+    assert _order("avg") == ["Přísný", "Střední", "Mírný"]
+    assert _order("count") == ["Mírný", "Přísný", "Střední"]
+
+
 def test_szz_student_dialog_changed_flag() -> None:
     # Pouhé nahlédnutí → changed False (volající nepřerenderuje, scroll zůstane).
     # Aktualizace ze STAG (upsert) → changed True.

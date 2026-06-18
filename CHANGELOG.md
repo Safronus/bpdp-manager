@@ -5,6 +5,14 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.20.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): přepínač řazení „Per zkoušející".** Vedle nadpisu *Per
+  zkoušející (náročnost)* je malý přepínač **řadit: počtem · nejpřísnější** —
+  default řadí dle **počtu zkoušení**, druhá volba dle **průměrné známky**
+  (nejpřísnější nahoře). Klik se projeví hned a **zachová pozici scrollu**.
+
 ## [2.19.1] - 2026-06-18
 
 ### Fixed

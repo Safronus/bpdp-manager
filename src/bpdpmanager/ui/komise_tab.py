@@ -248,6 +248,9 @@ class KomiseTab(QWidget):
         # státnic. Inicializace před první refresh() (detail ho čte).
         self._stag_states: dict = {}
         self._state_checker = None
+        # Řazení tabulky „Per zkoušející": "count" (default, dle počtu zkoušení)
+        # nebo "avg" (nejpřísnější dle průměrné známky). Přepínač v nadpisu.
+        self._szz_examiner_sort = "count"
         # Kategorie obhajob VŠECH studentů komisí (statistika dole) — cache
         # napříč překreslením; terminální stavy se ze STAG znovu nedotazují.
         # Načte se z disku (z minulého běhu), ať se statistika ukáže hned a STAG
@@ -743,8 +746,15 @@ class KomiseTab(QWidget):
         return out
 
     def _handle_szz_url(self, url) -> bool:
-        """Odkaz ``szz:OSCISLO?n=NAME`` → otevři souhrn SZZ studenta."""
-        if url.scheme() != "szz":
+        """``szz:OSCISLO?n=NAME`` → souhrn studenta; ``szzsort:MODE`` → řazení."""
+        scheme = url.scheme()
+        if scheme == "szzsort":
+            mode = url.path().strip()
+            if mode in ("count", "avg") and mode != self._szz_examiner_sort:
+                self._szz_examiner_sort = mode
+                self._render_stats()   # scroll se zachová (viz _render_stats)
+            return True
+        if scheme != "szz":
             return False
         from PySide6.QtCore import QUrlQuery
 
@@ -1067,7 +1077,8 @@ class KomiseTab(QWidget):
         # spouští i po zavření souhrnu studenta / po stažení dat).
         _szz_sb = self.stats_szz.verticalScrollBar()
         _szz_pos = _szz_sb.value()
-        self.stats_szz.setHtml(_stats_szz_html(szz, szz_scope, len(szz_cache)))
+        self.stats_szz.setHtml(_stats_szz_html(
+            szz, szz_scope, len(szz_cache), self._szz_examiner_sort))
         _szz_sb.setValue(_szz_pos)
         self.lbl_szz_status.setText(_szz_status_line(szz_cache))
 
@@ -1873,7 +1884,24 @@ def _szz_status_line(cache: dict) -> str:
             f" · {tr('naposledy')} {last}")
 
 
-def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
+def _szz_examiner_sort_toggle(active: str) -> str:
+    """Přepínač řazení „Per zkoušející": počtem (default) / nejpřísnější (Ø)."""
+    from html import escape
+
+    def _opt(mode: str, label: str) -> str:
+        if mode == active:
+            return (f"<b style='color:{_SZZ_LINK};'>{escape(label)}</b>")
+        return (f"<a href=\"szzsort:{mode}\" style=\"color:{_MUTED};"
+                f"text-decoration:none;\">{escape(label)}</a>")
+
+    return (f" <span style='font-weight:normal;font-size:11px;color:{_MUTED};'>"
+            f"— {escape(tr('řadit:'))} {_opt('count', tr('počtem'))}"
+            f" <span style='color:{_MUTED};'>·</span> "
+            f"{_opt('avg', tr('nejpřísnější'))}</span>")
+
+
+def _stats_szz_html(szz: dict, scope: str, cache_count: int,
+                    examiner_sort: str = "count") -> str:
     """Záložka „Průběh SZZ" (admin) — per komise / zkoušející / předmět + graf."""
     from html import escape
 
@@ -1937,10 +1965,15 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                   rows, escape(tr("Komise")))
 
     # Per zkoušející — Ø obarvené gradientem náročnosti (nejnižší Ø zeleně,
-    # nejvyšší červeně; normalizováno přes zobrazené zkoušející).
-    examiners = szz.get("by_examiner", [])
+    # nejvyšší červeně; normalizováno přes zobrazené zkoušející). Řazení dle
+    # přepínače: "count" = default (počet zkoušení), "avg" = nejpřísnější (Ø).
+    examiners = list(szz.get("by_examiner", []))
     _avgs = [r["avg"] for r in examiners if r["avg"] is not None]
     _lo, _hi = (min(_avgs), max(_avgs)) if _avgs else (None, None)
+    if examiner_sort == "avg":
+        # Nejvyšší Ø nahoře; bez známky na konec; pak dle počtu a jména.
+        examiners.sort(key=lambda r: (r["avg"] is None, -(r["avg"] or 0),
+                                      -r["n"], r["jmeno"] or ""))
     rows = ""
     for r in examiners:
         rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
@@ -1949,12 +1982,13 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
                  f"<td style='padding:2px 0;text-align:right;'>"
                  f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td></tr>")
-    out += _table("<h4 style='margin:12px 0 2px;'>🧑‍🏫 "
-                  + escape(tr("Per zkoušející (náročnost)"))
-                  + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
-                  + escape(tr("— předmětové zkoušky, Ø zeleně=nejhodnější … "
-                              "červeně=nejpřísnější")) + "</span></h4>", rows,
-                  escape(tr("Zkoušející")))
+    title = ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
+             + escape(tr("Per zkoušející (náročnost)"))
+             + _szz_examiner_sort_toggle(examiner_sort) + "</h4>"
+             + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
+             + escape(tr("Předmětové zkoušky; Ø zeleně = nejhodnější … "
+                         "červeně = nejpřísnější.")) + "</p>")
+    out += _table(title, rows, escape(tr("Zkoušející")))
 
     # Per předmět
     rows = ""

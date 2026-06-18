@@ -1248,7 +1248,9 @@ obor); místnost se neeviduje.
   **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — **dílčí předmětové zkoušky**, náročnost
   + Ø; sloupec **Ø** je obarvený **gradientem náročnosti** — *nejnižší průměr
-  zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*), **per předmět SZZ**
+  zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*; přepínač v nadpisu
+  **řadit: počtem · nejpřísnější** mění řazení mezi počtem zkoušení a průměrnou
+  známkou), **per předmět SZZ**
   (počet + rozložení + Ø), **graf rozložení známek po
   dimenzích** a **otázky** z průběhu po předmětech. **Dimenze se počítají zvlášť**
   (proto se počty F mezi sekcemi liší): *předmětové zkoušky (dílčí)*, *celkový

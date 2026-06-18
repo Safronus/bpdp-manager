@@ -1134,7 +1134,9 @@ location = committee (colour + programme); rooms are not tracked.
   grade** / **⏳ unavailable** + A–F distribution + Ø), **per examiner** (how
   many subjects each examined and which grades they give — strictness + Ø; the
   **Ø** column is shaded by a **strictness gradient** — *lowest average green =
-  most lenient … highest red = strictest*), **per SZZ subject** (count +
+  most lenient … highest red = strictest*; the **sort: by count · strictest**
+  toggle in the heading switches ordering between the number of exams and the
+  average grade), **per SZZ subject** (count +
   distribution + Ø), a **grade distribution by
   dimension** and **questions** from the procedure grouped by subject. **Dimensions
   are counted separately** (that's why F counts differ between sections): *subject
