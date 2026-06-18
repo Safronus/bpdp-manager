@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.29.1] - 2026-06-18
+
+### Changed
+- **Vedený/oponovaný student rozlišen jen ikonkou (🎓/🧐), bez barevného pozadí.**
+  Světlé pozadí bylo na tmavém motivu **špatně čitelné** — zmizelo z **Mého
+  harmonogramu**, z **rozpisu v detailu komise** i z **legendy** (v legendě je
+  role nově barvou textu, ať je jasná). Jména zůstávají čitelně modře (klikací).
+
+### Fixed
+- **Titulek záložky „🏛 Státnice & průběh" měl dvojitou mezeru** (jediné „&" Qt
+  bralo jako mnemonic) — opraveno escapem „&&".
+
 ## [2.29.0] - 2026-06-18
 
 ### Added

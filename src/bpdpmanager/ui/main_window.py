@@ -825,8 +825,9 @@ class MainWindow(QMainWindow):
 
     def _komise_tab_title(self) -> str:
         """Titulek záložky státnic s rozmezím termínů, např.
-        „🏛 Státnice & průběh (15. 6. - 19. 6. 2026)"."""
-        base = tr("🏛 Státnice & průběh")
+        „🏛 Státnice & průběh (15. 6. - 19. 6. 2026)". Pozn.: „&&" = literální „&"
+        v textu záložky (jediné „&" Qt bere jako mnemonic → zbyla by dvojitá mezera)."""
+        base = tr("🏛 Státnice && průběh")
         try:
             rng = self.service.committee_date_range()
         except Exception:

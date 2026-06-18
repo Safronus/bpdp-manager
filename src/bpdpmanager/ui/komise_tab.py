@@ -292,10 +292,10 @@ class KomiseTab(QWidget):
         top.addWidget(self.chk_mine)
         top.addStretch(1)
         self.lbl_legend = QLabel(
-            "<span style='background:#c8e6c9;'>&nbsp;🎓&nbsp;</span> "
-            + tr("vedený student") + " &nbsp; "
-            "<span style='background:#e1bee7;'>&nbsp;🧐&nbsp;</span> "
-            + tr("oponovaný student") + " &nbsp; ⭐ " + tr("tvoje komise")
+            f"<span style='color:{_C_LED};'>🎓 " + tr("vedený student")
+            + "</span> &nbsp; "
+            + f"<span style='color:{_C_OPP};'>🧐 " + tr("oponovaný student")
+            + "</span> &nbsp; ⭐ " + tr("tvoje komise")
         )
         self.lbl_legend.setTextFormat(Qt.TextFormat.RichText)
         top.addWidget(self.lbl_legend)
@@ -1513,14 +1513,9 @@ class KomiseTab(QWidget):
                 )
                 for s in sorted(by_date[date], key=lambda x: x.time):
                     role = self._slot_role(s, roles)
-                    badge = ""
-                    style = ""
-                    if role == "led":
-                        badge = " 🎓"
-                        style = "background:#c8e6c9;color:#1b5e20;"
-                    elif role == "opp":
-                        badge = " 🧐"
-                        style = "background:#e1bee7;color:#4a148c;"
+                    # Role jen ikonkou (bez barevného pozadí — na tmavém nečitelné).
+                    badge = " 🎓" if role == "led" else (" 🧐" if role == "opp"
+                                                         else "")
                     state = _defense_state_badge(
                         states, s.personal_number, s.student_name)
                     sched_html += (
@@ -1528,7 +1523,7 @@ class KomiseTab(QWidget):
                         f"{escape(s.time)}</td>"
                         f"<td style='padding:1px 12px 1px 0;color:{_MUTED};'>"
                         f"{escape(s.personal_number)}</td>"
-                        f"<td style='padding:1px 4px;{style}'>"
+                        f"<td style='padding:1px 4px;'>"
                         f"{_szz_student_anchor(s.personal_number, s.student_name, escape(s.student_name))}{badge}</td>"
                         f"<td style='padding:1px 0 1px 8px;'>{state}</td></tr>"
                     )
@@ -2718,10 +2713,8 @@ def _schedule_section_html(entries: list[dict], heading: str,
             dot = committee_color_hex(e["color"])
             obor = f" ({escape(e['obor'])})" if e["obor"] else ""
             place = f"{tr('Komise')} {escape(e['color'])}{obor}"
-            if e["role"] == "led":
-                badge, style = "🎓", "background:#c8e6c9;color:#1b5e20;"
-            else:
-                badge, style = "🧐", "background:#e1bee7;color:#4a148c;"
+            # Role jen ikonkou (bez barevného pozadí — na tmavém nečitelné).
+            badge = "🎓" if e["role"] == "led" else "🧐"
             pnum = (f" <span style='color:{_MUTED};'>{escape(e['personal_number'])}</span>"
                     if e["personal_number"] else "")
             state = _defense_state_badge(states, e["personal_number"], e["student_name"])
@@ -2740,7 +2733,7 @@ def _schedule_section_html(entries: list[dict], heading: str,
                 f"{arrow}{escape(e['time'])}</td>"
                 f"<td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                 f"<span style='color:{dot};'>●</span> {escape(place)}</td>"
-                f"<td style='padding:2px 4px;{style}'>{badge} "
+                f"<td style='padding:2px 4px;'>{badge} "
                 f"{_szz_student_anchor(e['personal_number'], e['student_name'], escape(e['student_name']))}{pnum}</td>"
                 f"<td style='padding:2px 0 2px 8px;white-space:nowrap;'>{cd}</td></tr>"
             )
