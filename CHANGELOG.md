@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.24.2] - 2026-06-18
+
+### Fixed
+- **Statistika obhajob: na úzkém okně se tabulky/graf nezplácnou — naskočí
+  vodorovný posuvník.** Záložky *Podle komise*, *Podle členů* a *Průběh SZZ*
+  (vč. tabulky *Per zkoušející*) drží tabulky v **přirozené šířce** a při malém
+  okně/rozlišení zobrazí **horizontální scrollbar** místo stlačení sloupců
+  (dlouhý text legend se přitom normálně zalomí). Záložka *Graf* dostala
+  **minimální šířku dle počtu komisí** — pod ní se taky scrolluje vodorovně.
+
 ## [2.24.1] - 2026-06-18
 
 ### Changed

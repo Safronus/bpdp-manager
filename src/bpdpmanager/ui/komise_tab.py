@@ -13,7 +13,7 @@ import unicodedata
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QTextTable
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -1063,7 +1063,9 @@ class KomiseTab(QWidget):
         stats = committee_defense_stats(committees, self._committee_states)
         self.lbl_stats.setText(f"📊 Statistika obhajob — {scope}")
         self.stats_committee.setHtml(_stats_committee_html(stats, scope))
+        _fit_tables_hscroll(self.stats_committee)
         self.stats_members.setHtml(_stats_members_html(stats))
+        _fit_tables_hscroll(self.stats_members)
         self.stats_chart.set_data(stats.get("by_color", []))
         # Admin: průběh SZZ z lokální cache (hned po startu, bez připojení).
         # all_committees = všechny komise (členství „své" komise nezávisí na výběru).
@@ -1082,6 +1084,7 @@ class KomiseTab(QWidget):
         _szz_pos = _szz_sb.value()
         self.stats_szz.setHtml(_stats_szz_html(
             szz, szz_scope, len(szz_cache), self._szz_examiner_sort))
+        _fit_tables_hscroll(self.stats_szz)
         _szz_sb.setValue(_szz_pos)
         self.lbl_szz_status.setText(_szz_status_line(szz_cache))
 
@@ -1931,6 +1934,30 @@ def _szz_komise_cell(r: dict) -> str:
     return out
 
 
+def _fit_tables_hscroll(browser) -> None:
+    """Zalamuj na šířku **nejširší tabulky** v dokumentu (měřeno za běhu).
+
+    Tabulky tak zůstanou v přirozené šířce (na úzkém okně se **nezplácnou**) a
+    naskočí vodorovný posuvník, zatímco dlouhý text (legendy) se normálně zalomí
+    a nenutí scroll na širokém okně. Bez tabulek → běžné zalamování dle šířky.
+    """
+    doc = browser.document()
+    browser.setLineWrapMode(QTextBrowser.LineWrapMode.FixedPixelWidth)
+    browser.setLineWrapColumnOrWidth(100_000)   # vše přirozeně → změř tabulky
+    lay = doc.documentLayout()
+    widest = 0.0
+    stack = [doc.rootFrame()]
+    while stack:
+        for ch in stack.pop().childFrames():
+            if isinstance(ch, QTextTable):
+                widest = max(widest, lay.frameBoundingRect(ch).width())
+            stack.append(ch)
+    if widest > 0:
+        browser.setLineWrapColumnOrWidth(int(widest) + 6)
+    else:
+        browser.setLineWrapMode(QTextBrowser.LineWrapMode.WidgetWidth)
+
+
 def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                     examiner_sort: str = "count") -> str:
     """Záložka „Průběh SZZ" (admin) — per komise / zkoušející / předmět + graf."""
@@ -2116,6 +2143,8 @@ class _DefenseBarChart(QWidget):
     _ALPHAS = (255, 205, 120)  # defended (nejtmavší) → none (nejsvětlejší)
     # Sémantická barva ikony kategorie (pořadí = CATEGORIES).
     _ICON_COLORS = ("#2e7d32", "#c62828", "#9e9e9e")
+    # Min. šířka skupiny (3 sloupce + popisek komise) pro výpočet minimumWidth.
+    _MIN_GROUP_W = 64
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -2146,6 +2175,12 @@ class _DefenseBarChart(QWidget):
                 "days": days,
             })
         self._groups = groups
+        # Minimální šířka tak, aby měla každá skupina dost místa (3 sloupce +
+        # popisek) — pod ní (úzké okno) naskočí ve scroll area vodorovný posuvník
+        # a sloupce se nezplácnou. 42/12 = okraje, 14 = mezera mezi skupinami.
+        n = len(groups)
+        self.setMinimumWidth(54 + n * self._MIN_GROUP_W + max(0, n - 1) * 14
+                             if n else 0)
         self.update()
 
     @staticmethod

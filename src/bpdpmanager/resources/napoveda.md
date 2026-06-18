@@ -1110,8 +1110,9 @@ U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **od
 > úzkém okně se ale **nepřekrývají**: zmenší se a dělící čáry mezi nimi si
 > můžeš **ručně přetáhnout**. Spodní **statistika** je **vždy ve čtyřech
 > záložkách** — *📋 Podle komise*, *📊 Graf*, *👤 Podle členů* a *🏛 Průběh SZZ*
-> (admin) — na velkém i malém rozlišení. Každá dostane **plnou šířku** (tabulky
-> se nelámou) a v případě nutnosti má **posuvníky** (graf je v posuvné ploše).
+> (admin) — na velkém i malém rozlišení. Tabulky drží **přirozenou šířku**: na
+> úzkém okně se **nezplácnou**, ale naskočí **vodorovný posuvník** (dlouhý text
+> legend se přitom normálně zalomí); i **graf** má při málu místa posuvník.
 Tlačítkem **📆 Přidat do kalendáře** (nad harmonogramem) exportuješ
 **nadcházející** obhajoby vybraného roku do kalendáře: v dialogu zvolíš
 vedené/oponované (defaultně obojí), připomínku (defaultně **15 min předem**)

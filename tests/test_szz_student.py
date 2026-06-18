@@ -111,6 +111,34 @@ def test_szz_examiner_sort_toggle_and_order() -> None:
     assert _order("per_day") == ["Střední", "Mírný", "Přísný"]   # 8,0/5,0/2,0
 
 
+def test_fit_tables_hscroll_and_chart_minwidth() -> None:
+    from PySide6.QtWidgets import QApplication, QTextBrowser, QTextEdit
+
+    QApplication.instance() or QApplication([])
+    from bpdpmanager.ui.komise_tab import _DefenseBarChart, _fit_tables_hscroll
+
+    # tabulka → FixedPixelWidth na šířku TABULKY (ne na dlouhý text/legendu)
+    tb = QTextBrowser()
+    tb.setHtml("<p>" + ("velmi dlouhy text " * 60) + "</p>"
+               "<table border='1'><tr><td>A</td><td>B</td></tr></table>")
+    _fit_tables_hscroll(tb)
+    assert tb.lineWrapMode() == QTextEdit.LineWrapMode.FixedPixelWidth
+    assert 0 < tb.lineWrapColumnOrWidth() < 400   # úzká tabulka, ne odstavec
+    # bez tabulky → běžné zalamování dle šířky widgetu
+    tb2 = QTextBrowser()
+    tb2.setHtml("<p>jen text</p>")
+    _fit_tables_hscroll(tb2)
+    assert tb2.lineWrapMode() == QTextEdit.LineWrapMode.WidgetWidth
+
+    # graf: minWidth roste s počtem skupin (úzké okno → vodorovný posuvník)
+    ch = _DefenseBarChart()
+    ch.set_data([])
+    assert ch.minimumWidth() == 0
+    ch.set_data([{"color": "fialová", "defended": 1, "undefended": 0,
+                  "none": 0, "by_day": []}] * 5)
+    assert ch.minimumWidth() > 5 * 60
+
+
 def test_szz_komise_cells_home_foreign() -> None:
     from bpdpmanager.ui.komise_tab import _szz_homeforeign_cell, _szz_komise_cell
 

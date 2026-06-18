@@ -991,8 +991,10 @@ current academic year is selected.
 > but on a narrow window they **don't overlap**: they shrink and you can drag
 > the dividers manually. The bottom **statistics** are **always in four tabs**
 > — *📋 By committee*, *📊 Chart*, *👤 By member* and *🏛 SZZ progress* (admin) —
-> on both large and small resolutions. Each gets **full width** (tables don't
-> wrap) with **scrollbars** when needed (the chart sits in a scroll area). The **📆 Add to calendar** button (above
+> on both large and small resolutions. Tables keep their **natural width**: on a
+> narrow window they **don't get squished** — a **horizontal scrollbar** appears
+> instead (long legend text still wraps normally); the **chart** also scrolls
+> horizontally when space is tight. The **📆 Add to calendar** button (above
 the schedule) exports the **upcoming** defences of the selected year: in the
 dialog you choose supervised/opposed (both by default), a reminder (default
 **15 min before**) and the target calendar — **Apple Calendar** / **Outlook**
