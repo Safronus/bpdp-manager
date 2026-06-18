@@ -404,11 +404,15 @@ class KomiseTab(QWidget):
         self.stats_chart_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.stats_chart_scroll.setWidget(self.stats_chart)
 
+        self.stats_szz = QTextBrowser()
+        self.stats_szz.setOpenExternalLinks(False)
+
         self.stats_tabs = QTabWidget()
         self.stats_tabs.setDocumentMode(True)
         self.stats_tabs.addTab(self.stats_committee, tr("📋 Podle komise"))
         self.stats_tabs.addTab(self.stats_chart_scroll, tr("📊 Graf"))
         self.stats_tabs.addTab(self.stats_members, tr("👤 Podle členů"))
+        self.stats_tabs.addTab(self.stats_szz, tr("🏛 Průběh SZZ"))
         sbl.addWidget(self.stats_tabs, stretch=1)
 
         mid = QWidget()
@@ -945,6 +949,7 @@ class KomiseTab(QWidget):
 
     def _render_stats(self) -> None:
         from ..services.komise_stats import committee_defense_stats
+        from ..services.szz_stats import szz_admin_stats
 
         committees, scope = self._committees_in_scope()
         stats = committee_defense_stats(committees, self._committee_states)
@@ -952,6 +957,10 @@ class KomiseTab(QWidget):
         self.stats_committee.setHtml(_stats_committee_html(stats, scope))
         self.stats_members.setHtml(_stats_members_html(stats))
         self.stats_chart.set_data(stats.get("by_color", []))
+        # Admin: průběh SZZ z lokální cache (jen pokud něco je).
+        szz_cache = self.service.load_szz_results()
+        szz = szz_admin_stats(szz_cache, committees)
+        self.stats_szz.setHtml(_stats_szz_html(szz, scope, len(szz_cache)))
 
     def _refresh_stats_now(self) -> None:
         """Ruční obnova statistiky ze STAG (všechny komise → plní cache)."""
@@ -1555,6 +1564,145 @@ def _stats_members_html(stats: dict) -> str:
         out += (f"<td style='padding:2px 0;text-align:right;'>"
                 f"{m.get('total', 0)}</td></tr>")
     out += "</table>"
+    return out
+
+
+_GRADE_COLORS = {"A": "#2e7d32", "B": "#7cb342", "C": "#f9a825",
+                 "D": "#ef6c00", "E": "#e64a19", "F": "#c62828"}
+
+
+def _szz_dist_inline(dist: dict) -> str:
+    """Kompaktní barevné rozložení známek: A6 B5 C3 … (0 = šedě)."""
+    from ..services.szz_stats import GRADES
+
+    parts = []
+    for g in GRADES:
+        c = dist.get(g, 0)
+        col = _GRADE_COLORS[g] if c else _MUTED
+        parts.append(f"<span style='color:{col};'>{g}{c}</span>")
+    return "&nbsp; ".join(parts)
+
+
+def _szz_dist_bar(dist: dict, title: str) -> str:
+    """Vodorovný proužek rozložení A-F (segmenty šířky ∝ počtu)."""
+    from html import escape
+
+    from ..services.szz_stats import GRADES
+
+    total = sum(dist.values())
+    if not total:
+        return ""
+    segs = ""
+    for g in GRADES:
+        c = dist.get(g, 0)
+        if not c:
+            continue
+        w = max(2, round(c / total * 240))
+        segs += (f"<td width='{w}' bgcolor='{_GRADE_COLORS[g]}' "
+                 f"title='{g}: {c}'>&nbsp;</td>")
+    return (f"<p style='margin:6px 0 2px;color:{_MUTED};'>{escape(title)} "
+            f"<span style='color:{_MUTED};'>(n={total})</span></p>"
+            f"<table cellspacing='0' cellpadding='0'><tr>{segs}</tr></table>")
+
+
+def _szz_avg_cell(avg) -> str:
+    return "-" if avg is None else f"{avg:.1f}".replace(".", ",")
+
+
+def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
+    """Záložka „Průběh SZZ" (admin) — per komise / zkoušející / předmět + graf."""
+    from html import escape
+
+    head = "<h3 style='margin:2px 0 4px;'>🏛 " + escape(tr("Průběh SZZ")) + "</h3>"
+    if cache_count == 0:
+        return head + (
+            f"<p style='color:{_MUTED};'>"
+            + escape(tr("Zatím žádná data. Stáhni průběh SZZ přes 👤 profil → "
+                        "🏛 Státnice (admin) — vyžaduje roli Zapisovatel státnic.")) + "</p>")
+
+    tot = szz.get("totals", {})
+    n = tot.get("students", 0)
+    if not n:
+        return head + (f"<p style='color:{_MUTED};'>"
+                       + escape(tr("V tomto rozsahu zatím žádná SZZ data "
+                                   "(stažené záznamy jsou jiných komisí).")) + "</p>")
+    pct = f"{round(tot.get('prospel', 0) / n * 100)} %" if n else "-"
+    out = head + (
+        f"<p style='margin:2px 0 8px;color:{_MUTED};'>{n} {escape(tr('studentů'))}"
+        f" &nbsp;·&nbsp; <span style='color:#2e7d32;'>{escape(tr('Prospělo'))} "
+        f"{tot.get('prospel', 0)} ({pct})</span> &nbsp;·&nbsp; "
+        f"<span style='color:#c62828;'>{escape(tr('Neprospělo'))} "
+        f"{tot.get('neprospel', 0)}</span> &nbsp;·&nbsp; {escape(tr('Ø známka'))} "
+        f"<b>{_szz_avg_cell(tot.get('avg'))}</b></p>")
+
+    def _table(title_html, rows_html, head_label):
+        h = (f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
+             f"{head_label}</th>"
+             f"<th style='padding:2px 10px 2px 0;text-align:right;color:{_MUTED};'>"
+             f"{escape(tr('Počet'))}</th>"
+             f"<th style='padding:2px 10px 2px 0;text-align:left;color:{_MUTED};'>"
+             f"{escape(tr('Rozložení A-F'))}</th>"
+             f"<th style='padding:2px 0;text-align:right;color:{_MUTED};'>Ø</th>")
+        return (title_html + "<table style='border-collapse:collapse;'><tr>"
+                + h + "</tr>" + rows_html + "</table>")
+
+    # Per komise
+    rows = ""
+    for r in szz.get("by_komise", []):
+        dot = committee_color_hex(r["komise"])
+        res = (f"<span style='color:#2e7d32;'>{r['pass']}✓</span> "
+               f"<span style='color:#c62828;'>{r['fail']}✗</span>")
+        rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
+                 f"<span style='color:{dot};'>●</span> {escape(r['komise'])} "
+                 f"<span style='color:{_MUTED};font-size:10px;'>{res}</span></td>"
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
+                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
+                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+    out += _table("<h4 style='margin:10px 0 2px;'>🎨 " + escape(tr("Per komise"))
+                  + "</h4>", rows, escape(tr("Komise")))
+
+    # Per zkoušející
+    rows = ""
+    for r in szz.get("by_examiner", []):
+        rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
+                 f"{escape(r['jmeno'] or '?')}</td>"
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
+                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
+                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+    out += _table("<h4 style='margin:12px 0 2px;'>🧑‍🏫 "
+                  + escape(tr("Per zkoušející (náročnost)")) + "</h4>", rows,
+                  escape(tr("Zkoušející")))
+
+    # Per předmět
+    rows = ""
+    for r in szz.get("by_predmet", []):
+        rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
+                 f"{escape(r['predmet'])}</td>"
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
+                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
+                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+    out += _table("<h4 style='margin:12px 0 2px;'>📚 " + escape(tr("Per předmět SZZ"))
+                  + "</h4>", rows, escape(tr("Předmět")))
+
+    # Rozložení známek (grafy)
+    dist = szz.get("dist", {})
+    out += "<h4 style='margin:14px 0 2px;'>📊 " + escape(tr("Rozložení známek")) + "</h4>"
+    out += _szz_dist_bar(dist.get("overall", {}), tr("Celkový výsledek SZZ"))
+    out += _szz_dist_bar(dist.get("defense", {}), tr("Obhajoba práce"))
+    out += _szz_dist_bar(dist.get("subjects", {}), tr("Předmětové zkoušky"))
+
+    # Otázky (po předmětech, zkráceně)
+    questions = szz.get("questions", {})
+    if questions:
+        out += "<h4 style='margin:14px 0 2px;'>❓ " + escape(tr("Otázky z průběhu")) + "</h4>"
+        for pred in sorted(questions):
+            qs = questions[pred]
+            out += (f"<p style='margin:6px 0 2px;'><b>{escape(pred)}</b> "
+                    f"<span style='color:{_MUTED};'>({len(qs)})</span></p>")
+            for q in qs[:20]:
+                txt = q if len(q) <= 200 else q[:200] + "…"
+                out += (f"<p style='margin:0 0 0 10px;color:{_MUTED};'>• "
+                        f"{escape(txt)}</p>")
     return out
 
 

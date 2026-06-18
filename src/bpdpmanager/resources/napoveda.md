@@ -1108,10 +1108,10 @@ U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **od
 > **Menší rozlišení / úzké okno.** Tři panely jsou v **posuvných rozhraních**
 > (splitter) — na velkém monitoru vypadají jako dřív (šířky dle obsahu), na
 > úzkém okně se ale **nepřekrývají**: zmenší se a dělící čáry mezi nimi si
-> můžeš **ručně přetáhnout**. Spodní **statistika** je **vždy ve třech
-> záložkách** — *📋 Podle komise*, *📊 Graf*, *👤 Podle členů* — na velkém
-> i malém rozlišení. Každá dostane **plnou šířku** (tabulky se nelámou) a
-> v případě nutnosti má **posuvníky** (graf je v posuvné ploše).
+> můžeš **ručně přetáhnout**. Spodní **statistika** je **vždy ve čtyřech
+> záložkách** — *📋 Podle komise*, *📊 Graf*, *👤 Podle členů* a *🏛 Průběh SZZ*
+> (admin) — na velkém i malém rozlišení. Každá dostane **plnou šířku** (tabulky
+> se nelámou) a v případě nutnosti má **posuvníky** (graf je v posuvné ploše).
 Tlačítkem **📆 Přidat do kalendáře** (nad harmonogramem) exportuješ
 **nadcházející** obhajoby vybraného roku do kalendáře: v dialogu zvolíš
 vedené/oponované (defaultně obojí), připomínku (defaultně **15 min předem**)
@@ -1224,7 +1224,16 @@ obor); místnost se neeviduje.
   tlačítek běží průběh „⏳ Kontroluji SZZ X/Y" a výsledky se průběžně ukládají do
   cache (aditivně, nic se nekontroluje dvakrát). Když **vyprší session**, kontrola
   se zastaví, vyzve k re-loginu a po **🔄 Obnovit stav** **plynule pokračuje**.
-  *(Statistiky přijdou v další fázi.)*
+- **🏛 Průběh SZZ (záložka ve Statistice obhajob).** Stažená data se vykreslí
+  v záložce **🏛 Průběh SZZ** (vedle *Podle komise / Graf / Podle členů*).
+  **Respektuje výběr v stromu** (komise / rok / vše) a počítá **číselný průměr
+  známek** (A=1 … F=6, FX=F). Obsahuje: **souhrn** (studentů, prospělo %, Ø),
+  **per komise** (prospělo/neprospělo + rozložení A–F + Ø), **per zkoušející**
+  (kolik kdo zkoušel a jaké známky dává — náročnost + Ø), **per předmět SZZ**
+  (počet + rozložení + Ø), **graf rozložení** známek (celkové / obhajoby /
+  předmětů) a **otázky** z průběhu po předmětech. Bez dat v cache vyzve ke
+  stažení přes *Státnice (admin)*; student se zobrazí, jen když je v rozpisech
+  načtených komisí (dle výběru).
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

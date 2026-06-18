@@ -5,6 +5,25 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.14.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): záložka „Průběh SZZ" ve Statistice obhajob (F4).** Vedle
+  *Podle komise / Graf / Podle členů* přibyla záložka **🏛 Průběh SZZ**, která
+  z lokální cache (stažené přes *Státnice (admin)*) vykreslí statistiky průběhu
+  státnic — **respektuje výběr v stromu** (komise / rok / vše) jako ostatní
+  statistiky a počítá **číselný průměr známek** (A=1 … F=6, FX=F):
+  - **souhrn** (studentů, prospělo %, Ø známka),
+  - **per komise** — prospělo/neprospělo + rozložení známek A–F + Ø,
+  - **per zkoušející** — kolik předmětů kdo zkoušel a **jaké známky dává**
+    (náročnost) + Ø,
+  - **per předmět SZZ** — počet + rozložení + Ø,
+  - **graf rozložení** známek (celkové / obhajoby / předmětů) + **otázky**
+    z průběhu po předmětech.
+  Vše klíčované **osobním číslem**. Agregaci řeší `services/szz_stats.py`
+  (`szz_admin_stats`, testy). Bez dat v cache záložka vyzve ke stažení přes
+  *Státnice (admin)*.
+
 ## [2.13.0] - 2026-06-18
 
 ### Added

@@ -989,10 +989,10 @@ current academic year is selected.
 > **Smaller resolution / narrow window.** The three panels use **draggable
 > splitters** — on a large monitor they look as before (widths fit content),
 > but on a narrow window they **don't overlap**: they shrink and you can drag
-> the dividers manually. The bottom **statistics** are **always in three tabs**
-> — *📋 By committee*, *📊 Chart*, *👤 By member* — on both large and small
-> resolutions. Each gets **full width** (tables don't wrap) with **scrollbars**
-> when needed (the chart sits in a scroll area). The **📆 Add to calendar** button (above
+> the dividers manually. The bottom **statistics** are **always in four tabs**
+> — *📋 By committee*, *📊 Chart*, *👤 By member* and *🏛 SZZ progress* (admin) —
+> on both large and small resolutions. Each gets **full width** (tables don't
+> wrap) with **scrollbars** when needed (the chart sits in a scroll area). The **📆 Add to calendar** button (above
 the schedule) exports the **upcoming** defences of the selected year: in the
 dialog you choose supervised/opposed (both by default), a reminder (default
 **15 min before**) and the target calendar — **Apple Calendar** / **Outlook**
@@ -1110,8 +1110,17 @@ location = committee (colour + programme); rooms are not tracked.
   login **today's** students are also checked silently (once). Progress „⏳ Checking
   SZZ X/Y" runs next to the buttons and results are saved incrementally (nothing is
   checked twice). If the **session expires**, the check stops and asks for re-login;
-  after **🔄 Refresh status** it **resumes seamlessly**. *(Statistics come in the
-  next phase.)*
+  after **🔄 Refresh status** it **resumes seamlessly**.
+- **🏛 SZZ progress (tab in Defense statistics).** Fetched data is rendered in the
+  **🏛 SZZ progress** tab (next to *By committee / Chart / By member*). It
+  **respects the tree selection** (committee / year / all) and computes a
+  **numeric grade average** (A=1 … F=6, FX=F): **summary** (students, passed %, Ø),
+  **per committee** (passed/failed + A–F distribution + Ø), **per examiner** (how
+  many subjects each examined and which grades they give — strictness + Ø),
+  **per SZZ subject** (count + distribution + Ø), a **grade-distribution chart**
+  (overall / defense / subjects) and **questions** from the procedure grouped by
+  subject. With an empty cache it prompts to fetch via *State exams (admin)*; a
+  student appears only if present in the loaded committee schedules (per selection).
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

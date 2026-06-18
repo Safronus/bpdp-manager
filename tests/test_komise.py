@@ -365,23 +365,23 @@ def test_komise_tab_responsive_layout(service) -> None:
     # posuvník.
     assert tab.detail.lineWrapMode() == QTextBrowser.LineWrapMode.NoWrap
 
-    # Statistika = 3 záložky (Podle komise / Graf / Podle členů) — sjednoceno.
-    assert tab.stats_tabs.count() == 3
+    # Statistika = 4 záložky (Podle komise / Graf / Podle členů / Průběh SZZ).
+    assert tab.stats_tabs.count() == 4
 
-    # Velké okno: prostřední sloupec bere zbytek; statistika pořád 3 záložky.
+    # Velké okno: prostřední sloupec bere zbytek; statistika pořád 4 záložky.
     win.resize(2200, 1300)
     win.show()
     QApplication.processEvents()
     QApplication.processEvents()
     big = tab.cols_splitter.sizes()
     assert big[1] > big[0] and big[1] > big[2]
-    assert tab.stats_tabs.count() == 3
+    assert tab.stats_tabs.count() == 4
 
-    # Malé okno: beze změny režimu statistiky (taky 3 záložky).
+    # Malé okno: beze změny režimu statistiky (taky 4 záložky).
     win.resize(1000, 760)
     QApplication.processEvents()
     QApplication.processEvents()
-    assert tab.stats_tabs.count() == 3
+    assert tab.stats_tabs.count() == 4
 
     win.close()
 
