@@ -125,15 +125,14 @@ def szz_admin_stats(records: dict, committees) -> dict:
             if klp:
                 dist_predmety[klp] += 1
                 if klp == "F":
-                    fails["predmety"].append({"os": oc, "jmeno": nm,
-                                              "komise": ov.komise or ""})
-            # „Neprospěl" = celková známka F nebo výsledek studia Neprospěl.
-            neprospel = (kl == "F") or (getattr(ov, "prospel", None) is False)
-            if neprospel:
-                fails["overall"].append({
-                    "os": oc, "jmeno": nm, "komise": ov.komise or "",
-                    "znamka": (ov.vysledek_zkousek or "").strip(),
-                    "studia": (getattr(ov, "vysledek_studia", "") or "").strip()})
+                    fails["predmety"].append({"os": oc, "jmeno": nm})
+            # „Neprospěl" = celková známka F NEBO výsledek studia začíná „neprospěl".
+            # Počítá se LIVE z textu (ne ze stale uloženého ``prospel`` — ten u
+            # nehodnocených s placeholderem „--- Nevyplněno ---" býval chybně False).
+            # Nevyplněné/bez známky tu tedy NEjsou — jen skuteční neúspěšní.
+            studia_l = (getattr(ov, "vysledek_studia", "") or "").strip().lower()
+            if kl == "F" or studia_l.startswith("neprospěl"):
+                fails["overall"].append({"os": oc, "jmeno": nm})
 
         for s in getattr(r, "subjects", []) or []:
             sl = _letter(s.znamka)
@@ -166,10 +165,8 @@ def szz_admin_stats(records: dict, committees) -> dict:
             dl = _letter(dfn.znamka)
             if dl:
                 dist_defense[dl] += 1
-                if dl == "F":
-                    fails["defense"].append({
-                        "os": oc, "jmeno": nm,
-                        "zkousejici": (dfn.zkousejici or "").strip()})
+                if dl == "F":   # neobhájil (předseda komise se neuvádí)
+                    fails["defense"].append({"os": oc, "jmeno": nm})
 
     def _rows(d: dict, sort_key) -> list:
         rows = list(d.values())

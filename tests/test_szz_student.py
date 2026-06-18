@@ -46,16 +46,18 @@ def test_szz_fails_html_and_labels() -> None:
         "subjects": [{"os": "A1", "jmeno": "Jan Novotný",
                       "predmet": "AZINF", "zkousejici": "Novák"}],
         "predmety": [{"os": "A1", "jmeno": "Jan Novotný"}],
-        "defense": [{"os": "A2", "jmeno": "", "zkousejici": "Vedoucí"}],
-        "overall": [{"os": "A1", "jmeno": "Jan Novotný",
-                     "studia": "Neprospěl", "znamka": "F"}],
+        "defense": [{"os": "A2", "jmeno": ""}],
+        "overall": [{"os": "A1", "jmeno": "Jan Novotný"}],
     }
     h = _szz_fails_html(fails)
     assert "Neúspěšní studenti" in h
     assert "Jan Novotný" in h and "AZINF" in h and "Novák" in h
-    assert "Neprospěl" in h and "Vedoucí" in h
-    assert 'href="szz:A1' in h          # jméno je klikací odkaz na souhrn SZZ
-    assert "A2" in h                    # bez jména → klikací os. číslo
+    assert "Neprospěl" in h               # nadpis sekce „Celkově Neprospěl"
+    assert "Neobhájili" in h              # lepší titulek pro obhajobu
+    assert "Zkoušející" in h              # hlavička tabulky předmětů
+    assert "<table" in h                  # render je tabulkový (zarovnání)
+    assert 'href="szz:A1' in h            # jméno je klikací odkaz na souhrn SZZ
+    assert 'href="szz:A2' in h and "A2" in h   # bez jména → klikací os. číslo
 
     # _fail_labels dedup dle os. čísla, fallback na os. číslo bez jména
     labels = _fail_labels([{"os": "A1", "jmeno": "Jan"},

@@ -1139,10 +1139,13 @@ location = committee (colour + programme); rooms are not tracked.
   exams*, *overall result for courses*, *thesis defence* and *overall SZZ result*;
   **per committee** = overall SZZ result, **per examiner/subject** = subject exams,
   **defence** is separate. Below the chart is a **❌ Failed students (F)** section —
-  **who failed and in what**, split by the same dimensions (*subject exams* incl.
-  the subject and examiner, *overall result for courses*, *defence*, *overall
-  „Failed"*). Names are **clickable** (open the student's SZZ summary) and are also
-  written into the **tooltip** of the red (F) segment in the chart. The tab has a
+  **who failed and in what**, in tidy **tables** split by the same dimensions:
+  *subject exams* (incl. the subject and examiner), *overall result for courses*,
+  **Failed defence** (the committee chair is not shown) and **Overall „Failed"**.
+  Note: *Overall Failed* lists only **real failures** (overall grade F or study
+  result „Failed"), **not** the not-yet-graded (those are *without a grade*). Names
+  are **clickable** (open the student's SZZ summary) and are also written into the
+  **tooltip** of the red (F) segment in the chart. The tab has a
   **🔐 Fetch / update…** button (opens *State exams (admin)*)
   and a **cache status** line (record count, finished, last fetched) — no need to
   go to the profile menu. **Data shows immediately on app start** from the local

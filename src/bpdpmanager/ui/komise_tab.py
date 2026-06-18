@@ -13,7 +13,7 @@ import unicodedata
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -437,6 +437,17 @@ class KomiseTab(QWidget):
         # Záložka Průběh SZZ (admin): lišta s tlačítkem + indikací nad výpisem.
         self.stats_szz = QTextBrowser()
         self.stats_szz.setOpenExternalLinks(False)
+        self.stats_szz.setOpenLinks(False)
+        # Klik na jméno v sekci „Neúspěšní studenti" otevře souhrn SZZ studenta.
+        self.stats_szz.anchorClicked.connect(self._handle_szz_url)
+        self.stats_szz.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.stats_szz.customContextMenuRequested.connect(
+            lambda p: self._szz_context_menu(self.stats_szz, p))
+        # Odkazy musí být na tmavém pozadí čitelné (výchozí paleta dává tmavě
+        # modrou) — světle modrá zároveň signalizuje klikatelnost.
+        _szz_pal = self.stats_szz.palette()
+        _szz_pal.setColor(QPalette.ColorRole.Link, QColor("#8ab4f8"))
+        self.stats_szz.setPalette(_szz_pal)
         szz_panel = QWidget()
         szz_v = QVBoxLayout(szz_panel)
         szz_v.setContentsMargins(0, 0, 0, 0)
@@ -1719,23 +1730,25 @@ def _szz_dist_bar(dist: dict, title: str, fail_labels: list | None = None) -> st
             f"<table cellspacing='0' cellpadding='0'><tr>{segs}</tr></table>")
 
 
-def _szz_fail_student(f: dict) -> str:
-    """Klikací jméno + šedé os. číslo (nebo jen os. číslo, když jméno chybí)."""
+# Čitelnější odstíny na tmavém pozadí (os. číslo / sekundární text v tabulce).
+_FAIL_OS = "#bdc1c6"
+
+
+def _szz_name_cell(f: dict) -> str:
+    """Buňka se jménem studenta jako klikací odkaz (fallback na os. číslo)."""
     from html import escape
 
     oc = (f.get("os") or "").strip()
     name = (f.get("jmeno") or "").strip()
-    if name:
-        return (_szz_student_anchor(oc, name, escape(name))
-                + f" <span style='color:{_MUTED};'>{escape(oc)}</span>")
-    return _szz_student_anchor(oc, oc, escape(oc or "?"))
+    return _szz_student_anchor(oc, name or oc, escape(name or oc or "?"))
 
 
 def _szz_fails_html(fails: dict) -> str:
-    """Seznam neúspěchů (F/FX) po dimenzích: kdo a v čem neuspěl (klik → souhrn).
+    """Tabulky neúspěchů (F/FX) po dimenzích: kdo a v čem neuspěl (klik → souhrn).
 
-    Dimenze: předmětové zkoušky (dílčí), celkový výsledek z předmětů, obhajoba
-    a celkově „Neprospěl". Vše dle os. čísla; jméno z rozpisu komise.
+    Dimenze: předmětové zkoušky (dílčí, vč. zkoušejícího), celkový výsledek
+    z předmětů, neobhájili a celkově „Neprospěl". Vše dle os. čísla; jméno
+    z rozpisu komise. Zarovnáno do tabulek a čitelné i na tmavém pozadí.
     """
     from html import escape
 
@@ -1743,14 +1756,25 @@ def _szz_fails_html(fails: dict) -> str:
     keys = ("subjects", "predmety", "defense", "overall")
     if not sum(len(fails.get(k, [])) for k in keys):
         return ""
-    f_col = _GRADE_COLORS["F"]
+
+    cn = "padding:2px 14px 2px 0;white-space:nowrap;"           # jméno
+    co = f"padding:2px 14px 2px 0;color:{_FAIL_OS};white-space:nowrap;"  # os
+    cm = f"padding:2px 0;color:{_MUTED};"                        # doplněk
 
     def _hdr(label: str, n: int) -> str:
-        return (f"<p style='margin:8px 0 2px;'><b>{escape(label)}</b> "
+        return (f"<p style='margin:10px 0 2px;'><b>{escape(label)}</b> "
                 f"<span style='color:{_MUTED};'>({n})</span></p>")
 
-    def _li(inner: str) -> str:
-        return f"<p style='margin:0 0 0 10px;'>• {inner}</p>"
+    def _table(rows: str, *headers: str) -> str:
+        th = "".join(
+            f"<th style='padding:2px 14px 3px 0;text-align:left;"
+            f"color:{_MUTED};font-weight:normal;'>{escape(h)}</th>"
+            for h in headers)
+        return ("<table style='border-collapse:collapse;margin:1px 0 4px;'>"
+                f"<tr>{th}</tr>{rows}</table>")
+
+    def _os_cell(f: dict) -> str:
+        return f"<td style='{co}'>{escape((f.get('os') or '').strip())}</td>"
 
     out = ("<h4 style='margin:14px 0 2px;'>❌ "
            + escape(tr("Neúspěšní studenti (F)")) + "</h4>")
@@ -1760,39 +1784,38 @@ def _szz_fails_html(fails: dict) -> str:
 
     subs = fails.get("subjects", [])
     if subs:
+        rows = "".join(
+            f"<tr><td style='{cn}'>{_szz_name_cell(f)}</td>{_os_cell(f)}"
+            f"<td style='{cn}'><b>{escape(f.get('predmet') or '?')}</b></td>"
+            f"<td style='{cm}'>{escape((f.get('zkousejici') or '').strip())}</td></tr>"
+            for f in subs)
         out += _hdr(tr("Předmětové zkoušky"), len(subs))
-        for f in subs:
-            det = f" — <b>{escape(f.get('predmet') or '?')}</b>"
-            zk = (f.get("zkousejici") or "").strip()
-            if zk:
-                det += (f" <span style='color:{_MUTED};'>"
-                        f"({escape(tr('zkoušející'))} {escape(zk)})</span>")
-            out += _li(_szz_fail_student(f) + det)
+        out += _table(rows, tr("Student"), tr("Os. číslo"),
+                      tr("Předmět"), tr("Zkoušející"))
 
     pred = fails.get("predmety", [])
     if pred:
+        rows = "".join(
+            f"<tr><td style='{cn}'>{_szz_name_cell(f)}</td>{_os_cell(f)}</tr>"
+            for f in pred)
         out += _hdr(tr("Celkový výsledek z předmětů"), len(pred))
-        for f in pred:
-            out += _li(_szz_fail_student(f))
+        out += _table(rows, tr("Student"), tr("Os. číslo"))
 
     dfn = fails.get("defense", [])
     if dfn:
-        out += _hdr(tr("Obhajoba práce"), len(dfn))
-        for f in dfn:
-            zk = (f.get("zkousejici") or "").strip()
-            suff = (f" <span style='color:{_MUTED};'>"
-                    f"({escape(tr('zkoušející'))} {escape(zk)})</span>"
-                    if zk else "")
-            out += _li(_szz_fail_student(f) + suff)
+        rows = "".join(
+            f"<tr><td style='{cn}'>{_szz_name_cell(f)}</td>{_os_cell(f)}</tr>"
+            for f in dfn)
+        out += _hdr(tr("Neobhájili (obhajoba práce)"), len(dfn))
+        out += _table(rows, tr("Student"), tr("Os. číslo"))
 
     ov = fails.get("overall", [])
     if ov:
+        rows = "".join(
+            f"<tr><td style='{cn}'>{_szz_name_cell(f)}</td>{_os_cell(f)}</tr>"
+            for f in ov)
         out += _hdr(tr("Celkově „Neprospěl"), len(ov))
-        for f in ov:
-            tag = ((f.get("studia") or "").strip()
-                   or (f.get("znamka") or "").strip() or tr("Neprospěl"))
-            out += _li(_szz_fail_student(f)
-                       + f" <span style='color:{f_col};'>{escape(tag)}</span>")
+        out += _table(rows, tr("Student"), tr("Os. číslo"))
 
     return out
 

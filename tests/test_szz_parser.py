@@ -132,6 +132,20 @@ def test_parse_overall_and_terminal() -> None:
     assert o.datum == "15.6.2026" and o.cas == "09:00"
 
 
+def test_parse_overall_prospel_tri_state() -> None:
+    # Placeholder „--- Nevyplněno ---" NESMÍ vyjít jako neprospěl (False) — je to
+    # bez výsledku (None). „Neprospěl" → False, „Prospěl" → True.
+    def _studia(text):
+        page = PAGE_OVERALL.replace(
+            '<option value="A" selected="selected">Prospěl</option>',
+            f'<option value="X" selected="selected">{text}</option>')
+        return parse_page(page).overall.prospel
+
+    assert _studia("Prospěl") is True
+    assert _studia("Neprospěl") is False
+    assert _studia("--- Nevyplněno ---") is None
+
+
 def test_parse_celkovy_vysledek_z_predmetu() -> None:
     # Read-only souhrn „Celkový výsledek z předmětů: B" (agregát zkoušek) je
     # samostatná dimenze (nezaměňovat s celkovým výsledkem SZZ).

@@ -5,6 +5,23 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.18.1] - 2026-06-18
+
+### Fixed
+- **Státnice (admin): „Celkově Neprospěl" už neobsahuje nehodnocené.** Studenti
+  s nevyplněným výsledkem (placeholder „--- Nevyplněno ---") se omylem počítali
+  jako neúspěšní. Nově je **neúspěch** jen *celková známka F* nebo *výsledek
+  studia „Neprospěl"* — počítáno **živě z textu** (opraveno i pro stažená data,
+  není nutné nic stahovat znovu). Opraveno i v parseru (`prospel` rozlišuje
+  prospěl / neprospěl / bez výsledku).
+
+### Changed
+- **Státnice (admin): sekce „Neúspěšní studenti" čitelná a v tabulkách.** Jména
+  a osobní čísla byla **tmavá na tmavém** a nezarovnaná — nově **tabulka** se
+  zarovnanými sloupci, **čitelné odkazy** (klik na jméno → souhrn SZZ) i osobní
+  čísla. Sekce **obhajoby** má jasnější titulek **„Neobhájili"** a neuvádí
+  „zkoušejícího" (u obhajoby je to předseda komise — nadbytečné).
+
 ## [2.18.0] - 2026-06-18
 
 ### Added

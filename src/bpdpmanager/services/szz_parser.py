@@ -156,7 +156,12 @@ def parse_defense(html_text: str) -> ThesisDefense:
 def parse_overall(html_text: str) -> SzzOverall:
     _, vzt = _select_selected(html_text, "ckVysledekZkousek")
     studia = _select_selected(html_text, "ckVysledekStudia")[1]
-    prospel = studia.strip().lower().startswith("prospěl") if studia else None
+    # Pozor: u nehodnocených bývá placeholder („--- Nevyplněno ---"), který není
+    # prázdný a nezačíná „prospěl" — to NESMÍ vyjít jako neprospěl. Rozlišuj
+    # explicitně: prospěl / neprospěl / jinak None (bez výsledku).
+    _s = (studia or "").strip().lower()
+    prospel = (True if _s.startswith("prospěl")
+               else False if _s.startswith("neprospěl") else None)
     # Read-only souhrn „Celkový výsledek z předmětů: A (…)" (agregát zkoušek).
     mp = re.search(r"Celkový výsledek z předmětů:\s*([A-Za-z]{1,2})", html_text)
     return SzzOverall(
