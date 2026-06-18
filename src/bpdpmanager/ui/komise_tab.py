@@ -2133,8 +2133,9 @@ def _fit_tables_hscroll(browser) -> None:
 
 def _studia_chart_html(studia: dict, width: int) -> str:
     """Graf „Celkový výsledek studia" jako PNG (styl jako záložka Statistiky —
-    svislé zaoblené sloupce + číslo nad sloupcem). Vykreslí do obrázku v dané
-    šířce a vloží base64. Bez QApplication / bez dat → prázdné."""
+    svislé zaoblené sloupce + počet nad sloupcem, popisek pod ním). **Průhledné
+    pozadí** a popisky v plné šířce slotu (zalomí se, ať jsou čitelné). Vykreslí
+    v dané šířce a vloží base64. Bez QApplication / bez dat → prázdné."""
     from html import escape
 
     from PySide6.QtWidgets import QApplication
@@ -2151,25 +2152,58 @@ def _studia_chart_html(studia: dict, width: int) -> str:
         return ""
     import base64
 
-    from PySide6.QtCore import QBuffer, QByteArray
+    from PySide6.QtCore import QBuffer, QByteArray, QRectF, Qt
+    from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath
 
-    from .stats_tab import _OborBars
-
-    fg = app.palette().windowText().color().name()
-    groups = [(lbl, [(cnt, col)]) for lbl, cnt, col in cats]
-    chart = _OborBars(groups, fg, show_labels=True, muted=_MUTED, num_pt=16)
-    chart.resize(int(width), 150)
-    pix = chart.grab()
+    w, h = int(width), 176
+    img = QImage(w, h, QImage.Format.Format_ARGB32)
+    img.fill(0)   # průhledné pozadí (žádný šedý box)
+    p = QPainter(img)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+    fg = app.palette().windowText().color()
+    muted = QColor(_MUTED)
+    n = len(cats)
+    slot = w / n
+    maxv = max(c for _lbl, c, _col in cats) or 1
+    top_pad, bottom_pad = 26, 38
+    avail = max(10.0, h - top_pad - bottom_pad)
+    base_y = h - bottom_pad
+    bar_w = min(90.0, slot * 0.6)
+    num_font = QFont()
+    num_font.setPointSize(15)
+    num_font.setBold(True)
+    lbl_font = QFont()
+    lbl_font.setPointSize(10)
+    al_num = int(Qt.AlignmentFlag.AlignHCenter) | int(Qt.AlignmentFlag.AlignBottom)
+    al_lbl = (int(Qt.AlignmentFlag.AlignHCenter) | int(Qt.AlignmentFlag.AlignTop)
+              | int(Qt.TextFlag.TextWordWrap))
+    for i, (label, count, col) in enumerate(cats):
+        cx = slot * i + slot / 2
+        bh = max((count / maxv) * avail, 3.0) if count else 0.0
+        by = base_y - bh
+        if bh > 0:
+            path = QPainterPath()
+            r = min(8.0, bar_w / 2)
+            path.addRoundedRect(QRectF(cx - bar_w / 2, by, bar_w, bh), r, r)
+            p.fillPath(path, QColor(col))
+        p.setFont(num_font)
+        p.setPen(fg)
+        p.drawText(QRectF(slot * i, by - top_pad, slot, top_pad), al_num, str(count))
+        p.setFont(lbl_font)
+        p.setPen(muted)
+        p.drawText(QRectF(slot * i + 2, base_y + 4, slot - 4, bottom_pad),
+                   al_lbl, label)
+    p.end()
     ba = QByteArray()
     buf = QBuffer(ba)
     buf.open(QBuffer.OpenModeFlag.WriteOnly)
-    pix.save(buf, "PNG")
-    chart.deleteLater()
+    img.save(buf, "PNG")
     b64 = base64.b64encode(bytes(ba)).decode("ascii")
     return (f"<p style='margin:6px 0 1px;color:{_MUTED};font-size:11px;'>"
             + escape(tr("Celkový výsledek studia")) + "</p>"
             + f"<p style='margin:0 0 6px;'><img src='data:image/png;base64,{b64}' "
-            f"width='{int(width)}'></p>")
+            f"width='{w}'></p>")
 
 
 def _stats_szz_html(szz: dict, scope: str, cache_count: int,

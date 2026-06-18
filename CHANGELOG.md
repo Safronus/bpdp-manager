@@ -5,6 +5,14 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.28.3] - 2026-06-18
+
+### Fixed
+- **Graf „Celkový výsledek studia": čitelné popisky + bez šedého pozadí.**
+  Popisky pod sloupci se ořezávaly (např. „yznamenár") — nově se kreslí v **plné
+  šířce slotu** a zalomí se, takže jsou čitelné; sloupce jsou širší. Graf má
+  **průhledné pozadí** (zmizel šedý box).
+
 ## [2.28.2] - 2026-06-18
 
 ### Fixed
