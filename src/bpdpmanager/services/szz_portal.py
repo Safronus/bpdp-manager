@@ -177,6 +177,22 @@ class SzzPortalSession(QObject):
         self._bg_page = QWebEnginePage(self.profile, self)
         self._login_page = QWebEnginePage(self.profile, self)
         self._fetcher: _StudentFetcher | None = None
+        # QtWebEngine vyžaduje, aby stránky zanikly PŘED profilem — jinak při
+        # ukončení varuje „Release of profile … Expect troubles". Při zavírání
+        # appky proto stránky smažeme ručně dřív.
+        from PySide6.QtCore import QCoreApplication
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._delete_pages)
+
+    def _delete_pages(self) -> None:
+        import shiboken6
+
+        for attr in ("_login_page", "_bg_page"):
+            p = getattr(self, attr, None)
+            if p is not None and shiboken6.isValid(p):
+                shiboken6.delete(p)
+            setattr(self, attr, None)
 
     def login_page(self) -> QWebEnginePage:
         """Sdílená stránka pro přihlašovací okno (sdílí cookies, znovupoužitelná)."""

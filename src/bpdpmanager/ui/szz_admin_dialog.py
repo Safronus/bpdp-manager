@@ -184,10 +184,12 @@ class SzzAdminDialog(QDialog):
         ready = status == STATUS_READY
         self.btn_fetch.setEnabled(ready)
         self._set_batch_enabled(ready)
-        # Tichá kontrola dnešních studentů po prvním přihlášení (jednou).
+        # Tichá kontrola po prvním přihlášení (jednou). PRVNÍ běh (prázdná cache)
+        # zkontroluje VŠECHNY studenty komisí; další běhy jen dnešní (aditivně).
         if ready and not self._auto_done:
             self._auto_done = True
-            self._start_batch(force=False, today_only=True, silent=True)
+            first_run = not self.service.load_szz_results()
+            self._start_batch(force=False, today_only=not first_run, silent=True)
 
     # ── hromadná inkrementální kontrola ───────────────────────────────────
     def _set_batch_enabled(self, enabled: bool) -> None:

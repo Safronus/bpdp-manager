@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.14.2] - 2026-06-18
+
+### Fixed
+- **Státnice (admin): při ukončení aplikace už neskáče do terminálu varování
+  QtWebEngine** („Release of profile … Expect troubles") — stránky vestavěného
+  prohlížeče se nově korektně smažou **před** profilem (při `aboutToQuit`).
+- **Tichá kontrola: první spuštění zkontroluje VŠECHNY studenty komisí** (ne jen
+  dnešní). Při **prázdné cache** (první přihlášení) proběhne plná kontrola, další
+  běhy už jen **dnešní** (aditivně) — dřív se i poprvé kontrolovali jen dnešní,
+  takže ve statistice chyběli ostatní. Doplnit lze kdykoli tlačítkem
+  *🔄 Zkontrolovat zbývající*.
+
 ## [2.14.1] - 2026-06-18
 
 ### Changed

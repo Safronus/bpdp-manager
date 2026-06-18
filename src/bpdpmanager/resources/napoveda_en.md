@@ -1106,8 +1106,9 @@ location = committee (colour + programme); rooms are not tracked.
   **📂 From cache** button shows a stored record **without logging in**; on open the
   window shows how many records are cached. **Bulk committee check:** **🔄 Check
   remaining** (fetches only students without a final result — finished ones in the
-  cache are skipped), **🔁 Check all** (re-fetch everyone) and **⏹ Stop**; after
-  login **today's** students are also checked silently (once). Progress „⏳ Checking
+  cache are skipped), **🔁 Check all** (re-fetch everyone) and **⏹ Stop**; on the
+  **first** login (empty cache) **all** committee students are checked silently,
+  on later logins only **today's** (incrementally). Progress „⏳ Checking
   SZZ X/Y" runs next to the buttons and results are saved incrementally (nothing is
   checked twice). If the **session expires**, the check stops and asks for re-login;
   after **🔄 Refresh status** it **resumes seamlessly**.

@@ -1220,7 +1220,8 @@ obor); místnost se neeviduje.
   okno ukáže, kolik záznamů je uloženo. **Hromadná kontrola komisí:**
   **🔄 Zkontrolovat zbývající** (stáhne jen studenty bez hotového výsledku —
   hotové se přeskočí), **🔁 Zkontrolovat všechny** (i hotové) a **⏹ Stop**; po
-  přihlášení se navíc **tiše zkontrolují dnešní** studenti (jednou). Vedle
+  **prvním** přihlášení (prázdná cache) se tiše zkontrolují **všichni** studenti
+  komisí, při dalších už jen **dnešní** (aditivně). Vedle
   tlačítek běží průběh „⏳ Kontroluji SZZ X/Y" a výsledky se průběžně ukládají do
   cache (aditivně, nic se nekontroluje dvakrát). Když **vyprší session**, kontrola
   se zastaví, vyzve k re-loginu a po **🔄 Obnovit stav** **plynule pokračuje**.
