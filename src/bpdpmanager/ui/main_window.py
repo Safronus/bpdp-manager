@@ -705,6 +705,7 @@ class MainWindow(QMainWindow):
         self.tab_komise = KomiseTab(service, profile_manager=pm)
         self.tab_komise.changed.connect(self._update_status)
         self.tab_komise.changed.connect(self._update_komise_tab_title)
+        self.tab_komise.open_szz_admin.connect(self._open_szz_admin)
         self.tabs.addTab(self.tab_komise, self._komise_tab_title())
         self.tabs.addTab(self.tab_stats, tr("📊 Statistiky"))
 

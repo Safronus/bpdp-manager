@@ -72,6 +72,8 @@ class _StudentFetcher(QObject):
     finished = Signal(object, str)   # (SzzRecord|None, error)
     progress = Signal(str)
 
+    _STEP_TIMEOUT_MS = 30000   # strop na jeden krok (navigaci) u studenta
+
     def __init__(self, page: QWebEnginePage, os_cislo: str) -> None:
         super().__init__()
         self.page = page
@@ -80,16 +82,35 @@ class _StudentFetcher(QObject):
         self._phase = "init"
         self._selected = False
         self._error = ""
+        self._done = False   # guard proti dvojímu dokončení (timeout + callback)
 
     def start(self) -> None:
+        from PySide6.QtCore import QTimer
+
         self.page.loadFinished.connect(self._on_load)
+        # Timeout na krok (resetuje se po každém načtení) — když navigace u
+        # studenta uvázne, neblokuje to celou dávku.
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._on_timeout)
+        self._timer.start(self._STEP_TIMEOUT_MS)
         self.progress.emit(f"Hledám {self.os_cislo}…")
         self.page.load(QUrl(PORTAL_URL))
 
     def _on_load(self, ok: bool) -> None:
+        if self._done:
+            return
+        if getattr(self, "_timer", None) is not None:
+            self._timer.start(self._STEP_TIMEOUT_MS)   # progres → reset timeoutu
         self.page.toHtml(self._on_html)
 
+    def _on_timeout(self) -> None:
+        self._error = self._error or "timeout"
+        self._finish()
+
     def _on_html(self, html_text: str) -> None:
+        if self._done:
+            return
         if self._phase == "init":
             self._phase = "running"
             oc = self.os_cislo
@@ -103,7 +124,7 @@ class _StudentFetcher(QObject):
                 "if(b){b.click();return 'CLICK';}"
                 "if(f.form){f.form.submit();return 'SUBMIT';}return 'NO_BTN';})()"
             )
-            self.page.runJavaScript(js, lambda r: None)
+            self.page.runJavaScript(js, self._after_search)
             return
 
         if not is_logged_in(html_text) and detect_page_name(html_text) not in KNOWN_PAGES:
@@ -121,7 +142,7 @@ class _StudentFetcher(QObject):
                     "for(var i=0;i<a.length;i++){if((a[i].textContent||'')"
                     ".trim()===oc){a[i].click();return 'C';}}return 'N';})()"
                 )
-                self.page.runJavaScript(js, lambda r: None)
+                self.page.runJavaScript(js, self._after_select)
                 return
             self._error = self._error or "not_found"
             return self._finish()
@@ -141,12 +162,29 @@ class _StudentFetcher(QObject):
         )
         self.page.runJavaScript(js, self._goto_next)
 
+    def _after_search(self, res) -> None:
+        # Když na stránce není vyhledávací pole/tlačítko, nejsme přihlášeni.
+        if res in ("NO_FIELD", "NO_BTN"):
+            self._error = STATUS_LOGGED_OUT
+            self._finish()
+
+    def _after_select(self, res) -> None:
+        # 'N' = odkaz se jménem/os. číslem nenalezen → student není ve výsledku.
+        if res != "C":
+            self._error = self._error or "not_found"
+            self._finish()
+
     def _goto_next(self, href) -> None:
         if not href:
             return self._finish()
         self.page.load(QUrl(href))
 
     def _finish(self) -> None:
+        if self._done:
+            return
+        self._done = True
+        if getattr(self, "_timer", None) is not None:
+            self._timer.stop()
         try:
             self.page.loadFinished.disconnect(self._on_load)
         except (RuntimeError, TypeError):
@@ -231,6 +269,7 @@ class SzzBatchChecker(QObject):
     """
 
     progress = Signal(int, int, str)   # done, total, current_os
+    log = Signal(str)                  # řádek do detailního výpisu
     finished = Signal(dict)            # {checked, failed, total, logged_out, stopped}
 
     def __init__(self, session: SzzPortalSession, service,
@@ -245,6 +284,7 @@ class SzzBatchChecker(QObject):
         self.failed = 0
         self.logged_out = False
         self._stop = False
+        self._current = ""
 
     def stop(self) -> None:
         self._stop = True
@@ -255,19 +295,30 @@ class SzzBatchChecker(QObject):
     def _next(self) -> None:
         if self._stop or not self.queue:
             return self._finish()
-        oc = self.queue.pop(0)
-        self.progress.emit(self.done, self.total, oc)
-        self.session.fetch_student(oc, self._on_one)
+        self._current = self.queue.pop(0)
+        self.progress.emit(self.done, self.total, self._current)
+        self.session.fetch_student(self._current, self._on_one)
 
     def _on_one(self, rec, error: str) -> None:
+        oc = self._current
         if error == STATUS_LOGGED_OUT:
             self.logged_out = True
+            self.log.emit(f"{oc} — ⏳ session vypršela, kontrola pozastavena")
             return self._finish()
         if rec is not None and getattr(rec, "os_cislo", ""):
             self.service.upsert_szz_result(rec)
             self.checked += 1
+            ov = getattr(rec, "overall", None)
+            if ov and ov.vysledek_studia:
+                self.log.emit(f"{oc} ✓ {ov.vysledek_studia}"
+                              f" ({ov.vysledek_zkousek or '?'})")
+            else:
+                self.log.emit(f"{oc} ✓ staženo (zatím bez výsledku)")
         else:
             self.failed += 1
+            reason = {"not_found": "nenalezen ve STAG",
+                      "timeout": "timeout (přeskočeno)"}.get(error, "chyba")
+            self.log.emit(f"{oc} ✗ {reason}")
         self.done += 1
         self._next()
 

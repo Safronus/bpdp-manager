@@ -202,6 +202,7 @@ class KomiseTab(QWidget):
     """Komise SZZ: strom roků/komisí + detail (složení, rozpis, zvýraznění)."""
 
     changed = Signal()
+    open_szz_admin = Signal()   # požadavek otevřít okno Státnice (admin)
 
     def __init__(self, service: ThesisService, parent=None, *,
                  profile_manager=None) -> None:
@@ -404,15 +405,32 @@ class KomiseTab(QWidget):
         self.stats_chart_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.stats_chart_scroll.setWidget(self.stats_chart)
 
+        # Záložka Průběh SZZ (admin): lišta s tlačítkem + indikací nad výpisem.
         self.stats_szz = QTextBrowser()
         self.stats_szz.setOpenExternalLinks(False)
+        szz_panel = QWidget()
+        szz_v = QVBoxLayout(szz_panel)
+        szz_v.setContentsMargins(0, 0, 0, 0)
+        szz_bar = QHBoxLayout()
+        self.btn_szz_admin = QPushButton(tr("🔐 Stáhnout / aktualizovat…"))
+        self.btn_szz_admin.setToolTip(tr(
+            "Otevře okno Státnice (admin) — přihlášení do portálu a stažení "
+            "průběhu SZZ (vyžaduje roli Zapisovatel státnic)."))
+        self.btn_szz_admin.clicked.connect(self.open_szz_admin.emit)
+        szz_bar.addWidget(self.btn_szz_admin)
+        self.lbl_szz_status = QLabel("")
+        self.lbl_szz_status.setStyleSheet(f"color:{_MUTED};")
+        szz_bar.addWidget(self.lbl_szz_status)
+        szz_bar.addStretch(1)
+        szz_v.addLayout(szz_bar)
+        szz_v.addWidget(self.stats_szz, 1)
 
         self.stats_tabs = QTabWidget()
         self.stats_tabs.setDocumentMode(True)
         self.stats_tabs.addTab(self.stats_committee, tr("📋 Podle komise"))
         self.stats_tabs.addTab(self.stats_chart_scroll, tr("📊 Graf"))
         self.stats_tabs.addTab(self.stats_members, tr("👤 Podle členů"))
-        self.stats_tabs.addTab(self.stats_szz, tr("🏛 Průběh SZZ"))
+        self.stats_tabs.addTab(szz_panel, tr("🏛 Průběh SZZ"))
         sbl.addWidget(self.stats_tabs, stretch=1)
 
         mid = QWidget()
@@ -965,6 +983,7 @@ class KomiseTab(QWidget):
         szz_cache = self.service.load_szz_results()
         szz = szz_admin_stats(szz_cache, committees)
         self.stats_szz.setHtml(_stats_szz_html(szz, scope, len(szz_cache)))
+        self.lbl_szz_status.setText(_szz_status_line(szz_cache))
 
     def _refresh_stats_now(self) -> None:
         """Ruční obnova statistiky ze STAG (všechny komise → plní cache)."""
@@ -1611,6 +1630,18 @@ def _szz_dist_bar(dist: dict, title: str) -> str:
 
 def _szz_avg_cell(avg) -> str:
     return "-" if avg is None else f"{avg:.1f}".replace(".", ",")
+
+
+def _szz_status_line(cache: dict) -> str:
+    """Indikace stavu SZZ cache: počet, hotových a naposledy staženo."""
+    if not cache:
+        return tr("📂 zatím nic staženo")
+    stamps = [getattr(r, "fetched_at", "") for r in cache.values()
+              if getattr(r, "fetched_at", "")]
+    last = max(stamps).replace("T", " ")[:16] if stamps else "?"
+    n_term = sum(1 for r in cache.values() if getattr(r, "terminal", False))
+    return (f"📂 {len(cache)} {tr('záznamů')} ({n_term} {tr('hotových')})"
+            f" · {tr('naposledy')} {last}")
 
 
 def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:

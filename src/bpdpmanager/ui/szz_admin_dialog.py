@@ -232,15 +232,22 @@ class SzzAdminDialog(QDialog):
         self._set_batch_enabled(False)
         self.btn_stop.setEnabled(True)
         self.lbl_progress.setText(f"⏳ 0/{len(to_check)}")
+        self.out.setPlainText(
+            f"▶ {tr('Kontroluji')} {len(to_check)} {tr('studentů')}…\n")
         self._batch = SzzBatchChecker(self.session, self.service, to_check, self)
         self._batch.progress.connect(self._batch_progress)
+        self._batch.log.connect(self._batch_log)
         self._batch.finished.connect(self._batch_done)
         self._batch.start()
 
     def _batch_progress(self, done: int, total: int, oc: str) -> None:
         if self._alive:
             self.lbl_progress.setText(
-                f"⏳ {tr('Kontroluji SZZ')} {done}/{total}…")
+                f"⏳ {tr('Kontroluji SZZ')} {done}/{total} ({oc})…")
+
+    def _batch_log(self, line: str) -> None:
+        if self._alive:
+            self.out.appendPlainText(line)
 
     def _batch_done(self, stats: dict) -> None:
         self._batch = None

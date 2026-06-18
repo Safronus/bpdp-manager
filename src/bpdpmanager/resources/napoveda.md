@@ -1222,8 +1222,10 @@ obor); místnost se neeviduje.
   hotové se přeskočí), **🔁 Zkontrolovat všechny** (i hotové) a **⏹ Stop**; po
   **prvním** přihlášení (prázdná cache) se tiše zkontrolují **všichni** studenti
   komisí, při dalších už jen **dnešní** (aditivně). Vedle
-  tlačítek běží průběh „⏳ Kontroluji SZZ X/Y" a výsledky se průběžně ukládají do
-  cache (aditivně, nic se nekontroluje dvakrát). Když **vyprší session**, kontrola
+  tlačítek běží průběh „⏳ Kontroluji SZZ X/Y (os. číslo)" a vpravo je **detailní
+  výpis** — řádek na studenta (✓ Prospěl/Neprospěl, ✗ nenalezen / timeout).
+  Zaseknutí na jednom studentovi řeší **timeout na krok**, pak se přeskočí
+  a kontrola pokračuje. Výsledky se průběžně ukládají do cache (nic dvakrát). Když **vyprší session**, kontrola
   se zastaví, vyzve k re-loginu a po **🔄 Obnovit stav** **plynule pokračuje**.
 - **🏛 Průběh SZZ (záložka ve Statistice obhajob).** Stažená data se vykreslí
   v záložce **🏛 Průběh SZZ** (vedle *Podle komise / Graf / Podle členů*).
@@ -1232,9 +1234,11 @@ obor); místnost se neeviduje.
   **per komise** (prospělo/neprospělo + rozložení A–F + Ø), **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — náročnost + Ø), **per předmět SZZ**
   (počet + rozložení + Ø), **graf rozložení** známek (celkové / obhajoby /
-  předmětů) a **otázky** z průběhu po předmětech. Bez dat v cache vyzve ke
-  stažení přes *Státnice (admin)*; student se zobrazí, jen když je v rozpisech
-  načtených komisí (dle výběru).
+  předmětů) a **otázky** z průběhu po předmětech. Nahoře v záložce je tlačítko
+  **🔐 Stáhnout / aktualizovat…** (otevře *Státnice (admin)*) a **indikace**
+  (počet záznamů, z toho hotových, naposledy staženo) — není nutné chodit do
+  menu profilu. Bez dat v cache vyzve ke stažení; student se zobrazí, jen když
+  je v rozpisech načtených komisí (dle výběru).
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

@@ -1108,9 +1108,11 @@ location = committee (colour + programme); rooms are not tracked.
   remaining** (fetches only students without a final result — finished ones in the
   cache are skipped), **🔁 Check all** (re-fetch everyone) and **⏹ Stop**; on the
   **first** login (empty cache) **all** committee students are checked silently,
-  on later logins only **today's** (incrementally). Progress „⏳ Checking
-  SZZ X/Y" runs next to the buttons and results are saved incrementally (nothing is
-  checked twice). If the **session expires**, the check stops and asks for re-login;
+  on later logins only **today's** (incrementally). Progress „⏳ Checking SZZ X/Y
+  (personal number)" runs next to the buttons and a **detailed log** on the right
+  shows one line per student (✓ passed/failed, ✗ not found / timeout). A **per-step
+  timeout** prevents the batch from getting stuck on one student. Results are saved
+  incrementally (nothing is checked twice). If the **session expires**, the check stops and asks for re-login;
   after **🔄 Refresh status** it **resumes seamlessly**.
 - **🏛 SZZ progress (tab in Defense statistics).** Fetched data is rendered in the
   **🏛 SZZ progress** tab (next to *By committee / Chart / By member*). It
@@ -1120,8 +1122,10 @@ location = committee (colour + programme); rooms are not tracked.
   many subjects each examined and which grades they give — strictness + Ø),
   **per SZZ subject** (count + distribution + Ø), a **grade-distribution chart**
   (overall / defense / subjects) and **questions** from the procedure grouped by
-  subject. With an empty cache it prompts to fetch via *State exams (admin)*; a
-  student appears only if present in the loaded committee schedules (per selection).
+  subject. The tab has a **🔐 Fetch / update…** button (opens *State exams (admin)*)
+  and a **cache status** line (record count, finished, last fetched) — no need to
+  go to the profile menu. With an empty cache it prompts to fetch; a student appears
+  only if present in the loaded committee schedules (per selection).
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

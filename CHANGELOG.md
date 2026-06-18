@@ -5,6 +5,23 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.14.3] - 2026-06-18
+
+### Fixed
+- **Státnice (admin): hromadná kontrola už nezamrzne na jednom studentovi.**
+  Stažení jednoho studenta má teď **timeout na krok (30 s)** a **rychlý fail**,
+  když student není ve STAG nalezen — dřív se dávka mohla zaseknout (např. na
+  „183/189") bez možnosti dokončit. Timeout/nenalezení studenta se přeskočí
+  a kontrola pokračuje dál.
+
+### Added
+- **Detailní výpis kontroly** v pravém panelu admin okna — řádek na každého
+  studenta (✓ Prospěl/Neprospěl + známka, ✗ nenalezen / timeout), takže je
+  vidět, co se právě děje; v proužku je i aktuální osobní číslo.
+- **Záložka „🏛 Průběh SZZ" má tlačítko „🔐 Stáhnout / aktualizovat…"** (otevře
+  okno *Státnice (admin)*) a **indikaci stavu cache** (počet záznamů, z toho
+  hotových, naposledy staženo) — není nutné chodit do menu 👤 profil.
+
 ## [2.14.2] - 2026-06-18
 
 ### Fixed
