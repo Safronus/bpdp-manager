@@ -1662,15 +1662,24 @@ class KomiseTab(QWidget):
             return
         resp = QMessageBox.question(
             self, tr("Smazat komisi"),
-            tr("Smazat komisi {name} ({year})? Zdrojová PDF na disku "
+            tr("Smazat komisi {name} ({year})? Smaže se i **kompletně ze "
+               "statistik obhajob** — stavy obhajob a stažené SZZ záznamy jejích "
+               "studentů (které nemá jiná komise). Zdrojová PDF na disku "
                "zůstanou.").format(name=c.display_name, year=c.academic_year),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if resp == QMessageBox.StandardButton.Yes:
-            self.service.delete_committee(committee_id)
+            n = self.service.delete_committee(committee_id, purge_stats=True)
+            # cache stavů obhajob se mohla změnit → načti znovu, ať statistika sedí
+            self._committee_states = self.service.load_komise_defense_states()
             self.refresh()
             self.changed.emit()
+            if n:
+                QMessageBox.information(
+                    self, tr("Smazat komisi"),
+                    tr("Komise smazána; ze statistik odebráno {n} studentů.")
+                    .format(n=n))
 
 
 #: Barvy kategorií statistiky (čitelné v obou tématech).

@@ -92,6 +92,41 @@ def test_export_empty_password_raises(service, tmp_path) -> None:
         service.export_szz_results(tmp_path / "e.szzenc", "")
 
 
+def _two_committees(service):
+    from bpdpmanager.models.komise import Committee, DefenseSlot
+    yr = service.current_academic_year()
+    service._db.committees = [
+        Committee(id="c1", color="fialová", academic_year=yr, slots=[
+            DefenseSlot(personal_number="A100", student_name="Jan Novák"),
+            DefenseSlot(personal_number="A200", student_name="Eva Malá")]),
+        Committee(id="c2", color="modrá", academic_year=yr, slots=[
+            DefenseSlot(personal_number="A200", student_name="Eva Malá")]),  # sdílí A200
+    ]
+    service.save()
+
+
+def test_delete_committee_purges_stats(service) -> None:
+    _two_committees(service)
+    for oc in ("A100", "A200", "A300"):
+        service.upsert_szz_result(SzzRecord(os_cislo=oc))
+    service.save_komise_defense_states(
+        {"A100": "defended", "A200": "defended", "A300": "none"})
+
+    n = service.delete_committee("c1", purge_stats=True)
+    assert n == 1                                       # jen A100 (A200 sdílí c2)
+    assert set(service.load_szz_results()) == {"A200", "A300"}   # A100 pryč
+    assert service.load_komise_defense_states() == {
+        "A200": "defended", "A300": "none"}
+    assert [c.id for c in service.list_committees()] == ["c2"]
+
+
+def test_delete_committee_without_purge_keeps_stats(service) -> None:
+    _two_committees(service)
+    service.upsert_szz_result(SzzRecord(os_cislo="A100"))
+    n = service.delete_committee("c1")                  # default = bez purge
+    assert n == 0 and "A100" in service.load_szz_results()
+
+
 def test_corrupt_and_missing_return_empty(service) -> None:
     assert service.load_szz_results() == {}        # chybí soubor
     service._szz_results_path().write_text("{ not json", encoding="utf-8")

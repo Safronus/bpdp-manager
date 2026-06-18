@@ -1198,7 +1198,9 @@ location = committee (colour + programme); rooms are not tracked.
   **⬇ Download from the FAI website** link opens the official page with PDFs
   to download (a general link, the same every year).
 - Right-click a
-  committee → *Delete committee* (PDFs stay on disk).
+  committee → *Delete committee* — also removes it **completely from the defence
+  statistics** (defence states + downloaded SZZ records of its students; students
+  shared with another committee are kept). PDFs stay on disk.
 
 > **Supervised/opposed highlighting is unchanged** — it works on the schedule
 > (student slots), so it kicks in as soon as you import the schedule (personal

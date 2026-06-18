@@ -5,6 +5,14 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.26.1] - 2026-06-18
+
+### Changed
+- **Smazání komise nově vyčistí i Statistiku obhajob.** Kontextová akce **🗑
+  Smazat komisi** teď odebere i **stavy obhajob** a **stažené SZZ záznamy**
+  studentů té komise — **kompletně ze statistik**. Studenti, kteří jsou i v jiné
+  zbylé komisi, se zachovají (nerozbijí se jejich data). Zdrojová PDF zůstanou.
+
 ## [2.26.0] - 2026-06-18
 
 ### Changed

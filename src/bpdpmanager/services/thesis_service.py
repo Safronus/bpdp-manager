@@ -2744,10 +2744,56 @@ class ThesisService:
         db.committees.append(committee)
         self.save()
 
-    def delete_committee(self, committee_id: str) -> None:
+    def delete_committee(self, committee_id: str, *,
+                         purge_stats: bool = False) -> int:
+        """Smaže komisi. ``purge_stats`` navíc **vyčistí statistiky obhajob** —
+        odebere stavy obhajob a stažené SZZ záznamy studentů této komise, kteří
+        **nejsou v žádné jiné** zbylé komisi (jinak by se rozbila jejich data).
+        Vrací počet vyčištěných studentů (0 bez ``purge_stats``)."""
         db = self._db
+        target = next((c for c in db.committees if c.id == committee_id), None)
         db.committees = [c for c in db.committees if c.id != committee_id]
         self.save()
+        if purge_stats and target is not None:
+            return self._purge_committee_stats(target, db.committees)
+        return 0
+
+    def _purge_committee_stats(self, committee, remaining) -> int:
+        """Odebere z cache stavů obhajob i SZZ záznamů studenty ``committee``,
+        kteří nejsou v žádné z ``remaining`` komisí. Klíč slotu = os. číslo i jméno
+        bez titulů (stavy klíčují obojím, SZZ os. číslem). Vrací počet studentů."""
+        from .komise_stats import student_name_key
+
+        def _keys(slot) -> set:
+            ks: set = set()
+            pn = (slot.personal_number or "").strip().upper()
+            if pn:
+                ks.add(pn)
+            nk = student_name_key(slot.student_name)
+            if nk:
+                ks.add(nk)
+            return ks
+
+        keep: set = set()
+        for c in remaining:
+            for s in c.slots:
+                keep |= _keys(s)
+        # Studenti (sloty) mazané komise, jejichž žádný klíč není v jiné komisi.
+        purged = [s for s in committee.slots if _keys(s) and not (_keys(s) & keep)]
+        if not purged:
+            return 0
+        purge: set = set().union(*(_keys(s) for s in purged))
+
+        states = self.load_komise_defense_states()
+        kept_states = {k: v for k, v in states.items() if k not in purge}
+        if len(kept_states) != len(states):
+            self.save_komise_defense_states(kept_states)
+        szz = self.load_szz_results()
+        kept_szz = {oc: r for oc, r in szz.items()
+                    if (oc or "").strip().upper() not in purge}
+        if len(kept_szz) != len(szz):
+            self.save_szz_results(kept_szz)
+        return len(purged)
 
     @staticmethod
     def _komise_seed_path() -> Path:
