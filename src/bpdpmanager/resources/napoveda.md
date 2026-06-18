@@ -1282,7 +1282,12 @@ obor); místnost se neeviduje.
   menu profilu. **Data se ukážou hned po otevření aplikace** z lokální cache
   (žádné připojení netřeba; aktuální rok je vybrán automaticky). Když aktuální
   výběr nic neobsahuje, ale cache data má, zobrazí se **celá cache**. Bez dat
-  v cache vyzve ke stažení.
+  v cache vyzve ke stažení. Vpravo v liště jsou **📤 Export…** a **📥 Import…** —
+  **zašifrovaný** export/import cache do souboru (`*.szzenc`): export se uloží
+  zašifrovaný **heslem** (**PBKDF2-HMAC-SHA256** + **AES-256-GCM**; heslo se
+  nikam neukládá, vyžaduje potvrzení), import data po zvolení souboru a zadání
+  hesla **sloučí** do cache. Špatné heslo / poškozený soubor se pozná (nedešifruje
+  se nesmysl).
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

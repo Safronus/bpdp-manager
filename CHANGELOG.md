@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.25.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): šifrovaný export/import cache „Průběh SZZ".** Nová tlačítka
+  **📤 Export…** a **📥 Import…** v záložce *Průběh SZZ*. Export se uloží do
+  zvoleného souboru (`*.szzenc`) **zašifrovaný heslem** kvalitní kryptografií —
+  **PBKDF2-HMAC-SHA256** (200k iterací) odvodí klíč z hesla + náhodné soli,
+  **AES-256-GCM** zajistí důvěrnost i integritu (špatné heslo / poškozený soubor
+  selžou ověřením, nikdy se nedešifruje nesmysl). **Heslo se nikam neukládá.**
+  Import po zvolení souboru a zadání hesla **sloučí** záznamy do cache. Export
+  vyžaduje **potvrzení hesla** (zapomenuté heslo data neodemkne).
+
 ## [2.24.2] - 2026-06-18
 
 ### Fixed

@@ -76,3 +76,5 @@ Claude_TEMP/
 # Session vestavěného prohlížeče STAG (cookies, cache) — patří do datové složky
 # profilu (mimo repo); pojistka, kdyby si někdo dal data dovnitř repa
 szz_webview/
+# Šifrovaný export cache průběhu SZZ (reálná data, byť zašifrovaná) — nikdy do gitu
+*.szzenc

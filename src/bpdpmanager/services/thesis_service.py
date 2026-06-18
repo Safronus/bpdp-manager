@@ -3030,6 +3030,55 @@ class ThesisService:
             self.save_szz_results(results)
         return results
 
+    def export_szz_results(self, path, password: str) -> int:
+        """Zašifrovaný export cache SZZ do ``path`` (PBKDF2 + AES-256-GCM).
+
+        Exportuje aktuální cache (vč. akad. roku), ať jde 1:1 obnovit. Vrací
+        počet záznamů. ``ValueError`` při prázdném hesle, ``OSError`` při zápisu.
+        """
+        import json
+
+        from .szz_crypto import encrypt
+
+        cache = self.load_szz_results()
+        payload = {
+            "academic_year": self.current_academic_year(),
+            "results": {oc: rec.model_dump() for oc, rec in cache.items()},
+        }
+        raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        Path(path).write_bytes(encrypt(raw, password))
+        return len(cache)
+
+    def import_szz_results(self, path, password: str) -> tuple[int, str]:
+        """Naimportuje zašifrovaný export (po zadání hesla) — **sloučí** do cache.
+
+        Vrací ``(počet naimportovaných, akademický_rok_souboru)``. ``ValueError``
+        při špatném hesle / poškozeném souboru, ``OSError`` při čtení.
+        """
+        import json
+
+        from ..models.szz_result import SzzRecord
+        from .szz_crypto import decrypt
+
+        raw = decrypt(Path(path).read_bytes(), password)   # ValueError = špatné heslo
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError) as e:
+            raise ValueError("Dešifrovaná data nejsou platná.") from e
+        results = (data or {}).get("results")
+        if not isinstance(results, dict):
+            raise ValueError("Export neobsahuje žádné záznamy.")
+        merged = self.load_szz_results()
+        n = 0
+        for oc, rec in results.items():
+            try:
+                merged[oc] = SzzRecord.model_validate(rec)
+                n += 1
+            except (ValueError, TypeError):
+                continue
+        self.save_szz_results(merged)
+        return n, str((data or {}).get("academic_year") or "")
+
     @staticmethod
     def _komise_seed_pdf_dir() -> Path:
         """Složka s PDF složení komisí dodanými v gitu (veřejná data)."""

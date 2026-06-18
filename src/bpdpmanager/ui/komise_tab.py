@@ -466,6 +466,17 @@ class KomiseTab(QWidget):
         self.lbl_szz_status.setStyleSheet(f"color:{_MUTED};")
         szz_bar.addWidget(self.lbl_szz_status)
         szz_bar.addStretch(1)
+        # Šifrovaný export/import cache (PBKDF2 + AES-256-GCM, heslo).
+        self.btn_szz_export = QPushButton(tr("📤 Export…"))
+        self.btn_szz_export.setToolTip(tr(
+            "Zašifrovaný export cache průběhu SZZ do souboru (heslo, AES-256-GCM)."))
+        self.btn_szz_export.clicked.connect(self._export_szz_cache)
+        szz_bar.addWidget(self.btn_szz_export)
+        self.btn_szz_import = QPushButton(tr("📥 Import…"))
+        self.btn_szz_import.setToolTip(tr(
+            "Import zašifrovaného exportu cache průběhu SZZ (zadej heslo)."))
+        self.btn_szz_import.clicked.connect(self._import_szz_cache)
+        szz_bar.addWidget(self.btn_szz_import)
         szz_v.addLayout(szz_bar)
         szz_v.addWidget(self.stats_szz, 1)
 
@@ -775,6 +786,74 @@ class KomiseTab(QWidget):
                 lambda _c=False, oc=parsed[0], jm=parsed[1]:
                 self.open_szz_student.emit(oc, jm))
         menu.exec(view.viewport().mapToGlobal(pos))
+
+    def _export_szz_cache(self) -> None:
+        """Zašifrovaný export cache průběhu SZZ (dialog kam + heslo)."""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+        from .szz_password_dialog import ask_password
+
+        title = tr("Export průběhu SZZ")
+        if not self.service.load_szz_results():
+            QMessageBox.information(
+                self, title, tr("Cache je prázdná — není co exportovat."))
+            return
+        year = self.service.current_academic_year().replace("/", "-")
+        path, _f = QFileDialog.getSaveFileName(
+            self, title, f"szz_export_{year}.szzenc",
+            tr("Šifrovaný export (*.szzenc)"))
+        if not path:
+            return
+        if not path.lower().endswith(".szzenc"):
+            path += ".szzenc"
+        pw = ask_password(
+            self, title,
+            tr("Zadej heslo pro zašifrování exportu. Zapamatuj si ho — bez "
+               "něj data nikdo (ani ty) neobnoví."),
+            confirm=True)
+        if not pw:
+            return
+        try:
+            n = self.service.export_szz_results(path, pw)
+        except (OSError, ValueError) as e:
+            QMessageBox.warning(self, title, tr("Export selhal: ") + str(e))
+            return
+        QMessageBox.information(
+            self, title,
+            tr("Zašifrováno a uloženo: {n} záznamů.").format(n=n))
+
+    def _import_szz_cache(self) -> None:
+        """Import zašifrovaného exportu cache průběhu SZZ (soubor + heslo)."""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+        from .szz_password_dialog import ask_password
+
+        title = tr("Import průběhu SZZ")
+        path, _f = QFileDialog.getOpenFileName(
+            self, title, "",
+            tr("Šifrovaný export (*.szzenc);;Všechny soubory (*)"))
+        if not path:
+            return
+        pw = ask_password(self, title, tr("Zadej heslo k souboru."))
+        if not pw:
+            return
+        try:
+            n, year = self.service.import_szz_results(path, pw)
+        except ValueError as e:           # špatné heslo / poškozený / cizí soubor
+            QMessageBox.warning(self, title, str(e))
+            return
+        except OSError as e:
+            QMessageBox.warning(
+                self, title, tr("Soubor nelze přečíst: ") + str(e))
+            return
+        self.rerender_stats()
+        cur = self.service.current_academic_year()
+        extra = ("" if year in ("", cur) else
+                 tr(" Pozor: data jsou za rok {y} (aktuální {c}).").format(
+                     y=year, c=cur))
+        QMessageBox.information(
+            self, title,
+            tr("Naimportováno: {n} záznamů.").format(n=n) + extra)
 
     def _open_detail_link(self, url) -> None:
         """Klik na odkaz v detailu: SZZ souhrn / PDF systémově / web v prohlížeči."""

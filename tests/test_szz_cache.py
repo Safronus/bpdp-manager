@@ -59,6 +59,39 @@ def test_year_mismatch_returns_empty(service) -> None:
     assert service.load_szz_results() == {}
 
 
+def test_export_import_roundtrip(service, tmp_path) -> None:
+    service.upsert_szz_result(SzzRecord(
+        os_cislo="A100",
+        subjects=[SubjectExam(predmet="AZINF", znamka="A", zkousejici="Novák")],
+        overall=SzzOverall(komise="fialová", vysledek_zkousek="A")))
+    service.upsert_szz_result(SzzRecord(os_cislo="A101"))
+    path = tmp_path / "export.szzenc"
+    assert service.export_szz_results(path, "tajne") == 2
+    assert path.exists() and b"AZINF" not in path.read_bytes()   # šifrované
+
+    service.save_szz_results({})                 # vymaž cache
+    assert service.load_szz_results() == {}
+    n, year = service.import_szz_results(path, "tajne")
+    assert n == 2 and year == service.current_academic_year()
+    cache = service.load_szz_results()
+    assert set(cache) == {"A100", "A101"}
+    assert cache["A100"].subjects[0].predmet == "AZINF"
+
+
+def test_import_wrong_password_raises(service, tmp_path) -> None:
+    service.upsert_szz_result(SzzRecord(os_cislo="A1"))
+    path = tmp_path / "e.szzenc"
+    service.export_szz_results(path, "spravne")
+    with pytest.raises(ValueError):
+        service.import_szz_results(path, "spatne")
+
+
+def test_export_empty_password_raises(service, tmp_path) -> None:
+    service.upsert_szz_result(SzzRecord(os_cislo="A1"))
+    with pytest.raises(ValueError):
+        service.export_szz_results(tmp_path / "e.szzenc", "")
+
+
 def test_corrupt_and_missing_return_empty(service) -> None:
     assert service.load_szz_results() == {}        # chybí soubor
     service._szz_results_path().write_text("{ not json", encoding="utf-8")

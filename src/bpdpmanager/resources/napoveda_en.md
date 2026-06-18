@@ -1169,7 +1169,13 @@ location = committee (colour + programme); rooms are not tracked.
   go to the profile menu. **Data shows immediately on app start** from the local
   cache (no connection needed; the current year is selected automatically). If the
   current selection contains no SZZ records but the cache has data, the **whole
-  cache** is shown. With an empty cache it prompts to fetch.
+  cache** is shown. With an empty cache it prompts to fetch. On the right of the
+  bar are **📤 Export…** and **📥 Import…** — an **encrypted** export/import of the
+  cache to a file (`*.szzenc`): the export is encrypted with a **password**
+  (**PBKDF2-HMAC-SHA256** + **AES-256-GCM**; the password is never stored, and is
+  confirmed on export), import **merges** the records into the cache after you
+  pick the file and enter the password. A wrong password / corrupt file is
+  detected (it never decrypts garbage).
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing
