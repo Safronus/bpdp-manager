@@ -2005,21 +2005,45 @@ def _szz_homeforeign_cell(r: dict) -> str:
 
 
 def _szz_komise_cell(r: dict) -> str:
-    """Rozpad zkoušení dle barvy komise; **vlastní** komise = domeček ⌂ v její
-    barvě, **cizí** = tečka ● v barvě. Vlastní napřed → tečky/domečky se zarovnají.
+    """Rozpad zkoušení dle barvy komise: barevná tečka ● + počet (nejvíc napřed).
+
+    Vlastní vs cizí komise se pozná z **puntíku u jména** (vlastní komise) a ze
+    sloupce **Doma/cizí**; tady jsou jen barvy, kde zkoušející zkoušel.
     """
     colors = r.get("colors") or {}
     if not colors:
         return f"<span style='color:{_MUTED};'>—</span>"
-    own_colors = r.get("own_colors") or set()
-    items = sorted(colors.items(),
-                   key=lambda kv: (kv[0] not in own_colors, -kv[1], kv[0]))
     out = ""
-    for color, cnt in items:
-        glyph = "⌂" if color in own_colors else "●"
-        out += (f"<span style='color:{committee_color_hex(color)};'>{glyph}</span>"
+    for color, cnt in sorted(colors.items(), key=lambda kv: (-kv[1], kv[0])):
+        out += (f"<span style='color:{committee_color_hex(color)};'>●</span>"
                 f"<span style='color:{_MUTED};font-size:10px;'>{cnt}</span> ")
     return out
+
+
+def _szz_dist_cells(dist: dict) -> str:
+    """6 buněk rozložení A-F — každá známka vlastní sloupec (zarovnané pod sebou,
+    nezalomí se). Nula je ztlumená, nenulové obarvené barvou známky."""
+    from ..services.szz_stats import GRADES
+
+    cells = ""
+    for g in GRADES:
+        c = dist.get(g, 0)
+        col = _GRADE_COLORS[g] if c else _MUTED
+        cells += (f"<td style='padding:2px 6px 2px 0;text-align:right;"
+                  f"color:{col};white-space:nowrap;'>{c}</td>")
+    return cells
+
+
+def _szz_examiner_name(idx: int, r: dict) -> str:
+    """Pořadí (dle aktuálního řazení) + puntík(y) vlastní komise + jméno."""
+    from html import escape
+
+    dots = "".join(
+        f"<span style='color:{committee_color_hex(c)};'>●</span>"
+        for c in sorted(r.get("own_colors") or []))
+    name = escape(r.get("jmeno") or "?")
+    return (f"<span style='color:{_MUTED};'>{idx}.</span>&nbsp;"
+            + (dots + "&nbsp;" if dots else "") + name)
 
 
 def _fit_tables_hscroll(browser) -> None:
@@ -2149,38 +2173,53 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
         examiners.sort(key=lambda r: (r.get(_metric) is None,
                                       -(r.get(_metric) or 0), -r["n"],
                                       r["jmeno"] or ""))
+    # Hlavička: # Zkoušející | Počet | A B C D E F (po sloupcích) | Ø | Medián |
+    # Zk./den | Doma/cizí | Komise. Rozložení A-F je po sloupcích → zarovnané.
+    from ..services.szz_stats import GRADES
+    grade_heads = "".join(
+        f"<th style='padding:2px 6px 2px 0;text-align:right;"
+        f"color:{_GRADE_COLORS[g]};'>{g}</th>" for g in GRADES)
+    rh = "padding:2px 10px 2px 0;text-align:right;"
+    header = (
+        f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
+        f"{escape(tr('Zkoušející'))}</th>"
+        f"<th style='{rh}color:{_MUTED};'>{escape(tr('Počet'))}</th>"
+        + grade_heads
+        + f"<th style='{rh}color:{_MUTED};'>Ø</th>"
+        f"<th style='{rh}color:{_MUTED};'>{escape(tr('Medián'))}</th>"
+        f"<th style='{rh}color:{_MUTED};'>{escape(tr('Zk./den'))}</th>"
+        f"<th style='padding:2px 14px 2px 0;text-align:right;color:{_MUTED};'>"
+        f"{escape(tr('Doma/cizí'))}</th>"
+        f"<th style='padding:2px 0;text-align:left;color:{_MUTED};'>"
+        f"{escape(tr('Komise'))}</th>")
     rows = ""
-    for r in examiners:
+    for i, r in enumerate(examiners, 1):
         dni = r.get("dni") or 0
         per_day = (f"<b>{_szz_avg_cell(r.get('per_day'))}</b>"
                    + (f" <span style='color:{_MUTED};font-size:10px;'>"
                       f"({dni}&nbsp;d)</span>" if dni else ""))
         rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
-                 f"{escape(r['jmeno'] or '?')}</td>"
-                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
-                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
-                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>"
-                 f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td>"
-                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>"
-                 f"{_szz_avg_heat(r.get('median'), _lo, _hi)}</td>"
-                 f"<td style='padding:2px 10px 2px 0;text-align:right;white-space:nowrap;'>"
-                 f"{per_day}</td>"
-                 f"<td style='padding:2px 14px 2px 0;text-align:right;white-space:nowrap;'>"
-                 f"{_szz_homeforeign_cell(r)}</td>"
+                 f"{_szz_examiner_name(i, r)}</td>"
+                 f"<td style='{rh}'>{r['n']}</td>"
+                 + _szz_dist_cells(r["dist"])
+                 + f"<td style='{rh}'>{_szz_avg_heat(r['avg'], _lo, _hi)}</td>"
+                 f"<td style='{rh}'>{_szz_avg_heat(r.get('median'), _lo, _hi)}</td>"
+                 f"<td style='{rh}white-space:nowrap;'>{per_day}</td>"
+                 f"<td style='padding:2px 14px 2px 0;text-align:right;"
+                 f"white-space:nowrap;'>{_szz_homeforeign_cell(r)}</td>"
                  f"<td style='padding:2px 0;white-space:nowrap;'>"
                  f"{_szz_komise_cell(r)}</td></tr>")
-    title = ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
-             + escape(tr("Per zkoušející (náročnost)"))
-             + _szz_examiner_sort_toggle(examiner_sort) + "</h4>"
-             + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
-             + escape(tr("Ø i medián: zeleně = nejhodnější … červeně = "
-                         "nejpřísnější (medián odolnější vůči počtu). Zk./den = "
-                         "zkoušení na den (v závorce dny). Doma/cizí = ve své / "
-                         "cizí komisi; barvy komisí, kde zkoušel — vlastní komise "
-                         "domeček ⌂, cizí tečka ●.")) + "</p>")
-    out += _table(title, rows, escape(tr("Zkoušející")),
-                  extra_heads=(tr("Medián"), tr("Zk./den"),
-                               tr("Doma/cizí"), tr("Komise")))
+    out += ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
+            + escape(tr("Per zkoušející (náročnost)"))
+            + _szz_examiner_sort_toggle(examiner_sort) + "</h4>"
+            + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
+            + escape(tr("Pořadí = dle zvoleného řazení; ● u jména = barva vlastní "
+                        "komise. Ø i medián: zeleně = nejhodnější … červeně = "
+                        "nejpřísnější. Zk./den = zkoušení na den (v závorce dny). "
+                        "Doma/cizí = ve své / cizí komisi; Komise = barvy, kde "
+                        "zkoušel (●).")) + "</p>"
+            + "<table style='border-collapse:collapse;'><tr>" + header + "</tr>"
+            + rows + "</table>")
 
     # Rozložení známek po dimenzích (zvlášť, ať je jasné co je co).
     dist = szz.get("dist", {})

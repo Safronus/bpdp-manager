@@ -143,18 +143,27 @@ def test_szz_komise_cells_home_foreign() -> None:
     from bpdpmanager.ui.komise_tab import _szz_homeforeign_cell, _szz_komise_cell
 
     r = {"own": 2, "foreign": 1, "own_colors": {"fialová"},
-         "colors": {"fialová": 2, "modrá": 1}}
+         "colors": {"fialová": 2, "modrá": 1}, "jmeno": "Petr Žáček"}
     # doma/cizí souhrn
     hf = _szz_homeforeign_cell(r)
     assert "<b>2</b>" in hf and "/1" in hf
-    # vlastní komise = domeček ⌂ (vede, v barvě fialové), cizí = tečka ●
+    # Komise = jen barevné tečky ● (žádný domeček ⌂); obě barvy přítomné
     cell = _szz_komise_cell(r)
-    assert "⌂" in cell and "●" in cell
-    assert cell.index("⌂") < cell.index("●")           # vlastní napřed
-    assert "#8e24aa" in cell                            # fialová barva u domečku
+    assert "⌂" not in cell and "●" in cell
+    assert "#8e24aa" in cell and "#1e88e5" in cell      # fialová i modrá
     # prázdné → pomlčka
     assert _szz_komise_cell({"colors": {}}) == _szz_homeforeign_cell(
         {"own": 0, "foreign": 0})
+
+    # jméno = pořadí + puntík(y) vlastní komise + jméno
+    from bpdpmanager.ui.komise_tab import _szz_dist_cells, _szz_examiner_name
+    nm = _szz_examiner_name(3, r)
+    assert "3." in nm and "Petr Žáček" in nm
+    assert "#8e24aa" in nm                              # puntík v barvě fialové
+    # 6 buněk rozložení A-F, nenulové barevně, nuly ztlumeně
+    cells = _szz_dist_cells({"A": 5, "B": 0, "C": 0, "D": 0, "E": 0, "F": 2})
+    assert cells.count("<td") == 6
+    assert ">5</td>" in cells and ">2</td>" in cells
 
 
 def test_szz_student_dialog_changed_flag() -> None:

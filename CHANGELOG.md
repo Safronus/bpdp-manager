@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.26.0] - 2026-06-18
+
+### Changed
+- **„Per zkoušející": přehlednější tabulka (pořadí, sloupce známek, puntíky).**
+  - **Rozložení A-F** je teď **po sloupcích** (A, B, C, D, E, F zvlášť) — známky
+    se **zarovnají pod sebe** a řádek se už nezalamuje (sloupce sedí na obsah).
+  - U jména je **pořadové číslo** (dle zvoleného řazení togglem) a **barevný
+    puntík vlastní komise** (kde je zkoušející členem).
+  - Sloupec **Komise** používá **barevné tečky ●** (místo domečků ⌂); rozlišení
+    vlastní/cizí komise zajišťuje puntík u jména + sloupec *Doma/cizí*.
+
 ## [2.25.2] - 2026-06-18
 
 ### Fixed
