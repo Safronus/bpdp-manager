@@ -750,7 +750,8 @@ class KomiseTab(QWidget):
         scheme = url.scheme()
         if scheme == "szzsort":
             mode = url.path().strip()
-            if mode in ("count", "avg") and mode != self._szz_examiner_sort:
+            if (mode in ("count", "avg", "median", "per_day")
+                    and mode != self._szz_examiner_sort):
                 self._szz_examiner_sort = mode
                 self._render_stats()   # scroll se zachová (viz _render_stats)
             return True
@@ -1065,13 +1066,15 @@ class KomiseTab(QWidget):
         self.stats_members.setHtml(_stats_members_html(stats))
         self.stats_chart.set_data(stats.get("by_color", []))
         # Admin: průběh SZZ z lokální cache (hned po startu, bez připojení).
+        # all_committees = všechny komise (členství „své" komise nezávisí na výběru).
         szz_cache = self.service.load_szz_results()
-        szz = szz_admin_stats(szz_cache, committees)
+        all_committees = self.service.list_committees()
+        szz = szz_admin_stats(szz_cache, committees, all_committees)
         szz_scope = scope
         if szz_cache and szz["totals"]["students"] == 0:
             # Výběr nic neobsahuje, ale cache má data → ukaž celou cache, ať je
             # průběh SZZ vidět hned (nezávisle na výběru/rozpisech).
-            szz = szz_admin_stats(szz_cache, [])
+            szz = szz_admin_stats(szz_cache, [], all_committees)
             szz_scope = tr("vše (cache)")
         # Zachovej pozici scrollu — setHtml jinak skočí na začátek (rerender se
         # spouští i po zavření souhrnu studenta / po stažení dat).
@@ -1885,7 +1888,7 @@ def _szz_status_line(cache: dict) -> str:
 
 
 def _szz_examiner_sort_toggle(active: str) -> str:
-    """Přepínač řazení „Per zkoušející": počtem (default) / nejpřísnější (Ø)."""
+    """Přepínač řazení „Per zkoušející": počtem / průměrem / mediánem / za den."""
     from html import escape
 
     def _opt(mode: str, label: str) -> str:
@@ -1894,10 +1897,33 @@ def _szz_examiner_sort_toggle(active: str) -> str:
         return (f"<a href=\"szzsort:{mode}\" style=\"color:{_MUTED};"
                 f"text-decoration:none;\">{escape(label)}</a>")
 
+    opts = [("count", tr("počtem")), ("avg", tr("průměrem")),
+            ("median", tr("mediánem")), ("per_day", tr("za den"))]
+    sep = f" <span style='color:{_MUTED};'>·</span> "
     return (f" <span style='font-weight:normal;font-size:11px;color:{_MUTED};'>"
-            f"— {escape(tr('řadit:'))} {_opt('count', tr('počtem'))}"
-            f" <span style='color:{_MUTED};'>·</span> "
-            f"{_opt('avg', tr('nejpřísnější'))}</span>")
+            f"— {escape(tr('řadit:'))} "
+            + sep.join(_opt(m, lbl) for m, lbl in opts) + "</span>")
+
+
+def _szz_komise_cell(r: dict) -> str:
+    """Rozpad zkoušení zkoušejícího dle barvy komise + zdůraznění doma/cizí.
+
+    🏠 = ve své komisi (je členem), „cizí" = v jiné. Pak barevné tečky komisí
+    s počty (jen barvy, obory se neslučují zvlášť).
+    """
+    from html import escape
+
+    colors = r.get("colors") or {}
+    if not colors:
+        return f"<span style='color:{_MUTED};'>—</span>"
+    own, foreign = r.get("own", 0), r.get("foreign", 0)
+    dots = ""
+    for color, cnt in sorted(colors.items(), key=lambda kv: (-kv[1], kv[0])):
+        dots += (f"<span style='color:{committee_color_hex(color)};'>●</span>"
+                 f"<span style='color:{_MUTED};font-size:10px;'>{cnt}</span> ")
+    summary = (f"🏠<b>{own}</b> <span style='color:{_MUTED};'>"
+               f"{escape(tr('cizí'))} {foreign}</span>")
+    return f"{summary}&nbsp; {dots}"
 
 
 def _stats_szz_html(szz: dict, scope: str, cache_count: int,
@@ -1970,16 +1996,18 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                   + escape(tr("— rozložení = celkový výsledek SZZ")) + "</span></h4>",
                   rows, escape(tr("Komise")))
 
-    # Per zkoušející — Ø obarvené gradientem náročnosti (nejnižší Ø zeleně,
-    # nejvyšší červeně; normalizováno přes zobrazené zkoušející). Řazení dle
-    # přepínače: "count" = default (počet zkoušení), "avg" = nejpřísnější (Ø).
+    # Per zkoušející — Ø/medián obarvené gradientem náročnosti; řazení dle
+    # přepínače: count (default, počet) / avg / median / per_day. Sloupec Komise
+    # = rozpad dle barvy + doma/cizí (své/cizí komise dle členství).
     examiners = list(szz.get("by_examiner", []))
     _avgs = [r["avg"] for r in examiners if r["avg"] is not None]
     _lo, _hi = (min(_avgs), max(_avgs)) if _avgs else (None, None)
-    if examiner_sort == "avg":
-        # Nejvyšší Ø nahoře; bez známky na konec; pak dle počtu a jména.
-        examiners.sort(key=lambda r: (r["avg"] is None, -(r["avg"] or 0),
-                                      -r["n"], r["jmeno"] or ""))
+    _metric = {"avg": "avg", "median": "median", "per_day": "per_day"}.get(
+        examiner_sort)
+    if _metric:   # daná metrika sestupně; bez hodnoty na konec; pak počet, jméno
+        examiners.sort(key=lambda r: (r.get(_metric) is None,
+                                      -(r.get(_metric) or 0), -r["n"],
+                                      r["jmeno"] or ""))
     rows = ""
     for r in examiners:
         dni = r.get("dni") or 0
@@ -1994,18 +2022,20 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                  f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>"
                  f"{_szz_avg_heat(r.get('median'), _lo, _hi)}</td>"
-                 f"<td style='padding:2px 0;text-align:right;white-space:nowrap;'>"
-                 f"{per_day}</td></tr>")
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;white-space:nowrap;'>"
+                 f"{per_day}</td>"
+                 f"<td style='padding:2px 0;white-space:nowrap;'>"
+                 f"{_szz_komise_cell(r)}</td></tr>")
     title = ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
              + escape(tr("Per zkoušející (náročnost)"))
              + _szz_examiner_sort_toggle(examiner_sort) + "</h4>"
              + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
-             + escape(tr("Předmětové zkoušky; Ø i medián: zeleně = nejhodnější … "
-                         "červeně = nejpřísnější (medián je odolnější vůči "
-                         "počtu zkoušení). Zk./den = zkoušení na den (v závorce "
-                         "počet dní v komisi).")) + "</p>")
+             + escape(tr("Ø i medián: zeleně = nejhodnější … červeně = "
+                         "nejpřísnější (medián odolnější vůči počtu). Zk./den = "
+                         "zkoušení na den (v závorce dny). Komise: 🏠 ve své / "
+                         "cizí v jiné komisi + barvy komisí, kde zkoušel.")) + "</p>")
     out += _table(title, rows, escape(tr("Zkoušející")),
-                  extra_heads=(tr("Medián"), tr("Zk./den")))
+                  extra_heads=(tr("Medián"), tr("Zk./den"), tr("Komise")))
 
     # Per předmět
     rows = ""

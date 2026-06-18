@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.24.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): „Per zkoušející" — řazení dle 4 metrik + komise (doma/cizí).**
+  - **Přepínač řazení** v nadpisu nově umí **počtem · průměrem · mediánem ·
+    za den** (přibyly *mediánem* a *za den*).
+  - Nový sloupec **Komise**: rozpad zkoušení **dle barvy komise** (barevné tečky
+    s počty) a zdůraznění **🏠 ve své vs cizí** komisi (kolik zkoušející zkoušel
+    ve své komisi, kde je členem, vs v cizích). „Svoje" komise se určí spárováním
+    jména zkoušejícího (bez titulů) se členy komisí.
+
 ## [2.23.0] - 2026-06-18
 
 ### Added

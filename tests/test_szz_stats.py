@@ -159,6 +159,32 @@ def test_by_examiner_per_day_none_without_dates() -> None:
     assert ex["9"]["dni"] == 0 and ex["9"]["per_day"] is None
 
 
+def test_by_examiner_komise_own_foreign() -> None:
+    from bpdpmanager.models.komise import Committee, CommitteeMember
+
+    def _r(oc, komise, ex):
+        return SzzRecord(
+            os_cislo=oc,
+            overall=SzzOverall(komise=komise, vysledek_zkousek="A", prospel=True),
+            subjects=[SubjectExam(predmet="AZINF", znamka="A",
+                                  zkousejici=ex, ucitidno="100")])
+    recs = {
+        "A1": _r("A1", "fialová", "Petr Žáček"),
+        "A2": _r("A2", "fialová", "Petr Žáček"),
+        "A3": _r("A3", "modrá", "Petr Žáček"),
+    }
+    # Žáček je člen fialové (s tituly) → 2 doma, 1 cizí (modrá); barvy rozpadem.
+    coms = [
+        Committee(color="fialová",
+                  members=[CommitteeMember(name="doc. Ing. Petr Žáček, Ph.D.")]),
+        Committee(color="modrá"),
+    ]
+    ex = {r["ucitidno"]: r
+          for r in szz_admin_stats(recs, [], coms)["by_examiner"]}["100"]
+    assert ex["own"] == 2 and ex["foreign"] == 1
+    assert ex["colors"] == {"fialová": 2, "modrá": 1}
+
+
 def test_defense_distribution() -> None:
     records = {
         "A1": SzzRecord(os_cislo="A1", defense=ThesisDefense(znamka="B")),

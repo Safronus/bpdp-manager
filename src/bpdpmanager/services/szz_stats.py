@@ -81,10 +81,24 @@ def _scope_oscisla(committees) -> set:
     return out
 
 
-def szz_admin_stats(records: dict, committees) -> dict:
+def _name_set(name: str) -> frozenset:
+    """Množina tokenů jména bez titulů/diakritiky (na párování nezávisí pořadí).
+
+    ``doc. Ing. Jan Mareš, Ph.D.`` → ``{jan, mares}``. Pro spárování zkoušejícího
+    (jméno z portálu) s členem komise (jméno s tituly v seedu).
+    """
+    from .komise_stats import student_name_key
+
+    return frozenset(student_name_key(name).split())
+
+
+def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
     """Agregace záznamů v rozsahu daném ``committees`` (prázdné → všechny).
 
-    Vrací ``{totals, by_komise, by_examiner, by_predmet, dist, fails}``.
+    ``all_committees`` (nepovinné) slouží k určení **„svojí" komise zkoušejícího**
+    napříč celým rokem (členství je nezávislé na výběru); když chybí, použije se
+    ``committees``. Vrací ``{totals, by_komise, by_examiner, by_predmet, dist,
+    fails}``.
     """
     in_scope = _scope_oscisla(committees)
     recs = [r for oc, r in (records or {}).items()
@@ -99,6 +113,15 @@ def szz_admin_stats(records: dict, committees) -> dict:
                 nm = (s.student_name or "").strip()
                 if nm:
                     os_to_name.setdefault(pn, nm)
+
+    # Členství zkoušejících → barvy „jejich" komisí (jméno bez titulů → barvy).
+    member_colors: dict = {}
+    for c in (all_committees if all_committees is not None else committees):
+        col = (c.color or "").strip().lower()
+        for m in getattr(c, "members", []) or []:
+            k = _name_set(m.name)
+            if k and col:
+                member_colors.setdefault(k, set()).add(col)
 
     komise: dict = {}
     examiner: dict = {}
@@ -136,6 +159,8 @@ def szz_admin_stats(records: dict, committees) -> dict:
         oc = (r.os_cislo or "").strip().upper()
         nm = _name(r)
         ov = getattr(r, "overall", None)
+        # Barva komise studenta = komise, kde proběhly jeho dílčí zkoušky.
+        komise_color = (ov.komise or "").strip().lower() if ov else ""
         if ov:
             kgrp = _komise(ov.komise or "?")
             kgrp["n"] += 1
@@ -162,13 +187,21 @@ def szz_admin_stats(records: dict, committees) -> dict:
             if ekey:
                 e = examiner.setdefault(ekey, {
                     "jmeno": s.zkousejici, "ucitidno": s.ucitidno, "n": 0,
-                    "dist": _empty_dist(), "days": set()})
+                    "dist": _empty_dist(), "days": set(),
+                    "colors": {}, "own": 0, "foreign": 0})
                 e["n"] += 1
                 if sl:
                     e["dist"][sl] += 1
                 d = (s.datum or "").strip()   # počet různých dní → zkoušení/den
                 if d:
                     e["days"].add(d)
+                if komise_color:   # rozpad dle barvy komise + doma/cizí
+                    e["colors"][komise_color] = e["colors"].get(komise_color, 0) + 1
+                    own = member_colors.get(_name_set(s.zkousejici), set())
+                    if komise_color in own:
+                        e["own"] += 1
+                    else:
+                        e["foreign"] += 1
             if s.predmet:
                 p = predmet.setdefault(s.predmet, {
                     "predmet": s.predmet, "katedra": s.katedra, "n": 0,

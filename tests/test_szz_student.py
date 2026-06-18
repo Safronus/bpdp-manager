@@ -75,14 +75,18 @@ def test_szz_examiner_sort_toggle_and_order() -> None:
         _szz_examiner_sort_toggle,
     )
 
-    # přepínač: aktivní tučně, druhý jako klikací odkaz szzsort:
+    # přepínač má 4 volby: aktivní tučně, ostatní jako klikací odkazy szzsort:
     t_count = _szz_examiner_sort_toggle("count")
-    assert "<b" in t_count and 'href="szzsort:avg"' in t_count
+    assert "<b" in t_count
+    for mode in ("avg", "median", "per_day"):
+        assert f'href="szzsort:{mode}"' in t_count
     assert 'href="szzsort:count"' in _szz_examiner_sort_toggle("avg")
 
-    def _ex(name, n, avg):
+    def _ex(name, n, avg, median, per_day):
         return {"jmeno": name, "ucitidno": name, "n": n,
                 "dist": dict.fromkeys("ABCDEF", 0), "avg": avg,
+                "median": median, "per_day": per_day,
+                "colors": {}, "own": 0, "foreign": 0,
                 "pass": 0, "fail": 0, "none": 0}
 
     szz = {
@@ -90,8 +94,9 @@ def test_szz_examiner_sort_toggle_and_order() -> None:
                    "bez_znamky": 0, "nedostupne": 0, "avg": 2.0},
         "by_komise": [], "by_predmet": [], "dist": {}, "fails": {},
         "questions": {},
-        "by_examiner": [_ex("Mírný", 37, 1.6), _ex("Přísný", 20, 3.0),
-                        _ex("Střední", 25, 2.0)],
+        "by_examiner": [_ex("Mírný", 37, 1.6, 1.0, 5.0),
+                        _ex("Přísný", 20, 3.0, 3.0, 2.0),
+                        _ex("Střední", 25, 2.0, 2.0, 8.0)],
     }
 
     def _order(mode):
@@ -99,9 +104,11 @@ def test_szz_examiner_sort_toggle_and_order() -> None:
         seg = seg.split("Per předmět")[0]
         return sorted(["Mírný", "Přísný", "Střední"], key=seg.find)
 
-    # avg = nejpřísnější první (nejvyšší Ø); default drží pořadí ze service.
-    assert _order("avg") == ["Přísný", "Střední", "Mírný"]
+    # default drží pořadí ze service; ostatní řadí danou metrikou sestupně.
     assert _order("count") == ["Mírný", "Přísný", "Střední"]
+    assert _order("avg") == ["Přísný", "Střední", "Mírný"]       # 3,0/2,0/1,6
+    assert _order("median") == ["Přísný", "Střední", "Mírný"]    # 3,0/2,0/1,0
+    assert _order("per_day") == ["Střední", "Mírný", "Přísný"]   # 8,0/5,0/2,0
 
 
 def test_szz_student_dialog_changed_flag() -> None:
