@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.15.2] - 2026-06-18
+
+### Fixed
+- **Státnice (admin): „🔄 Zkontrolovat zbývající" znovu kontroluje i studenty
+  „bez známky".** Dřív se za „hotové" (a tedy přeskočené) bralo vyplnění **textu**
+  *Prospěl/Neprospěl* (`vysledek_studia`), který ale může mít default i u
+  nehodnocených — proto se studenti bez známky nekontrolovali. Nově je „hotový"
+  jen ten s vyplněnou **celkovou známkou SZZ** (`vysledek_zkousek`), takže
+  „zbývající" doplní jak *nedostupné*, tak *bez známky*. Oprava se promítne
+  i do **stávající cache** (kontrola se vyhodnocuje živě, ne z uloženého příznaku).
+
 ## [2.15.1] - 2026-06-18
 
 ### Changed

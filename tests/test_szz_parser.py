@@ -152,7 +152,8 @@ def test_not_terminal_without_overall() -> None:
 
 def _terminal_rec(oc):
     return SzzRecord(os_cislo=oc, terminal=True,
-                     overall=SzzOverall(vysledek_studia="Prospěl"))
+                     overall=SzzOverall(vysledek_zkousek="A",
+                                        vysledek_studia="Prospěl"))
 
 
 def test_szz_to_check_skips_terminal_and_dedups() -> None:
@@ -167,3 +168,14 @@ def test_szz_to_check_skips_terminal_and_dedups() -> None:
 def test_szz_to_check_force_includes_all() -> None:
     cache = {"A1": _terminal_rec("A1")}
     assert szz_to_check(["A1", "A2", "A1"], cache, force=True) == ["A1", "A2"]
+
+
+def test_szz_to_check_rechecks_bez_znamky_and_unavailable() -> None:
+    # „Bez známky" (text výsledku studia vyplněn, ale BEZ známky) NENÍ hotový →
+    # musí se znovu zkontrolovat. Stejně tak „nedostupné". (Regrese: dřív se
+    # „bez známky" přeskakoval, protože terminal se řídil textem výsledku.)
+    bez = SzzRecord(os_cislo="A5", overall=SzzOverall(vysledek_studia="Prospěl"))
+    nedostupny = SzzRecord(os_cislo="A6", unavailable=True)
+    assert not is_terminal(bez)
+    assert szz_to_check(["A5", "A6"], {"A5": bez, "A6": nedostupny},
+                        force=False) == ["A5", "A6"]

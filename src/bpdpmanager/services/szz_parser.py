@@ -190,8 +190,13 @@ def merge_pages(*recs: SzzRecord) -> SzzRecord:
 
 
 def is_terminal(rec: SzzRecord) -> bool:
-    """Hotový výsledek (už se nekontroluje): celkový výsledek studia vyplněn."""
-    return bool(rec.overall and rec.overall.vysledek_studia)
+    """Hotový výsledek (už se nekontroluje): vyplněná celková **ZNÁMKA** SZZ.
+
+    Záměrně se řídí známkou (``vysledek_zkousek``), ne textem „Prospěl/Neprospěl"
+    (``vysledek_studia``) — ten může mít default i u nehodnocených, takže by se
+    studenti „bez známky" nesprávně přeskakovali při kontrole zbývajících.
+    """
+    return bool(rec.overall and rec.overall.vysledek_zkousek)
 
 
 def szz_to_check(oscisla, cache: dict, force: bool) -> list[str]:
@@ -208,7 +213,9 @@ def szz_to_check(oscisla, cache: dict, force: bool) -> list[str]:
             continue
         if not force:
             rec = cache.get(oc)
-            if rec is not None and getattr(rec, "terminal", False):
+            # Živě (ne jen uložený příznak) — promítne i opravu definice terminal
+            # do starší cache: „bez známky" i „nedostupné" se znovu zkontrolují.
+            if rec is not None and is_terminal(rec):
                 continue
         out.append(oc)
     return out

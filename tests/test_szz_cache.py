@@ -26,7 +26,8 @@ def test_upsert_and_load_roundtrip(service) -> None:
     rec = SzzRecord(
         os_cislo="A99999",
         subjects=[SubjectExam(predmet="APRX", znamka="A", zkousejici="Jan Z.")],
-        overall=SzzOverall(vysledek_studia="Prospěl", komise="fialová"),
+        overall=SzzOverall(vysledek_zkousek="A", vysledek_studia="Prospěl",
+                           komise="fialová"),
     )
     cache = service.upsert_szz_result(rec)
     assert "A99999" in cache

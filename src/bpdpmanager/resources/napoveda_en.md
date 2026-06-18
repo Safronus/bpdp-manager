@@ -1107,8 +1107,9 @@ location = committee (colour + programme); rooms are not tracked.
   in the profile folder, keyed by personal number, tagged by academic year) — the
   **📂 From cache** button shows a stored record **without logging in**; on open the
   window shows how many records are cached. **Bulk committee check:** **🔄 Check
-  remaining** (fetches only students without a final result — finished ones in the
-  cache are skipped), **🔁 Check all** (re-fetch everyone) and **⏹ Stop**; on the
+  remaining** (fetches students **without a final grade** — i.e. *no grade* and
+  *unavailable* too; only graded ones are skipped), **🔁 Check all** (re-fetch
+  everyone) and **⏹ Stop**; on the
   **first** login (empty cache) **all** committee students are checked silently,
   on later logins only **today's** (incrementally). Progress „⏳ Checking SZZ X/Y
   (personal number)" runs next to the buttons and a **detailed log** on the right

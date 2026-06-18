@@ -1220,8 +1220,9 @@ obor); místnost se neeviduje.
   složce profilu, klíč = os. číslo, tagováno akademickým rokem) — tlačítkem
   **📂 Z cache** je po zadání os. čísla zobrazíš **i bez přihlášení**; po startu
   okno ukáže, kolik záznamů je uloženo. **Hromadná kontrola komisí:**
-  **🔄 Zkontrolovat zbývající** (stáhne jen studenty bez hotového výsledku —
-  hotové se přeskočí), **🔁 Zkontrolovat všechny** (i hotové) a **⏹ Stop**; po
+  **🔄 Zkontrolovat zbývající** (stáhne studenty **bez vyplněné celkové známky** —
+  tj. i *bez známky* a *nedostupné*; hotové s známkou se přeskočí),
+  **🔁 Zkontrolovat všechny** (i hotové) a **⏹ Stop**; po
   **prvním** přihlášení (prázdná cache) se tiše zkontrolují **všichni** studenti
   komisí, při dalších už jen **dnešní** (aditivně). Vedle
   tlačítek běží průběh „⏳ Kontroluji SZZ X/Y (os. číslo)" a vpravo je **detailní
