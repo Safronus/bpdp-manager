@@ -1239,9 +1239,13 @@ obor); místnost se neeviduje.
   % / neprospělo / bez známky / nedostupné, Ø), **per komise** (✓ prospělo /
   ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø),
   **per zkoušející**
-  (kolik kdo zkoušel a jaké známky dává — náročnost + Ø), **per předmět SZZ**
-  (počet + rozložení + Ø), **graf rozložení** známek (celkové / obhajoby /
-  předmětů) a **otázky** z průběhu po předmětech. Nahoře v záložce je tlačítko
+  (kolik kdo zkoušel a jaké známky dává — **dílčí předmětové zkoušky**, náročnost
+  + Ø), **per předmět SZZ** (počet + rozložení + Ø), **graf rozložení známek po
+  dimenzích** a **otázky** z průběhu po předmětech. **Dimenze se počítají zvlášť**
+  (proto se počty F mezi sekcemi liší): *předmětové zkoušky (dílčí)*, *celkový
+  výsledek z předmětů*, *obhajoba práce* a *celkový výsledek SZZ*; **per komise**
+  = celkový výsledek SZZ, **per zkoušející/předmět** = dílčí zkoušky, **obhajoba**
+  je samostatná. Nahoře v záložce je tlačítko
   **🔐 Stáhnout / aktualizovat…** (otevře *Státnice (admin)*) a **indikace**
   (počet záznamů, z toho hotových, naposledy staženo) — není nutné chodit do
   menu profilu. **Data se ukážou hned po otevření aplikace** z lokální cache

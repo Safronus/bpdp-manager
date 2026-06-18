@@ -1126,9 +1126,12 @@ location = committee (colour + programme); rooms are not tracked.
   / no grade / unavailable, Ø), **per committee** (✓ passed / ✗ failed / **? no
   grade** / **⏳ unavailable** + A–F distribution + Ø), **per examiner** (how
   many subjects each examined and which grades they give — strictness + Ø),
-  **per SZZ subject** (count + distribution + Ø), a **grade-distribution chart**
-  (overall / defense / subjects) and **questions** from the procedure grouped by
-  subject. The tab has a **🔐 Fetch / update…** button (opens *State exams (admin)*)
+  **per SZZ subject** (count + distribution + Ø), a **grade distribution by
+  dimension** and **questions** from the procedure grouped by subject. **Dimensions
+  are counted separately** (that's why F counts differ between sections): *subject
+  exams*, *overall result for courses*, *thesis defence* and *overall SZZ result*;
+  **per committee** = overall SZZ result, **per examiner/subject** = subject exams,
+  **defence** is separate. The tab has a **🔐 Fetch / update…** button (opens *State exams (admin)*)
   and a **cache status** line (record count, finished, last fetched) — no need to
   go to the profile menu. **Data shows immediately on app start** from the local
   cache (no connection needed; the current year is selected automatically). If the

@@ -1709,7 +1709,9 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
                  f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
     out += _table("<h4 style='margin:10px 0 2px;'>🎨 " + escape(tr("Per komise"))
-                  + "</h4>", rows, escape(tr("Komise")))
+                  + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
+                  + escape(tr("— rozložení = celkový výsledek SZZ")) + "</span></h4>",
+                  rows, escape(tr("Komise")))
 
     # Per zkoušející
     rows = ""
@@ -1720,7 +1722,9 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
                  f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
     out += _table("<h4 style='margin:12px 0 2px;'>🧑‍🏫 "
-                  + escape(tr("Per zkoušející (náročnost)")) + "</h4>", rows,
+                  + escape(tr("Per zkoušející (náročnost)"))
+                  + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
+                  + escape(tr("— předmětové zkoušky")) + "</span></h4>", rows,
                   escape(tr("Zkoušející")))
 
     # Per předmět
@@ -1732,14 +1736,24 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
                  f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
     out += _table("<h4 style='margin:12px 0 2px;'>📚 " + escape(tr("Per předmět SZZ"))
-                  + "</h4>", rows, escape(tr("Předmět")))
+                  + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
+                  + escape(tr("— předmětové zkoušky")) + "</span></h4>",
+                  rows, escape(tr("Předmět")))
 
-    # Rozložení známek (grafy)
+    # Rozložení známek po dimenzích (zvlášť, ať je jasné co je co).
     dist = szz.get("dist", {})
-    out += "<h4 style='margin:14px 0 2px;'>📊 " + escape(tr("Rozložení známek")) + "</h4>"
-    out += _szz_dist_bar(dist.get("overall", {}), tr("Celkový výsledek SZZ"))
+    out += ("<h4 style='margin:14px 0 2px;'>📊 "
+            + escape(tr("Rozložení známek po dimenzích")) + "</h4>")
+    out += (f"<p style='margin:2px 0 4px;color:{_MUTED};font-size:11px;'>"
+            + escape(tr("Různé dimenze se počítají zvlášť: dílčí zkoušky z "
+                        "předmětů, jejich celkový výsledek, obhajoba a celkový "
+                        "výsledek SZZ. Proto se počty F mezi sekcemi mohou lišit "
+                        "(per komise = celkový výsledek SZZ; per zkoušející = "
+                        "dílčí předmětové zkoušky; obhajoba je samostatná).")) + "</p>")
+    out += _szz_dist_bar(dist.get("subjects", {}), tr("Předmětové zkoušky (dílčí)"))
+    out += _szz_dist_bar(dist.get("predmety", {}), tr("Celkový výsledek z předmětů"))
     out += _szz_dist_bar(dist.get("defense", {}), tr("Obhajoba práce"))
-    out += _szz_dist_bar(dist.get("subjects", {}), tr("Předmětové zkoušky"))
+    out += _szz_dist_bar(dist.get("overall", {}), tr("Celkový výsledek SZZ"))
 
     # Otázky (po předmětech, zkráceně)
     questions = szz.get("questions", {})

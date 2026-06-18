@@ -157,8 +157,11 @@ def parse_overall(html_text: str) -> SzzOverall:
     _, vzt = _select_selected(html_text, "ckVysledekZkousek")
     studia = _select_selected(html_text, "ckVysledekStudia")[1]
     prospel = studia.strip().lower().startswith("prospěl") if studia else None
+    # Read-only souhrn „Celkový výsledek z předmětů: A (…)" (agregát zkoušek).
+    mp = re.search(r"Celkový výsledek z předmětů:\s*([A-Za-z]{1,2})", html_text)
     return SzzOverall(
         vysledek_zkousek=_letter(vzt), vysledek_zkousek_text=vzt,
+        vysledek_predmety=_letter(mp.group(1)) if mp else "",
         vysledek_studia=studia, prospel=prospel,
         pokus=_input_value(html_text, "ckPokus"),
         misto=_select_selected(html_text, "ckMisto")[1],

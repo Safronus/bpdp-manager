@@ -50,6 +50,7 @@ class SzzOverall(BaseModel):
 
     vysledek_zkousek: str = ""       # celkový výsledek SZZ (písmeno)
     vysledek_zkousek_text: str = ""
+    vysledek_predmety: str = ""      # celkový výsledek Z PŘEDMĚTŮ (agregát zkoušek)
     vysledek_studia: str = ""        # text "Prospěl" / "Neprospěl"
     prospel: bool | None = None      # odvozeno z vysledek_studia
     pokus: str = ""

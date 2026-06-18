@@ -5,6 +5,21 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.16.0] - 2026-06-18
+
+### Changed
+- **Státnice (admin): statistiky jasně oddělují čtyři dimenze známek.** Počty
+  (např. F) se mezi *per komise* a *per zkoušející* liší, protože měří **různé
+  věci** — nově je to explicitní:
+  - **per komise** = rozložení **celkového výsledku SZZ**,
+  - **per zkoušející / per předmět** = **dílčí předmětové zkoušky**,
+  - sekce **Rozložení známek po dimenzích** ukazuje zvlášť *předmětové zkoušky
+    (dílčí)*, *celkový výsledek z předmětů*, *obhajobu práce* a *celkový výsledek
+    SZZ* — každou s vlastním rozložením A–F.
+  Přibyla nová dimenze **„Celkový výsledek z předmětů"** (agregát zkoušek, čtený
+  z portálu) a krátká vysvětlivka, proč se počty mezi sekcemi liší. Obhajoba se
+  do *per zkoušející* nezapočítává (je samostatná dimenze).
+
 ## [2.15.3] - 2026-06-18
 
 ### Fixed

@@ -132,6 +132,14 @@ def test_parse_overall_and_terminal() -> None:
     assert o.datum == "15.6.2026" and o.cas == "09:00"
 
 
+def test_parse_celkovy_vysledek_z_predmetu() -> None:
+    # Read-only souhrn „Celkový výsledek z předmětů: B" (agregát zkoušek) je
+    # samostatná dimenze (nezaměňovat s celkovým výsledkem SZZ).
+    rec = parse_page(PAGE_OVERALL + "Celkový výsledek z předmětů: B (16.06.2026)")
+    assert rec.overall.vysledek_predmety == "B"
+    assert rec.overall.vysledek_zkousek == "A"   # jiná dimenze
+
+
 def test_merge_pages_and_terminal_flag() -> None:
     merged = merge_pages(
         parse_page(PAGE_SUBJECTS),

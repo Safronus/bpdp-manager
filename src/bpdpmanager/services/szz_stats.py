@@ -77,7 +77,8 @@ def szz_admin_stats(records: dict, committees) -> dict:
     examiner: dict = {}
     predmet: dict = {}
     questions: dict = {}
-    dist_overall, dist_defense, dist_subj = _empty_dist(), _empty_dist(), _empty_dist()
+    dist_overall, dist_predmety, dist_defense, dist_subj = (
+        _empty_dist(), _empty_dist(), _empty_dist(), _empty_dist())
     students = nedostupne = 0
 
     def _komise(color):
@@ -102,6 +103,9 @@ def szz_admin_stats(records: dict, committees) -> dict:
             if kl:
                 kgrp["dist"][kl] += 1
                 dist_overall[kl] += 1
+            klp = _letter(getattr(ov, "vysledek_predmety", ""))
+            if klp:
+                dist_predmety[klp] += 1
 
         for s in getattr(r, "subjects", []) or []:
             sl = _letter(s.znamka)
@@ -149,7 +153,7 @@ def szz_admin_stats(records: dict, committees) -> dict:
         "by_komise": _rows(komise, lambda r: r["komise"]),
         "by_examiner": _rows(examiner, lambda r: (-r["n"], r["jmeno"] or "")),
         "by_predmet": _rows(predmet, lambda r: r["predmet"]),
-        "dist": {"overall": dist_overall, "defense": dist_defense,
-                 "subjects": dist_subj},
+        "dist": {"overall": dist_overall, "predmety": dist_predmety,
+                 "defense": dist_defense, "subjects": dist_subj},
         "questions": questions,
     }
