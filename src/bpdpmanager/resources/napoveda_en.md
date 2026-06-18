@@ -1150,7 +1150,8 @@ location = committee (colour + programme); rooms are not tracked.
   colour (sorted first), **others are dots ●**. The **sort: by count · average ·
   median · per day** toggle in the heading switches the ordering of the listed
   examiners), **per SZZ subject** (count +
-  distribution + Ø) and a **grade distribution by
+  distribution + Ø; shown **next to „Per committee"** to use the width better)
+  and a **grade distribution by
   dimension**. (Questions/procedure are **not** here — they are non-standardised;
   find them only in the *Student SZZ summary*.) **Dimensions
   are counted separately** (that's why F counts differ between sections): *subject

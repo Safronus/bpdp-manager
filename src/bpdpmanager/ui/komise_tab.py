@@ -2102,10 +2102,31 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
                  f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
-    out += _table("<h4 style='margin:10px 0 2px;'>🎨 " + escape(tr("Per komise"))
-                  + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
-                  + escape(tr("— rozložení = celkový výsledek SZZ")) + "</span></h4>",
-                  rows, escape(tr("Komise")))
+    komise_html = _table(
+        "<h4 style='margin:10px 0 2px;'>🎨 " + escape(tr("Per komise"))
+        + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
+        + escape(tr("— rozložení = celkový výsledek SZZ")) + "</span></h4>",
+        rows, escape(tr("Komise")))
+
+    # Per předmět (vedle Per komise — obě jsou úzké tabulky vedle sebe)
+    rows = ""
+    for r in szz.get("by_predmet", []):
+        rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
+                 f"{escape(r['predmet'])}</td>"
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
+                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
+                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
+    predmet_html = _table(
+        "<h4 style='margin:10px 0 2px;'>📚 " + escape(tr("Per předmět SZZ"))
+        + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
+        + escape(tr("— předmětové zkoušky")) + "</span></h4>",
+        rows, escape(tr("Předmět")))
+
+    # Per komise | Per předmět vedle sebe (vnější tabulka se dvěma buňkami).
+    out += ("<table style='border-collapse:collapse;'><tr>"
+            "<td style='vertical-align:top;padding-right:32px;'>" + komise_html
+            + "</td><td style='vertical-align:top;'>" + predmet_html
+            + "</td></tr></table>")
 
     # Per zkoušející — Ø/medián obarvené gradientem náročnosti; řazení dle
     # přepínače: count (default, počet) / avg / median / per_day. Sloupec Komise
@@ -2151,19 +2172,6 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
     out += _table(title, rows, escape(tr("Zkoušející")),
                   extra_heads=(tr("Medián"), tr("Zk./den"),
                                tr("Doma/cizí"), tr("Komise")))
-
-    # Per předmět
-    rows = ""
-    for r in szz.get("by_predmet", []):
-        rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
-                 f"{escape(r['predmet'])}</td>"
-                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
-                 f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
-                 f"<td style='padding:2px 0;text-align:right;'>{_szz_avg_cell(r['avg'])}</td></tr>")
-    out += _table("<h4 style='margin:12px 0 2px;'>📚 " + escape(tr("Per předmět SZZ"))
-                  + f" <span style='color:{_MUTED};font-weight:normal;font-size:11px;'>"
-                  + escape(tr("— předmětové zkoušky")) + "</span></h4>",
-                  rows, escape(tr("Předmět")))
 
     # Rozložení známek po dimenzích (zvlášť, ať je jasné co je co).
     dist = szz.get("dist", {})

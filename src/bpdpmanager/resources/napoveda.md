@@ -1262,7 +1262,8 @@ obor); místnost se neeviduje.
   (řadí se první), **cizí = tečka ●**. Přepínač v nadpisu **řadit: počtem ·
   průměrem · mediánem · za den** mění řazení zobrazených zkoušejících),
   **per předmět SZZ**
-  (počet + rozložení + Ø) a **graf rozložení známek po
+  (počet + rozložení + Ø; zobrazuje se **vedle „Per komise"**, ať je líp využitá
+  šířka) a **graf rozložení známek po
   dimenzích**. (Otázky/průběh tu **nejsou** — jsou nenormované; najdeš je jen
   v *Souhrnu SZZ studenta*.) **Dimenze se počítají zvlášť**
   (proto se počty F mezi sekcemi liší): *předmětové zkoušky (dílčí)*, *celkový

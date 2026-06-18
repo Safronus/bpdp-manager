@@ -5,6 +5,13 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.25.1] - 2026-06-18
+
+### Changed
+- **Průběh SZZ: „Per předmět SZZ" je teď vedle „Per komise".** Obě úzké tabulky
+  jsou vedle sebe (lepší využití šířky), *Per zkoušející* (širší) zůstává pod
+  nimi v plné šířce. Na úzkém okně se obě skládají do vodorovného posuvníku.
+
 ## [2.25.0] - 2026-06-18
 
 ### Added
