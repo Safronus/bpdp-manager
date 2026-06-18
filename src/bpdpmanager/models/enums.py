@@ -111,6 +111,9 @@ class ThesisStatus(str, Enum):
     # 0.68.0: „Neobhájeno" — neúspěšná obhajoba (odlišené od „Nedokončeno",
     # což je práce nikdy nedotažená k obhajobě). Ze STAG: DBUO/OPUNO.
     FAILED = "failed"
+    # 2.28.x: „Odevzdáno bez obhajoby" — STAG OPUBPOO (odevzdaná práce ukončená
+    # bez pokusu o obhajobu). Terminální (Historie), odlišené od „V řešení".
+    SUBMITTED_NO_DEFENSE = "submitted_no_defense"
 
     @property
     def label(self) -> str:
@@ -133,6 +136,7 @@ STATUS_LABELS: dict[ThesisStatus, str] = {
     ThesisStatus.DEFENDED: "Obhájeno",
     ThesisStatus.CANCELLED: "Nedokončeno",
     ThesisStatus.FAILED: "Neobhájeno",
+    ThesisStatus.SUBMITTED_NO_DEFENSE: "Odevzdáno bez obhajoby",
 }
 
 STATUS_COLORS: dict[ThesisStatus, str] = {
@@ -143,6 +147,7 @@ STATUS_COLORS: dict[ThesisStatus, str] = {
     ThesisStatus.DEFENDED: "#66bb6a",
     ThesisStatus.CANCELLED: "#d6d6d6",  # světle šedá — nedokončeno (jen opuštěno)
     ThesisStatus.FAILED: "#c62828",  # sytější červená — neúspěšná obhajoba
+    ThesisStatus.SUBMITTED_NO_DEFENSE: "#8d6e63",  # hnědá — odevzdáno bez obhajoby
 }
 
 STATUS_ORDER: dict[ThesisStatus, int] = {
@@ -277,6 +282,7 @@ STATUSES_HISTORY: set[ThesisStatus] = {
     ThesisStatus.DEFENDED,
     ThesisStatus.CANCELLED,
     ThesisStatus.FAILED,
+    ThesisStatus.SUBMITTED_NO_DEFENSE,
 }
 
 
@@ -288,22 +294,31 @@ ALLOWED_TRANSITIONS: dict[ThesisStatus, set[ThesisStatus]] = {
         ThesisStatus.DEFENDED,
         ThesisStatus.CANCELLED,
         ThesisStatus.FAILED,
+        ThesisStatus.SUBMITTED_NO_DEFENSE,
         ThesisStatus.LISTED,
     },
     ThesisStatus.DEFENDED: set(),
-    # Druhý pokus obhajoby: z Nedokončeno/Neobhájeno se dá zpět do V řešení
-    # (re-open) nebo přímo Obhájeno (oprava omylu / práce už fakticky obhájena).
-    # Mezi Nedokončeno a Neobhájeno lze přepnout (oprava klasifikace).
+    # Druhý pokus obhajoby: z Nedokončeno/Neobhájeno/Odevzdáno-bez-obhajoby se dá
+    # zpět do V řešení (re-open) nebo přímo Obhájeno; mezi terminálními stavy lze
+    # přepnout (oprava klasifikace).
     ThesisStatus.CANCELLED: {
         ThesisStatus.INTERESTED,
         ThesisStatus.IN_PROGRESS,
         ThesisStatus.DEFENDED,
         ThesisStatus.FAILED,
+        ThesisStatus.SUBMITTED_NO_DEFENSE,
     },
     ThesisStatus.FAILED: {
         ThesisStatus.INTERESTED,
         ThesisStatus.IN_PROGRESS,
         ThesisStatus.DEFENDED,
         ThesisStatus.CANCELLED,
+        ThesisStatus.SUBMITTED_NO_DEFENSE,
+    },
+    ThesisStatus.SUBMITTED_NO_DEFENSE: {
+        ThesisStatus.IN_PROGRESS,
+        ThesisStatus.DEFENDED,
+        ThesisStatus.CANCELLED,
+        ThesisStatus.FAILED,
     },
 }

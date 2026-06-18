@@ -277,14 +277,17 @@ A thesis passes through 7 statuses:
 6. **Failed defense** — completed but the defense **failed**
    (STAG codes *DBUO* / *OPUNO*)
 7. **Not completed** — **never brought** to a defense (STAG code *ND*)
+8. **Submitted, no defense** (brown) — **submitted** but **ended without any
+   defense attempt** (STAG code *OPUBPOO*). Terminal → History.
 
-> **Failed defense vs Not completed.** *Failed defense* = the student
-> defended and failed; *Not completed* = never finished. STAG import tells
-> them apart automatically; older records can be fixed manually via
-> *Transition to status*.
+> **Failed defense vs Not completed vs Submitted-no-defense.** *Failed defense* =
+> defended and failed; *Not completed* = never finished; *Submitted, no defense* =
+> submitted but ended with no defense attempt (OPUBPOO — used to wrongly show as
+> *In progress*). STAG import/**update** (incl. the silent check) tells them apart
+> automatically; older records can be fixed manually via *Transition to status*.
 
-**Second defense attempt:** from *Not completed* and *Failed defense* a thesis
-can return to *In progress* (reopening) or go straight to *Defended*.
+**Second defense attempt:** from *Not completed*, *Failed defense* and *Submitted,
+no defense* a thesis can return to *In progress* (reopening) or go to *Defended*.
 
 Transitions are validated — the *Transition to status* buttons offer only
 allowed targets, and the panel is shown **only for work-in-progress theses**.

@@ -656,6 +656,7 @@ class MainWindow(QMainWindow):
                 ThesisStatus.DEFENDED,
                 ThesisStatus.CANCELLED,
                 ThesisStatus.FAILED,
+                ThesisStatus.SUBMITTED_NO_DEFENSE,
             ],
             status_filter_pref_key="history_status_filter",
             enable_extra_filters=True,
@@ -2341,6 +2342,7 @@ class MainWindow(QMainWindow):
             ThesisStatus.DEFENDED,
             ThesisStatus.IN_PROGRESS,
             ThesisStatus.CANCELLED,
+            ThesisStatus.SUBMITTED_NO_DEFENSE,
         ]
         for s in past_statuses:
             cb_status.addItem(s.label, s.value)

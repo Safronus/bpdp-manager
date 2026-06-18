@@ -5,6 +5,17 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.29.0] - 2026-06-18
+
+### Added
+- **Nový stav práce „Odevzdáno bez obhajoby" (STAG OPUBPOO).** Stav *Odevzdaná
+  práce ukončená bez pokusu o obhajobu* se dříve mapoval na **„V řešení"** (špatně,
+  hlavně u historických prací). Nově má **vlastní terminální stav** (barva
+  **hnědá**, řadí se do **Historie**, odlišený od „Nedokončeno"). Lze ho i ručně
+  nastavit. **Tichá kontrola STAG** u stávajících vedených prací „V řešení" se
+  stavem OPUBPOO **navrhne změnu** — stačí potvrdit *Aktualizaci ze STAG*. Re-open
+  (druhý pokus) zpět do „V řešení" funguje bez nutnosti znovu vyplňovat zadání.
+
 ## [2.28.3] - 2026-06-18
 
 ### Fixed

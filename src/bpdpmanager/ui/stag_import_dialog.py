@@ -175,18 +175,20 @@ _BIG_TOTAL_BYTES = 300 * 1024 * 1024  # 300 MB
 # STAG kódy stavu práce (sloupec ``stavPrace``) → náš ``ThesisStatus``.
 # Zdroj: konzultace s uživatelem (FAI UTB STAG export).
 #
-#   R     - Rozpracovaná                              → V řešení
-#   DBPOO - Dokončená bez pokusu o obhajobu           → V řešení
-#   DUO   - Dokončená s úspěšnou obhajobou            → Obhájeno
-#   DBUO  - Dokončená s neúspěšnou obhajobou          → Neobhájeno
-#   OPUNO - Odevzdaná, ukončená po neúspěšné obhajobě → Neobhájeno
-#   ND    - Nedokončená práce                         → Nedokončeno
+#   R      - Rozpracovaná                                → V řešení
+#   DBPOO  - Dokončená bez pokusu o obhajobu             → V řešení
+#   OPUBPOO- Odevzdaná práce ukončená bez pokusu o obh.  → Odevzdáno bez obhajoby
+#   DUO    - Dokončená s úspěšnou obhajobou              → Obhájeno
+#   DBUO   - Dokončená s neúspěšnou obhajobou            → Neobhájeno
+#   OPUNO  - Odevzdaná, ukončená po neúspěšné obhajobě   → Neobhájeno
+#   ND     - Nedokončená práce                           → Nedokončeno
 #
-# Pozn.: neúspěšná obhajoba (DBUO/OPUNO) má vlastní stav „Neobhájeno"
-# (FAILED), odlišený od „Nedokončeno" (ND = práce nikdy nedotažená k obhajobě).
+# Pozn.: DBPOO (čeká na obhajobu) je ještě „V řešení", ale OPUBPOO (UKONČENÁ bez
+# pokusu o obhajobu) je terminální → vlastní stav „Odevzdáno bez obhajoby".
 STAG_STATE_TO_STATUS: dict[str, ThesisStatus] = {
     "R": ThesisStatus.IN_PROGRESS,
     "DBPOO": ThesisStatus.IN_PROGRESS,
+    "OPUBPOO": ThesisStatus.SUBMITTED_NO_DEFENSE,
     "DUO": ThesisStatus.DEFENDED,
     "DBUO": ThesisStatus.FAILED,
     "OPUNO": ThesisStatus.FAILED,
@@ -197,6 +199,7 @@ STAG_STATE_TO_STATUS: dict[str, ThesisStatus] = {
 STAG_STATE_SHORT: dict[str, str] = {
     "R": "v řešení",
     "DBPOO": "čeká na obhajobu",
+    "OPUBPOO": "odevzdáno bez obhajoby",
     "DUO": "obhájeno",
     "DBUO": "neobhájeno",
     "OPUNO": "neobhájeno",
@@ -207,6 +210,7 @@ STAG_STATE_SHORT: dict[str, str] = {
 STAG_STATE_LABELS: dict[str, str] = {
     "R": "Rozpracovaná",
     "DBPOO": "Dokončená bez pokusu o obhajobu",
+    "OPUBPOO": "Odevzdaná práce ukončená bez pokusu o obhajobu",
     "DUO": "Dokončená s úspěšnou obhajobou",
     "DBUO": "Dokončená, neúspěšná obhajoba",
     "OPUNO": "Odevzdaná, ukončená po neúspěšné obhajobě",

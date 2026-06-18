@@ -206,9 +206,10 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   V titulku je **počet budoucích prací barevně podle kapacity**: pod 15 zeleně,
   rovných 15 žlutě, nad 15 červeně. Budoucí práce ještě nemají známky ani
   posudky, takže se nezobrazují sloupce **V/O**, *Posudky* ani *Odesláno*.
-- **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*. Nad seznamem jsou
-  filtry: **checkboxy stavů** (*Obhájeno* / *Nedokončeno* / *Neobhájeno*,
-  defaultně všechny zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
+- **Historie** — *Obhájeno*, *Neobhájeno*, *Nedokončeno*, *Odevzdáno bez
+  obhajoby*. Nad seznamem jsou filtry: **checkboxy stavů** (*Obhájeno* /
+  *Nedokončeno* / *Neobhájeno* / *Odevzdáno bez obhajoby*, defaultně všechny
+  zaškrtnuté; volba se **pamatuje i po zavření aplikace**),
   rozbalovací **Oponent** (jen oponenti z historie), **Známka** (A–F/FX —
   projde, když odpovídá vedoucí **nebo** oponent), **Obor** (agregovaně:
   *BTSM* = jakákoli BTSM varianta, *SWI*, *NSWI*, *NKYB*, *IRT*, *ITA*, *NUI*,
@@ -333,13 +334,15 @@ Práce prochází 7 stavy:
 6. **Neobhájeno** — práce dotažená k obhajobě, ale obhajoba **neúspěšná**
    (ze STAG kódy *DBUO* / *OPUNO*)
 7. **Nedokončeno** — práce **nikdy nedotažená** k obhajobě (ze STAG kód *ND*)
+8. **Odevzdáno bez obhajoby** (hnědá) — práce **odevzdaná**, ale **ukončená bez
+   pokusu o obhajobu** (ze STAG kód *OPUBPOO*). Terminální → Historie.
 
-> **Neobhájeno vs Nedokončeno.** *Neobhájeno* = student šel k obhajobě a
-> neuspěl; *Nedokončeno* = práci nikdy nedokončil / nedošlo k obhajobě.
-> Při importu/aktualizaci ze STAG se rozliší automaticky. U starších prací
-> stažených dřív (kdy se rozdíl neukládal) můžeš stav opravit ručně tlačítkem
-> *Přechod do stavu* (*Nedokončeno → Neobhájeno*) nebo práci znovu naimportovat
-> ze STAG.
+> **Neobhájeno vs Nedokončeno vs Odevzdáno bez obhajoby.** *Neobhájeno* = student
+> šel k obhajobě a neuspěl; *Nedokončeno* = práci nikdy nedokončil; *Odevzdáno bez
+> obhajoby* = práce odevzdaná, ale ukončená bez pokusu obhajoby (OPUBPOO — dřív se
+> chybně ukazovalo jako *V řešení*). Při importu/**aktualizaci ze STAG** (i tiché
+> kontrole) se rozliší automaticky; u starších prací můžeš stav opravit ručně
+> tlačítkem *Přechod do stavu* nebo práci znovu naimportovat ze STAG.
 
 **Druhý pokus obhajoby:** z *Nedokončeno* i *Neobhájeno* se práce dá vrátit do
 *V řešení* (znovuotevření) nebo přímo do *Obhájeno*. Mezi *Nedokončeno* a

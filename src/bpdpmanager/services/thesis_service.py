@@ -768,9 +768,10 @@ class ThesisService:
         if target == ThesisStatus.IN_PROGRESS:
             # Vstup do V řešení (= dřívější ASSIGNED + IN_PROGRESS) vyžaduje
             # úplné oficiální zadání (titul EN, body zadání, literatura).
-            # Výjimka: druhý pokus obhajoby (Nedokončeno / Neobhájeno →
-            # IN_PROGRESS) — tam už zadání jednou bylo, neblokujeme.
-            if thesis.status not in (ThesisStatus.CANCELLED, ThesisStatus.FAILED):
+            # Výjimka: re-open z terminálního stavu (Nedokončeno / Neobhájeno /
+            # Odevzdáno bez obhajoby → IN_PROGRESS) — tam už zadání jednou bylo.
+            if thesis.status not in (ThesisStatus.CANCELLED, ThesisStatus.FAILED,
+                                     ThesisStatus.SUBMITTED_NO_DEFENSE):
                 ok, missing = thesis.is_ready_for_assignment()
                 if not ok:
                     raise TransitionError(
