@@ -901,3 +901,37 @@ def test_deleted_seed_committee_not_reseeded(service) -> None:
     assert len(service.list_committees()) == n0 - 1    # nevrátila se
     service.reset_committees_from_seed()               # čistý reset
     assert len(service.list_committees()) == n0        # zpět vše
+
+
+def test_committee_count_excludes_done_students(service) -> None:
+    """Počet V/O u komise nepočítá studenty, co už mají hotovo (Obhájeno/Neobhájeno)."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.ui.komise_tab import ROLE_VO, KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    s = Student(first_name="Marko", last_name="Test", university_id="A55501")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2025/2026",
+                                 student_id=s.id, status=ThesisStatus.IN_PROGRESS))
+    service.apply_komise_import(
+        [],
+        [ParsedSchedule(color="červená", academic_year="2025/2026", level="Bc",
+                        obor="SWI", program_label="SWI", dates=["15. 6. 2026"],
+                        slots=[("15. 6. 2026", "09:00", "A55501", "Marko Test")])],
+        ["rozpis.pdf"])
+    tab = KomiseTab(service)
+
+    def _cervena_vo():
+        leaf = next(lf for lf in tab._iter_leaves()
+                    if "červená" in lf.text(0)
+                    and "📚 Bakalářské" in lf.parent().text(0))
+        return leaf.data(1, ROLE_VO)
+
+    assert _cervena_vo() == (1, 0)                  # nehotový → počítá se
+    tab._committee_states = {"A55501": "defended"}  # student obhájil
+    tab.refresh()
+    assert _cervena_vo() == (0, 0)                  # hotový → z počtu zmizí

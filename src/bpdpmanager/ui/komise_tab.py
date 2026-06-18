@@ -134,6 +134,18 @@ def _defense_state_badge(states: dict | None, pnum: str, name: str) -> str:
     return f" <span style='color:{color};font-weight:bold;'>{emoji} {tr(label)}</span>"
 
 
+def _is_defense_done(states: dict | None, pnum: str, name: str) -> bool:
+    """Má student už hotovou obhajobu (Obhájeno / Neobhájeno)? Z tiché STAG
+    kontroly (stejné párování jako badge). „Bez obhajoby" / neznámé = ne."""
+    if not states:
+        return False
+    from ..services.komise_stats import TERMINAL, student_name_key
+
+    val = (states.get((pnum or "").strip().upper())
+           or states.get(student_name_key(name)))
+    return val in TERMINAL
+
+
 def _szz_student_anchor(os_cislo: str, name: str, inner_html: str) -> str:
     """Obalí jméno studenta odkazem ``szz:OSCISLO?n=NAME`` (klik/kontext → souhrn SZZ).
 
@@ -636,6 +648,9 @@ class KomiseTab(QWidget):
     def refresh(self) -> None:
         selected = self._selected_id()
         roles = self.service.komise_student_roles()
+        # Počty V/O u komisí počítají jen studenty, co ještě NEMAJÍ hotovo
+        # (Obhájeno/Neobhájeno) — u proběhlých komisí tak počty ubývají.
+        states = self._merged_states()
         flt = _fold(self.filter_edit.text().strip()) if hasattr(self, "filter_edit") else ""
         self.tree.blockSignals(True)
         self.tree.clear()
@@ -668,8 +683,14 @@ class KomiseTab(QWidget):
                 level_item.setData(0, ROLE_YEAR, year)
                 level_item.setData(0, ROLE_LEVEL, level)
                 for c in sorted(by_level[level], key=lambda x: (x.obor, x.color)):
-                    led = sum(1 for s in c.slots if self._slot_role(s, roles) == "led")
-                    opp = sum(1 for s in c.slots if self._slot_role(s, roles) == "opp")
+                    pending = [
+                        s for s in c.slots
+                        if not _is_defense_done(states, s.personal_number,
+                                                s.student_name)]
+                    led = sum(1 for s in pending
+                              if self._slot_role(s, roles) == "led")
+                    opp = sum(1 for s in pending
+                              if self._slot_role(s, roles) == "opp")
                     if self.chk_mine.isChecked() and not (led or opp):
                         continue
                     if flt and not self._committee_matches_filter(c, flt):
@@ -1120,8 +1141,13 @@ class KomiseTab(QWidget):
         from datetime import datetime
 
         year = getattr(self, "_right_year", None) or self.service.current_academic_year()
+        states = self._merged_states()
+        # Hotové (Obhájeno/Neobhájeno) v harmonogramu neukazuj — jen ty, co ještě
+        # nebyli na řadě. U vedených i oponovaných to tak postupně ubývá.
         entries = [e for e in self.service.my_defense_schedule()
-                   if e["academic_year"] == year]
+                   if e["academic_year"] == year
+                   and not _is_defense_done(states, e["personal_number"],
+                                            e["student_name"])]
         self._harmonogram_has_rows = bool(entries)
         now = datetime.now()
         nearest, ndt = self._nearest_upcoming(entries, now)
@@ -1133,7 +1159,7 @@ class KomiseTab(QWidget):
             ntext = self._fmt_countdown((ndt - now).total_seconds())
         heading = tr("📅 Můj harmonogram obhajob") + f" — {year}"
         self.harmonogram_view.setHtml(_schedule_section_html(
-            entries, heading, self._merged_states(), nearest=nkey, nearest_text=ntext))
+            entries, heading, states, nearest=nkey, nearest_text=ntext))
         # Tlačítko do kalendáře jen když je co přidat (nadcházející ve `year`).
         has_upcoming = any(
             (dt := ThesisService._parse_slot_dt(e["date"], e["time"])) and dt > now
@@ -1563,9 +1589,16 @@ class KomiseTab(QWidget):
 
     # ── akce ─────────────────────────────────────────────────────────────
     def _show_my_schedule(self) -> None:
-        """Otevře dialog s osobním harmonogramem obhajob (vedené + oponované)."""
-        dlg = MyScheduleDialog(self.service.my_defense_schedule(), self,
-                               states=self._merged_states())
+        """Otevře dialog s osobním harmonogramem obhajob (vedené + oponované).
+
+        Stejně jako panel ukazuje jen ty, co ještě NEMAJÍ hotovo (Obhájeno/
+        Neobhájeno) — hotové najdeš v záložce Historie.
+        """
+        states = self._merged_states()
+        entries = [e for e in self.service.my_defense_schedule()
+                   if not _is_defense_done(states, e["personal_number"],
+                                           e["student_name"])]
+        dlg = MyScheduleDialog(entries, self, states=states)
         dlg.exec()
 
     def _reset_committees(self) -> None:

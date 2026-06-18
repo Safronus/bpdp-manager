@@ -1093,7 +1093,9 @@ barvy a stupně (např. *Mgr fialová* je zároveň **NKYB** i **NUI**).
 Strom vlevo je členěný **akademický rok → stupeň (Bc / Mgr) → komise (barva)**;
 sloupec **Termíny** ukazuje dny, kdy komise zasedá. Sloupec **Studenti V/O**
 ukazuje, kolik v komisi **vedeš** (modrý badge) a kolik **oponuješ** (červený
-badge). Šířka sloupců i panelu se přizpůsobí obsahu.
+badge) — počítají se jen studenti, co ještě **nemají hotovo** (Obhájeno/Neobhájeno
+z tiché kontroly), takže u proběhlých komisí počty ubývají. Šířka sloupců i
+panelu se přizpůsobí obsahu.
 
 Záložka má **tři panely**: **vlevo** strom komisí (rok → Bc/Mgr → barva)
 a seznam **PDF souborů** — šířka levého panelu se **automaticky přizpůsobí
@@ -1103,10 +1105,11 @@ a **zdrojová PDF** té komise (dodané složení dle stupně+oboru + její rozp
 klik je **otevře systémově**). Detail se **nezalamuje** — když se obsah (termíny
 po dnech) nevejde na šířku, místo nafouknutí do výšky se přidá **vodorovný
 posuvník**. **Vpravo samostatný
-panel 📅 Můj harmonogram obhajob** — vždy kompletní pro **vybraný rok**
-(default aktuální), **nezávislý na vybrané komisi**; šířka opět dle obsahu.
-U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže **odpočet**
-(„za X min", živě). Po otevření je vybraný aktuální akademický rok.
+panel 📅 Můj harmonogram obhajob** — pro **vybraný rok** (default aktuální),
+**nezávislý na vybrané komisi**; šířka opět dle obsahu. Ukazuje jen studenty, co
+ještě **nebyli na řadě** — kdo už má **Obhájeno/Neobhájeno**, z harmonogramu
+zmizí (hotové najdeš v *Historii*). U **nejbližší** nadcházející obhajoby se
+zvýrazní řádek a ukáže **odpočet** („za X min", živě).
 
 > **Menší rozlišení / úzké okno.** Tři panely jsou v **posuvných rozhraních**
 > (splitter) — na velkém monitoru vypadají jako dřív (šířky dle obsahu), na

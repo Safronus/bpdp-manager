@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.29.2] - 2026-06-18
+
+### Changed
+- **Harmonogram i počty komisí ukazují jen studenty, co ještě nemají hotovo.**
+  Studenti s **Obhájeno / Neobhájeno** (z tiché STAG kontroly) zmizí z **Mého
+  harmonogramu** (panel i dialog) — zůstanou jen ti, co ještě nebyli na řadě.
+  Stejně tak **počty V/O** u komisí vlevo počítají jen **nehotové** studenty,
+  takže u proběhlých komisí postupně ubývají. Platí pro **vedené i oponované**
+  (dřív u oponovaných done studenti zůstávali). Hotové najdeš v *Historii*.
+
 ## [2.29.1] - 2026-06-18
 
 ### Changed

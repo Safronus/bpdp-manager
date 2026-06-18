@@ -139,6 +139,19 @@ def test_fit_tables_hscroll_and_chart_minwidth() -> None:
     assert ch.minimumWidth() > 5 * 60
 
 
+def test_is_defense_done() -> None:
+    from bpdpmanager.services.komise_stats import student_name_key
+    from bpdpmanager.ui.komise_tab import _is_defense_done
+
+    states = {"A100": "defended", "A200": "failed",
+              student_name_key("Eva Malá"): "none"}
+    assert _is_defense_done(states, "A100", "Jan")        # Obhájeno → hotovo
+    assert _is_defense_done(states, "A200", "Petr")       # Neobhájeno → hotovo
+    assert not _is_defense_done(states, "A300", "Karel")  # neznámý stav
+    assert not _is_defense_done(states, "", "Eva Malá")   # „bez obhajoby"
+    assert not _is_defense_done(None, "A100", "Jan")      # bez states
+
+
 def test_studia_chart_html() -> None:
     from PySide6.QtWidgets import QApplication
 
