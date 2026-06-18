@@ -2203,6 +2203,17 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
             + "</td><td style='vertical-align:top;'>" + predmet_html
             + "</td></tr></table>")
 
+    # Kdo je ve skupině „?" (záznam stažený, ale bez komise a výsledku) — klikací,
+    # ať se dá doptat (souhrn SZZ studenta ukáže, co za data má).
+    no_komise = szz.get("no_komise", [])
+    if no_komise:
+        items = " &nbsp;·&nbsp; ".join(_szz_name_cell(f) for f in no_komise)
+        out += (f"<p style='margin:6px 0 2px;color:{_MUTED};font-size:11px;'>"
+                + "<b>" + escape(tr("Bez komise ({n})").format(n=len(no_komise)))
+                + "</b> "
+                + escape(tr("— záznam stažený, ale bez komise a výsledku (klik "
+                            "na jméno = souhrn SZZ studenta): ")) + items + "</p>")
+
     # Per zkoušející — Ø/medián obarvené gradientem náročnosti; řazení dle
     # přepínače: count (default, počet) / avg / median / per_day. Sloupec Komise
     # = rozpad dle barvy + doma/cizí (své/cizí komise dle členství).

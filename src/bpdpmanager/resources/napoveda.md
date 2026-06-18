@@ -1247,8 +1247,9 @@ obor); místnost se neeviduje.
   známky** (nevyplněno) / **nedostupné** (⏳ komise ještě neproběhla / zatím bez
   přístupu — eviduje se a zkouší znovu). Obsahuje: **souhrn** (studentů, prospělo
   % / neprospělo / bez známky / nedostupné, Ø), **per komise** (✓ prospělo /
-  ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø),
-  **per zkoušející**
+  ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø; řádek
+  **`?`** = záznam bez komise — pod tabulkou je **klikací seznam „Bez komise"**,
+  ať víš, kdo to je a co za data má), **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — **dílčí předmětové zkoušky**, náročnost
   + Ø + **medián**; sloupce **Ø** i **medián** jsou obarvené **gradientem
   náročnosti** — *nejnižší zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*.

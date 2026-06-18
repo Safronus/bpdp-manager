@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.26.3] - 2026-06-18
+
+### Added
+- **Průběh SZZ: skupina „?" (bez komise) je teď k vidění, kdo to je.** Pod
+  tabulkou *Per komise* je seznam **„Bez komise"** — studenti, co mají stažený
+  SZZ záznam, ale **bez komise a výsledku** (proto spadli do řádku `?`). Jména
+  jsou **klikací** → souhrn SZZ studenta, ať se dá zjistit, co za data mají
+  (typicky SZZ ještě neproběhla / neúplný záznam).
+
 ## [2.26.2] - 2026-06-18
 
 ### Changed

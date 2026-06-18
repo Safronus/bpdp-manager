@@ -1136,7 +1136,9 @@ location = committee (colour + programme); rooms are not tracked.
   failed (F) / no grade** (blank) / **unavailable** (⏳ committee not held yet /
   no access yet — recorded and retried): **summary** (students, passed % / failed
   / no grade / unavailable, Ø), **per committee** (✓ passed / ✗ failed / **? no
-  grade** / **⏳ unavailable** + A–F distribution + Ø), **per examiner** (how
+  grade** / **⏳ unavailable** + A–F distribution + Ø; the **`?`** row = a record
+  with no committee — below the table is a **clickable „No committee" list** so you
+  can see who they are and what data they have), **per examiner** (how
   many subjects each examined and which grades they give — strictness + Ø +
   **median**; both the **Ø** and **median** columns are shaded by a **strictness
   gradient** — *lowest green = most lenient … highest red = strictest*. The median

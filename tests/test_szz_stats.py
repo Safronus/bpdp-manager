@@ -186,6 +186,19 @@ def test_by_examiner_komise_own_foreign() -> None:
     assert ex["own_colors"] == {"fialová"}   # na vykreslení domečku ⌂
 
 
+def test_no_komise_collected() -> None:
+    # Záznam s overall, ale prázdnou komisí → skupina „?"; eviduje se kdo to je.
+    records = {
+        "A1": SzzRecord(os_cislo="A1",
+                        overall=SzzOverall(komise="", vysledek_zkousek="")),
+        "A2": SzzRecord(os_cislo="A2",
+                        overall=SzzOverall(komise="fialová", vysledek_zkousek="A")),
+        "A3": SzzRecord(os_cislo="A3"),     # bez overall → nepatří sem
+    }
+    st = szz_admin_stats(records, [])       # prázdné komise → vše v rozsahu
+    assert [f["os"] for f in st["no_komise"]] == ["A1"]
+
+
 def test_defense_distribution() -> None:
     records = {
         "A1": SzzRecord(os_cislo="A1", defense=ThesisDefense(znamka="B")),

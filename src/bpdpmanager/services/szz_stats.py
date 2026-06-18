@@ -132,6 +132,8 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
     # Neúspěchy (F/FX) po dimenzích — kdo a v čem neuspěl. Vše dle os. čísla,
     # jméno jen pro zobrazení (z rozpisu komise nebo z parsed záznamu).
     fails: dict = {"subjects": [], "predmety": [], "defense": [], "overall": []}
+    # Záznamy s overall, ale BEZ komise (skupina „?") — kdo to je (na doptání).
+    no_komise: list = []
 
     def _name(r) -> str:
         oc = (r.os_cislo or "").strip().upper()
@@ -162,6 +164,8 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
         # Barva komise studenta = komise, kde proběhly jeho dílčí zkoušky.
         komise_color = (ov.komise or "").strip().lower() if ov else ""
         if ov:
+            if not komise_color:   # „?" skupina — eviduj kdo to je
+                no_komise.append({"os": oc, "jmeno": nm})
             kgrp = _komise(ov.komise or "?")
             kgrp["n"] += 1
             kl = _letter(ov.vysledek_zkousek)
@@ -244,6 +248,9 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
         lst.sort(key=lambda f: (0, f["jmeno"]) if f.get("jmeno")
                  else (1, f.get("os") or ""))
 
+    no_komise.sort(key=lambda f: (0, f["jmeno"]) if f.get("jmeno")
+                   else (1, f.get("os") or ""))
+
     # Známky se počítají jen z dostupných (nedostupné jsou samostatná kategorie).
     t_pass, t_fail, t_none = _pass_fail_none(dist_overall, students - nedostupne)
     return {
@@ -256,4 +263,5 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
         "dist": {"overall": dist_overall, "predmety": dist_predmety,
                  "defense": dist_defense, "subjects": dist_subj},
         "fails": fails,
+        "no_komise": no_komise,
     }
