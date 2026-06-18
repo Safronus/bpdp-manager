@@ -1138,7 +1138,12 @@ location = committee (colour + programme); rooms are not tracked.
   are counted separately** (that's why F counts differ between sections): *subject
   exams*, *overall result for courses*, *thesis defence* and *overall SZZ result*;
   **per committee** = overall SZZ result, **per examiner/subject** = subject exams,
-  **defence** is separate. The tab has a **🔐 Fetch / update…** button (opens *State exams (admin)*)
+  **defence** is separate. Below the chart is a **❌ Failed students (F)** section —
+  **who failed and in what**, split by the same dimensions (*subject exams* incl.
+  the subject and examiner, *overall result for courses*, *defence*, *overall
+  „Failed"*). Names are **clickable** (open the student's SZZ summary) and are also
+  written into the **tooltip** of the red (F) segment in the chart. The tab has a
+  **🔐 Fetch / update…** button (opens *State exams (admin)*)
   and a **cache status** line (record count, finished, last fetched) — no need to
   go to the profile menu. **Data shows immediately on app start** from the local
   cache (no connection needed; the current year is selected automatically). If the

@@ -32,3 +32,33 @@ def test_student_szz_html_states() -> None:
     h = student_szz_html(rec, "A1", "Jan")
     assert "AZINF" in h and "Prospěl" in h and "Novák" in h
     assert "z předmětů" in h   # dimenze celkový výsledek z předmětů
+
+
+def test_szz_fails_html_and_labels() -> None:
+    from bpdpmanager.ui.komise_tab import _fail_labels, _szz_fails_html
+
+    # prázdné → nic
+    assert _szz_fails_html({}) == ""
+    assert _szz_fails_html({"subjects": [], "predmety": [],
+                            "defense": [], "overall": []}) == ""
+
+    fails = {
+        "subjects": [{"os": "A1", "jmeno": "Jan Novotný",
+                      "predmet": "AZINF", "zkousejici": "Novák"}],
+        "predmety": [{"os": "A1", "jmeno": "Jan Novotný"}],
+        "defense": [{"os": "A2", "jmeno": "", "zkousejici": "Vedoucí"}],
+        "overall": [{"os": "A1", "jmeno": "Jan Novotný",
+                     "studia": "Neprospěl", "znamka": "F"}],
+    }
+    h = _szz_fails_html(fails)
+    assert "Neúspěšní studenti" in h
+    assert "Jan Novotný" in h and "AZINF" in h and "Novák" in h
+    assert "Neprospěl" in h and "Vedoucí" in h
+    assert 'href="szz:A1' in h          # jméno je klikací odkaz na souhrn SZZ
+    assert "A2" in h                    # bez jména → klikací os. číslo
+
+    # _fail_labels dedup dle os. čísla, fallback na os. číslo bez jména
+    labels = _fail_labels([{"os": "A1", "jmeno": "Jan"},
+                           {"os": "A1", "jmeno": "Jan"},
+                           {"os": "A3", "jmeno": ""}])
+    assert labels == ["Jan", "A3"]

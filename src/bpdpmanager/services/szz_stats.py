@@ -67,11 +67,15 @@ def szz_admin_stats(records: dict, committees) -> dict:
     recs = [r for oc, r in (records or {}).items()
             if (not in_scope) or (oc or "").strip().upper() in in_scope]
     os_to_color = {}
+    os_to_name = {}
     for c in committees:
         for s in c.slots:
             pn = (s.personal_number or "").strip().upper()
             if pn:
                 os_to_color.setdefault(pn, c.color or "?")
+                nm = (s.student_name or "").strip()
+                if nm:
+                    os_to_name.setdefault(pn, nm)
 
     komise: dict = {}
     examiner: dict = {}
@@ -80,6 +84,18 @@ def szz_admin_stats(records: dict, committees) -> dict:
     dist_overall, dist_predmety, dist_defense, dist_subj = (
         _empty_dist(), _empty_dist(), _empty_dist(), _empty_dist())
     students = nedostupne = 0
+    # Neúspěchy (F/FX) po dimenzích — kdo a v čem neuspěl. Vše dle os. čísla,
+    # jméno jen pro zobrazení (z rozpisu komise nebo z parsed záznamu).
+    fails: dict = {"subjects": [], "predmety": [], "defense": [], "overall": []}
+
+    def _name(r) -> str:
+        oc = (r.os_cislo or "").strip().upper()
+        nm = os_to_name.get(oc)
+        if nm:
+            return nm
+        full = " ".join(p for p in (getattr(r, "prijmeni", ""),
+                                    getattr(r, "jmeno", "")) if p).strip()
+        return full
 
     def _komise(color):
         return komise.setdefault(color, {"komise": color, "n": 0,
@@ -95,6 +111,8 @@ def szz_admin_stats(records: dict, committees) -> dict:
             if color:
                 _komise(color)["nedostupne"] += 1
             continue
+        oc = (r.os_cislo or "").strip().upper()
+        nm = _name(r)
         ov = getattr(r, "overall", None)
         if ov:
             kgrp = _komise(ov.komise or "?")
@@ -106,6 +124,16 @@ def szz_admin_stats(records: dict, committees) -> dict:
             klp = _letter(getattr(ov, "vysledek_predmety", ""))
             if klp:
                 dist_predmety[klp] += 1
+                if klp == "F":
+                    fails["predmety"].append({"os": oc, "jmeno": nm,
+                                              "komise": ov.komise or ""})
+            # „Neprospěl" = celková známka F nebo výsledek studia Neprospěl.
+            neprospel = (kl == "F") or (getattr(ov, "prospel", None) is False)
+            if neprospel:
+                fails["overall"].append({
+                    "os": oc, "jmeno": nm, "komise": ov.komise or "",
+                    "znamka": (ov.vysledek_zkousek or "").strip(),
+                    "studia": (getattr(ov, "vysledek_studia", "") or "").strip()})
 
         for s in getattr(r, "subjects", []) or []:
             sl = _letter(s.znamka)
@@ -128,12 +156,20 @@ def szz_admin_stats(records: dict, committees) -> dict:
                     questions.setdefault(s.predmet, []).append(s.prubeh)
             if sl:
                 dist_subj[sl] += 1
+                if sl == "F":
+                    fails["subjects"].append({
+                        "os": oc, "jmeno": nm, "predmet": s.predmet or "?",
+                        "zkousejici": (s.zkousejici or "").strip()})
 
         dfn = getattr(r, "defense", None)
         if dfn:
             dl = _letter(dfn.znamka)
             if dl:
                 dist_defense[dl] += 1
+                if dl == "F":
+                    fails["defense"].append({
+                        "os": oc, "jmeno": nm,
+                        "zkousejici": (dfn.zkousejici or "").strip()})
 
     def _rows(d: dict, sort_key) -> list:
         rows = list(d.values())
@@ -143,6 +179,11 @@ def szz_admin_stats(records: dict, committees) -> dict:
                 row["dist"], row["n"])
         rows.sort(key=sort_key)
         return rows
+
+    for lst in fails.values():
+        # Bez jména řadíme na konec (1), jinak abecedně dle jména, pak os. číslo.
+        lst.sort(key=lambda f: (0, f["jmeno"]) if f.get("jmeno")
+                 else (1, f.get("os") or ""))
 
     # Známky se počítají jen z dostupných (nedostupné jsou samostatná kategorie).
     t_pass, t_fail, t_none = _pass_fail_none(dist_overall, students - nedostupne)
@@ -155,5 +196,6 @@ def szz_admin_stats(records: dict, committees) -> dict:
         "by_predmet": _rows(predmet, lambda r: r["predmet"]),
         "dist": {"overall": dist_overall, "predmety": dist_predmety,
                  "defense": dist_defense, "subjects": dist_subj},
+        "fails": fails,
         "questions": questions,
     }

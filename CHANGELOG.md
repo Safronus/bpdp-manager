@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.18.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): seznam neúspěšných studentů (F) po dimenzích.** V záložce
+  **Průběh SZZ** přibyla sekce **❌ Neúspěšní studenti (F)** — kdo a v čem
+  neuspěl, **rozděleno podle dimenzí**: *předmětové zkoušky* (vč. předmětu a
+  zkoušejícího), *celkový výsledek z předmětů*, *obhajoba práce* a *celkově
+  „Neprospěl"*. Jména jsou **klikací** (otevřou souhrn SZZ studenta). Navíc se
+  jména studentů s F vepisují do **tooltipu** červeného (F) segmentu v grafu
+  **Rozložení známek po dimenzích**. Vše klíčováno os. číslem; jméno se bere
+  z rozpisu komise.
+
 ## [2.17.0] - 2026-06-18
 
 ### Added

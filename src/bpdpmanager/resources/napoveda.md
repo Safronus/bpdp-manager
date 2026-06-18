@@ -1252,7 +1252,11 @@ obor); místnost se neeviduje.
   (proto se počty F mezi sekcemi liší): *předmětové zkoušky (dílčí)*, *celkový
   výsledek z předmětů*, *obhajoba práce* a *celkový výsledek SZZ*; **per komise**
   = celkový výsledek SZZ, **per zkoušející/předmět** = dílčí zkoušky, **obhajoba**
-  je samostatná. Nahoře v záložce je tlačítko
+  je samostatná. Pod grafem je sekce **❌ Neúspěšní studenti (F)** — **kdo a v čem
+  neuspěl**, rozděleno po týchž dimenzích (*předmětové zkoušky* vč. předmětu
+  a zkoušejícího, *celkový výsledek z předmětů*, *obhajoba*, *celkově „Neprospěl"*).
+  Jména jsou **klikací** (otevřou souhrn SZZ studenta) a vepisují se i do
+  **tooltipu** červeného (F) segmentu v grafu. Nahoře v záložce je tlačítko
   **🔐 Stáhnout / aktualizovat…** (otevře *Státnice (admin)*) a **indikace**
   (počet záznamů, z toho hotových, naposledy staženo) — není nutné chodit do
   menu profilu. **Data se ukážou hned po otevření aplikace** z lokální cache

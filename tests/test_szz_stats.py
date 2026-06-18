@@ -119,3 +119,52 @@ def test_defense_distribution() -> None:
     }
     dist = szz_admin_stats(records, [])["dist"]["defense"]
     assert dist["B"] == 1 and dist["F"] == 1   # FX → F
+
+
+def test_fails_by_dimension() -> None:
+    records = {
+        "A1": SzzRecord(
+            os_cislo="A1",
+            overall=SzzOverall(komise="fialová", vysledek_zkousek="F",
+                               vysledek_predmety="F", vysledek_studia="Neprospěl",
+                               prospel=False),
+            subjects=[SubjectExam(predmet="AZINF", znamka="FX", zkousejici="Novák")],
+            defense=ThesisDefense(znamka="F", zkousejici="Vedoucí"),
+        ),
+        "A2": _rec("A2", "fialová", "A", True,
+                   [("AZKYB", "A", "Svoboda", "200", "")]),
+    }
+    c = Committee(color="fialová", slots=[
+        DefenseSlot(personal_number="A1", student_name="Jan Novotný"),
+        DefenseSlot(personal_number="A2", student_name="Eva Malá"),
+    ])
+    fails = szz_admin_stats(records, [c])["fails"]
+
+    assert [f["os"] for f in fails["subjects"]] == ["A1"]
+    assert fails["subjects"][0]["jmeno"] == "Jan Novotný"   # z rozpisu komise
+    assert fails["subjects"][0]["predmet"] == "AZINF"
+    assert fails["subjects"][0]["zkousejici"] == "Novák"
+
+    assert [f["os"] for f in fails["predmety"]] == ["A1"]
+    assert [f["os"] for f in fails["defense"]] == ["A1"]
+    assert fails["defense"][0]["zkousejici"] == "Vedoucí"
+
+    assert [f["os"] for f in fails["overall"]] == ["A1"]
+    assert fails["overall"][0]["studia"] == "Neprospěl"
+    # úspěšný student se v žádné dimenzi neobjeví
+    assert all(f["os"] != "A2" for lst in fails.values() for f in lst)
+
+
+def test_overall_fail_on_prospel_false_and_name_fallback() -> None:
+    # Neprospěl bez známky F (jen výsledek studia) + jméno z parsed záznamu.
+    records = {
+        "A5": SzzRecord(
+            os_cislo="A5", jmeno="Petr", prijmeni="Dvořák",
+            overall=SzzOverall(vysledek_zkousek="", vysledek_studia="Neprospěl",
+                               prospel=False),
+        ),
+    }
+    fails = szz_admin_stats(records, [])["fails"]   # prázdné komise → vše
+    assert [f["os"] for f in fails["overall"]] == ["A5"]
+    assert fails["overall"][0]["jmeno"] == "Dvořák Petr"   # fallback z parsed
+    assert not (fails["subjects"] or fails["predmety"] or fails["defense"])

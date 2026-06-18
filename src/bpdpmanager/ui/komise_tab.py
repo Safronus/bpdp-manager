@@ -1675,8 +1675,25 @@ def _szz_dist_inline(dist: dict) -> str:
     return "&nbsp; ".join(parts)
 
 
-def _szz_dist_bar(dist: dict, title: str) -> str:
-    """Vodorovný proužek rozložení A-F (segmenty šířky ∝ počtu)."""
+def _fail_labels(items: list) -> list:
+    """Z fails-položek vrátí jména (nebo os. číslo) studentů, dedup dle os. čísla."""
+    seen: set = set()
+    out: list = []
+    for f in items or []:
+        oc = (f.get("os") or "").strip().upper()
+        if oc and oc in seen:
+            continue
+        seen.add(oc)
+        out.append((f.get("jmeno") or "").strip() or oc or "?")
+    return out
+
+
+def _szz_dist_bar(dist: dict, title: str, fail_labels: list | None = None) -> str:
+    """Vodorovný proužek rozložení A-F (segmenty šířky ∝ počtu).
+
+    Do tooltipu F segmentu se vepíší jména studentů, kteří v dané dimenzi
+    neuspěli (``fail_labels``) — kdyby je klient nezobrazil, je tu i seznam níže.
+    """
     from html import escape
 
     from ..services.szz_stats import GRADES
@@ -1690,11 +1707,94 @@ def _szz_dist_bar(dist: dict, title: str) -> str:
         if not c:
             continue
         w = max(2, round(c / total * 240))
+        tip = f"{g}: {c}"
+        if g == "F" and fail_labels:
+            tip += " — " + ", ".join(fail_labels[:15])
+            if len(fail_labels) > 15:
+                tip += f", +{len(fail_labels) - 15}"
         segs += (f"<td width='{w}' bgcolor='{_GRADE_COLORS[g]}' "
-                 f"title='{g}: {c}'>&nbsp;</td>")
+                 f"title='{escape(tip)}'>&nbsp;</td>")
     return (f"<p style='margin:6px 0 2px;color:{_MUTED};'>{escape(title)} "
             f"<span style='color:{_MUTED};'>(n={total})</span></p>"
             f"<table cellspacing='0' cellpadding='0'><tr>{segs}</tr></table>")
+
+
+def _szz_fail_student(f: dict) -> str:
+    """Klikací jméno + šedé os. číslo (nebo jen os. číslo, když jméno chybí)."""
+    from html import escape
+
+    oc = (f.get("os") or "").strip()
+    name = (f.get("jmeno") or "").strip()
+    if name:
+        return (_szz_student_anchor(oc, name, escape(name))
+                + f" <span style='color:{_MUTED};'>{escape(oc)}</span>")
+    return _szz_student_anchor(oc, oc, escape(oc or "?"))
+
+
+def _szz_fails_html(fails: dict) -> str:
+    """Seznam neúspěchů (F/FX) po dimenzích: kdo a v čem neuspěl (klik → souhrn).
+
+    Dimenze: předmětové zkoušky (dílčí), celkový výsledek z předmětů, obhajoba
+    a celkově „Neprospěl". Vše dle os. čísla; jméno z rozpisu komise.
+    """
+    from html import escape
+
+    fails = fails or {}
+    keys = ("subjects", "predmety", "defense", "overall")
+    if not sum(len(fails.get(k, [])) for k in keys):
+        return ""
+    f_col = _GRADE_COLORS["F"]
+
+    def _hdr(label: str, n: int) -> str:
+        return (f"<p style='margin:8px 0 2px;'><b>{escape(label)}</b> "
+                f"<span style='color:{_MUTED};'>({n})</span></p>")
+
+    def _li(inner: str) -> str:
+        return f"<p style='margin:0 0 0 10px;'>• {inner}</p>"
+
+    out = ("<h4 style='margin:14px 0 2px;'>❌ "
+           + escape(tr("Neúspěšní studenti (F)")) + "</h4>")
+    out += (f"<p style='margin:2px 0 6px;color:{_MUTED};font-size:11px;'>"
+            + escape(tr("Kdo a v čem neuspěl (F/FX), rozděleno podle dimenzí. "
+                        "Klik na jméno otevře souhrn SZZ studenta.")) + "</p>")
+
+    subs = fails.get("subjects", [])
+    if subs:
+        out += _hdr(tr("Předmětové zkoušky"), len(subs))
+        for f in subs:
+            det = f" — <b>{escape(f.get('predmet') or '?')}</b>"
+            zk = (f.get("zkousejici") or "").strip()
+            if zk:
+                det += (f" <span style='color:{_MUTED};'>"
+                        f"({escape(tr('zkoušející'))} {escape(zk)})</span>")
+            out += _li(_szz_fail_student(f) + det)
+
+    pred = fails.get("predmety", [])
+    if pred:
+        out += _hdr(tr("Celkový výsledek z předmětů"), len(pred))
+        for f in pred:
+            out += _li(_szz_fail_student(f))
+
+    dfn = fails.get("defense", [])
+    if dfn:
+        out += _hdr(tr("Obhajoba práce"), len(dfn))
+        for f in dfn:
+            zk = (f.get("zkousejici") or "").strip()
+            suff = (f" <span style='color:{_MUTED};'>"
+                    f"({escape(tr('zkoušející'))} {escape(zk)})</span>"
+                    if zk else "")
+            out += _li(_szz_fail_student(f) + suff)
+
+    ov = fails.get("overall", [])
+    if ov:
+        out += _hdr(tr("Celkově „Neprospěl"), len(ov))
+        for f in ov:
+            tag = ((f.get("studia") or "").strip()
+                   or (f.get("znamka") or "").strip() or tr("Neprospěl"))
+            out += _li(_szz_fail_student(f)
+                       + f" <span style='color:{f_col};'>{escape(tag)}</span>")
+
+    return out
 
 
 def _szz_avg_cell(avg) -> str:
@@ -1813,10 +1913,18 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int) -> str:
                         "výsledek SZZ. Proto se počty F mezi sekcemi mohou lišit "
                         "(per komise = celkový výsledek SZZ; per zkoušející = "
                         "dílčí předmětové zkoušky; obhajoba je samostatná).")) + "</p>")
-    out += _szz_dist_bar(dist.get("subjects", {}), tr("Předmětové zkoušky (dílčí)"))
-    out += _szz_dist_bar(dist.get("predmety", {}), tr("Celkový výsledek z předmětů"))
-    out += _szz_dist_bar(dist.get("defense", {}), tr("Obhajoba práce"))
-    out += _szz_dist_bar(dist.get("overall", {}), tr("Celkový výsledek SZZ"))
+    fails = szz.get("fails", {})
+    out += _szz_dist_bar(dist.get("subjects", {}), tr("Předmětové zkoušky (dílčí)"),
+                         _fail_labels(fails.get("subjects", [])))
+    out += _szz_dist_bar(dist.get("predmety", {}), tr("Celkový výsledek z předmětů"),
+                         _fail_labels(fails.get("predmety", [])))
+    out += _szz_dist_bar(dist.get("defense", {}), tr("Obhajoba práce"),
+                         _fail_labels(fails.get("defense", [])))
+    out += _szz_dist_bar(dist.get("overall", {}), tr("Celkový výsledek SZZ"),
+                         _fail_labels(fails.get("overall", [])))
+
+    # Neúspěšní studenti (F) — kdo a v čem neuspěl, po dimenzích.
+    out += _szz_fails_html(fails)
 
     # Otázky (po předmětech, zkráceně)
     questions = szz.get("questions", {})
