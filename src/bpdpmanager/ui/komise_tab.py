@@ -947,6 +947,10 @@ class KomiseTab(QWidget):
                     f"rok {year}")
         return all_committees, "všechny roky"
 
+    def rerender_stats(self) -> None:
+        """Znovu vykreslí statistiku (např. po stažení SZZ dat v admin okně)."""
+        self._render_stats()
+
     def _render_stats(self) -> None:
         from ..services.komise_stats import committee_defense_stats
         from ..services.szz_stats import szz_admin_stats

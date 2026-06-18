@@ -1,8 +1,13 @@
-"""Admin okno SZZ — přihlášení do portálu „Zapisovatel u státnic" + stav.
+"""Admin okno SZZ — ovládací panel nad portálem „Zapisovatel u státnic".
 
-F1: vestavěný prohlížeč pro přihlášení (heslo se neukládá), indikátor stavu
-přihlášení/role a testovací stažení jednoho studenta (ověření pipeline v appce).
-Tahání do statistik a tichá kontrola přijdou v dalších fázích.
+Vestavěný prohlížeč pro přihlášení (heslo se neukládá — jen cookie session
+v profilu), indikátor stavu přihlášení/role a:
+- ruční stažení jednoho studenta dle os. čísla (📂 i z cache, bez STAG),
+- hromadná **inkrementální kontrola** komisí (zbývající / všechny / Stop) +
+  tichá kontrola dnešních po přihlášení, s re-login flow při vypršení session.
+
+Stažené záznamy se ukládají do cache (``ThesisService.upsert_szz_result``) a
+zobrazují se v záložce „Průběh SZZ" ve Statistice obhajob.
 """
 
 from __future__ import annotations
@@ -259,7 +264,7 @@ class SzzAdminDialog(QDialog):
             self._batch.stop()
             self.lbl_progress.setText("⏹ " + tr("Zastavuji…"))
 
-    # ── testovací stažení jednoho studenta ────────────────────────────────
+    # ── ruční stažení jednoho studenta ────────────────────────────────────
     def _fetch(self) -> None:
         oc = self.os_input.text().strip()
         if not oc:

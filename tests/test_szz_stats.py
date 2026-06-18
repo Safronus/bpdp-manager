@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from bpdpmanager.models.komise import Committee, DefenseSlot
-from bpdpmanager.models.szz_result import SubjectExam, SzzOverall, SzzRecord
+from bpdpmanager.models.szz_result import (
+    SubjectExam,
+    SzzOverall,
+    SzzRecord,
+    ThesisDefense,
+)
 from bpdpmanager.services.szz_stats import _avg, _letter, szz_admin_stats
 
 
@@ -72,3 +77,12 @@ def test_letter_and_avg() -> None:
     assert _letter("FX") == "F" and _letter("A") == "A" and _letter("") == ""
     assert _avg({"A": 1, "F": 1, "B": 0, "C": 0, "D": 0, "E": 0}) == 3.5
     assert _avg(dict.fromkeys("ABCDEF", 0)) is None
+
+
+def test_defense_distribution() -> None:
+    records = {
+        "A1": SzzRecord(os_cislo="A1", defense=ThesisDefense(znamka="B")),
+        "A2": SzzRecord(os_cislo="A2", defense=ThesisDefense(znamka="FX")),
+    }
+    dist = szz_admin_stats(records, [])["dist"]["defense"]
+    assert dist["B"] == 1 and dist["F"] == 1   # FX → F

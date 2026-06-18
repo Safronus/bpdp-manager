@@ -2480,6 +2480,9 @@ class MainWindow(QMainWindow):
             self._szz_session = SzzPortalSession(
                 app_data_dir() / "szz_webview", self)
         SzzAdminDialog(self._szz_session, self.service, self).exec()
+        # Po stažení/kontrole se mohla změnit cache → obnov záložku Průběh SZZ.
+        if getattr(self, "tab_komise", None) is not None:
+            self.tab_komise.rerender_stats()
 
     def _check_stag_consistency(self) -> None:
         """Kontrola: které soubory STAG nabízí a v DB chybí (+ dostažení)."""

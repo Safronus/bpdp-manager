@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.14.1] - 2026-06-18
+
+### Changed
+- **Státnice (admin): záložka „Průběh SZZ" se po zavření admin okna sama
+  obnoví** (F5) — po stažení / hromadné kontrole se nová data hned promítnou do
+  statistiky (dřív bylo potřeba přepnout výběr ve stromu). Úklid zastaralých
+  popisků z 1. fáze + doplněný test rozložení známek obhajoby. Tím je série
+  *Státnice (admin) — průběh SZZ* (F1–F5) kompletní.
+
 ## [2.14.0] - 2026-06-18
 
 ### Added
