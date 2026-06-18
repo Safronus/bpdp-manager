@@ -1252,9 +1252,11 @@ obor); místnost se neeviduje.
   + Ø + **medián**; sloupce **Ø** i **medián** jsou obarvené **gradientem
   náročnosti** — *nejnižší zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*.
   Medián je **odolnější vůči počtu zkoušení / odlehlým známkám** než průměr —
-  rozdíl Ø vs medián ukáže zešikmení. Přepínač v nadpisu **řadit: počtem ·
-  nejpřísnější** mění řazení mezi počtem zkoušení a průměrnou známkou),
-  **per předmět SZZ**
+  rozdíl Ø vs medián ukáže zešikmení. Sloupec **Zk./den** ukazuje **počet
+  zkoušení na den** (dílčí zkoušky ÷ počet různých dní, kdy zkoušel; v závorce
+  počet dní) — zohledňuje, že někdo je v komisi víc dní. Přepínač v nadpisu
+  **řadit: počtem · nejpřísnější** mění řazení mezi počtem zkoušení a průměrnou
+  známkou), **per předmět SZZ**
   (počet + rozložení + Ø) a **graf rozložení známek po
   dimenzích**. (Otázky/průběh tu **nejsou** — jsou nenormované; najdeš je jen
   v *Souhrnu SZZ studenta*.) **Dimenze se počítají zvlášť**

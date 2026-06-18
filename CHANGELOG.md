@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.23.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): „Zk./den" u „Per zkoušející".** Nový sloupec **Zk./den**
+  ukazuje **počet zkoušení na den** zkoušejícího (= počet dílčích zkoušek ÷ počet
+  **různých dní**, kdy zkoušel; v závorce počet dní). Zohledňuje, že někdo je
+  v komisi víc dní a někdo míň — počet zkoušek samotný tak nezkresluje. Dny se
+  berou z dat dílčích zkoušek; bez dat se „—".
+
 ## [2.22.0] - 2026-06-18
 
 ### Added

@@ -1982,23 +1982,30 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                                       -r["n"], r["jmeno"] or ""))
     rows = ""
     for r in examiners:
+        dni = r.get("dni") or 0
+        per_day = (f"<b>{_szz_avg_cell(r.get('per_day'))}</b>"
+                   + (f" <span style='color:{_MUTED};font-size:10px;'>"
+                      f"({dni}&nbsp;d)</span>" if dni else ""))
         rows += (f"<tr><td style='padding:2px 12px 2px 0;white-space:nowrap;'>"
                  f"{escape(r['jmeno'] or '?')}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>"
                  f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td>"
-                 f"<td style='padding:2px 0;text-align:right;'>"
-                 f"{_szz_avg_heat(r.get('median'), _lo, _hi)}</td></tr>")
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>"
+                 f"{_szz_avg_heat(r.get('median'), _lo, _hi)}</td>"
+                 f"<td style='padding:2px 0;text-align:right;white-space:nowrap;'>"
+                 f"{per_day}</td></tr>")
     title = ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
              + escape(tr("Per zkoušející (náročnost)"))
              + _szz_examiner_sort_toggle(examiner_sort) + "</h4>"
              + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
              + escape(tr("Předmětové zkoušky; Ø i medián: zeleně = nejhodnější … "
                          "červeně = nejpřísnější (medián je odolnější vůči "
-                         "počtu zkoušení).")) + "</p>")
+                         "počtu zkoušení). Zk./den = zkoušení na den (v závorce "
+                         "počet dní v komisi).")) + "</p>")
     out += _table(title, rows, escape(tr("Zkoušející")),
-                  extra_heads=(tr("Medián"),))
+                  extra_heads=(tr("Medián"), tr("Zk./den")))
 
     # Per předmět
     rows = ""

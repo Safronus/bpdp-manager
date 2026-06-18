@@ -1139,9 +1139,11 @@ location = committee (colour + programme); rooms are not tracked.
   **median**; both the **Ø** and **median** columns are shaded by a **strictness
   gradient** — *lowest green = most lenient … highest red = strictest*. The median
   is **more robust against the number of exams / outlier grades** than the mean —
-  an Ø vs median gap reveals skew. The **sort: by count · strictest** toggle in
-  the heading switches ordering between the number of exams and the average
-  grade), **per SZZ subject** (count +
+  an Ø vs median gap reveals skew. The **Zk./den** column shows **exams per day**
+  (subject exams ÷ the number of distinct days examined; day count in brackets) —
+  accounting for some examiners sitting more days than others. The **sort: by
+  count · strictest** toggle in the heading switches ordering between the number
+  of exams and the average grade), **per SZZ subject** (count +
   distribution + Ø) and a **grade distribution by
   dimension**. (Questions/procedure are **not** here — they are non-standardised;
   find them only in the *Student SZZ summary*.) **Dimensions

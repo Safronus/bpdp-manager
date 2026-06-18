@@ -137,6 +137,28 @@ def test_by_examiner_has_median() -> None:
     assert ex["100"]["median"] == 1.0 and ex["100"]["avg"] == 2.7
 
 
+def test_by_examiner_per_day() -> None:
+    def _r(oc, subs):
+        return SzzRecord(os_cislo=oc, subjects=[
+            SubjectExam(predmet=p, znamka=g, zkousejici="Novák",
+                        ucitidno="100", datum=dt) for (p, g, dt) in subs])
+    records = {
+        "A1": _r("A1", [("AZINF", "A", "15.6.2026"), ("AZKYB", "B", "15.6.2026")]),
+        "A2": _r("A2", [("AZMAT", "C", "16.6.2026")]),
+    }
+    ex = {r["ucitidno"]: r for r in szz_admin_stats(records, [])["by_examiner"]}
+    # 3 zkoušení ve 2 různých dnech → 1,5 zkoušení/den; days set v outputu není
+    assert ex["100"]["dni"] == 2 and ex["100"]["per_day"] == 1.5
+    assert "days" not in ex["100"]
+
+
+def test_by_examiner_per_day_none_without_dates() -> None:
+    records = {"A1": SzzRecord(os_cislo="A1", subjects=[
+        SubjectExam(predmet="AZINF", znamka="A", zkousejici="X", ucitidno="9")])}
+    ex = {r["ucitidno"]: r for r in szz_admin_stats(records, [])["by_examiner"]}
+    assert ex["9"]["dni"] == 0 and ex["9"]["per_day"] is None
+
+
 def test_defense_distribution() -> None:
     records = {
         "A1": SzzRecord(os_cislo="A1", defense=ThesisDefense(znamka="B")),

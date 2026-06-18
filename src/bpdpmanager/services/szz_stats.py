@@ -162,10 +162,13 @@ def szz_admin_stats(records: dict, committees) -> dict:
             if ekey:
                 e = examiner.setdefault(ekey, {
                     "jmeno": s.zkousejici, "ucitidno": s.ucitidno, "n": 0,
-                    "dist": _empty_dist()})
+                    "dist": _empty_dist(), "days": set()})
                 e["n"] += 1
                 if sl:
                     e["dist"][sl] += 1
+                d = (s.datum or "").strip()   # počet různých dní → zkoušení/den
+                if d:
+                    e["days"].add(d)
             if s.predmet:
                 p = predmet.setdefault(s.predmet, {
                     "predmet": s.predmet, "katedra": s.katedra, "n": 0,
@@ -195,6 +198,10 @@ def szz_admin_stats(records: dict, committees) -> dict:
             row["median"] = _median(row["dist"])
             row["pass"], row["fail"], row["none"] = _pass_fail_none(
                 row["dist"], row["n"])
+            days = row.pop("days", None)   # jen u zkoušejících
+            if days is not None:
+                row["dni"] = len(days)
+                row["per_day"] = round(row["n"] / len(days), 1) if days else None
         rows.sort(key=sort_key)
         return rows
 
