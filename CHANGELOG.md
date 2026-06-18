@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.22.0] - 2026-06-18
+
+### Added
+- **Státnice (admin): medián vedle průměru u „Per zkoušející".** Tabulka *Per
+  zkoušející (náročnost)* má nový sloupec **Medián** hned vedle **Ø**. Medián je
+  **odolnější vůči počtu zkoušení** a odlehlým známkám než průměr (kdo zkouší
+  málo / dá jedno F nezkresluje), takže rozdíl Ø vs medián ukáže **zešikmení**.
+  Číselně na stejné škále (A=1 … F=6) a obarvený **stejným gradientem náročnosti**
+  pro přímé porovnání.
+
 ## [2.21.0] - 2026-06-18
 
 ### Changed

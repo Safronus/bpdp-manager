@@ -113,6 +113,30 @@ def test_letter_and_avg() -> None:
     assert _avg(dict.fromkeys("ABCDEF", 0)) is None
 
 
+def test_median() -> None:
+    from bpdpmanager.services.szz_stats import _median
+
+    assert _median(dict.fromkeys("ABCDEF", 0)) is None
+    # liché n: A,B,D → prostřední B = 2
+    assert _median({"A": 1, "B": 1, "C": 0, "D": 1, "E": 0, "F": 0}) == 2.0
+    # sudé n: A,B,C,D → (2+3)/2 = 2.5
+    assert _median({"A": 1, "B": 1, "C": 1, "D": 1, "E": 0, "F": 0}) == 2.5
+    # odolnost vůči odlehlé F: 5x A + 1x F → medián A=1 (průměr by byl 1,8)
+    assert _median({"A": 5, "B": 0, "C": 0, "D": 0, "E": 0, "F": 1}) == 1.0
+
+
+def test_by_examiner_has_median() -> None:
+    records = {
+        "A1": _rec("A1", "x", "A", True,
+                   [("AZINF", "A", "Novák", "100", ""),
+                    ("AZKYB", "A", "Novák", "100", ""),
+                    ("AZMAT", "F", "Novák", "100", "")]),
+    }
+    ex = {r["ucitidno"]: r for r in szz_admin_stats(records, [])["by_examiner"]}
+    # Novák: A,A,F → medián A=1,0 (odolný), průměr (1+1+6)/3 = 2,7
+    assert ex["100"]["median"] == 1.0 and ex["100"]["avg"] == 2.7
+
+
 def test_defense_distribution() -> None:
     records = {
         "A1": SzzRecord(os_cislo="A1", defense=ThesisDefense(znamka="B")),

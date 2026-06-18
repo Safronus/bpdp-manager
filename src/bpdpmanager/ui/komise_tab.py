@@ -1932,14 +1932,20 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
         + f" &nbsp;·&nbsp; {escape(tr('Ø známka'))} "
         f"<b>{_szz_avg_cell(tot.get('avg'))}</b></p>")
 
-    def _table(title_html, rows_html, head_label):
+    def _table(title_html, rows_html, head_label, extra_heads=()):
+        # Ø dostane pravý padding jen když za ním ještě něco je (např. Medián).
+        o_pad = "2px 10px 2px 0" if extra_heads else "2px 0"
         h = (f"<th style='padding:2px 12px 2px 0;text-align:left;color:{_MUTED};'>"
              f"{head_label}</th>"
              f"<th style='padding:2px 10px 2px 0;text-align:right;color:{_MUTED};'>"
              f"{escape(tr('Počet'))}</th>"
              f"<th style='padding:2px 10px 2px 0;text-align:left;color:{_MUTED};'>"
              f"{escape(tr('Rozložení A-F'))}</th>"
-             f"<th style='padding:2px 0;text-align:right;color:{_MUTED};'>Ø</th>")
+             f"<th style='padding:{o_pad};text-align:right;color:{_MUTED};'>Ø</th>")
+        for i, eh in enumerate(extra_heads):
+            pad = "2px 0" if i == len(extra_heads) - 1 else "2px 10px 2px 0"
+            h += (f"<th style='padding:{pad};text-align:right;color:{_MUTED};'>"
+                  f"{escape(eh)}</th>")
         return (title_html + "<table style='border-collapse:collapse;'><tr>"
                 + h + "</tr>" + rows_html + "</table>")
 
@@ -1980,15 +1986,19 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
                  f"{escape(r['jmeno'] or '?')}</td>"
                  f"<td style='padding:2px 10px 2px 0;text-align:right;'>{r['n']}</td>"
                  f"<td style='padding:2px 10px 2px 0;'>{_szz_dist_inline(r['dist'])}</td>"
+                 f"<td style='padding:2px 10px 2px 0;text-align:right;'>"
+                 f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td>"
                  f"<td style='padding:2px 0;text-align:right;'>"
-                 f"{_szz_avg_heat(r['avg'], _lo, _hi)}</td></tr>")
+                 f"{_szz_avg_heat(r.get('median'), _lo, _hi)}</td></tr>")
     title = ("<h4 style='margin:12px 0 0;'>🧑‍🏫 "
              + escape(tr("Per zkoušející (náročnost)"))
              + _szz_examiner_sort_toggle(examiner_sort) + "</h4>"
              + f"<p style='margin:1px 0 2px;color:{_MUTED};font-size:11px;'>"
-             + escape(tr("Předmětové zkoušky; Ø zeleně = nejhodnější … "
-                         "červeně = nejpřísnější.")) + "</p>")
-    out += _table(title, rows, escape(tr("Zkoušející")))
+             + escape(tr("Předmětové zkoušky; Ø i medián: zeleně = nejhodnější … "
+                         "červeně = nejpřísnější (medián je odolnější vůči "
+                         "počtu zkoušení).")) + "</p>")
+    out += _table(title, rows, escape(tr("Zkoušející")),
+                  extra_heads=(tr("Medián"),))
 
     # Per předmět
     rows = ""

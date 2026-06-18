@@ -35,6 +35,29 @@ def _avg(dist: dict):
     return round(s / n, 1)
 
 
+def _median(dist: dict):
+    """Medián známek (číselně 1-6) z rozložení A-F; ``None`` když prázdné.
+
+    Odolnější vůči počtu/odlehlým hodnotám než průměr. Pro sudé ``n`` průměr
+    dvou prostředních (může vyjít x,5). GRADES je seřazené A→F, takže stačí
+    projít kumulativní počty.
+    """
+    n = sum(dist.values())
+    if not n:
+        return None
+    lo_pos, hi_pos = (n + 1) // 2, (n + 2) // 2   # 1-based pozice mediánu
+    lo_val = hi_val = None
+    cum = 0
+    for g in GRADES:
+        cum += dist.get(g, 0)
+        if lo_val is None and cum >= lo_pos:
+            lo_val = _GRADE_NUM[g]
+        if cum >= hi_pos:
+            hi_val = _GRADE_NUM[g]
+            break
+    return round((lo_val + hi_val) / 2, 1)
+
+
 _PASS = ("A", "B", "C", "D", "E")
 
 
@@ -169,6 +192,7 @@ def szz_admin_stats(records: dict, committees) -> dict:
         rows = list(d.values())
         for row in rows:
             row["avg"] = _avg(row["dist"])
+            row["median"] = _median(row["dist"])
             row["pass"], row["fail"], row["none"] = _pass_fail_none(
                 row["dist"], row["n"])
         rows.sort(key=sort_key)

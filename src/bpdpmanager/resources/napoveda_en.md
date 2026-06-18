@@ -1135,11 +1135,13 @@ location = committee (colour + programme); rooms are not tracked.
   no access yet — recorded and retried): **summary** (students, passed % / failed
   / no grade / unavailable, Ø), **per committee** (✓ passed / ✗ failed / **? no
   grade** / **⏳ unavailable** + A–F distribution + Ø), **per examiner** (how
-  many subjects each examined and which grades they give — strictness + Ø; the
-  **Ø** column is shaded by a **strictness gradient** — *lowest average green =
-  most lenient … highest red = strictest*; the **sort: by count · strictest**
-  toggle in the heading switches ordering between the number of exams and the
-  average grade), **per SZZ subject** (count +
+  many subjects each examined and which grades they give — strictness + Ø +
+  **median**; both the **Ø** and **median** columns are shaded by a **strictness
+  gradient** — *lowest green = most lenient … highest red = strictest*. The median
+  is **more robust against the number of exams / outlier grades** than the mean —
+  an Ø vs median gap reveals skew. The **sort: by count · strictest** toggle in
+  the heading switches ordering between the number of exams and the average
+  grade), **per SZZ subject** (count +
   distribution + Ø) and a **grade distribution by
   dimension**. (Questions/procedure are **not** here — they are non-standardised;
   find them only in the *Student SZZ summary*.) **Dimensions

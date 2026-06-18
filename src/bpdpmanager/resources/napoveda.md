@@ -1249,10 +1249,12 @@ obor); místnost se neeviduje.
   ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø),
   **per zkoušející**
   (kolik kdo zkoušel a jaké známky dává — **dílčí předmětové zkoušky**, náročnost
-  + Ø; sloupec **Ø** je obarvený **gradientem náročnosti** — *nejnižší průměr
-  zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*; přepínač v nadpisu
-  **řadit: počtem · nejpřísnější** mění řazení mezi počtem zkoušení a průměrnou
-  známkou), **per předmět SZZ**
+  + Ø + **medián**; sloupce **Ø** i **medián** jsou obarvené **gradientem
+  náročnosti** — *nejnižší zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*.
+  Medián je **odolnější vůči počtu zkoušení / odlehlým známkám** než průměr —
+  rozdíl Ø vs medián ukáže zešikmení. Přepínač v nadpisu **řadit: počtem ·
+  nejpřísnější** mění řazení mezi počtem zkoušení a průměrnou známkou),
+  **per předmět SZZ**
   (počet + rozložení + Ø) a **graf rozložení známek po
   dimenzích**. (Otázky/průběh tu **nejsou** — jsou nenormované; najdeš je jen
   v *Souhrnu SZZ studenta*.) **Dimenze se počítají zvlášť**
