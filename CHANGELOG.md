@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.18.2] - 2026-06-18
+
+### Fixed
+- **Klikací jména studentů jsou na tmavém pozadí čitelná.** Odkaz na studenta měl
+  `color:inherit`, což QTextBrowser u `<a>` vyhodnotí na **černou** (a přebije
+  i paletu i CSS) — na tmavém motivu bylo jméno černé na černém. Nově má odkaz
+  **explicitní světle modrou** barvu (čitelnou a signalizující klikatelnost).
+  Opraveno všude, kde se jména klikají: sekce **Neúspěšní studenti**, **rozpis
+  komise** i **Můj harmonogram**.
+
 ## [2.18.1] - 2026-06-18
 
 ### Fixed

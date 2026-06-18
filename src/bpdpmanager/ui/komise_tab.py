@@ -13,7 +13,7 @@ import unicodedata
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPalette, QPen
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -102,6 +102,11 @@ def _fold(s: str) -> str:
 _MUTED = "#9aa0a6"     # sekundární text (datum, čas, osobní číslo)
 _C_LED = "#43a047"     # vedené (zelená)
 _C_OPP = "#ab47bc"     # oponované (fialová)
+#: Barva klikacího odkazu na studenta. MUSÍ být explicitní — QTextBrowser
+#: vyhodnotí ``color:inherit`` u <a> na ČERNOU (a přebije i paletu Link i CSS),
+#: takže na tmavém pozadí by byl odkaz nečitelný. Světle modrá = čitelná na
+#: tmavém a zároveň signalizuje klikatelnost.
+_SZZ_LINK = "#8ab4f8"
 
 #: STAG stav obhajoby → (emoji, popisek, barva) pro badge v rozpisu.
 _STATE_BADGE = {
@@ -132,8 +137,9 @@ def _defense_state_badge(states: dict | None, pnum: str, name: str) -> str:
 def _szz_student_anchor(os_cislo: str, name: str, inner_html: str) -> str:
     """Obalí jméno studenta odkazem ``szz:OSCISLO?n=NAME`` (klik/kontext → souhrn SZZ).
 
-    Vypadá jako normální text; klik (i pravý) otevře souhrn SZZ studenta.
-    Bez osobního čísla vrátí ``inner_html`` beze změny.
+    Odkaz má explicitní čitelnou barvu (``_SZZ_LINK``) — viz tam, proč nelze
+    ``color:inherit``. Klik (i pravý) otevře souhrn SZZ studenta. Bez osobního
+    čísla vrátí ``inner_html`` beze změny.
     """
     from urllib.parse import quote
 
@@ -141,7 +147,7 @@ def _szz_student_anchor(os_cislo: str, name: str, inner_html: str) -> str:
     if not oc:
         return inner_html
     href = "szz:" + oc + "?n=" + quote(name or "")
-    return (f"<a href=\"{href}\" style=\"color:inherit;text-decoration:none;\" "
+    return (f"<a href=\"{href}\" style=\"color:{_SZZ_LINK};text-decoration:none;\" "
             f"title=\"Souhrn SZZ studenta\">{inner_html}</a>")
 
 
@@ -443,11 +449,6 @@ class KomiseTab(QWidget):
         self.stats_szz.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.stats_szz.customContextMenuRequested.connect(
             lambda p: self._szz_context_menu(self.stats_szz, p))
-        # Odkazy musí být na tmavém pozadí čitelné (výchozí paleta dává tmavě
-        # modrou) — světle modrá zároveň signalizuje klikatelnost.
-        _szz_pal = self.stats_szz.palette()
-        _szz_pal.setColor(QPalette.ColorRole.Link, QColor("#8ab4f8"))
-        self.stats_szz.setPalette(_szz_pal)
         szz_panel = QWidget()
         szz_v = QVBoxLayout(szz_panel)
         szz_v.setContentsMargins(0, 0, 0, 0)
