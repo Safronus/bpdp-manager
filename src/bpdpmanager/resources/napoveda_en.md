@@ -1129,8 +1129,10 @@ location = committee (colour + programme); rooms are not tracked.
   (overall / defense / subjects) and **questions** from the procedure grouped by
   subject. The tab has a **🔐 Fetch / update…** button (opens *State exams (admin)*)
   and a **cache status** line (record count, finished, last fetched) — no need to
-  go to the profile menu. With an empty cache it prompts to fetch; a student appears
-  only if present in the loaded committee schedules (per selection).
+  go to the profile menu. **Data shows immediately on app start** from the local
+  cache (no connection needed; the current year is selected automatically). If the
+  current selection contains no SZZ records but the cache has data, the **whole
+  cache** is shown. With an empty cache it prompts to fetch.
 - **🔄 Reload committees** — deletes all committees and loads the clean
   composition shipped with the app. Handy to **clean up older imported
   committees** (from versions before 2.5.0) that don't match (missing

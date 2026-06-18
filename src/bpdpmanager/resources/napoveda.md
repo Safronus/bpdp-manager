@@ -1243,8 +1243,10 @@ obor); místnost se neeviduje.
   předmětů) a **otázky** z průběhu po předmětech. Nahoře v záložce je tlačítko
   **🔐 Stáhnout / aktualizovat…** (otevře *Státnice (admin)*) a **indikace**
   (počet záznamů, z toho hotových, naposledy staženo) — není nutné chodit do
-  menu profilu. Bez dat v cache vyzve ke stažení; student se zobrazí, jen když
-  je v rozpisech načtených komisí (dle výběru).
+  menu profilu. **Data se ukážou hned po otevření aplikace** z lokální cache
+  (žádné připojení netřeba; aktuální rok je vybrán automaticky). Když aktuální
+  výběr nic neobsahuje, ale cache data má, zobrazí se **celá cache**. Bez dat
+  v cache vyzve ke stažení.
 - **🔄 Načíst komise znovu** — smaže všechny komise a načte čisté složení
   z aplikace. Hodí se na **úklid starších naimportovaných komisí** (z verzí
   před 2.5.0), které „nesedí" (chybí obor, duplicity, zmíchané barvy).

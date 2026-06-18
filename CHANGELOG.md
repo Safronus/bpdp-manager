@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.15.1] - 2026-06-18
+
+### Changed
+- **Státnice (admin): záložka „Průběh SZZ" ukáže data hned po otevření aplikace.**
+  Čtou se z lokální cache (žádné připojení ani „Obnovit stav" netřeba; aktuální
+  rok je vybrán automaticky). Když navíc **aktuální výběr ve stromu** žádné SZZ
+  záznamy neobsahuje, ale cache data má, zobrazí se **celá cache** — dřív to
+  mohlo vypadat prázdně, dokud uživatel nezměnil výběr na „vše".
+
 ## [2.15.0] - 2026-06-18
 
 ### Added

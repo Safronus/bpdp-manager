@@ -979,10 +979,16 @@ class KomiseTab(QWidget):
         self.stats_committee.setHtml(_stats_committee_html(stats, scope))
         self.stats_members.setHtml(_stats_members_html(stats))
         self.stats_chart.set_data(stats.get("by_color", []))
-        # Admin: průběh SZZ z lokální cache (jen pokud něco je).
+        # Admin: průběh SZZ z lokální cache (hned po startu, bez připojení).
         szz_cache = self.service.load_szz_results()
         szz = szz_admin_stats(szz_cache, committees)
-        self.stats_szz.setHtml(_stats_szz_html(szz, scope, len(szz_cache)))
+        szz_scope = scope
+        if szz_cache and szz["totals"]["students"] == 0:
+            # Výběr nic neobsahuje, ale cache má data → ukaž celou cache, ať je
+            # průběh SZZ vidět hned (nezávisle na výběru/rozpisech).
+            szz = szz_admin_stats(szz_cache, [])
+            szz_scope = tr("vše (cache)")
+        self.stats_szz.setHtml(_stats_szz_html(szz, szz_scope, len(szz_cache)))
         self.lbl_szz_status.setText(_szz_status_line(szz_cache))
 
     def _refresh_stats_now(self) -> None:
