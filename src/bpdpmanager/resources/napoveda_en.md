@@ -1036,9 +1036,12 @@ location = committee (colour + programme); rooms are not tracked.
   defend. "Where" is the committee (colour + programme). Your personal
   timetable of when and at which committee to be. Filled from imported schedules.
 - **📋 Student SZZ summary (click / right-click).** Clicking a **student's name**
-  in the committee schedule (middle panel) or in *My defence schedule* (right-click
-  → *Student SZZ summary…*) opens a window with that student's **SZZ result summary**
-  (subjects + examiners + grades, defence, overall result). It reads from the **cache**
+  in the committee schedule (middle panel), in *My defence schedule* or in the
+  *Failed students* list (right-click → *Student SZZ summary…*) opens a window with
+  that student's **SZZ result summary** (subjects + examiners + grades +
+  **procedure/questions** ❓, defence, overall result). This is the **only place
+  the questions/procedure are shown** (they are not in the aggregated stats). It
+  reads from the **cache**
   (works without logging in); if there's no data it says so. The **🔄 Update from
   STAG** button fetches fresh data (requires login — otherwise offers a link to log
   in). *(Admin feature — see State exams (admin).)*
@@ -1137,8 +1140,9 @@ location = committee (colour + programme); rooms are not tracked.
   most lenient … highest red = strictest*; the **sort: by count · strictest**
   toggle in the heading switches ordering between the number of exams and the
   average grade), **per SZZ subject** (count +
-  distribution + Ø), a **grade distribution by
-  dimension** and **questions** from the procedure grouped by subject. **Dimensions
+  distribution + Ø) and a **grade distribution by
+  dimension**. (Questions/procedure are **not** here — they are non-standardised;
+  find them only in the *Student SZZ summary*.) **Dimensions
   are counted separately** (that's why F counts differ between sections): *subject
   exams*, *overall result for courses*, *thesis defence* and *overall SZZ result*;
   **per committee** = overall SZZ result, **per examiner/subject** = subject exams,

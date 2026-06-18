@@ -58,7 +58,8 @@ def test_szz_admin_stats_basic() -> None:
 
     pm = {r["predmet"]: r for r in st["by_predmet"]}
     assert pm["AZINF"]["n"] == 3 and pm["AZKYB"]["n"] == 1
-    assert st["questions"]["AZINF"] == ["Q1", "Q2"]
+    # Otázky/průběh se agregovaně nepočítají (jen v souhrnu studenta).
+    assert "questions" not in st
 
 
 def test_bez_znamky() -> None:

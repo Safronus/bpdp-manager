@@ -77,10 +77,15 @@ def student_szz_html(rec, os_cislo: str, jmeno: str) -> str:
         if d.zkousejici:
             out += (f"<p style='margin:0 0 0 14px;color:{_MUTED};'>"
                     f"{escape(tr('zkoušející'))}: {escape(d.zkousejici)}</p>")
+        if getattr(d, "prubeh", ""):
+            out += (f"<p style='margin:0 0 0 14px;color:{_MUTED};font-size:11px;'>"
+                    f"❓ {escape(d.prubeh)}</p>")
 
     if rec.subjects:
         out += (f"<p style='margin:8px 0 2px;'><b>📚 "
-                f"{escape(tr('Předmětové zkoušky'))}</b></p>")
+                f"{escape(tr('Předmětové zkoušky'))}</b> "
+                f"<span style='color:{_MUTED};font-size:11px;'>"
+                f"({escape(tr('❓ = průběh / otázky'))})</span></p>")
         out += "<table style='border-collapse:collapse;margin-left:8px;'>"
         for s in rec.subjects:
             out += (f"<tr><td style='padding:1px 10px 1px 0;white-space:nowrap;'>"
@@ -89,6 +94,10 @@ def student_szz_html(rec, os_cislo: str, jmeno: str) -> str:
                     f"{_grade(s.znamka_text or s.znamka, s.znamka)}</td>"
                     f"<td style='padding:1px 0;color:{_MUTED};'>"
                     f"{escape(s.zkousejici or '—')}</td></tr>")
+            if getattr(s, "prubeh", ""):
+                out += (f"<tr><td colspan='3' style='padding:0 0 5px 0;"
+                        f"color:{_MUTED};font-size:11px;'>"
+                        f"❓ {escape(s.prubeh)}</td></tr>")
         out += "</table>"
 
     if getattr(rec, "fetched_at", ""):

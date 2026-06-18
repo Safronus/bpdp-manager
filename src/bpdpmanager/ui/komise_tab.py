@@ -2026,18 +2026,8 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
     # Neúspěšní studenti (F) — kdo a v čem neuspěl, po dimenzích.
     out += _szz_fails_html(fails)
 
-    # Otázky (po předmětech, zkráceně)
-    questions = szz.get("questions", {})
-    if questions:
-        out += "<h4 style='margin:14px 0 2px;'>❓ " + escape(tr("Otázky z průběhu")) + "</h4>"
-        for pred in sorted(questions):
-            qs = questions[pred]
-            out += (f"<p style='margin:6px 0 2px;'><b>{escape(pred)}</b> "
-                    f"<span style='color:{_MUTED};'>({len(qs)})</span></p>")
-            for q in qs[:20]:
-                txt = q if len(q) <= 200 else q[:200] + "…"
-                out += (f"<p style='margin:0 0 0 10px;color:{_MUTED};'>• "
-                        f"{escape(txt)}</p>")
+    # Otázky/průběh se NEzobrazují agregovaně (jsou nenormované, nesourodě
+    # zapsané) — najdeš je jen v „Souhrnu SZZ studenta" u konkrétního studenta.
     return out
 
 

@@ -1156,9 +1156,11 @@ obor); místnost se neeviduje.
   „Kde" je komise (barva + obor). Tvůj osobní rozvrh, kdy a u které komise máš
   být. Naplní se z naimportovaných rozpisů.
 - **📋 Souhrn SZZ studenta (klik / pravý klik).** Klik na **jméno studenta**
-  v rozpisu komise (prostřední panel) nebo v *Můj harmonogram* (pravý klik →
-  *Souhrn SZZ studenta…*) otevře okno se **souhrnem výsledků SZZ** toho studenta
-  (předměty + zkoušející + známky, obhajoba, celkový výsledek). Čte se **z cache**
+  v rozpisu komise (prostřední panel), v *Můj harmonogram* nebo v seznamu
+  *Neúspěšní studenti* (pravý klik → *Souhrn SZZ studenta…*) otevře okno se
+  **souhrnem výsledků SZZ** toho studenta (předměty + zkoušející + známky +
+  **průběh/otázky** ❓, obhajoba, celkový výsledek). Je to **jediné místo, kde se
+  otázky/průběh zobrazují** (v agregované statistice nejsou). Čte se **z cache**
   (funguje i bez přihlášení); když data nejsou, okno to řekne. Tlačítkem
   **🔄 Aktualizovat ze STAG** stáhneš čerstvá data (vyžaduje přihlášení — jinak
   nabídne proklik na přihlášení). *(Admin funkce — viz Státnice (admin).)*
@@ -1251,8 +1253,9 @@ obor); místnost se neeviduje.
   zeleně = nejhodnější … nejvyšší červeně = nejpřísnější*; přepínač v nadpisu
   **řadit: počtem · nejpřísnější** mění řazení mezi počtem zkoušení a průměrnou
   známkou), **per předmět SZZ**
-  (počet + rozložení + Ø), **graf rozložení známek po
-  dimenzích** a **otázky** z průběhu po předmětech. **Dimenze se počítají zvlášť**
+  (počet + rozložení + Ø) a **graf rozložení známek po
+  dimenzích**. (Otázky/průběh tu **nejsou** — jsou nenormované; najdeš je jen
+  v *Souhrnu SZZ studenta*.) **Dimenze se počítají zvlášť**
   (proto se počty F mezi sekcemi liší): *předmětové zkoušky (dílčí)*, *celkový
   výsledek z předmětů*, *obhajoba práce* a *celkový výsledek SZZ*; **per komise**
   = celkový výsledek SZZ, **per zkoušející/předmět** = dílčí zkoušky, **obhajoba**

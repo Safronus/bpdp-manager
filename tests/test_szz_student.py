@@ -27,11 +27,14 @@ def test_student_szz_html_states() -> None:
         os_cislo="A1",
         overall=SzzOverall(vysledek_zkousek="B", vysledek_predmety="A",
                            komise="fialová", prospel=True),
-        subjects=[SubjectExam(predmet="AZINF", znamka="A", zkousejici="Novák")],
+        subjects=[SubjectExam(predmet="AZINF", znamka="A", zkousejici="Novák",
+                              prubeh="Otázka 1: definice grafu")],
     )
     h = student_szz_html(rec, "A1", "Jan")
     assert "AZINF" in h and "Prospěl" in h and "Novák" in h
     assert "z předmětů" in h   # dimenze celkový výsledek z předmětů
+    # Otázky/průběh se zobrazují JEN tady (v souhrnu studenta), ne v agregaci.
+    assert "Otázka 1: definice grafu" in h
 
 
 def test_szz_fails_html_and_labels() -> None:

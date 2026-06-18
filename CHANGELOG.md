@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.21.0] - 2026-06-18
+
+### Changed
+- **Otázky/průběh už nejsou v agregované statistice — jen v souhrnu studenta.**
+  Sekce **„Otázky z průběhu"** v záložce *Průběh SZZ* byla **odebrána** (záznamy
+  jsou nenormované a nesourodě zapsané, agregace neměla výpovědní hodnotu).
+  Průběh/otázky se teď zobrazují **jen v okně „Souhrn SZZ studenta"** u daného
+  studenta — u **každého předmětu** (a u **obhajoby**) označené **❓**.
+
 ## [2.20.0] - 2026-06-18
 
 ### Added

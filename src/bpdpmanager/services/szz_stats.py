@@ -2,8 +2,8 @@
 
 Vstup: ``{os_cislo: SzzRecord}`` (z ``ThesisService.load_szz_results()``) +
 komise v rozsahu (filtr dle výběru ve stromu). Výstup: agregace pro záložku
-„Průběh SZZ" (per komise / per zkoušející / per předmět / rozložení známek +
-otázky). Vše klíčované **osobním číslem**; jméno je jen zobrazovací.
+„Průběh SZZ" (per komise / per zkoušející / per předmět / rozložení známek /
+neúspěšní). Vše klíčované **osobním číslem**; jméno je jen zobrazovací.
 
 Číselný průměr: A=1, B=2, C=3, D=4, E=5, F/FX=6 (nižší = lepší).
 """
@@ -61,7 +61,7 @@ def _scope_oscisla(committees) -> set:
 def szz_admin_stats(records: dict, committees) -> dict:
     """Agregace záznamů v rozsahu daném ``committees`` (prázdné → všechny).
 
-    Vrací ``{totals, by_komise, by_examiner, by_predmet, dist, questions}``.
+    Vrací ``{totals, by_komise, by_examiner, by_predmet, dist, fails}``.
     """
     in_scope = _scope_oscisla(committees)
     recs = [r for oc, r in (records or {}).items()
@@ -80,7 +80,6 @@ def szz_admin_stats(records: dict, committees) -> dict:
     komise: dict = {}
     examiner: dict = {}
     predmet: dict = {}
-    questions: dict = {}
     dist_overall, dist_predmety, dist_defense, dist_subj = (
         _empty_dist(), _empty_dist(), _empty_dist(), _empty_dist())
     students = nedostupne = 0
@@ -151,8 +150,6 @@ def szz_admin_stats(records: dict, committees) -> dict:
                 p["n"] += 1
                 if sl:
                     p["dist"][sl] += 1
-                if s.prubeh:
-                    questions.setdefault(s.predmet, []).append(s.prubeh)
             if sl:
                 dist_subj[sl] += 1
                 if sl == "F":
@@ -194,5 +191,4 @@ def szz_admin_stats(records: dict, committees) -> dict:
         "dist": {"overall": dist_overall, "predmety": dist_predmety,
                  "defense": dist_defense, "subjects": dist_subj},
         "fails": fails,
-        "questions": questions,
     }
