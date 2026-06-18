@@ -139,6 +139,24 @@ def test_fit_tables_hscroll_and_chart_minwidth() -> None:
     assert ch.minimumWidth() > 5 * 60
 
 
+def test_studia_chart_html() -> None:
+    from PySide6.QtWidgets import QApplication
+
+    QApplication.instance() or QApplication([])
+    from bpdpmanager.ui.komise_tab import _studia_chart_html
+
+    # s daty → PNG <img> v zadané šířce
+    html = _studia_chart_html(
+        {"vyznamenani": 5, "prospel": 10, "neprospel": 2, "nevyplneno": 3}, 600)
+    assert "<img" in html and "base64" in html and "width='600'" in html
+    assert "Celkový výsledek studia" in html
+    # bez dat (samé nuly) → prázdné
+    assert _studia_chart_html(
+        {"vyznamenani": 0, "prospel": 0, "neprospel": 0, "nevyplneno": 0}, 600) == ""
+    # nulová/malá šířka → prázdné
+    assert _studia_chart_html({"prospel": 5}, 0) == ""
+
+
 def test_szz_komise_cells_home_foreign() -> None:
     from bpdpmanager.ui.komise_tab import _szz_homeforeign_cell, _szz_komise_cell
 

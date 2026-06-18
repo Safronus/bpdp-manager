@@ -142,6 +142,8 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
     komise: dict = {}
     examiner: dict = {}
     predmet: dict = {}
+    # Rozdělení „Celkového výsledku studia" (ckVysledekStudia) na graf pod titulkem.
+    studia = {"vyznamenani": 0, "prospel": 0, "neprospel": 0, "nevyplneno": 0}
     dist_overall, dist_predmety, dist_defense, dist_subj = (
         _empty_dist(), _empty_dist(), _empty_dist(), _empty_dist())
     students = nedostupne = 0
@@ -179,6 +181,16 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
         ov = getattr(r, "overall", None)
         # Barva komise studenta = komise, kde proběhly jeho dílčí zkoušky.
         komise_color = (ov.komise or "").strip().lower() if ov else ""
+        # Celkový výsledek studia → kategorie pro graf (vyznamenání před prospěl!).
+        sv = (getattr(ov, "vysledek_studia", "") or "").strip().lower() if ov else ""
+        if "vyznamenán" in sv:
+            studia["vyznamenani"] += 1
+        elif sv.startswith("neprospěl"):
+            studia["neprospel"] += 1
+        elif sv.startswith("prospěl"):
+            studia["prospel"] += 1
+        else:
+            studia["nevyplneno"] += 1
         if ov:
             if not komise_color:   # „?" skupina — eviduj kdo to je
                 no_komise.append({"os": oc, "jmeno": nm})
@@ -288,4 +300,5 @@ def szz_admin_stats(records: dict, committees, all_committees=None) -> dict:
                  "defense": dist_defense, "subjects": dist_subj},
         "fails": fails,
         "no_komise": no_komise,
+        "studia": studia,
     }

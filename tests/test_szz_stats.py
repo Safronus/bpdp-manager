@@ -207,6 +207,22 @@ def test_by_examiner_komise_own_foreign() -> None:
     assert ex["own_colors"] == {"fialová"}   # na vykreslení domečku ⌂
 
 
+def test_studia_categorization() -> None:
+    # Celkový výsledek studia → 4 kategorie; „s vyznamenáním" musí jít před „prospěl".
+    records = {
+        "A1": SzzRecord(os_cislo="A1",
+                        overall=SzzOverall(vysledek_studia="Prospěl s vyznamenáním")),
+        "A2": SzzRecord(os_cislo="A2", overall=SzzOverall(vysledek_studia="Prospěl")),
+        "A3": SzzRecord(os_cislo="A3", overall=SzzOverall(vysledek_studia="Neprospěl")),
+        "A4": SzzRecord(os_cislo="A4",
+                        overall=SzzOverall(vysledek_studia="--- Nevyplněno ---")),
+        "A5": SzzRecord(os_cislo="A5"),     # bez overall → nevyplněno
+    }
+    st = szz_admin_stats(records, [])
+    assert st["studia"] == {"vyznamenani": 1, "prospel": 1,
+                            "neprospel": 1, "nevyplneno": 2}
+
+
 def test_no_komise_collected() -> None:
     # Záznam s overall, ale prázdnou komisí → skupina „?"; eviduje se kdo to je.
     records = {

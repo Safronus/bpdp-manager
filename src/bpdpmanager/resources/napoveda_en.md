@@ -1135,7 +1135,10 @@ location = committee (colour + programme); rooms are not tracked.
   **numeric grade average** (A=1 … F=6, FX=F). Classification **passed (A-E) /
   failed (F) / no grade** (blank) / **unavailable** (⏳ committee not held yet /
   no access yet — recorded and retried): **summary** (students, passed % / failed
-  / no grade / unavailable, Ø), **per committee** (✓ passed / ✗ failed / **? no
+  / no grade / unavailable, Ø) and right below it a **„Overall study result"
+  chart** (bars *With honours / Passed / Failed / Not filled*, styled like the
+  charts in the *Statistics* tab, as wide as the *Per examiner* table), **per
+  committee** (✓ passed / ✗ failed / **? no
   grade** / **⏳ unavailable** + A–F distribution + Ø; the **`?`** row = a record
   with no committee — below the table is a **clickable „No committee" list** so you
   can see who they are and what data they have), **per examiner** (how

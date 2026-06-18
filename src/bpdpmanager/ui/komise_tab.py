@@ -1199,12 +1199,18 @@ class KomiseTab(QWidget):
             # průběh SZZ vidět hned (nezávisle na výběru/rozpisech).
             szz = szz_admin_stats(szz_cache, [], all_committees)
             szz_scope = tr("vše (cache)")
+        # Šířku grafu „Celkový výsledek studia" = šířka tabulky Per zkoušející:
+        # nejdřív změř (throwaway dokument bez grafu), pak vyrenderuj s grafem.
+        html0 = _stats_szz_html(szz, szz_scope, len(szz_cache),
+                                self._szz_examiner_sort)
+        cw = int(_widest_szz_table(html0))
+        chart_w = cw if cw > 50 else 0
         # Zachovej pozici scrollu — setHtml jinak skočí na začátek (rerender se
         # spouští i po zavření souhrnu studenta / po stažení dat).
         _szz_sb = self.stats_szz.verticalScrollBar()
         _szz_pos = _szz_sb.value()
         self.stats_szz.setHtml(_stats_szz_html(
-            szz, szz_scope, len(szz_cache), self._szz_examiner_sort))
+            szz, szz_scope, len(szz_cache), self._szz_examiner_sort, chart_w))
         _fit_tables_hscroll(self.stats_szz)
         _szz_sb.setValue(_szz_pos)
         self.lbl_szz_status.setText(_szz_status_line(szz_cache))
@@ -2085,16 +2091,8 @@ def _szz_examiner_name(idx: int, r: dict) -> str:
             + (dots + "&nbsp;" if dots else "") + name)
 
 
-def _fit_tables_hscroll(browser) -> None:
-    """Zalamuj na šířku **nejširší tabulky** v dokumentu (měřeno za běhu).
-
-    Tabulky tak zůstanou v přirozené šířce (na úzkém okně se **nezplácnou**) a
-    naskočí vodorovný posuvník, zatímco dlouhý text (legendy) se normálně zalomí
-    a nenutí scroll na širokém okně. Bez tabulek → běžné zalamování dle šířky.
-    """
-    doc = browser.document()
-    browser.setLineWrapMode(QTextBrowser.LineWrapMode.FixedPixelWidth)
-    browser.setLineWrapColumnOrWidth(100_000)   # vše přirozeně → změř tabulky
+def _widest_table_in_doc(doc) -> float:
+    """Šířka nejširší tabulky (QTextTable) v dokumentu (po rozložení)."""
     lay = doc.documentLayout()
     widest = 0.0
     stack = [doc.rootFrame()]
@@ -2103,15 +2101,84 @@ def _fit_tables_hscroll(browser) -> None:
             if isinstance(ch, QTextTable):
                 widest = max(widest, lay.frameBoundingRect(ch).width())
             stack.append(ch)
+    return widest
+
+
+def _widest_szz_table(html: str) -> float:
+    """Přirozená šířka nejširší tabulky v ``html`` (throwaway dokument) — slouží
+    k vyrenderování grafu „na šířku tabulky Per zkoušející" ještě před setHtml."""
+    from PySide6.QtGui import QTextDocument
+
+    doc = QTextDocument()
+    doc.setHtml(html)
+    doc.setTextWidth(100_000)
+    return _widest_table_in_doc(doc)
+
+
+def _fit_tables_hscroll(browser) -> None:
+    """Zalamuj na šířku **nejširší tabulky** v dokumentu (měřeno za běhu).
+
+    Tabulky tak zůstanou v přirozené šířce (na úzkém okně se **nezplácnou**) a
+    naskočí vodorovný posuvník, zatímco dlouhý text (legendy) se normálně zalomí
+    a nenutí scroll na širokém okně. Bez tabulek → běžné zalamování dle šířky.
+    """
+    browser.setLineWrapMode(QTextBrowser.LineWrapMode.FixedPixelWidth)
+    browser.setLineWrapColumnOrWidth(100_000)   # vše přirozeně → změř tabulky
+    widest = _widest_table_in_doc(browser.document())
     if widest > 0:
         browser.setLineWrapColumnOrWidth(int(widest) + 6)
     else:
         browser.setLineWrapMode(QTextBrowser.LineWrapMode.WidgetWidth)
 
 
+def _studia_chart_html(studia: dict, width: int) -> str:
+    """Graf „Celkový výsledek studia" jako PNG (styl jako záložka Statistiky —
+    svislé zaoblené sloupce + číslo nad sloupcem). Vykreslí do obrázku v dané
+    šířce a vloží base64. Bez QApplication / bez dat → prázdné."""
+    from html import escape
+
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None or width < 50:
+        return ""
+    s = studia or {}
+    cats = [(tr("S vyznamenáním"), int(s.get("vyznamenani", 0)), "#2e7d32"),
+            (tr("Prospěl"), int(s.get("prospel", 0)), "#7cb342"),
+            (tr("Neprospěl"), int(s.get("neprospel", 0)), "#c62828"),
+            (tr("Nevyplněno"), int(s.get("nevyplneno", 0)), "#9aa0a6")]
+    if not sum(c for _lbl, c, _col in cats):
+        return ""
+    import base64
+
+    from PySide6.QtCore import QBuffer, QByteArray
+
+    from .stats_tab import _OborBars
+
+    fg = app.palette().windowText().color().name()
+    groups = [(lbl, [(cnt, col)]) for lbl, cnt, col in cats]
+    chart = _OborBars(groups, fg, show_labels=True, muted=_MUTED, num_pt=16)
+    chart.resize(int(width), 150)
+    pix = chart.grab()
+    ba = QByteArray()
+    buf = QBuffer(ba)
+    buf.open(QBuffer.OpenModeFlag.WriteOnly)
+    pix.save(buf, "PNG")
+    chart.deleteLater()
+    b64 = base64.b64encode(bytes(ba)).decode("ascii")
+    return (f"<p style='margin:6px 0 1px;color:{_MUTED};font-size:11px;'>"
+            + escape(tr("Celkový výsledek studia")) + "</p>"
+            + f"<p style='margin:0 0 6px;'><img src='data:image/png;base64,{b64}' "
+            f"width='{int(width)}'></p>")
+
+
 def _stats_szz_html(szz: dict, scope: str, cache_count: int,
-                    examiner_sort: str = "count") -> str:
-    """Záložka „Průběh SZZ" (admin) — per komise / zkoušející / předmět + graf."""
+                    examiner_sort: str = "count", chart_w: int = 0) -> str:
+    """Záložka „Průběh SZZ" (admin) — per komise / zkoušející / předmět + graf.
+
+    ``chart_w`` > 0 vloží pod souhrn graf „Celkový výsledek studia" v dané šířce
+    (typicky šířka tabulky Per zkoušející, změřená volajícím).
+    """
     from html import escape
 
     head = "<h3 style='margin:2px 0 4px;'>🏛 " + escape(tr("Průběh SZZ")) + "</h3>"
@@ -2140,6 +2207,11 @@ def _stats_szz_html(szz: dict, scope: str, cache_count: int,
            f"{tot.get('nedostupne', 0)}</span>" if tot.get('nedostupne') else "")
         + f" &nbsp;·&nbsp; {escape(tr('Ø známka'))} "
         f"<b>{_szz_avg_cell(tot.get('avg'))}</b></p>")
+
+    # Graf „Celkový výsledek studia" hned pod souhrnem (šířka = tabulka Per
+    # zkoušející; volající ji změří a předá v chart_w).
+    if chart_w:
+        out += _studia_chart_html(szz.get("studia", {}), chart_w)
 
     def _table(title_html, rows_html, head_label, extra_heads=()):
         # Ø dostane pravý padding jen když za ním ještě něco je (např. Medián).

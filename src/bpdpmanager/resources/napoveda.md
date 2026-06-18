@@ -1246,7 +1246,10 @@ obor); místnost se neeviduje.
   známek** (A=1 … F=6, FX=F). Klasifikace **prospěl (A-E) / neprospěl (F) / bez
   známky** (nevyplněno) / **nedostupné** (⏳ komise ještě neproběhla / zatím bez
   přístupu — eviduje se a zkouší znovu). Obsahuje: **souhrn** (studentů, prospělo
-  % / neprospělo / bez známky / nedostupné, Ø), **per komise** (✓ prospělo /
+  % / neprospělo / bez známky / nedostupné, Ø) a hned pod ním **graf „Celkový
+  výsledek studia"** (sloupce *S vyznamenáním / Prospěl / Neprospěl / Nevyplněno*,
+  vzhled jako grafy v záložce *Statistiky*, šířka jako tabulka *Per zkoušející*),
+  **per komise** (✓ prospělo /
   ✗ neprospělo / **? bez známky** / **⏳ nedostupné** + rozložení A–F + Ø; řádek
   **`?`** = záznam bez komise — pod tabulkou je **klikací seznam „Bez komise"**,
   ať víš, kdo to je a co za data má), **per zkoušející**

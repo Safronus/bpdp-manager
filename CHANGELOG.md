@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.28.0] - 2026-06-18
+
+### Added
+- **Průběh SZZ: graf „Celkový výsledek studia" pod titulkem.** Hned pod souhrnem
+  je **sloupcový graf** rozdělení studentů dle *ckVysledekStudia* —
+  **S vyznamenáním / Prospěl / Neprospěl / Nevyplněno**. Vzhled jako grafy
+  v hlavní záložce **Statistiky** (svislé zaoblené sloupce + počet nad sloupcem);
+  **šířka = šířka tabulky „Per zkoušející"**.
+
 ## [2.27.0] - 2026-06-18
 
 ### Fixed
