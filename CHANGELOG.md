@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.29.3] - 2026-06-19
+
+### Changed
+- **V rozpisu studentů (detail komise) jsou tvoji studenti poznat barvou jména.**
+  Čepička 🎓 u vedených na tmavém pozadí **splývala** — nově má **vedený student
+  jméno zeleně** a **oponovaný fialově** (cizí zůstávají modře), jméno zůstává
+  **klikací** (souhrn SZZ). Ikonka 🎓/🧐 se z rozpisu vypustila. *Můj harmonogram*
+  i legenda zůstávají beze změny (role tam dál nese ikonka 🎓/🧐 i barva).
+
 ## [2.29.2] - 2026-06-18
 
 ### Changed

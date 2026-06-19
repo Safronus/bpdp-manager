@@ -146,20 +146,25 @@ def _is_defense_done(states: dict | None, pnum: str, name: str) -> bool:
     return val in TERMINAL
 
 
-def _szz_student_anchor(os_cislo: str, name: str, inner_html: str) -> str:
+def _szz_student_anchor(os_cislo: str, name: str, inner_html: str,
+                        color: str = _SZZ_LINK) -> str:
     """Obalí jméno studenta odkazem ``szz:OSCISLO?n=NAME`` (klik/kontext → souhrn SZZ).
 
-    Odkaz má explicitní čitelnou barvu (``_SZZ_LINK``) — viz tam, proč nelze
-    ``color:inherit``. Klik (i pravý) otevře souhrn SZZ studenta. Bez osobního
-    čísla vrátí ``inner_html`` beze změny.
+    Odkaz má explicitní čitelnou barvu (``color``, výchozí ``_SZZ_LINK``) — viz
+    tam, proč nelze ``color:inherit``. ``color`` umožní obarvit jméno podle role
+    (vedený zeleně, oponovaný fialově) a zachovat přitom klikatelnost. Klik
+    (i pravý) otevře souhrn SZZ studenta. Bez osobního čísla vrátí ``inner_html``
+    (obalené barevným spanem, jen když ``color`` není výchozí odkazová barva).
     """
     from urllib.parse import quote
 
     oc = (os_cislo or "").strip()
     if not oc:
+        if color != _SZZ_LINK:
+            return f"<span style=\"color:{color};\">{inner_html}</span>"
         return inner_html
     href = "szz:" + oc + "?n=" + quote(name or "")
-    return (f"<a href=\"{href}\" style=\"color:{_SZZ_LINK};text-decoration:none;\" "
+    return (f"<a href=\"{href}\" style=\"color:{color};text-decoration:none;\" "
             f"title=\"Souhrn SZZ studenta\">{inner_html}</a>")
 
 
@@ -1539,9 +1544,11 @@ class KomiseTab(QWidget):
                 )
                 for s in sorted(by_date[date], key=lambda x: x.time):
                     role = self._slot_role(s, roles)
-                    # Role jen ikonkou (bez barevného pozadí — na tmavém nečitelné).
-                    badge = " 🎓" if role == "led" else (" 🧐" if role == "opp"
-                                                         else "")
+                    # Role barvou jména: vedený zeleně, oponovaný fialově — na
+                    # tmavém dobře vidět a jméno zůstává klikací (čepička 🎓
+                    # splývala). Cizí student modře jako ostatní odkazy.
+                    name_col = (_C_LED if role == "led"
+                                else _C_OPP if role == "opp" else _SZZ_LINK)
                     state = _defense_state_badge(
                         states, s.personal_number, s.student_name)
                     sched_html += (
@@ -1550,7 +1557,7 @@ class KomiseTab(QWidget):
                         f"<td style='padding:1px 12px 1px 0;color:{_MUTED};'>"
                         f"{escape(s.personal_number)}</td>"
                         f"<td style='padding:1px 4px;'>"
-                        f"{_szz_student_anchor(s.personal_number, s.student_name, escape(s.student_name))}{badge}</td>"
+                        f"{_szz_student_anchor(s.personal_number, s.student_name, escape(s.student_name), name_col)}</td>"
                         f"<td style='padding:1px 0 1px 8px;'>{state}</td></tr>"
                     )
                 sched_html += "</table>"

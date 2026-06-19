@@ -1141,8 +1141,10 @@ obor); místnost se neeviduje.
   s checkboxy**; opakovaný import nevytváří duplicity. PDF se **přejmenují**
   (např. `rozpis-studentu_Bc_SWI_2025-2026.pdf`) a uloží do podsložek
   `komise/<rok>/rozpisy/` (rozpisy) nebo `komise/<rok>/slozeni/` (složení).
-- **Zvýraznění tvých studentů:** v rozpisu jsou **🎓 vedení** zeleně a
-  **🧐 oponovaní** fialově. Bere se jen **aktuální stav** — vedené pouze ve stavu
+- **Zvýraznění tvých studentů:** v rozpisu mají **vedení jméno zeleně** a
+  **oponovaní fialově** (cizí studenti modře); jméno zůstává **klikací** (souhrn
+  SZZ). Barva jména je čitelná i na tmavém motivu (čepička 🎓 splývala). Bere se
+  jen **aktuální stav** — vedené pouze ve stavu
   *V řešení* (ne práce, které jsi vedl kdysi v minulosti) a oponované jen
   z **aktuálního akademického roku**. Párování je primárně přes **osobní číslo**
   Axxxxx (jednoznačné — u vedených i oponovaných), záložně přes **jméno bez

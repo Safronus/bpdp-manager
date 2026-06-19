@@ -15,6 +15,12 @@ def test_szz_student_anchor_roundtrip() -> None:
     assert _szz_student_anchor("", "X", "X") == "X"
     assert _parse_szz_href("http://example") is None
     assert _parse_szz_href("szz:A1") == ("A1", "")
+    # barva role obarví odkaz a jméno zůstane klikací (vedený zeleně apod.)
+    colored = _szz_student_anchor("A1", "Jan", "Jan", "#43a047")
+    assert "color:#43a047" in colored and 'href="szz:A1' in colored
+    # bez osobního čísla + barva role → aspoň obarvený span (čitelné na tmavém)
+    assert _szz_student_anchor("", "Eva", "Eva", "#ab47bc") == (
+        '<span style="color:#ab47bc;">Eva</span>')
 
 
 def test_student_szz_html_states() -> None:

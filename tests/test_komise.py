@@ -935,3 +935,37 @@ def test_committee_count_excludes_done_students(service) -> None:
     tab._committee_states = {"A55501": "defended"}  # student obhájil
     tab.refresh()
     assert _cervena_vo() == (0, 0)                  # hotový → z počtu zmizí
+
+
+def test_committee_html_role_name_color(service) -> None:
+    """Rozpis v detailu komise: vedený student má jméno zeleně (klikací), cizí
+    modře, a čepička 🎓 už se nepoužívá (na tmavém splývala)."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.ui.komise_tab import _C_LED, _SZZ_LINK, KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    s = Student(first_name="Marko", last_name="Test", university_id="A55501")
+    service.upsert_student(s)
+    service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year="2025/2026",
+                                 student_id=s.id, status=ThesisStatus.IN_PROGRESS))
+    service.apply_komise_import(
+        [],
+        [ParsedSchedule(color="červená", academic_year="2025/2026", level="Bc",
+                        obor="SWI", program_label="SWI", dates=["15. 6. 2026"],
+                        slots=[("15. 6. 2026", "09:00", "A55501", "Marko Test"),
+                               ("15. 6. 2026", "10:00", "A99999", "Cizi Host")])],
+        ["rozpis.pdf"])
+    tab = KomiseTab(service)
+    cervena = next(c for c in service.list_committees()
+                   if c.color == "červená" and c.level == "Bc")
+    html = tab._committee_html(cervena)
+    # vedený student: jméno zeleně, stále klikací odkaz na souhrn SZZ
+    assert f"color:{_C_LED}" in html and 'href="szz:A55501' in html
+    # cizí student: jméno modře (výchozí odkazová barva)
+    assert f"color:{_SZZ_LINK}" in html and 'href="szz:A99999' in html
+    # čepička/monokl se z rozpisu vypustily (nahradila je barva jména)
+    assert "🎓" not in html and "🧐" not in html

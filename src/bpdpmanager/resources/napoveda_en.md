@@ -1019,8 +1019,11 @@ location = committee (colour + programme); rooms are not tracked.
   (e.g. `rozpis-studentu_Bc_SWI_2025-2026.pdf`) and stored in
   `komise/<year>/rozpisy/` (schedules) or `komise/<year>/slozeni/`
   (composition).
-- **Highlighting your students:** in the schedule, **🎓 supervised** students
-  are green and **🧐 opposed** ones purple. Only the **current state** counts —
+- **Highlighting your students:** in the schedule, **supervised** students have
+  their **name in green** and **opposed** ones in purple (other students stay
+  blue); the name stays **clickable** (SZZ summary). The name colour reads well
+  on the dark theme too (the 🎓 cap used to blend in). Only the **current state**
+  counts —
   supervised only while *In progress* (not theses you supervised long ago), and
   opposed only from the **current academic year**. Matching is primarily by
   **personal number** Axxxxx (unambiguous — for supervised and opposed alike),
