@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.29.4] - 2026-06-19
+
+### Added
+- **Můj harmonogram (pravý panel) má sekci „📜 Historie — už odbaveno".**
+  Hotoví studenti (**Obhájeno / Neobhájeno** z tiché STAG kontroly) z horní
+  části *nemizí*, ale **přesouvají se dolů** do samostatné sekce Historie
+  (chronologicky **od nejnovějšího**, s badge stavu). Nahoře zůstávají jen
+  **nadcházející** (ještě nehotoví). Když nahoře nezbyde nikdo, panel napíše
+  *„Všichni tvoji studenti už mají odbaveno — viz Historie níže."* (místo výzvy
+  k importu). Týká se **jen pravého panelu**; dialog *📅 Můj harmonogram obhajob*
+  zůstává jen s nadcházejícími.
+
 ## [2.29.3] - 2026-06-19
 
 ### Changed

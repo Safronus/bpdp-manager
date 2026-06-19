@@ -1147,15 +1147,20 @@ class KomiseTab(QWidget):
 
         year = getattr(self, "_right_year", None) or self.service.current_academic_year()
         states = self._merged_states()
-        # Hotové (Obhájeno/Neobhájeno) v harmonogramu neukazuj — jen ty, co ještě
-        # nebyli na řadě. U vedených i oponovaných to tak postupně ubývá.
-        entries = [e for e in self.service.my_defense_schedule()
-                   if e["academic_year"] == year
-                   and not _is_defense_done(states, e["personal_number"],
+        year_entries = [e for e in self.service.my_defense_schedule()
+                        if e["academic_year"] == year]
+        # Nahoře jen nadcházející (ještě nehotoví) — postupně ubývají. Hotoví
+        # (Obhájeno/Neobhájeno z tiché STAG kontroly) se přesouvají dolů do
+        # samostatné sekce Historie (chronologicky od nejnovějšího).
+        upcoming = [e for e in year_entries
+                    if not _is_defense_done(states, e["personal_number"],
                                             e["student_name"])]
-        self._harmonogram_has_rows = bool(entries)
+        history = [e for e in year_entries
+                   if _is_defense_done(states, e["personal_number"],
+                                       e["student_name"])]
+        self._harmonogram_has_rows = bool(year_entries)
         now = datetime.now()
-        nearest, ndt = self._nearest_upcoming(entries, now)
+        nearest, ndt = self._nearest_upcoming(upcoming, now)
         nkey = None
         ntext = ""
         if nearest is not None:
@@ -1163,12 +1168,22 @@ class KomiseTab(QWidget):
                     nearest["personal_number"], nearest["student_name"])
             ntext = self._fmt_countdown((ndt - now).total_seconds())
         heading = tr("📅 Můj harmonogram obhajob") + f" — {year}"
-        self.harmonogram_view.setHtml(_schedule_section_html(
-            entries, heading, states, nearest=nkey, nearest_text=ntext))
+        # Když nahoře nic není, ale historie existuje, řekni proč (jinak by
+        # zmátla výzva „nahraj rozpisy").
+        empty_note = (tr("Všichni tvoji studenti už mají odbaveno — viz Historie níže.")
+                      if history else "")
+        html = _schedule_section_html(
+            upcoming, heading, states, nearest=nkey, nearest_text=ntext,
+            empty_note=empty_note)
+        if history:
+            html += _schedule_section_html(
+                history, tr("📜 Historie — už odbaveno") + f" — {year}",
+                states, reverse=True)
+        self.harmonogram_view.setHtml(html)
         # Tlačítko do kalendáře jen když je co přidat (nadcházející ve `year`).
         has_upcoming = any(
             (dt := ThesisService._parse_slot_dt(e["date"], e["time"])) and dt > now
-            for e in entries
+            for e in upcoming
         )
         self.btn_add_calendar.setEnabled(has_upcoming)
 
@@ -2716,7 +2731,9 @@ def _date_key(d: str):
 def _schedule_section_html(entries: list[dict], heading: str,
                            states: dict | None = None, *,
                            nearest: tuple | None = None,
-                           nearest_text: str = "") -> str:
+                           nearest_text: str = "",
+                           reverse: bool = False,
+                           empty_note: str = "") -> str:
     """HTML sekce harmonogramu (nadpis + počty + sloty po dnech).
 
     Sdílí ji dialog *Můj harmonogram* i pravý panel záložky. Vstup ``entries``
@@ -2724,12 +2741,15 @@ def _schedule_section_html(entries: list[dict], heading: str,
     případně předfiltrovaný na rok. ``states`` (z tiché STAG kontroly) přidá
     badge Obhájeno/Neobhájeno. ``nearest`` = klíč (date, time, pnum, name)
     nejbližšího nadcházejícího slotu — ten se zvýrazní a doplní se odpočet
-    ``nearest_text`` („za X min").
+    ``nearest_text`` („za X min"). ``reverse`` = řadit od nejnovějšího (pro
+    sekci *Historie*). ``empty_note`` = vlastní text při prázdném vstupu.
     """
     from html import escape
 
     out = f"<h3 style='color:#ffa726;margin:14px 0 4px;'>{escape(heading)}</h3>"
     if not entries:
+        if empty_note:
+            return out + f"<p style='color:{_MUTED};'>{escape(empty_note)}</p>"
         return out + (
             f"<p style='color:{_MUTED};'>"
             + tr("Zatím žádné obhajoby tvých studentů. Nahraj rozpisy "
@@ -2746,10 +2766,11 @@ def _schedule_section_html(entries: list[dict], heading: str,
     by_date: dict[str, list[dict]] = {}
     for e in entries:
         by_date.setdefault(e["date"] or "—", []).append(e)
-    for date in sorted(by_date, key=_date_key):
+    for date in sorted(by_date, key=_date_key, reverse=reverse):
         out += (f"<p style='margin:8px 0 2px;'><b>{escape(date)}</b></p>"
                 "<table cellspacing='0'>")
-        for e in by_date[date]:
+        day_entries = list(reversed(by_date[date])) if reverse else by_date[date]
+        for e in day_entries:
             dot = committee_color_hex(e["color"])
             obor = f" ({escape(e['obor'])})" if e["obor"] else ""
             place = f"{tr('Komise')} {escape(e['color'])}{obor}"

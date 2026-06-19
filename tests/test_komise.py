@@ -626,6 +626,79 @@ def test_right_harmonogram_independent_and_countdown(service) -> None:
     assert nearest and nearest["personal_number"] == "A10001"
 
 
+def test_right_harmonogram_history_section(service) -> None:
+    """Pravý harmonogram má nahoře nadcházející a dole sekci Historie —
+    hotoví studenti (Obhájeno/Neobhájeno) se přesunou dolů, ne zmizí."""
+    from datetime import datetime, timedelta
+
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.models import Student, Thesis
+    from bpdpmanager.models.enums import ThesisStatus, ThesisType
+    from bpdpmanager.ui.komise_tab import KomiseTab
+
+    QApplication.instance() or QApplication([])
+    service.load_komise_seed()
+    cur = service.current_academic_year()
+    near = datetime.now() + timedelta(minutes=20)
+    dstr = f"{near.day}. {near.month}. {near.year}"
+    for oc, fn, ln in [("A10001", "Anna", "Aktualni"),
+                       ("A10002", "Bedrich", "Hotovy")]:
+        st = Student(first_name=fn, last_name=ln, university_id=oc)
+        service.upsert_student(st)
+        service.upsert_thesis(Thesis(type=ThesisType.BP, academic_year=cur,
+                                     student_id=st.id,
+                                     status=ThesisStatus.IN_PROGRESS))
+    service.apply_komise_import([], [
+        ParsedSchedule(color="červená", academic_year=cur, level="Bc", obor="SWI",
+                       program_label="SWI", dates=[dstr],
+                       slots=[(dstr, near.strftime("%H:%M"), "A10001", "Anna Aktualni"),
+                              (dstr, near.strftime("%H:%M"), "A10002", "Bedrich Hotovy")]),
+    ], ["r.pdf"])
+    tab = KomiseTab(service)
+    tab._right_year = cur
+    tab._render_harmonogram()
+    # bez stavů: oba nadcházející, žádná sekce Historie
+    harm0 = tab.harmonogram_view.toPlainText()
+    assert "Anna Aktualni" in harm0 and "Bedrich Hotovy" in harm0
+    assert "📜 Historie" not in harm0
+    # Bedrich obhájil → spadne dolů do Historie, Anna zůstane nahoře
+    tab._committee_states = {"A10002": "defended"}
+    tab._render_harmonogram()
+    harm = tab.harmonogram_view.toPlainText()
+    up, sep, hist = harm.partition("📜 Historie")
+    assert sep                                       # sekce Historie existuje
+    assert "Anna Aktualni" in up and "Anna Aktualni" not in hist
+    assert "Bedrich Hotovy" in hist and "Bedrich Hotovy" not in up
+    assert "Obhájeno" in hist                        # badge stavu v historii
+
+
+def test_schedule_section_html_reverse_and_empty_note() -> None:
+    """Sekce harmonogramu: reverse řadí od nejnovějšího (Historie), empty_note
+    nahradí výchozí výzvu „nahraj rozpisy" vlastním textem."""
+    from PySide6.QtWidgets import QApplication
+
+    from bpdpmanager.ui.komise_tab import _schedule_section_html
+
+    QApplication.instance() or QApplication([])
+
+    def _e(date, oc, name):
+        return {"date": date, "time": "09:00", "personal_number": oc,
+                "student_name": name, "role": "led", "color": "červená",
+                "obor": "SWI", "academic_year": "2025/2026"}
+
+    entries = [_e("10. 6. 2026", "A1", "Drive"), _e("17. 6. 2026", "A2", "Pozdeji")]
+    # reverse=True → nejnovější datum (17.) nahoře
+    h = _schedule_section_html(entries, "Historie", reverse=True)
+    assert h.index("17. 6. 2026") < h.index("10. 6. 2026")
+    # výchozí (reverse=False) → nejstarší nahoře
+    h2 = _schedule_section_html(entries, "Plán")
+    assert h2.index("10. 6. 2026") < h2.index("17. 6. 2026")
+    # prázdný vstup + empty_note → vlastní text místo „nahraj rozpisy"
+    h3 = _schedule_section_html([], "Plán", empty_note="Vše odbaveno")
+    assert "Vše odbaveno" in h3 and "nahraj" not in h3.lower()
+
+
 def test_committee_detail_shows_source_pdf(service, tmp_path) -> None:
     """Detail komise ukáže zdrojový rozpis PDF (jen existující, s názvem)."""
     from PySide6.QtWidgets import QApplication

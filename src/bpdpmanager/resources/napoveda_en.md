@@ -985,9 +985,13 @@ when the content (dates per day) doesn't fit the width, a **horizontal
 scrollbar** is added instead of growing tall. **Right, a separate panel
 📅 My defence schedule** — always
 complete for the **selected year** (current by default), **independent of the
-selected committee**; width again fits content. The **nearest** upcoming
-defence is highlighted with a live **countdown** ("in X min"). On open the
-current academic year is selected.
+selected committee**; width again fits content. **At the top** it lists only
+**upcoming** students (not yet on their turn); whoever is already
+**Defended/Failed** (from the silent STAG check) **moves down** into a separate
+**"📜 History — already done"** section (newest first, with a status badge), so
+it **doesn't vanish** from the panel. When nothing is left up top, the panel says
+everyone is done. The **nearest** upcoming defence is highlighted with a live
+**countdown** ("in X min"). On open the current academic year is selected.
 
 > **Smaller resolution / narrow window.** The three panels use **draggable
 > splitters** — on a large monitor they look as before (widths fit content),

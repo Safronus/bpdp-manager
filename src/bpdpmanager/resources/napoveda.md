@@ -1106,10 +1106,13 @@ klik je **otevře systémově**). Detail se **nezalamuje** — když se obsah (t
 po dnech) nevejde na šířku, místo nafouknutí do výšky se přidá **vodorovný
 posuvník**. **Vpravo samostatný
 panel 📅 Můj harmonogram obhajob** — pro **vybraný rok** (default aktuální),
-**nezávislý na vybrané komisi**; šířka opět dle obsahu. Ukazuje jen studenty, co
-ještě **nebyli na řadě** — kdo už má **Obhájeno/Neobhájeno**, z harmonogramu
-zmizí (hotové najdeš v *Historii*). U **nejbližší** nadcházející obhajoby se
-zvýrazní řádek a ukáže **odpočet** („za X min", živě).
+**nezávislý na vybrané komisi**; šířka opět dle obsahu. **Nahoře** ukazuje jen
+**nadcházející** studenty (co ještě **nebyli na řadě**); kdo už má
+**Obhájeno/Neobhájeno** (z tiché STAG kontroly), se **přesune dolů** do sekce
+**„📜 Historie — už odbaveno"** (chronologicky od nejnovějšího, s badge stavu) —
+z panelu tedy **nezmizí**. Když nahoře nikdo nezbyde, panel napíše, že už mají
+všichni odbaveno. U **nejbližší** nadcházející obhajoby se zvýrazní řádek a ukáže
+**odpočet** („za X min", živě).
 
 > **Menší rozlišení / úzké okno.** Tři panely jsou v **posuvných rozhraních**
 > (splitter) — na velkém monitoru vypadají jako dřív (šířky dle obsahu), na
