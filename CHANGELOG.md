@@ -5,6 +5,16 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.29.5] - 2026-06-20
+
+### Fixed
+- **Průběh stahování příloh ze STAG ve stavové liště se „překresloval přes
+  sebe".** Trvalý souhrn vlevo dole (*Vedené práce / Oponentury / Studenti /
+  Oponenti / Obory* z tiché aktualizace stavu) zůstával **pod** lištou stahování
+  a slíval se s ní — nejvíc při **hromadném stažení vedených/oponovaných prací**.
+  Lišta stahování teď stavový řádek **uvolní** a po dobu běhu dávky ho souhrn
+  **nepřepisuje** (ani při přepnutí záložky); po doběhnutí se souhrn zase obnoví.
+
 ## [2.29.4] - 2026-06-19
 
 ### Added

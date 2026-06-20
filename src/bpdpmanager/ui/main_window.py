@@ -1125,6 +1125,10 @@ class MainWindow(QMainWindow):
         self._bg_bar.setRange(0, len(jobs))
         self._bg_bar.setValue(0)
         self._bg_label.setText(tr("⬇ STAG soubory…"))
+        # Uvolni stavový řádek pro lištu stahování — jinak by pod ní prosvítal
+        # trvalý souhrn z _update_status (showMessage bez timeoutu) a text by se
+        # slíval. Souhrn se obnoví po doběhnutí dávky.
+        self.statusBar().clearMessage()
         self._bg_widget.setVisible(True)
         mgr.start()
 
@@ -2633,10 +2637,15 @@ class MainWindow(QMainWindow):
         students = len(self.service.list_students())
         opponents = len(self.service.list_opponents())
         obory = len(self.service.list_obory())
-        self.statusBar().showMessage(
-            f"Vedené práce: {total} • Oponentury: {len(opposings)} • "
-            f"Studenti: {students} • Oponenti: {opponents} • Obory: {obory}"
-        )
+        # Když na pozadí běží stahování příloh ze STAG, drží stavový řádek
+        # (vlevo dole) jeho lišta — nepřepisuj ho základním souhrnem, jinak se
+        # text překresluje přes progres a slévá se („aktualizace přes sebe").
+        # Po doběhnutí dávky (_stag_file_mgr = None) se souhrn zase obnoví.
+        if getattr(self, "_stag_file_mgr", None) is None:
+            self.statusBar().showMessage(
+                f"Vedené práce: {total} • Oponentury: {len(opposings)} • "
+                f"Studenti: {students} • Oponenti: {opponents} • Obory: {obory}"
+            )
 
         # Barevný souhrn posudků: vedoucí (jen práce „V řešení") + oponentury.
         in_progress = [t for t in theses if t.status == ThesisStatus.IN_PROGRESS]

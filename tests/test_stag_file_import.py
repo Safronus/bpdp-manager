@@ -55,6 +55,27 @@ def test_section_to_kind_mapping() -> None:
     assert _SECTION_TO_KIND["other"] == AttachmentKind.OTHER
 
 
+def test_status_baseline_suppressed_during_bg_downloads(qapp, service) -> None:
+    """Při běžícím stahování příloh ze STAG (lišta vlevo dole) se základní
+    souhrn ve stavovém řádku NEpřepisuje — jinak se text slíval přes progres
+    (viz „progress vypisuje aktualizace přes sebe")."""
+    from bpdpmanager.ui.main_window import MainWindow
+
+    win = MainWindow(service)
+    sb = win.statusBar()
+    win._update_status()
+    assert "Vedené práce:" in sb.currentMessage()          # normálně se ukáže
+    # simuluj běžící dávku stahování příloh (lišta drží stavový řádek)
+    win._stag_file_mgr = object()
+    sb.showMessage("⬇ STAG soubory 3/10")
+    win._update_status()
+    assert sb.currentMessage() == "⬇ STAG soubory 3/10"    # NEpřepsáno souhrnem
+    # po doběhnutí dávky se souhrn zase obnoví
+    win._stag_file_mgr = None
+    win._update_status()
+    assert "Vedené práce:" in sb.currentMessage()
+
+
 def test_preview_default_all_selected(qapp, tmp_path: Path) -> None:
     f1 = _mk_file(tmp_path, "text.pdf", "text")
     f2 = _mk_file(tmp_path, "prilohy.zip", "appendix")
