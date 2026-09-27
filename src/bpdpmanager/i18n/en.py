@@ -51,8 +51,6 @@ EN: dict[str, str] = {
 
     # ── Hlavní okno: toolbar ─────────────────────────────────────────────
     "➕ Nová práce": "➕ New thesis",
-    "🌱 Zájemce": "🌱 Candidate",
-    "🕘 Minulá práce": "🕘 Past thesis",
     "🎓 Studenti": "🎓 Students",
     "🧐 Oponenti": "🧐 Opponents",
     "👔 Vedoucí": "👔 Supervisors",
@@ -191,18 +189,6 @@ EN: dict[str, str] = {
     "Cesta k souboru": "File path",
 
     # ── Vlna 2: tooltipy toolbaru ────────────────────────────────────────
-    "Vytvoří novou práci. Výchozí stav se odvodí z aktuálního tabu:\n"
-    "  Aktuální → V řešení\n  Budoucí → Vypsané téma\n"
-    "  Historie → Obhájeno\n  Vše → Vypsané téma":
-        "Creates a new thesis. Default status follows the current tab:\n"
-        "  Current → In progress\n  Future → Listed topic\n"
-        "  History → Defended\n  All → Listed topic",
-    "Nová budoucí práce — volitelně rovnou vyplníš studenta, obor, "
-    "název a anotaci (nic není povinné). Stav default Vypsané téma.":
-        "New future thesis — optionally fill in student, programme, title and "
-        "annotation right away (nothing is required). Default status Listed topic.",
-    "Rychlý formulář pro historickou práci (vlastní rok + stav).":
-        "Quick form for a historical thesis (custom year + status).",
     "Registr vedoucích cizích BP/DP — pro oponentské posudky":
         "Registry of supervisors of others' theses — for opponent reviews",
     "Číselník oborů + sekretářky oborů. Dvojklik na hlavičku sekretářky "
@@ -340,7 +326,6 @@ EN: dict[str, str] = {
     'Nevybrali jste žádnou práci.': 'No thesis selected.',
     'Nic není vybráno k opravě.': 'Nothing selected to fix.',
     'Novinky od tvé verze:': "What's new since your version:",
-    'Nová budoucí práce': 'New future thesis',
     'Nový profil': 'New profile',
     'Nový…': 'New…',
     'Nyní': 'Now',
@@ -410,7 +395,6 @@ EN: dict[str, str] = {
     'Při doplnění přepsat i lišící se STAG kódy': 'When adding, also overwrite differing STAG codes',
     'Při doplnění přepsat i stejnojmenné existující': 'When adding, also overwrite same-named existing ones',
     'Při importu nastaly chyby': 'Errors occurred during import',
-    'Přidat minulou práci': 'Add a past thesis',
     'Přidání selhalo': 'Adding failed',
     'Přihlašovací jméno': 'Login name',
     'Připojit popisek o aplikaci (BPDPManager)': 'Append a note about the app (BPDPManager)',
@@ -530,7 +514,6 @@ EN: dict[str, str] = {
     'Zadej název šablony.': 'Enter a template name.',
     'Zadej přihlašovací jméno i PIN do MyQ.': 'Enter both the MyQ login name and PIN.',
     'Zadej příjmení a klikni na „Vyhledat ve STAG".': 'Enter a surname and click "Search in STAG".',
-    'Založit nového studenta (vč. oboru).': 'Create a new student (incl. programme).',
     'Zarezervováno': 'Reserved',
     'Zavřít': 'Close',
     'Zdrojový XLSX': 'Source XLSX',
@@ -560,7 +543,6 @@ EN: dict[str, str] = {
     'jméno / poznámka (volný text)': 'name / note (free text)',
     'napiš výraz a stiskni Enter…': 'type a phrase and press Enter…',
     'např. 12.3': 'e.g. 12.3',
-    'např. 2024/2025': 'e.g. 2024/2025',
     'např. 2025/2026 (volitelné)': 'e.g. 2025/2026 (optional)',
     'např. A24390': 'e.g. A24390',
     'např. NSWI-P': 'e.g. NSWI-P',
@@ -1295,4 +1277,21 @@ EN: dict[str, str] = {
     "Nový záznam studenta (navazující studium)": "New student record (follow-up studies)",
     "Vybrat studenta ze seznamu s osobním číslem, oborem a pracemi":
         "Select a student from a list with student ID, programme and theses",
+    # ── Nová práce — jednotný dialog (2.31.0) ────────────────────────────
+    "Nová práce": "New thesis",
+    "Vybrat…": "Select…",
+    "⚠ Student už má neukončenou práci stejného typu: {works}.":
+        "⚠ The student already has an unfinished thesis of this type: {works}.",
+    "⚠ Tento záznam studenta má BP ({works}) — pro DP bývá "
+    "ve STAGu nové osobní číslo.":
+        "⚠ This student record has a BP ({works}) — a DP usually has a new "
+        "student ID in STAG.",
+    "Vybrat jiný záznam / Nový záznam z vybraného…":
+        "Select another record / New record from selected…",
+    "Založí novou práci — i zájemce nebo minulou práci. Stav, rok, "
+    "studenta i název zvolíš v dialogu; výchozí stav podle záložky:\n"
+    "  Aktuální → V řešení\n  Historie → Obhájeno\n  jinak → Vypsané téma":
+        "Creates a new thesis — also a candidate or a past thesis. Choose status, "
+        "year, student and title in the dialog; default status by tab:\n"
+        "  Current → In progress\n  History → Defended\n  otherwise → Listed topic",
 }

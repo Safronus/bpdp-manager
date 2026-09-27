@@ -11,9 +11,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QCompleter,
     QDialog,
-    QDialogButtonBox,
     QFileDialog,
-    QFormLayout,
     QFrame,
     QHBoxLayout,
     QInputDialog,
@@ -22,7 +20,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPlainTextEdit,
     QProgressBar,
     QPushButton,
     QSizePolicy,
@@ -36,7 +33,6 @@ from PySide6.QtWidgets import (
 )
 
 from ..i18n import tr
-from ..models import Thesis
 from ..models.enums import (
     GRADES_ORDER,
     REVIEW_STATE_STRONG,
@@ -45,7 +41,6 @@ from ..models.enums import (
     STATUSES_FUTURE,
     STATUSES_HISTORY,
     ThesisStatus,
-    ThesisType,
 )
 from ..services import (
     BackupManager,
@@ -72,7 +67,7 @@ from .profile_export_dialog import ExportProfileDialog, ImportProfileDialog
 from .profile_manage_dialog import ProfileManageDialog
 from .proposals_tab import ProposalsTab
 from .review_templates_dialog import GenerateReviewDialog, ReviewTemplatesDialog
-from .rollback_dialog import RollbackOpposingDialog, RollbackThesisDialog
+from .rollback_dialog import RollbackThesisDialog
 from .stag_consistency_dialog import StagConsistencyDialog
 from .stag_import_dialog import StagImportDialog
 from .stats_tab import StatsTab
@@ -1610,19 +1605,10 @@ class MainWindow(QMainWindow):
 
         # ── Skupina: Vytvořit (zelená) ──────────────────────────────────
         add(
-            tr("➕ Nová práce"), lambda: self._new_thesis_smart(), self._GROUP_CREATE,
-            "Vytvoří novou práci. Výchozí stav se odvodí z aktuálního tabu:\n"
-            "  Aktuální → V řešení\n  Budoucí → Vypsané téma\n"
-            "  Historie → Obhájeno\n  Vše → Vypsané téma",
-        )
-        add(
-            tr("🌱 Zájemce"), self._new_future_thesis, self._GROUP_CREATE,
-            "Nová budoucí práce — volitelně rovnou vyplníš studenta, obor, "
-            "název a anotaci (nic není povinné). Stav default Vypsané téma.",
-        )
-        add(
-            tr("🕘 Minulá práce"), self._new_past_thesis, self._GROUP_CREATE,
-            "Rychlý formulář pro historickou práci (vlastní rok + stav).",
+            tr("➕ Nová práce"), self._new_thesis_dialog, self._GROUP_CREATE,
+            "Založí novou práci — i zájemce nebo minulou práci. Stav, rok, "
+            "studenta i název zvolíš v dialogu; výchozí stav podle záložky:\n"
+            "  Aktuální → V řešení\n  Historie → Obhájeno\n  jinak → Vypsané téma",
         )
 
         toolbar.addSeparator()
@@ -2181,209 +2167,26 @@ class MainWindow(QMainWindow):
 
     # --- akce ----------------------------------------------------------------
 
-    def _new_thesis_smart(self) -> None:
-        """Tab-aware varianta + Nová práce — default status z aktuálního tabu.
+    def _new_thesis_dialog(self) -> None:
+        """Jednotný dialog nové práce (vč. zájemce i minulé práce).
 
-        Mapování:
-          Aktuální → V řešení (IN_PROGRESS) v aktuálním roce
-          Budoucí → Vypsané téma (LISTED) v příštím roce
-          Historie → Obhájeno (DEFENDED) v minulém roce
-          Vše / Oponentury → Vypsané téma v aktuálním roce
+        Výchozí stav podle aktivní záložky: Aktuální → V řešení, Historie →
+        Obhájeno, jinak Vypsané téma; rok podle stavu (``services.new_thesis``).
         """
-        current_year = ThesisService.current_academic_year()
-        next_year = ThesisService.next_academic_year()
-        previous_year = ThesisService.previous_academic_year()
+        from ..services.new_thesis import TabKind
+        from .new_thesis_dialog import NewThesisDialog
 
         active = self.tabs.currentWidget()
-        if active is self.tab_current:
-            self._new_thesis(current_year, ThesisStatus.IN_PROGRESS)
-        elif active is self.tab_future:
-            self._new_thesis(next_year, ThesisStatus.LISTED)
-        elif active is self.tab_history:
-            self._new_thesis(previous_year, ThesisStatus.DEFENDED)
-        else:
-            self._new_thesis(current_year, ThesisStatus.LISTED)
-
-    def _new_thesis(self, year: str, status: ThesisStatus = ThesisStatus.RESERVED) -> None:
-        thesis_type_label, ok = QInputDialog.getItem(
-            self,
-            "Typ práce",
-            "Vyber typ nové práce:",
-            [t.label for t in ThesisType],
-            0,
-            False,
-        )
-        if not ok:
+        tab = {
+            id(self.tab_current): TabKind.CURRENT,
+            id(self.tab_future): TabKind.FUTURE,
+            id(self.tab_history): TabKind.HISTORY,
+        }.get(id(active), TabKind.OTHER)
+        dlg = NewThesisDialog(self.service, parent=self, tab=tab)
+        if dlg.exec() != QDialog.DialogCode.Accepted or dlg.thesis is None:
             return
-        thesis_type = next(t for t in ThesisType if t.label == thesis_type_label)
-        thesis = Thesis(type=thesis_type, status=status, academic_year=year)
-        self.service.upsert_thesis(thesis)
         self._refresh_all()
-        self._focus_thesis(thesis.id)
-
-    def _new_future_thesis(self) -> None:
-        """Dialog nové budoucí práce — volitelně předvyplní studenta, obor,
-        název a anotaci. Nic není povinné; stav default *Vypsané téma*."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle(tr("Nová budoucí práce"))
-        dialog.setMinimumWidth(500)
-        layout = QVBoxLayout(dialog)
-        form = QFormLayout()
-
-        cb_type = QComboBox()
-        for t in ThesisType:
-            cb_type.addItem(t.label, t.value)
-        ed_year = QLineEdit(ThesisService.next_academic_year())
-
-        cb_status = QComboBox()
-        for s in (ThesisStatus.LISTED, ThesisStatus.RESERVED, ThesisStatus.INTERESTED):
-            cb_status.addItem(s.label, s.value)
-
-        cb_student = QComboBox()
-        cb_student.addItem(tr("(bez studenta)"), None)
-        for st in self.service.list_students():
-            cb_student.addItem(st.full_name, st.id)
-        btn_new_student = QPushButton(tr("+ Nový"))
-        btn_new_student.setToolTip(tr("Založit nového studenta (vč. oboru)."))
-        student_row = QHBoxLayout()
-        student_row.setContentsMargins(0, 0, 0, 0)
-        student_row.addWidget(cb_student, stretch=1)
-        student_row.addWidget(btn_new_student)
-        student_widget = QWidget()
-        student_widget.setLayout(student_row)
-
-        # Obor je vždy editovatelný (pole je nepovinné); při výběru studenta se
-        # předvyplní jeho oborem.
-        cb_obor = QComboBox()
-        cb_obor.setEditable(True)
-        cb_obor.addItem("")
-        for o in self.service.list_obor_objects():
-            cb_obor.addItem(o.name)
-        cb_obor.lineEdit().setPlaceholderText(tr("Obor (nepovinné)"))
-
-        def _on_student() -> None:
-            sid = cb_student.currentData()
-            if sid:
-                st = self.service.get_student(sid)
-                cb_obor.setCurrentText((st.obor if st else "") or "")
-
-        cb_student.currentIndexChanged.connect(lambda _i: _on_student())
-
-        def _new_student() -> None:
-            from .student_dialog import StudentDialog
-
-            dlg = StudentDialog(self.service, parent=dialog)
-            if dlg.exec() != QDialog.DialogCode.Accepted:
-                return
-            new_st = dlg.student
-            cb_student.addItem(new_st.full_name, new_st.id)
-            cb_student.setCurrentIndex(cb_student.count() - 1)  # vyvolá _on_student
-            if new_st.obor:
-                cb_obor.setCurrentText(new_st.obor)
-
-        btn_new_student.clicked.connect(_new_student)
-
-        ed_title = QLineEdit()
-        ed_anot = QPlainTextEdit()
-        ed_anot.setMaximumHeight(110)
-
-        form.addRow(tr("Typ"), cb_type)
-        form.addRow(tr("Akademický rok"), ed_year)
-        form.addRow("Stav", cb_status)
-        form.addRow(tr("Student"), student_widget)
-        form.addRow("Obor", cb_obor)
-        form.addRow(tr("Název"), ed_title)
-        form.addRow("Anotace", ed_anot)
-        layout.addLayout(form)
-
-        hint = QLabel(
-            tr("Nepovinné — co nevyplníš, zůstane prázdné. Obor se ukládá "
-            "ke zvolenému studentovi (jen pokud je zvolen).")
-        )
-        hint.setStyleSheet("color:#888;")
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        thesis = Thesis(
-            type=ThesisType(cb_type.currentData()),
-            status=ThesisStatus(cb_status.currentData()),
-            academic_year=ed_year.text().strip(),
-        )
-        thesis.title_cs = ed_title.text().strip()
-        thesis.annotation = ed_anot.toPlainText().strip()
-        sid = cb_student.currentData()
-        if sid:
-            thesis.student_id = sid
-            obor_text = cb_obor.currentText().strip()
-            st = self.service.get_student(sid)
-            if st is not None and obor_text and (st.obor or "") != obor_text:
-                st.obor = obor_text
-                self.service.upsert_student(st)
-        self.service.upsert_thesis(thesis)
-        self._refresh_all()
-        self._focus_thesis(thesis.id)
-
-    def _new_past_thesis(self) -> None:
-        """Dialog pro přidání historické práce — libovolný rok, typ, stav."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle(tr("Přidat minulou práci"))
-        dialog.setMinimumWidth(420)
-
-        layout = QVBoxLayout(dialog)
-        form = QFormLayout()
-
-        ed_year = QLineEdit(ThesisService.previous_academic_year())
-        ed_year.setPlaceholderText(tr("např. 2024/2025"))
-
-        cb_type = QComboBox()
-        for t in ThesisType:
-            cb_type.addItem(t.label, t.value)
-
-        cb_status = QComboBox()
-        past_statuses = [
-            ThesisStatus.DEFENDED,
-            ThesisStatus.IN_PROGRESS,
-            ThesisStatus.CANCELLED,
-            ThesisStatus.SUBMITTED_NO_DEFENSE,
-        ]
-        for s in past_statuses:
-            cb_status.addItem(s.label, s.value)
-
-        form.addRow(tr("Akademický rok"), ed_year)
-        form.addRow(tr("Typ"), cb_type)
-        form.addRow("Stav", cb_status)
-        layout.addLayout(form)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        year = ed_year.text().strip()
-        if not year:
-            return
-
-        thesis_type = ThesisType(cb_type.currentData())
-        status = ThesisStatus(cb_status.currentData())
-        thesis = Thesis(type=thesis_type, status=status, academic_year=year)
-        self.service.upsert_thesis(thesis)
-        self._refresh_all()
-        self._focus_thesis(thesis.id)
+        self._focus_thesis(dlg.thesis.id)
 
     def _focus_thesis(self, thesis_id: str) -> None:
         for i in range(self.tabs.count()):
