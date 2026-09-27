@@ -356,10 +356,17 @@ class ThesisDetail(QWidget):
         _setup_searchable_combo(self.cb_student)
         if self.cb_student.lineEdit() is not None:
             self.cb_student.lineEdit().setPlaceholderText(tr("(bez studenta)"))
+        self.btn_pick_student = QPushButton("…")
+        self.btn_pick_student.setFixedWidth(28)
+        self.btn_pick_student.setToolTip(
+            tr("Vybrat studenta ze seznamu s osobním číslem, oborem a pracemi")
+        )
+        self.btn_pick_student.clicked.connect(self._pick_student)
         self.btn_new_student = QPushButton("+")
         self.btn_new_student.setFixedWidth(28)
         self.btn_new_student.clicked.connect(self._new_student)
         row.addWidget(self.cb_student, stretch=1)
+        row.addWidget(self.btn_pick_student)
         row.addWidget(self.btn_new_student)
         row.addSpacing(12)
 
@@ -1403,6 +1410,23 @@ class ThesisDetail(QWidget):
                 # nastavení vybraného nového studenta už dirty být MÁ
                 self.cb_student.setCurrentIndex(idx)
 
+    def _pick_student(self) -> None:
+        from .student_picker_dialog import StudentPickerDialog
+
+        dlg = StudentPickerDialog(
+            self.service, parent=self, current_id=self._resolve_combo_id(self.cb_student)
+        )
+        if not dlg.exec():
+            return
+        if dlg.changed:
+            self._loading = True
+            try:
+                self.refresh_combos()
+            finally:
+                self._loading = False
+        # výběr (i „Bez studenta") je ruční změna → dirty + sjednocení oboru
+        self._set_combo_to_id(self.cb_student, dlg.selected_student_id)
+
     def _new_opponent(self) -> None:
         dlg = OpponentDialog(self.service, parent=self)
         if dlg.exec():
@@ -1461,6 +1485,11 @@ class ThesisDetail(QWidget):
         text = combo.currentText().strip().lower()
         if not text:
             return None
+        # Vybraná položka má přednost — víc záznamů může mít stejné jméno
+        # (BP a DP záznam téže osoby); hledání podle textu by vzalo první.
+        idx = combo.currentIndex()
+        if idx >= 0 and combo.itemText(idx).strip().lower() == text:
+            return combo.itemData(idx)
         for i in range(combo.count()):
             if combo.itemText(i).strip().lower() == text:
                 return combo.itemData(i)

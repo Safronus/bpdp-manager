@@ -1268,4 +1268,31 @@ EN: dict[str, str] = {
     "Smazat komisi {name} ({year})? Zdrojová PDF na disku "
     "zůstanou.":
         "Delete committee {name} ({year})? Source PDFs stay on disk.",
+    # ── Výběr studenta (2.31.0) ──────────────────────────────────────────
+    "Výběr studenta": "Select student",
+    "Hledat jméno, osobní číslo, obor nebo e-mail (bez diakritiky)…":
+        "Search name, student ID, programme or e-mail (accents optional)…",
+    "Os. číslo": "Student ID",
+    "Forma": "Form",
+    "E-mail": "E-mail",
+    "+ Nový student": "+ New student",
+    "⤴ Nový záznam z vybraného (BP → DP)": "⤴ New record from selected (BP → DP)",
+    "Založí nový záznam téže osoby (jméno, e-mail, telefon) — pro "
+    "navazující studium s jiným osobním číslem a oborem.":
+        "Creates a new record of the same person (name, e-mail, phone) — for "
+        "follow-up studies with a different student ID and programme.",
+    "Vybrat": "Select",
+    "Bez studenta": "No student",
+    "Stejné jméno má víc záznamů — rozliš podle osobního čísla, "
+    "oboru a prací.":
+        "Several records share this name — tell them apart by student ID, "
+        "programme and theses.",
+    "(žádná práce)": "(no thesis)",
+    "Zobrazeno {n} z {total}": "Showing {n} of {total}",
+    "Nikdo nevybrán.": "Nobody selected.",
+    "Osobní číslo": "Student ID",
+    "Stejné jméno má {n} záznamy v evidenci.": "{n} records share this name.",
+    "Nový záznam studenta (navazující studium)": "New student record (follow-up studies)",
+    "Vybrat studenta ze seznamu s osobním číslem, oborem a pracemi":
+        "Select a student from a list with student ID, programme and theses",
 }

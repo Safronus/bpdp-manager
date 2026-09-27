@@ -32,6 +32,7 @@ class StudentDialog(QDialog):
         parent=None,
         *,
         persist: bool = True,
+        title: str | None = None,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -40,7 +41,7 @@ class StudentDialog(QDialog):
         # ani neregistruje obor). Použito pro revizi v transakčním importu, kde
         # se zápis provádí až v dávce.
         self.persist = persist
-        self.setWindowTitle("Student" if student else "Nový student")
+        self.setWindowTitle(title or ("Student" if student else "Nový student"))
         self.setMinimumWidth(420)
 
         form = QFormLayout()
