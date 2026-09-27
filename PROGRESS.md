@@ -72,8 +72,11 @@ build + testy; bump verze = automatický Release s `.dmg`.
 - Příčina směsi: README radilo `python3.12 -m venv` nad existující venv → opraveno.
 - Starý venv (záloha 1,3 GB) smazán po ověření, že na něm nic jiného nezávisí;
   odstraněn i iCloud duplikát symlinku `.venv 2`. Ze starého chybí jen ručně
-  doinstalovaný profiler `py-spy` (projekt ho nepotřebuje).
+  doinstalovaný profiler `py-spy` — **rozhodnuto nedoinstalovávat** (projekt ho
+  nepotřebuje; při ladění záseku `python -m pip install py-spy`, na macOS se sudo).
 - ruff zafixován v `pyproject.toml` (0.16.9) jako jediný zdroj pro lokál i CI.
+  Ověřeno během CI `36324372577`: ruff 0.16.9 z pyproject, ratchet 335, verze
+  balíčků v CI = lokální venv.
 
 ### Naplánováno
 - **Upgrade Pythonu před 10/2027** (konec podpory 3.11). Doporučeno **3.13**
