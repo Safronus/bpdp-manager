@@ -20,6 +20,9 @@ from bpdpmanager.services.ics_export import build_ics
 from bpdpmanager.services.komise_parser import ParsedSchedule
 from bpdpmanager.storage import JsonRepository
 
+# Data jsou pro 2025/2026 → „aktuální rok" zafixovat (viz conftest).
+pytestmark = pytest.mark.usefixtures("academic_year_2025_26")
+
 
 @pytest.fixture
 def service(tmp_path) -> ThesisService:

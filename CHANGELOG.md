@@ -5,6 +5,15 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [Unreleased]
+
+### Fixed
+- **Testy komisí a exportu do kalendáře už nezávisí na dnešním datu.** Od
+  1. 9. 2026 (přechod na akademický rok 2026/2027) padalo 6 testů — testovací
+  data jsou pro 2025/2026, ale aplikace počítá oponované práce jen z aktuálního
+  roku. Testy si teď „aktuální rok" zafixují na rok svých dat (fixture
+  `academic_year_2025_26` v `tests/conftest.py`). Chování aplikace beze změny.
+
 ## [2.29.5] - 2026-06-20
 
 ### Fixed

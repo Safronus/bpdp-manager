@@ -21,6 +21,9 @@ from bpdpmanager.services.komise_parser import (
     parse_schedule_page,
 )
 
+# Data komisí jsou pro 2025/2026 → „aktuální rok" zafixovat (viz conftest).
+pytestmark = pytest.mark.usefixtures("academic_year_2025_26")
+
 
 def test_classify_color() -> None:
     assert classify_color((1.0, 0.0, 0.0)) == "červená"
