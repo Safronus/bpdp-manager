@@ -129,10 +129,19 @@ upozornění na neukončenou práci stejného typu a na DP zakládanou na zázna
 - Vizuálně ověřeno offscreen renderem (fiktivní data): výběr studenta, dialog nové
   práce (oprava: `QFormLayout` na macOS neroztahoval pole → AllNonFixedFieldsGrow).
 - ⚠️ Neověřeno ručním proklikáním v běžící aplikaci (jen testy + render).
-- ⚠️ Otevřené: titulek tabu Budoucí „Práce v dalším akademickém roce <příští>"
-  neodpovídá, když obsahuje i zájemce na letošní rok — čeká na rozhodnutí.
-- Další krok: CI vydá v2.31.0 → aktualizace z běžící 2.30.2 přes „⬇ Stáhnout"
-  v aplikaci = první ostrý E2E test updateru.
+- ✅ **Vydáno v2.31.0** (CI 36331245057: ruff 334, 801 testů, self-test .app OK;
+  digest sha256:e7ee176b…). Uživatel má zatím 2.30.2 — aktualizace přes „⬇ Stáhnout"
+  v aplikaci = první ostrý E2E test updateru (zatím neproběhl).
+- **ROZHODNUTO (nezačato):** titulek tabu Budoucí → obecný bez roku („Zájemci
+  a vypsaná témata" / EN „Candidates and listed topics"); `main_window.py` ř. ~694
+  a ~713 (`_tab_base`), + nápověda CZ/EN („Práce v dalším akademickém roce R/R").
+- **Dotaz uživatele (zodpovědět/ověřit):** jak se práce dostane z Budoucích do
+  „Aktuálně vedené"? Známo: záložky se řídí stavem (neslučují se); ručně přes
+  „Přechod do stavu → V řešení" (vyžaduje název EN, body zadání, literaturu —
+  `thesis_service.transition`); import ze STAG mapuje stav R / datum zadání na
+  V řešení (`stag_import_dialog.py` ~189, ~1402). ⚠️ NEOVĚŘENO: zda tichá kontrola
+  STAG / Aktualizace práce ze STAG nabídne přechod Vypsané → V řešení u budoucích prací.
+- Uživatel si vyžádal pauzu (aktualizace aplikace Claude) — pokračovat výše.
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).
