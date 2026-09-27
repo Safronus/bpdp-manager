@@ -79,8 +79,10 @@ build + testy; bump verze = automatický Release s `.dmg`.
   nainstalované (mechanismus ověřen skutečným stažením + testy dialogu).
 
 ### Instalace u uživatele
-- `/Applications/BPDPManager.app` (Finder → Aplikace, Launchpad, Spotlight).
-  Instalováno ze staženého Release přes `gh` (bez karantény). Otevírá stávající
+- `/Applications/BPDPManager.app` **v2.30.1** (Finder → Aplikace, Launchpad,
+  Spotlight). Nahrazena z 2.30.0 přes `download_update` (digest z API, SHA-256 OK),
+  bez karantény; self-test 28/28 vč. WebEngine, spuštění přes Finder OK.
+  Release v2.30.1 vydán CI (běh 36326021224). Otevírá stávající
   profil „Petr Žáček" (sdílený registr `~/Library/Application Support/BPDPManager/
   profiles.json`, stejný jako verze ze zdrojů). Nespouštět obě verze současně.
 
