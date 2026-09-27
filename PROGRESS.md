@@ -79,10 +79,14 @@ build + testy; bump verze = automatický Release s `.dmg`.
   nainstalované (mechanismus ověřen skutečným stažením + testy dialogu).
 
 ### Instalace u uživatele
-- `/Applications/BPDPManager.app` **v2.30.1** (Finder → Aplikace, Launchpad,
-  Spotlight). Nahrazena z 2.30.0 přes `download_update` (digest z API, SHA-256 OK),
-  bez karantény; self-test 28/28 vč. WebEngine, spuštění přes Finder OK.
-  Release v2.30.1 vydán CI (běh 36326021224). Otevírá stávající
+- `/Applications/BPDPManager.app` **v2.30.2** (Finder → Aplikace, Launchpad,
+  Spotlight). 2.30.1 hlásila STAG offline (v `.app` chyběly CA certifikáty —
+  OPENSSLDIR z CI neexistuje) → 2.30.2 přibaluje certifi (`SSL_CERT_FILE`).
+  2.30.1 se sama aktualizovat neuměla (stejná TLS chyba) → 2.30.2 nainstalována
+  ručně: `gh release download`, SHA-256 = digest z Release, bez karantény,
+  `codesign --verify` OK; `--self-test --network` na nainstalované appce:
+  CA 121, přibalené certifikáty, STAG ✅, GitHub ✅ (CI běh 36327433000).
+  Otevírá stávající
   profil „Petr Žáček" (sdílený registr `~/Library/Application Support/BPDPManager/
   profiles.json`, stejný jako verze ze zdrojů). Nespouštět obě verze současně.
 
@@ -106,6 +110,17 @@ build + testy; bump verze = automatický Release s `.dmg`.
   (PySide6, shiboken6, pydantic-core, cryptography, cffi, pyinstaller, pillow)
   mají kola pro 3.12–3.14 na macOS arm64. Postup: nový venv + `python-version`
   v CI + ověřit testy/build/self-test + nová verze. Uživatel zatím zvolil zůstat na 3.11.
+
+## Rozpracováno: sloučení „Nová práce" + „Zájemce", výběr studenta (od 2.31.0)
+Zjištění: v detailu na tabu Budoucí nabízí rok jen příští + přespříští
+(`_academic_year_choices`, YEAR_MODE_FUTURE) → zájemce na běžící rok 2026/2027
+nejde zařadit. Výběr studenta = combobox jen se jménem (BP a DP záznam téže osoby
+s jiným os. číslem nejdou rozlišit).
+Odsouhlaseno: (a) rok na Budoucí = letošní + 2 další; (b) stav vybíraný v dialogu,
+výchozí dle tabu; (c) dialog výběru studenta s tabulkou (jméno, os. č., obor,
+forma, e-mail, dosavadní práce) + detail, použitý v novém dialogu i v detailu práce.
+⚠️ Nejasné: zda do jednoho dialogu sloučit i „Minulou práci" (odpověď „1 + 2") —
+doptat se.
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).
