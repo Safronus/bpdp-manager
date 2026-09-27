@@ -12,6 +12,19 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
   *Candidates and listed topics*) — bez akademického roku v titulku. Záložka
   se řídí stavem, ne rokem, a obsahuje i zájemce a vypsaná témata na běžící
   rok; dřívější „Práce v dalším akademickém roce <příští rok>" byla zavádějící.
+- **Import ze STAG převede schválené budoucí téma do „V řešení".** Ručně
+  založený zájemce / vypsané téma se při importu spáruje (STAG ID, jinak
+  student + rok + typ); když STAG dokládá *v řešení* nebo pozdější stav, náhled
+  předvybere stav ze STAG (oranžově zvýrazněno) a import ho nastaví spolu se
+  zadáním. U prací *V řešení* a ukončených se výchozí chování nemění; ručně
+  zvolený stav v náhledu se uplatní vždy.
+
+### Fixed
+- **Náhled importu ukazoval stav i u existujících prací, ale import ho
+  ignoroval** — teď se zvolený stav skutečně uloží (souhrn ukáže počet změn).
+- **Náhled importu pároval jinak než import:** hlásil „Aktualizovat" i u práce
+  s jiným STAG ID (repetent), ačkoli import pak založil novou. Párování je teď
+  shodné.
 
 ## [2.31.0] - 2026-09-27
 

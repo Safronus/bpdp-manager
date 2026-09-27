@@ -830,8 +830,13 @@ jen nenamapovaný obor případně zvolíš/založíš v náhledu).
 > - **Slučování polí:** ze STAG se převezmou **vyplněné** údaje (název CZ/EN,
 >   anotace, body zadání, literatura, vedoucí/oponent, rok); kde STAG nic nemá,
 >   **zůstane tvá stávající hodnota** (nic se nepřepíše prázdnem).
-> - **Stav práce se NEmění** — u existující práce zůstává tvůj aktuální stav
->   (z dialogu se bere jen u nově zakládaných).
+> - **Stav existující práce:** náhled předvybere **stávající stav** (beze
+>   změny) — **kromě schváleného budoucího tématu**: práce ve stavu *Zájemce*
+>   nebo *Vypsané téma*, kterou STAG dokládá jako *v řešení* (nebo dál), dostane
+>   předvybraný stav ze STAG (combo je **oranžově orámované**, tooltip ukazuje
+>   „Stávající → ze STAG"). Import ji tak převede do *Aktuálně vedené* a zároveň
+>   doplní zadání (název EN, body, literatura). Stav, který v náhledu **ručně
+>   zvolíš**, se uplatní vždy; ruční *Přechod do stavu* v detailu zůstává.
 > - **Přílohy** se připojí; dvě **různé** přílohy dostanou rozlišitelné názvy
 >   (podle původního názvu, ne `_v2`), **shodný obsah** se nepřidá podruhé
 >   a posudky se archivují.

@@ -63,6 +63,7 @@ from ..services.stag_csv_importer import (
     load_stag_csv,
     load_stag_csv_bytes,
 )
+from ..services.stag_status_rules import preselected_status_for_existing
 from .obor_dialog import OborDialog
 
 # Per-row akce
@@ -783,6 +784,33 @@ class StagImportDialog(QDialog):
             # Pokud uživatel globální default v hlavičce explicitně přepsal
             # (ne defaultní DEFENDED), jeho volba má přednost nad heuristikou.
             row_default = self._smart_status_for_record(record, default_status)
+            tooltip = self._status_heuristic_explanation(record, row_default)
+            # Už evidovaná vedená práce: stav se mění jen u budoucí práce, kterou
+            # STAG dokládá jako „v řešení" či dál (schválené téma); jinak zůstává.
+            existing = (
+                self._existing_supervised_thesis(record, existing_theses)
+                if initial == ImportRole.SUPERVISOR.value else None
+            )
+            if existing is not None:
+                row_default = preselected_status_for_existing(
+                    existing.status, self._stag_evidenced_status(record)
+                )
+                if row_default != existing.status:
+                    tooltip = (
+                        tr("Stávající stav: {old} → ze STAG: {new} (změní se "
+                           "při importu).").format(old=existing.status.label,
+                                                   new=row_default.label)
+                        + "\n\n" + tooltip
+                    )
+                    cb_status.setStyleSheet(
+                        combo_neutral_qss.replace(
+                            "border: 1px solid palette(mid)", "border: 2px solid #e0a000", 1)
+                    )
+                else:
+                    tooltip = tr(
+                        "Stávající stav: {old} — import ho nezmění, pokud ho tu "
+                        "ručně nepřepíšeš."
+                    ).format(old=existing.status.label)
             idx = cb_status.findData(row_default.value)
             if idx >= 0:
                 cb_status.setCurrentIndex(idx)
@@ -790,9 +818,7 @@ class StagImportDialog(QDialog):
                 lambda _, r=row_idx: self._refresh_detail_if_current(r)
             )
             # Tooltip vysvětluje proč jsme zvolili daný default
-            cb_status.setToolTip(
-                self._status_heuristic_explanation(record, row_default)
-            )
+            cb_status.setToolTip(tooltip)
             self.table.setCellWidget(row_idx, 8, cb_status)
 
             # === Akce ===
@@ -1161,27 +1187,8 @@ class StagImportDialog(QDialog):
         adip = record.adipidno.strip()
 
         if role == ImportRole.SUPERVISOR:
-            # 1) přesně přes adipidno
-            if adip:
-                for t in existing_theses:
-                    if t.adipidno and t.adipidno == adip:
-                        return f"existuje: {t.display_title[:40]}"
-            # 2) fallback: student_id (přes university_id) + year + type
-            students_by_uni_id = {
-                s.university_id: s for s in self.service.list_students()
-                if s.university_id
-            }
-            student = students_by_uni_id.get(uni_id)
-            if student is None:
-                return ""
-            for t in existing_theses:
-                if (
-                    t.student_id == student.id
-                    and t.academic_year == year
-                    and t.type.value == type_value
-                ):
-                    return f"existuje: {t.display_title[:40]}"
-            return ""
+            t = self._existing_supervised_thesis(record, existing_theses)
+            return f"existuje: {t.display_title[:40]}" if t is not None else ""
         else:
             if adip:
                 for o in existing_opposing:
@@ -1196,6 +1203,38 @@ class StagImportDialog(QDialog):
                 ):
                     return f"existuje: {o.display_title[:40]}"
             return ""
+
+    def _existing_supervised_thesis(
+        self, record: ParsedRecord, existing_theses: list[Thesis]
+    ) -> Thesis | None:
+        """Evidovaná vedená práce, kterou import aktualizuje (jako ``_find_existing_thesis``).
+
+        1) přesně přes STAG ID; 2) student (přes osobní číslo) + rok + typ — ale
+        nikdy práce s JINÝM STAG ID (repetent: jiný pokus = jiná práce).
+        """
+        adip = record.adipidno.strip()
+        if adip:
+            for t in existing_theses:
+                if t.adipidno and t.adipidno == adip:
+                    return t
+        uni_id = record.student_uni_id.strip()
+        student = next(
+            (s for s in self.service.list_students()
+             if uni_id and s.university_id == uni_id),
+            None,
+        )
+        if student is None:
+            return None
+        for t in existing_theses:
+            if t.adipidno and adip and t.adipidno != adip:
+                continue
+            if (
+                t.student_id == student.id
+                and t.academic_year == record.academic_year
+                and t.type.value == record.type_code
+            ):
+                return t
+        return None
 
     # --- vlastní import (transakční) ----------------------------------------
 
@@ -1406,6 +1445,11 @@ class StagImportDialog(QDialog):
         Mapování STAG kódů → náš ``ThesisStatus``: viz konstanta
         ``STAG_STATE_TO_STATUS`` na vrcholu modulu.
         """
+        return StagImportDialog._stag_evidenced_status(record) or fallback
+
+    @staticmethod
+    def _stag_evidenced_status(record: ParsedRecord) -> ThesisStatus | None:
+        """Stav doložený daty STAG (kód ``stavPrace``, jinak data); ``None`` = nic."""
         code = (record.stag_state_code or "").strip().upper()
         if code in STAG_STATE_TO_STATUS:
             return STAG_STATE_TO_STATUS[code]
@@ -1416,7 +1460,7 @@ class StagImportDialog(QDialog):
             return ThesisStatus.IN_PROGRESS
         if record.date_assigned is not None:
             return ThesisStatus.IN_PROGRESS
-        return fallback
+        return None
 
     @staticmethod
     def _status_heuristic_explanation(
@@ -1829,7 +1873,10 @@ class StagImportDialog(QDialog):
         rows.append(
             f"<tr><td>📚 <b>Vedené práce</b></td>"
             f"<td>{stats['created_thesis']} vytvořeno</td>"
-            f"<td>{stats['updated_thesis']} aktualizováno</td></tr>"
+            f"<td>{stats['updated_thesis']} aktualizováno"
+            + (f" (z toho {stats['status_changed']} se změnou stavu)"
+               if stats.get("status_changed") else "")
+            + "</td></tr>"
         )
         rows.append(
             f"<tr><td>🧐 <b>Oponentské posudky</b></td>"
@@ -2004,7 +2051,12 @@ class StagImportDialog(QDialog):
         thesis.type = ThesisType(record.type_code)
         thesis.academic_year = record.academic_year
         if is_new:
-            thesis.status = status  # u nových volíme z dialogu; existující neměníme
+            thesis.status = status  # u nových volíme z dialogu
+        elif thesis.status != status:
+            # Existující: náhled předvybere stávající stav (beze změny), u budoucí
+            # práce schválené ve STAG stav ze STAG; ruční volba v náhledu platí.
+            thesis.status = status
+            stats["status_changed"] = stats.get("status_changed", 0) + 1
         thesis.title_cs = record.title_cs or thesis.title_cs
         thesis.title_en = record.title_en or thesis.title_en
         thesis.annotation = record.annotation_cs or thesis.annotation

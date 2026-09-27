@@ -1294,4 +1294,11 @@ EN: dict[str, str] = {
         "Creates a new thesis — also a candidate or a past thesis. Choose status, "
         "year, student and title in the dialog; default status by tab:\n"
         "  Current → In progress\n  History → Defended\n  otherwise → Listed topic",
+    # ── Import ze STAG: stav existující práce (2.31.1) ────────────────────
+    "Stávající stav: {old} → ze STAG: {new} (změní se "
+    "při importu).":
+        "Current status: {old} → from STAG: {new} (changes on import).",
+    "Stávající stav: {old} — import ho nezmění, pokud ho tu "
+    "ručně nepřepíšeš.":
+        "Current status: {old} — the import keeps it unless you change it here.",
 }

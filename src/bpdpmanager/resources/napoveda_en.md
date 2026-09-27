@@ -736,7 +736,14 @@ import*; only an unmapped programme may need picking/creating in the preview).
 >   annotation, objectives, references, supervisor/opponent, year); where
 >   STAG has nothing, **your existing value stays** (nothing is overwritten
 >   with emptiness).
-> - **The thesis status does NOT change** for existing theses.
+> - **Status of an existing thesis:** the preview preselects the **current
+>   status** (no change) — **except an approved future topic**: a thesis in
+>   *Candidate* or *Listed topic* that STAG shows as *in progress* (or later)
+>   gets the STAG status preselected (the combo has an **orange border**, the
+>   tooltip shows "Current → from STAG"). The import moves it to *Currently
+>   supervised* and fills in the assignment (EN title, objectives, references).
+>   A status you **choose by hand** in the preview always applies; the manual
+>   *Transition* in the detail stays.
 > - **Attachments** are attached; two **different** attachments get
 >   distinguishable names (from the original name, not `_v2`), **identical
 >   content** is not added twice, and reviews are archived.
