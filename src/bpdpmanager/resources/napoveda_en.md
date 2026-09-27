@@ -758,10 +758,21 @@ a **banner above the tabs**. You can also run it manually via
 **🔄 Update theses → Check STAG changes**. It watches:
 
 - **status changes** or a **missing document kind** for supervised theses
-  *In progress*,
+  *In progress* and for **future theses with a STAG ID** (candidate / listed
+  topic — approval of the topic in STAG = a status change),
 - the same for **current-year opposed theses**,
 - **new theses in STAG** you don't have yet — paired by **full name**, so
   namesakes don't count.
+- **A thesis already registered without a STAG ID** (typically a manually
+  created candidate or listed topic that STAG has since approved) is **not**
+  treated as new: it is paired strictly (surname + first name + type, then
+  **student ID and year** from the STAG detail) and listed among **changes**
+  with the note *"in STAG, no STAG ID in the app — pair"* (possibly *status in
+  STAG: In progress*). **🔄 Update supervised** then stores the STAG ID, adopts
+  the STAG status (even *Candidate without topic → In progress*) and fills in
+  **only empty** assignment fields (EN title, annotation, objectives,
+  references). If several registered records match, the thesis stays among
+  the new ones with a *"maybe already registered"* warning.
 
 The banner always shows a result — even **"✓ everything up to date"** — plus
 **how many theses were checked out of how many** registered (e.g. *"checked 12

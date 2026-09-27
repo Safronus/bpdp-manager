@@ -150,9 +150,20 @@ zůstává; zpřísnit dohledání.
   přesné příjmení + křestní + typ, ověření os. čísla a roku z CSV, ID jen při 1 shodě.
 - ✅ Vydání 2.31.1 (verze, README, CHANGELOG, RUFF_BASELINE 333). 828 testů.
 - ⚠️ Neověřeno proti živému STAGu ani proklikáním (jen testy s podvrženými daty).
-- ⚠️ Zbývá: tichá kontrola hlásí schválené ručně založené téma jako „🆕 nové ve
-  STAG" (páruje jen dle STAG ID) — po importu se spáruje; zvážit párování i dle
-  studenta + roku + typu (nenavrženo uživateli).
+- ✅ v2.31.1 vydána (CI 36336675795; ruff 333, 828 testů, self-test OK).
+
+## Hotovo: párování „nových" v tiché kontrole (2.31.2) — na žádost uživatele
+- `stag_match.pair_new_result`: „nová" STAG práce vs. evidované práce BEZ STAG ID
+  (jméno + typ, pak os. číslo + rok z CSV; CSV se stahuje jen při shodě jména).
+  Jednoznačně → mezi změnami („spárovat", případně „stav ve STAG: …"), nejednoznačně
+  → zůstává v nových s „⚠ možná už evidováno". Vedené i oponentury.
+- Tichá kontrola hlídá stav i u budoucích prací se STAG ID.
+- `ThesisService.adopt_stag_status`: budoucí → mimo Budoucí bez ručního grafu
+  (Zájemce bez tématu → V řešení), doplní jen PRÁZDNÁ pole zadání; jinak `transition`.
+  Sync dialog ji používá (`_fetch_target_detail` drží CSV záznam).
+- Testy `tests/test_stag_pairing_new.py` (vč. celého toku subset → spárování →
+  V řešení + zadání); bez změn padají (4 / 3). 837 testů.
+- ⚠️ Neověřeno proti živému STAGu (jen podvržená data).
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).

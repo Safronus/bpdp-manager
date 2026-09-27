@@ -5,6 +5,25 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.31.2] - 2026-09-27
+
+### Added
+- **Tichá kontrola páruje „nové" STAG práce s evidovanými pracemi bez STAG
+  ID.** Ručně založený zájemce / vypsané téma, které STAG schválil, se už
+  nehlásí jako *🆕 nové ve STAG*, ale jako změna existující práce („spárovat")
+  — přísně podle příjmení, křestního jména a typu, s ověřením osobního čísla
+  a roku z detailu STAG. Nejednoznačná shoda zůstane mezi novými
+  s upozorněním. Platí pro vedené i oponované práce.
+- Tichá kontrola hlídá změnu stavu i u **budoucích prací se STAG ID**.
+- **Aktualizace ze STAG převezme stav schválené budoucí práce** (i *Zájemce
+  bez tématu → V řešení*, kam ruční graf přechodů nevede) a doplní jen
+  prázdná pole zadání — nová služba `ThesisService.adopt_stag_status`.
+
+### Fixed
+- **Aktualizace schválené budoucí práce ze STAG selhávala** na chybějícím
+  zadání (název EN, body, literatura) nebo na nepovoleném přechodu ze
+  *Zájemce bez tématu*.
+
 ## [2.31.1] - 2026-09-27
 
 ### Changed

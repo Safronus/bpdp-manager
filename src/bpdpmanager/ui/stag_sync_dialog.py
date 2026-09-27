@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 from ..i18n import tr
 from ..models.enums import AttachmentKind, ThesisStatus
 from ..services import BackupManager, stag_api
-from ..services.stag_csv_importer import load_stag_csv_bytes
+from ..services.stag_csv_importer import ParsedRecord, load_stag_csv_bytes
 from ..services.stag_match import LocalWork, resolve_adipidno
 from .stag_import_dialog import (
     _SECTION_TO_KIND,
@@ -65,6 +65,7 @@ class _SyncTarget:
     found_via_search: bool = False
     stag_status_code: str = ""
     stag_files: list[stag_api.StagFile] = field(default_factory=list)
+    stag_record: ParsedRecord | None = None   # CSV detail (zadání pro schválené téma)
     error: str = ""
 
     @property
@@ -83,22 +84,43 @@ ROLE_SUPERVISOR = "supervisor"
 ROLE_OPPONENT = "opponent"
 
 
-def _fetch_target_state(adipidno: str) -> tuple[str, list[stag_api.StagFile], str]:
-    """Vrátí (STAG kód stavu, soubory, chyba) pro práci dle adipIdno."""
+def _fetch_target_detail(
+    adipidno: str,
+) -> tuple[str, list[stag_api.StagFile], str, ParsedRecord | None]:
+    """Vrátí (STAG kód stavu, soubory, chyba, CSV záznam) pro práci dle adipIdno."""
     status_code = ""
+    record: ParsedRecord | None = None
     files: list[stag_api.StagFile] = []
     try:
         raw = stag_api.download_csv(adipidno)
         imp = load_stag_csv_bytes(raw)
         if imp.records:
-            status_code = imp.records[0].stag_state_code or ""
+            record = imp.records[0]
+            status_code = record.stag_state_code or ""
     except Exception as exc:  # noqa: BLE001
-        return "", [], str(exc)
+        return "", [], str(exc), None
     try:
         files = stag_api.list_thesis_files(adipidno)
     except Exception:  # noqa: BLE001
         pass
-    return status_code, files, ""
+    return status_code, files, "", record
+
+
+def _fetch_target_state(adipidno: str) -> tuple[str, list[stag_api.StagFile], str]:
+    """Vrátí (STAG kód stavu, soubory, chyba) pro práci dle adipIdno."""
+    code, files, err, _record = _fetch_target_detail(adipidno)
+    return code, files, err
+
+
+def _assignment_from_record(record: ParsedRecord | None) -> dict[str, str]:
+    """Pole zadání ze STAG CSV → názvy polí ``Thesis`` (pro ``adopt_stag_status``)."""
+    if record is None:
+        return {}
+    return {
+        "title_cs": record.title_cs, "title_en": record.title_en,
+        "annotation": record.annotation_cs, "annotation_en": record.annotation_en,
+        "objectives": record.objectives_text, "references": record.references_text,
+    }
 
 
 def _resolve_adipidno(tgt: _SyncTarget, role: str, person_surname: str) -> tuple[str, str]:
@@ -336,9 +358,10 @@ class StagSyncDialog(QDialog):
                 else:
                     tgt.error = err
                     return tgt
-            status_code, files, err = _fetch_target_state(adip)
+            status_code, files, err, record = _fetch_target_detail(adip)
             tgt.stag_status_code = status_code
             tgt.stag_files = files
+            tgt.stag_record = record
             if err:
                 tgt.error = err
             return tgt
@@ -598,7 +621,12 @@ class StagSyncDialog(QDialog):
             # 1) Stav (jen vedené práce).
             if ti in status_targets and not tgt.is_opposing and tgt.new_status:
                 try:
-                    self.service.transition(tgt.obj_id, tgt.new_status)
+                    # Budoucí práce schválená ve STAG: stav ze STAG + doplnění
+                    # prázdných polí zadání (jinak by přechod na zadání spadl).
+                    self.service.adopt_stag_status(
+                        tgt.obj_id, tgt.new_status,
+                        _assignment_from_record(tgt.stag_record),
+                    )
                     stats["status"] += 1
                     self.changed = True
                 except Exception as exc:  # noqa: BLE001

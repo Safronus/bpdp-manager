@@ -31,6 +31,7 @@ from ..models import (
 )
 from ..models.enums import (
     ALLOWED_TRANSITIONS,
+    STATUSES_FUTURE,
     AttachmentKind,
     OpponentKind,
     ThesisStatus,
@@ -772,6 +773,40 @@ class ThesisService:
                         f"Pro spuštění práce chybí: {', '.join(missing)}."
                     )
 
+        thesis.status = target
+        thesis.touch()
+        self.save()
+        return thesis
+
+    #: Pole zadání, která smí doplnit STAG (jen když jsou lokálně prázdná).
+    STAG_ASSIGNMENT_FIELDS = (
+        "title_cs", "title_en", "annotation", "annotation_en", "objectives", "references",
+    )
+
+    def adopt_stag_status(
+        self,
+        thesis_id: str,
+        target: ThesisStatus,
+        assignment: dict[str, str] | None = None,
+    ) -> Thesis:
+        """Budoucí práce schválená ve STAG → stav ze STAG.
+
+        STAG je autoritativní (stejně jako import): povolený je skok z budoucího
+        stavu (Zájemce / Vypsané téma) do libovolného stavu mimo Budoucí — i tam,
+        kam ruční graf přechodů nevede (Zájemce bez tématu → V řešení).
+        ``assignment`` doplní jen **prázdná** pole zadání (název, anotace, body,
+        literatura) — ručně vyplněné údaje se nepřepíšou. Pro jiné výchozí stavy
+        platí běžná validace :meth:`transition`.
+        """
+        thesis = self.get_thesis(thesis_id)
+        if thesis is None:
+            raise TransitionError(f"Práce {thesis_id} neexistuje.")
+        if thesis.status not in STATUSES_FUTURE or target in STATUSES_FUTURE:
+            return self.transition(thesis_id, target)
+        for name in self.STAG_ASSIGNMENT_FIELDS:
+            value = ((assignment or {}).get(name) or "").strip()
+            if value and not (getattr(thesis, name) or "").strip():
+                setattr(thesis, name, value)
         thesis.status = target
         thesis.touch()
         self.save()

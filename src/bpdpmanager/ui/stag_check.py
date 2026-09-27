@@ -1,9 +1,13 @@
 """Tichá kontrola na pozadí — jsou ve STAG změny pro aktuální akademický rok?
 
 Zjišťuje (read-only, bez zápisu do DB):
-- u **vedených prací „V řešení"** změnu stavu nebo chybějící druh souboru,
+- u **vedených prací „V řešení"** a **budoucích prací se STAG ID** (zájemci,
+  vypsaná témata) změnu stavu nebo chybějící druh souboru,
 - u **oponentur aktuálního roku** změnu STAG stavu nebo chybějící druh souboru,
-- **nové práce** ve STAG (dle jména), které ještě nemáš v databázi.
+- **nové práce** ve STAG (dle jména), které ještě nemáš v databázi. Práce, kterou
+  evidujeme bez STAG ID (ručně založený zájemce / vypsané téma), se přísně
+  spáruje (``services.stag_match.pair_new_result``) a hlásí se jako změna
+  existující práce („spárovat se STAG"), ne jako nová.
 
 Běží na vlákně; výsledek se hlásí signálem ``StagChecker.finished``. Logika
 porovnání se sdílí se synchronizačním dialogem (``stag_sync_dialog``).
@@ -25,8 +29,9 @@ from PySide6.QtWidgets import (
 )
 
 from ..i18n import tr
-from ..models.enums import AttachmentKind, ThesisStatus
+from ..models.enums import STATUSES_FUTURE, AttachmentKind, ThesisStatus
 from ..services import stag_api
+from ..services.stag_match import LocalWork, pair_new_result
 from .stag_import_dialog import (
     _SECTION_TO_KIND,
     STAG_STATE_TO_STATUS,
@@ -157,6 +162,32 @@ def _academic_year_of(date_str: str) -> str:
     return f"{start}/{start + 1}"
 
 
+def _add_paired(r: StagCheckResult, service, pairing, is_sup: bool) -> None:
+    """„Nová" STAG práce = evidovaná práce bez STAG ID → změna existující práce."""
+    note = "ve STAG, v aplikaci bez STAG ID — spárovat"
+    if is_sup:
+        t = service.get_thesis(pairing.local_id)
+        if t is None:
+            return
+        code = (pairing.record.stag_state_code or "").strip().upper()
+        mapped = STAG_STATE_TO_STATUS.get(code)
+        if mapped is not None and mapped != t.status:
+            note += f" · stav ve STAG: {mapped.label}"
+        student = service.get_student(t.student_id) if t.student_id else None
+        name = student.full_name if student else "(bez studenta)"
+        if t.id not in r.supervised_ids:
+            r.supervised.append(f"{name} — {t.type.value} {t.academic_year} · {note}")
+            r.supervised_ids.append(t.id)
+    else:
+        o = service.get_opposing_thesis(pairing.local_id)
+        if o is None:
+            return
+        name = f"{o.student_last_name} {o.student_first_name}".strip() or "(student)"
+        if o.id not in r.opposing_ids:
+            r.opposing.append(f"{name} — {o.type.value} {o.academic_year} · {note}")
+            r.opposing_ids.append(o.id)
+
+
 def compute_stag_check(
     service, user_full_name: str = "", user_surname: str = "", progress=None
 ) -> StagCheckResult:
@@ -178,9 +209,11 @@ def compute_stag_check(
     db_adip |= {o.adipidno for o in opposing if o.adipidno}
 
     # Kandidáti ke kontrole — z nich se počítá průběh „X z Y prací".
+    # Vedené „V řešení" + budoucí se STAG ID (schválení tématu = změna stavu).
     sup_candidates = [
         t for t in theses
-        if t.status == ThesisStatus.IN_PROGRESS and t.adipidno
+        if (t.status == ThesisStatus.IN_PROGRESS or t.status in STATUSES_FUTURE)
+        and t.adipidno
     ]
     opp_candidates = [
         o for o in opposing if o.academic_year == current and o.adipidno
@@ -190,7 +223,7 @@ def compute_stag_check(
     if progress is not None:
         progress(done, r.total)
 
-    # 1) Vedené práce „V řešení" se STAG ID.
+    # 1) Vedené práce „V řešení" (a budoucí) se STAG ID.
     for t in sup_candidates:
         attempts += 1
         code, files, err = _fetch_target_state(t.adipidno)
@@ -245,6 +278,24 @@ def compute_stag_check(
     surname = user_surname.strip() or _surname_of(user_full_name)
     if surname:
         seen_new: set[str] = set()
+        # Evidované práce BEZ STAG ID — kandidáti, že „nová" STAG práce je už naše.
+        sup_locals: list[tuple[str, LocalWork]] = []
+        for t in theses:
+            st = service.get_student(t.student_id) if (t.student_id and not t.adipidno) else None
+            if st is not None:
+                sup_locals.append((t.id, LocalWork(
+                    surname=st.last_name, type_code=t.type.value,
+                    first_name=st.first_name, uni_id=st.university_id or "",
+                    academic_year=t.academic_year,
+                )))
+        opp_locals = [
+            (o.id, LocalWork(
+                surname=o.student_last_name, type_code=o.type.value,
+                first_name=o.student_first_name or "",
+                uni_id=o.student_university_id or "", academic_year=o.academic_year,
+            ))
+            for o in opposing if not o.adipidno and o.student_last_name
+        ]
         for role in (ROLE_SUPERVISOR, ROLE_OPPONENT):
             attempts += 1
             try:
@@ -260,9 +311,15 @@ def compute_stag_check(
                     continue  # jmenovec (jiný vedoucí/oponent se stejným příjmením)
                 seen_new.add(res.adipidno)
                 year = res.academic_year or res.year or ""
-                r.new.append(
-                    f"{res.student_full} — {res.type_label or '?'} {year}".strip()
-                )
+                label = f"{res.student_full} — {res.type_label or '?'} {year}".strip()
+                is_sup = role == ROLE_SUPERVISOR
+                pairing = pair_new_result(res, sup_locals if is_sup else opp_locals)
+                if pairing.local_id:
+                    _add_paired(r, service, pairing, is_sup)
+                    continue
+                if pairing.ambiguous:
+                    label += " — ⚠ možná už evidováno (víc záznamů bez STAG ID)"
+                r.new.append(label)
 
     # Když selhaly úplně všechny síťové pokusy → kontrola se nezdařila (offline).
     if attempts and failures == attempts:

@@ -121,3 +121,47 @@ def resolve_adipidno(
         return "", "nenalezeno ve STAG (chybí STAG ID a žádná jednoznačná shoda)"
     return "", (f"nejednoznačné — ve STAG {len(confirmed)} odpovídající práce; "
                 "STAG ID se neuložilo, spáruj práci importem ze STAG")
+
+
+@dataclass(frozen=True)
+class NewResultPairing:
+    """Výsledek párování „nové" práce ze STAG s evidovanými pracemi bez STAG ID.
+
+    ``local_id`` = jednoznačně spárovaná lokální práce (jinak prázdné);
+    ``ambiguous`` = víc lokálních kandidátů prošlo ověřením; ``record`` = CSV
+    detail STAG práce (stav, zadání), je-li stažen.
+    """
+
+    local_id: str = ""
+    ambiguous: bool = False
+    record: ParsedRecord | None = None
+
+
+def pair_new_result(
+    result: stag_api.StagThesisResult,
+    local_works: list[tuple[str, LocalWork]],
+    *,
+    fetch_record: Callable[[str], ParsedRecord | None] | None = None,
+) -> NewResultPairing:
+    """Je „nová" práce ze STAG ve skutečnosti už evidovaná (bez STAG ID)?
+
+    Tichá kontrola hlásí jako novou každou STAG práci, jejíž STAG ID v databázi
+    není — tedy i ručně založeného zájemce / vypsané téma, které STAG mezitím
+    schválil. Stejně přísně jako :func:`resolve_adipidno`: shoda příjmení,
+    křestního jména a typu, pak ověření osobního čísla a roku z CSV detailu.
+    Detail se stahuje jen tehdy, když nějaká lokální práce projde jménem.
+    """
+    fetch_record = fetch_record or _fetch_record
+    named = [(lid, w) for lid, w in local_works if name_type_candidates([result], w)]
+    if not named:
+        return NewResultPairing()
+    try:
+        rec = fetch_record(result.adipidno)
+    except Exception:  # detail nejde stáhnout → nelze potvrdit, zůstává „nová"
+        return NewResultPairing()
+    if rec is None:
+        return NewResultPairing()
+    confirmed = [lid for lid, w in named if detail_matches(rec, w)]
+    if len(confirmed) == 1:
+        return NewResultPairing(local_id=confirmed[0], record=rec)
+    return NewResultPairing(ambiguous=len(confirmed) > 1, record=rec)

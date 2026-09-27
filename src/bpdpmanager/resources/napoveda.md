@@ -852,11 +852,22 @@ toolbar **🔄 Aktualizace prací → Zkontrolovat změny ve STAG**. Smysl: má�
 jistotu, že je vše aktuální, a **víš, kdy je potřeba aktualizovat**. Kontrola
 hlídá:
 
-- **změnu stavu** nebo **chybějící druh souboru** u vedených prací *V řešení*,
+- **změnu stavu** nebo **chybějící druh souboru** u vedených prací *V řešení*
+  a u **budoucích prací se STAG ID** (zájemce / vypsané téma — schválení
+  tématu ve STAG = změna stavu),
 - totéž u **oponentur aktuálního roku**,
 - **nové práce ve STAG**, které ještě nemáš v databázi — páruje se podle
   **celého jména** (křestní + příjmení), takže se **nezapočítají jmenovci**
   (jiní vedoucí/oponenti se stejným příjmením).
+- **Práce, kterou už evidujeme bez STAG ID** (typicky ručně založený zájemce
+  nebo vypsané téma, které STAG mezitím schválil), se za novou **nepovažuje**:
+  přísně se spáruje (příjmení + křestní + typ, pak **osobní číslo a rok**
+  z detailu STAG) a v náhledu je mezi **změnami** s poznámkou *„ve STAG,
+  v aplikaci bez STAG ID — spárovat"* (případně *stav ve STAG: V řešení*).
+  **🔄 Aktualizovat vedené** pak uloží STAG ID, převezme stav ze STAG
+  (i *Zájemce bez tématu → V řešení*) a doplní **jen prázdná** pole zadání
+  (název EN, anotace, body, literatura). Když sedí víc evidovaných záznamů,
+  práce zůstane mezi novými s upozorněním *„možná už evidováno"*.
 
 Proužek vždy ukáže výsledek — i **„✓ vše aktuální (žádné změny ani nové
 práce)"** — a navíc **kolik prací bylo zkontrolováno z kolika evidovaných**
