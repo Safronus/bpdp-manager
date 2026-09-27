@@ -1530,9 +1530,19 @@ synchronizací.
 
 ## Spuštění
 
+**Hotová aplikace (macOS, Apple Silicon):** stáhni `BPDPManager-<verze>-macos-arm64.dmg`
+z [posledního vydání na GitHubu](https://github.com/Safronus/bpdp-manager/releases/latest),
+otevři ho a přetáhni **BPDPManager** do složky **Aplikace**. Python není potřeba. Při
+**prvním** spuštění **pravý klik → Otevřít** (aplikace je podepsaná *ad-hoc*, Gatekeeper
+ji napoprvé nezná). Novou verzi pak nabídne sama po startu (viz *Aktualizace aplikace*).
+
+**Ze zdrojů:**
+
 ```bash
-python -m bpdpmanager            # spustí aplikaci
+python -m bpdpmanager              # spustí aplikaci
 python -m bpdpmanager --load-demo  # nahraje fiktivní demo data
+python -m bpdpmanager --self-test  # ověří instalaci (nad dočasnými daty) a skončí
+python -m bpdpmanager --version    # vypíše verzi
 ```
 
-Reálná data nikdy nejsou v Gitu — zůstávají lokálně ve složce profilu.
+Reálná data nikdy nejsou v Gitu ani uvnitř aplikace — zůstávají lokálně ve složce profilu.

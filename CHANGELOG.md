@@ -5,9 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
-## [Unreleased]
+## [2.30.0] - 2026-09-27
 
 ### Added
+- **Automatický build a vydávání přes GitHub Actions**
+  (`.github/workflows/build.yml`). Každý push do `main`: lint (počet chyb ruff
+  nesmí růst — ratchet na 335), testy, build `.app`/`.dmg` se smoke testem
+  zabalené aplikace a `.dmg` jako artefakt. Když se změní verze a tag `vX.Y.Z`
+  ještě neexistuje, CI **samo vytvoří tag a GitHub Release** s `.dmg`
+  a poznámkami z této sekce CHANGELOGu (`scripts/release_notes.py`; chybějící
+  sekce = chyba už v testech).
+- **Hotová aplikace ke stažení** — README a nápověda (*Spuštění*) popisují
+  instalaci z `.dmg` (pravý klik → Otevřít při prvním spuštění).
 - **Spustitelná aplikace pro macOS (Apple Silicon).** `scripts/build_macos.sh`
   sestaví přes PyInstaller `BPDPManager.app` + `.dmg` (build mimo iCloud do
   `~/.cache/bpdpmanager-build`), podepíše ji ad-hoc, ověří podpis a spustí na

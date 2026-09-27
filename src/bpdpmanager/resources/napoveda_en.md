@@ -1398,9 +1398,19 @@ between devices. The lock file guards concurrent access. The bytecode cache
 
 ## Running
 
+**Ready-made app (macOS, Apple Silicon):** download `BPDPManager-<version>-macos-arm64.dmg`
+from the [latest release on GitHub](https://github.com/Safronus/bpdp-manager/releases/latest),
+open it and drag **BPDPManager** into **Applications**. No Python needed. On the **first**
+launch use **right-click → Open** (the app is *ad-hoc* signed, so Gatekeeper doesn't know
+it yet). New versions are then offered by the app itself (see *Application updates*).
+
+**From source:**
+
 ```bash
-python -m bpdpmanager            # start the app
+python -m bpdpmanager              # start the app
 python -m bpdpmanager --load-demo  # load fictional demo data
+python -m bpdpmanager --self-test  # verify the installation (on temporary data) and exit
+python -m bpdpmanager --version    # print the version
 ```
 
-Real data is never in Git — it stays locally in the profile folder.
+Real data is never in Git nor inside the app — it stays locally in the profile folder.

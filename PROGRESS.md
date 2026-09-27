@@ -31,9 +31,11 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
   `check_for_frozen_update` (verze z posledního vydaného Release, changelog jen
   ≤ release), dialog „⬇ Stáhnout novou verzi", validace URL z API, nápověda CZ/EN.
   Ověřeno i proti živému GitHub API.
-- ⏳ **Fáze 2 — GitHub Actions** (`.github/workflows/build.yml`): testy + ruff ratchet
-  (≤ 335) + build + artefakt; release při novém tagu. Poprvé vydá **2.30.0**;
-  v témže commitu README „instalace z .dmg" + nápověda „Spuštění".
+- 🔄 **Fáze 2 — GitHub Actions** (`.github/workflows/build.yml`): ruff ratchet
+  (≤ 335, ruff zafixován 0.15.15) + testy + build + artefakt; release když tag
+  `v<verze>` neexistuje (`scripts/release_notes.py` bere sekci z CHANGELOGu).
+  Bump na **2.30.0**, README (instalace z `.dmg`), nápověda *Spuštění* CZ/EN.
+  Čeká na ověření prvním během CI + vydáním v2.30.0.
 
 ### Důležité technické poznámky
 - `.venv` je symlink na `~/.venvs/bpdp-manager` a má namíchané Pythony
@@ -48,6 +50,11 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
   `git diff HEAD --stat` musí být prázdné.
 - Nesouvisející netrackovaný soubor `zaloha_videa.mp4` v kořeni — necommitovat.
 
+### Jak vydat novou verzi (od 2.30.0)
+1. Bump `__version__` v `src/bpdpmanager/__init__.py` + README ř. 12 „Aktuální verze".
+2. Sekce `## [X.Y.Z] - datum` v CHANGELOG.md (bez ní spadne už test `test_release_notes`).
+3. Commit + push do `main` → CI sestaví, otestuje a vydá Release s `.dmg`.
+
 ### Další krok
-Fáze 2: workflow + ruff ratchet + bump na 2.30.0 (README ř. 12 „Aktuální verze",
-CHANGELOG `[Unreleased]` → `[2.30.0]`) → push spustí první automatický release.
+Ověřit první běh CI (lint, testy, build, self-test vč. WebEngine na runneru)
+a vydání v2.30.0 s `.dmg`; stáhnout `.dmg` z Release a ověřit ho.
