@@ -1,11 +1,28 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
 from bpdpmanager.config import ENV_DATA_DIR
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Na konci běhu vyčistí schránku Qt.
+
+    Offscreen platforma Qt (testy, CI) padá při ukončení interpretu na
+    ``Segmentation fault`` (exit 139), když ve schránce zůstane ``QMimeData`` —
+    i když všechny testy prošly. Na skutečné platformě macOS (Cocoa) k pádu
+    nedochází, aplikace postižená není. Ověřeno izolovanou reprodukcí.
+    """
+    qtwidgets = sys.modules.get("PySide6.QtWidgets")
+    if qtwidgets is None:
+        return
+    app = qtwidgets.QApplication.instance()
+    if app is not None:
+        app.clipboard().clear()
 
 
 @pytest.fixture(autouse=True)

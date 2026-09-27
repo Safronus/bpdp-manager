@@ -140,6 +140,12 @@ def test_copy_file_to_clipboard(qapp, service: ThesisService, tmp_path: Path) ->
     att = service.get_thesis(t.id).attachments[0]
     w._copy_file_to_clipboard(att)
 
-    md = QApplication.clipboard().mimeData()
-    assert md.hasUrls()
-    assert md.urls()[0].toLocalFile().endswith(".pdf")
+    clipboard = QApplication.clipboard()
+    try:
+        md = clipboard.mimeData()
+        assert md.hasUrls()
+        assert md.urls()[0].toLocalFile().endswith(".pdf")
+    finally:
+        # Offscreen Qt plugin jinak při ukončení interpretu spadne (SIGSEGV),
+        # když ve schránce zůstane QMimeData — viz conftest.pytest_sessionfinish.
+        clipboard.clear()

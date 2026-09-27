@@ -40,6 +40,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
   argumenty `-m bpdpmanager` nepřijala a nová instance by se nespustila.
 - Spuštění z Finderu s argumentem `-psn_…` (process serial number, macOS) už
   neshodí parsování přepínačů.
+- **Testovací běh padal při ukončení na `Segmentation fault`** (exit 139), i když
+  všechny testy prošly — bez CI si toho nikdo nevšiml. Příčina: offscreen
+  platforma Qt spadne při ukončení interpretu, když ve schránce zůstane
+  `QMimeData` (test kopírování souboru do schránky). Test teď schránku uklidí
+  a `conftest` ji pro jistotu vyčistí na konci běhu. Aplikace (platforma Cocoa)
+  postižená není — ověřeno izolovanou reprodukcí.
 - **Testy komisí a exportu do kalendáře už nezávisí na dnešním datu.** Od
   1. 9. 2026 (přechod na akademický rok 2026/2027) padalo 6 testů — testovací
   data jsou pro 2025/2026, ale aplikace počítá oponované práce jen z aktuálního
