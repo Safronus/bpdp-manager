@@ -132,16 +132,27 @@ upozornění na neukončenou práci stejného typu a na DP zakládanou na zázna
 - ✅ **Vydáno v2.31.0** (CI 36331245057: ruff 334, 801 testů, self-test .app OK;
   digest sha256:e7ee176b…). Uživatel má zatím 2.30.2 — aktualizace přes „⬇ Stáhnout"
   v aplikaci = první ostrý E2E test updateru (zatím neproběhl).
-- **ROZHODNUTO (nezačato):** titulek tabu Budoucí → obecný bez roku („Zájemci
-  a vypsaná témata" / EN „Candidates and listed topics"); `main_window.py` ř. ~694
-  a ~713 (`_tab_base`), + nápověda CZ/EN („Práce v dalším akademickém roce R/R").
-- **Dotaz uživatele (zodpovědět/ověřit):** jak se práce dostane z Budoucích do
-  „Aktuálně vedené"? Známo: záložky se řídí stavem (neslučují se); ručně přes
-  „Přechod do stavu → V řešení" (vyžaduje název EN, body zadání, literaturu —
-  `thesis_service.transition`); import ze STAG mapuje stav R / datum zadání na
-  V řešení (`stag_import_dialog.py` ~189, ~1402). ⚠️ NEOVĚŘENO: zda tichá kontrola
-  STAG / Aktualizace práce ze STAG nabídne přechod Vypsané → V řešení u budoucích prací.
-- Uživatel si vyžádal pauzu (aktualizace aplikace Claude) — pokračovat výše.
+
+## Hotovo: přechod budoucích prací do „V řešení", přísné STAG ID (2.31.1)
+Ověřeno v kódu (2026-09-27): záložky se řídí stavem; tichá kontrola hlídá stav jen
+u „V řešení"; import páruje ručně založenou práci (STAG ID / student+rok+typ), ale
+stav existující práce IGNOROVAL (náhled ho přitom ukazoval); „Aktualizace ze STAG"
+hledala STAG ID jen podle příjmení (podřetězec) + typu, brala 1. shodu a ID hned
+ukládala. Odsouhlaseno: import mění stav schválené budoucí práce + ruční volba
+zůstává; zpřísnit dohledání.
+- ✅ `4c98b3b` titulek tabu Budoucí „Zájemci a vypsaná témata" (bez roku);
+  smazány mrtvé parametry `_build_toolbar` a `ThesisService.previous_academic_year`.
+- ✅ `d80ec12` `services/stag_status_rules.py` + import: budoucí práce + STAG dokládá
+  v řešení/dál → předvybraný stav ze STAG (oranžový rámeček, tooltip), ruční volba
+  v náhledu se uplatní vždy, souhrn „z toho N se změnou stavu"; párování náhledu =
+  párování importu (jiné STAG ID = jiná práce). Regresní testy ověřeny (bez změny 6 padá).
+- ✅ `074444e` `services/stag_match.py`: jen práce uživatele (příjmení z profilu),
+  přesné příjmení + křestní + typ, ověření os. čísla a roku z CSV, ID jen při 1 shodě.
+- ✅ Vydání 2.31.1 (verze, README, CHANGELOG, RUFF_BASELINE 333). 828 testů.
+- ⚠️ Neověřeno proti živému STAGu ani proklikáním (jen testy s podvrženými daty).
+- ⚠️ Zbývá: tichá kontrola hlásí schválené ručně založené téma jako „🆕 nové ve
+  STAG" (páruje jen dle STAG ID) — po importu se spáruje; zvážit párování i dle
+  studenta + roku + typu (nenavrženo uživateli).
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).

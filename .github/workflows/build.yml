@@ -28,7 +28,7 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       # Stávající dluh; počet smí jen klesat (po snížení baseline aktualizovat).
       # Verze ruff je zafixovaná v pyproject.toml (dev) — jediný zdroj pravdy.
-      RUFF_BASELINE: "334"
+      RUFF_BASELINE: "333"
     steps:
       - uses: actions/checkout@v4
 

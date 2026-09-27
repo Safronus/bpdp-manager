@@ -5,7 +5,7 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
-## [Unreleased]
+## [2.31.1] - 2026-09-27
 
 ### Changed
 - **Záložka budoucích prací se jmenuje „Zájemci a vypsaná témata"** (EN
