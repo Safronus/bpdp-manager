@@ -74,7 +74,7 @@ def _make_form_layout() -> QFormLayout:
 
 # Year mode konstanty — určují rozsah a chování comba pro akademický rok.
 YEAR_MODE_CURRENT = "current"   # jen aktuální rok, combo disabled
-YEAR_MODE_FUTURE = "future"     # next + next+1 (budoucí 2 roky)
+YEAR_MODE_FUTURE = "future"     # current + 2 další (témata se schvalují i v běžícím roce)
 YEAR_MODE_HISTORY = "history"   # 2009/2010 .. current-1
 YEAR_MODE_ALL = "all"           # 2009/2010 .. current+2, plně editovatelné
 
@@ -94,7 +94,9 @@ def _academic_year_choices(mode: str) -> list[str]:
     if mode == YEAR_MODE_CURRENT:
         return [current]
     if mode == YEAR_MODE_FUTURE:
-        return [next_year, next_next]
+        # I letošní rok: po 1. 9. témata běžícího roku ještě bývají ve schvalování
+        # (zájemci / vypsaná) — musí jít zařadit.
+        return [current, next_year, next_next]
     if mode == YEAR_MODE_HISTORY:
         years = [f"{y}/{y + 1}" for y in range(2009, s)]  # 2009/2010 .. (current-1)/current
         return list(reversed(years))
