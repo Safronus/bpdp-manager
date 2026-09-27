@@ -31,13 +31,19 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
   `check_for_frozen_update` (verze z posledního vydaného Release, changelog jen
   ≤ release), dialog „⬇ Stáhnout novou verzi", validace URL z API, nápověda CZ/EN.
   Ověřeno i proti živému GitHub API.
-- 🔄 **Fáze 2 — GitHub Actions** (`.github/workflows/build.yml`): ruff ratchet
+- ✅ **Fáze 2 — GitHub Actions** (`.github/workflows/build.yml`): ruff ratchet
   (≤ 335, ruff zafixován 0.15.15) + testy + build + artefakt; release když tag
   `v<verze>` neexistuje (`scripts/release_notes.py` bere sekci z CHANGELOGu).
-  Bump na **2.30.0**, README (instalace z `.dmg`), nápověda *Spuštění* CZ/EN.
-  Čeká na ověření prvním během CI + vydáním v2.30.0.
+  **Vydáno v2.30.0** (tag → `d4941e6`, `BPDPManager-2.30.0-macos-arm64.dmg`, 235 MB).
+  Ověřeno: self-test na runneru vč. WebEngine; stažený `.dmg` z Release (checksum,
+  arm64, podpis, self-test přímo z DMG); živé API nabídne update starší `.app`.
+
+- ✅ **Segfault testovacího běhu** (commit `d4941e6`) — 1. běh CI odhalil, že
+  pytest končí exit 139 i při 753/753 zelených (starý problém, bez CI neviditelný).
+  Příčina: offscreen Qt + `QMimeData` ve schránce při ukončení. Opraveno v testech.
 
 ### Důležité technické poznámky
+- **Testy ověřovat podle exit kódu, ne jen podle „N passed"** (`tail` ho skryje).
 - `.venv` je symlink na `~/.venvs/bpdp-manager` a má namíchané Pythony
   (`.venv/bin/python` = 3.11, `.venv/bin/pip` = 3.12!). Instalovat vždy přes
   `.venv/bin/python -m pip`. Build skript volá Python přes rozřešenou cestu
@@ -55,6 +61,12 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
 2. Sekce `## [X.Y.Z] - datum` v CHANGELOG.md (bez ní spadne už test `test_release_notes`).
 3. Commit + push do `main` → CI sestaví, otestuje a vydá Release s `.dmg`.
 
-### Další krok
-Ověřit první běh CI (lint, testy, build, self-test vč. WebEngine na runneru)
-a vydání v2.30.0 s `.dmg`; stáhnout `.dmg` z Release a ověřit ho.
+### Stav
+Úkol „spustitelná a udržovaná verze" je hotový. Každý push do `main` = automatický
+build + testy; bump verze = automatický Release s `.dmg`.
+
+### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
+- Srovnat namíchaný venv (`.venv/bin/pip` → Python 3.12, `python` → 3.11).
+- Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).
+- Pillow je runtime-volitelný, ale jen v `dev` závislostech (bez něj se nespočítá
+  velikost loga v posudku) — zvážit přesun do hlavních závislostí.
