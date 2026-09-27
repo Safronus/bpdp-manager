@@ -180,9 +180,10 @@ grey *Profile / Refresh / Help*), a **🔍 search field** below it and then the
 
 - **Currently supervised theses** — theses *In progress*. The tab title shows
   the **count**.
-- **Theses in the next academic year Y/Y** — *Candidate without/with topic*,
-  *Listed topic*. The tab follows the **status**, not the year: in the detail
-  the year can be **this year + 2 more** — this year too, because topics of the
+- **Candidates and listed topics** — *Candidate without/with topic*,
+  *Listed topic*. The tab follows the **status**, not the year (hence no year
+  in the title; the tree groups theses by academic year). In the detail the
+  year can be **this year + 2 more** — this year too, because topics of the
   running year are still being listed and approved after 1 September. The count is **coloured by capacity**: under 15 green,
   exactly 15 yellow, over 15 red. Future theses have no grades or reviews, so
   the **S/O**, *Reviews* and *Sent* columns are hidden.

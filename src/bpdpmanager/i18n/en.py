@@ -41,7 +41,7 @@ EN: dict[str, str] = {
 
     # ── Hlavní okno: záložky ─────────────────────────────────────────────
     "Aktuálně vedené práce": "Currently supervised theses",
-    "Práce v dalším akademickém roce": "Theses in the next academic year",
+    "Zájemci a vypsaná témata": "Candidates and listed topics",
     "Historie": "History",
     "Vše": "All",
     "🧐 Oponované práce": "🧐 Opposed theses",

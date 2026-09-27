@@ -610,8 +610,6 @@ class MainWindow(QMainWindow):
         self.resize(1400, 960)
         self.setMinimumSize(1100, 760)
 
-        current_year = ThesisService.current_academic_year()
-        next_year = ThesisService.next_academic_year()
 
         # Status-driven filtrace tabů (v0.15.0).
         # Rok ovlivňuje pouze řazení/grupování uvnitř, ne příslušnost k tabu.
@@ -691,7 +689,7 @@ class MainWindow(QMainWindow):
 
         # Tab labely (bez roku — status-driven, jeden tab = jeden bucket napříč roky)
         self.tabs.addTab(self.tab_current, tr("Aktuálně vedené práce"))
-        self.tabs.addTab(self.tab_future, tr("Práce v dalším akademickém roce") + f" {next_year}")
+        self.tabs.addTab(self.tab_future, tr("Zájemci a vypsaná témata"))
         self.tabs.addTab(self.tab_history, tr("Historie"))
         self.tabs.addTab(self.tab_all, tr("Vše"))
         self.tabs.addTab(self.tab_opposing, tr("🧐 Oponované práce"))
@@ -710,7 +708,7 @@ class MainWindow(QMainWindow):
         # STAG odznak 🔄 se přidává zvlášť (drží se v _stag_badges).
         self._tab_base = {
             id(self.tab_current): tr("Aktuálně vedené práce"),
-            id(self.tab_future): tr("Práce v dalším akademickém roce") + f" {next_year}",
+            id(self.tab_future): tr("Zájemci a vypsaná témata"),
             id(self.tab_opposing): tr("🧐 Oponované práce"),
             id(self.tab_history): tr("Historie"),
             id(self.tab_all): tr("Vše"),
@@ -776,7 +774,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentChanged.connect(lambda _: self._update_status())
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
-        self._build_toolbar(current_year, next_year)
+        self._build_toolbar()
         self._update_status()  # nastaví i počty v titulcích záložek
         # Po startu otevři první práci v Aktuálním seznamu (pokud existuje) —
         # uživatel rovnou vidí, na čem aktuálně dělá, nemusí klikat.
@@ -1586,7 +1584,7 @@ class MainWindow(QMainWindow):
         """Text rozbalovacího toolbar-tlačítka s čistou šipkou na konci."""
         return f"{label}{cls._DROPDOWN_SUFFIX}"
 
-    def _build_toolbar(self, current_year: str, next_year: str) -> None:
+    def _build_toolbar(self) -> None:
         toolbar = QToolBar("Hlavní")
         toolbar.setMovable(False)
         toolbar.setIconSize(toolbar.iconSize())

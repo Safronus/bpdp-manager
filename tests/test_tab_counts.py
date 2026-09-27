@@ -69,6 +69,24 @@ def test_history_all_proposals_counts_in_titles(qapp, service) -> None:
     assert "Historie (" in win.tabs.tabText(win.tabs.indexOf(win.tab_history))
     assert "Vše (" in win.tabs.tabText(win.tabs.indexOf(win.tab_all))
     assert "Návrhy témat (" in win.tabs.tabText(win.tabs.indexOf(win.tab_proposals))
+    # Budoucí: řídí se stavem, ne rokem → titulek bez akademického roku
+    # (obsahuje i zájemce na běžící rok).
+    future = win.tabs.tabText(win.tabs.indexOf(win.tab_future))
+    assert future.startswith("Zájemci a vypsaná témata (")
+    assert not re.search(r"\d{4}/\d{4}", future)
+
+
+def test_future_tab_title_english(qapp, service) -> None:
+    from bpdpmanager.i18n import set_language
+
+    set_language("en")
+    try:
+        win = MainWindow(service)
+        win._refresh_tab_labels()
+        text = win.tabs.tabText(win.tabs.indexOf(win.tab_future))
+        assert text.startswith("Candidates and listed topics (")
+    finally:
+        set_language("cs")
 
 
 def test_future_count_color_thresholds() -> None:

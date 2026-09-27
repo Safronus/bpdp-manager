@@ -197,11 +197,11 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
 
 - **Aktuálně vedené práce** — práce ve stavu *V řešení*. V titulku záložky je
   **počet** vedených prací.
-- **Práce v dalším akademickém roce R/R** — *Zájemce bez tématu*,
-  *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok).
-  Záložka se řídí **stavem**, ne rokem: rok práce lze v detailu zvolit
-  **letošní + 2 další** — i letošní, protože po 1. 9. se témata běžícího roku
-  ještě vypisují a schvalují.
+- **Zájemci a vypsaná témata** — *Zájemce bez tématu*, *Zájemce s tématem*,
+  *Vypsané téma*. Záložka se řídí **stavem**, ne rokem (proto v titulku rok
+  není; práce jsou ve stromu seskupené podle akademického roku). Rok práce lze
+  v detailu zvolit **letošní + 2 další** — i letošní, protože po 1. 9. se
+  témata běžícího roku ještě vypisují a schvalují.
   V titulku je **počet budoucích prací barevně podle kapacity**: pod 15 zeleně,
   rovných 15 žlutě, nad 15 červeně. Budoucí práce ještě nemají známky ani
   posudky, takže se nezobrazují sloupce **V/O**, *Posudky* ani *Odesláno*.

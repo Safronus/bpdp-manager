@@ -5,6 +5,14 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [Unreleased]
+
+### Changed
+- **Záložka budoucích prací se jmenuje „Zájemci a vypsaná témata"** (EN
+  *Candidates and listed topics*) — bez akademického roku v titulku. Záložka
+  se řídí stavem, ne rokem, a obsahuje i zájemce a vypsaná témata na běžící
+  rok; dřívější „Práce v dalším akademickém roce <příští rok>" byla zavádějící.
+
 ## [2.31.0] - 2026-09-27
 
 ### Added
