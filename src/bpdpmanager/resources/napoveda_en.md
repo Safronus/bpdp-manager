@@ -892,8 +892,14 @@ Updating offers a **status change** (e.g. *In progress → Defended*, applied
 only when ticked) and **downloading missing files** (files whose **kind** the
 thesis lacks are pre-checked). Everything runs with a **progress window** and a
 tickable change list. A **backup** is made before writing and the summary has
-**"↩ Roll back all"**. Theses **without a STAG ID** that can't be found by
-surname are **skipped and listed**.
+**"↩ Roll back all"**. A thesis **without a STAG ID** is looked up
+**strictly**: only among your theses (surname from the profile), with the same
+**surname, first name and type**, and each candidate is verified from the STAG
+detail by **student ID and academic year**. The STAG ID is stored only for a
+**single** match; otherwise the thesis is **skipped and listed** with the reason
+(*not found* / *ambiguous*) — pair it via the STAG import (search) instead.
+Previously the first surname match was taken, so a namesake's thesis could be
+stored.
 
 > **🔄 Updating ONE thesis from STAG (right-click).** Any thesis — supervised
 > (*Current / Future / History / All*) or opposed — has **"🔄 Update thesis

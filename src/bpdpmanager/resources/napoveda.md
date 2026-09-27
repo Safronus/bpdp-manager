@@ -1003,9 +1003,13 @@ Aktualizace nabídne **změnu stavu** (např. *V řešení → Obhájeno*, aplik
 jen po zaškrtnutí) a **dohrání chybějících souborů** (předzaškrtnou se ty,
 jejichž **druh** u práce ještě nemáš). Vše běží s **progres oknem** a přehledem
 změn k zaškrtnutí. Před zápisem se udělá **záloha** a v souhrnu je tlačítko
-**„↩ Vrátit vše"**. Práce **bez STAG ID**, které se nepodaří dohledat podle
-příjmení, se **přeskočí a vypíšou**
-(doimportuj je klasicky přes hledání).
+**„↩ Vrátit vše"**. Práce **bez STAG ID** se dohledá **přísně**: jen mezi
+tvými pracemi (příjmení z profilu), se shodným **příjmením, křestním jménem
+a typem**, a každý kandidát se ověří z detailu STAG podle **osobního čísla
+a akademického roku**. STAG ID se k práci uloží jen při **jediné** shodě;
+jinak se práce **přeskočí a vypíše** s důvodem (*nenalezeno* / *nejednoznačné*)
+— spáruj ji pak importem ze STAG (hledání). Dřív se brala první shoda podle
+příjmení, takže se u jmenovců mohla uložit cizí práce.
 
 > **🔄 Aktualizace JEDNÉ práce ze STAG (pravý klik).** Nad libovolnou prací —
 > vedenou (*Aktuální / Budoucí / Historie / Vše*) i oponenturou — je

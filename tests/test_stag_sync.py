@@ -71,21 +71,43 @@ def test_new_status_diff() -> None:
     assert t.new_status is None
 
 
-def test_resolve_adipidno_by_surname(qapp, monkeypatch) -> None:
+def test_resolve_adipidno_strict(qapp, monkeypatch) -> None:
+    """Typ + jméno + osobní číslo z CSV; při nejednoznačnosti se ID neuloží."""
     from bpdpmanager.services.stag_api import StagThesisResult
 
+    seen = {}
+
     def fake_search(surname, person, role):
+        seen["person"] = person
         return [
             StagThesisResult(adipidno="999", surname="Novák", name="Jan",
                              type_label="Bakalářská práce"),
             StagThesisResult(adipidno="888", surname="Novák", name="Jan",
                              type_label="Diplomová práce"),
+            StagThesisResult(adipidno="777", surname="Novák", name="Jan",
+                             type_label="Diplomová práce"),
         ]
 
+    csv_by_adip = {
+        "999": "stavPrace;typPrace;osCislo.student\r\nR;Bakalářská práce;A1\r\n",
+        "888": "stavPrace;typPrace;osCislo.student\r\nR;Diplomová práce;A2\r\n",
+        "777": "stavPrace;typPrace;osCislo.student\r\nR;Diplomová práce;A9\r\n",
+    }
     monkeypatch.setattr(mod.stag_api, "search_theses", fake_search)
-    # BP → vybere 999 (bakalářská), ne DP.
-    assert mod._resolve_adipidno("Novák", "BP", mod.ROLE_SUPERVISOR) == "999"
-    assert mod._resolve_adipidno("Novák", "DP", mod.ROLE_SUPERVISOR) == "888"
+    monkeypatch.setattr(mod.stag_api, "download_csv", lambda a: csv_by_adip[a].encode())
+
+    def tgt(type_code, uni_id=""):
+        return _SyncTarget(is_opposing=False, obj_id="x", type_code=type_code,
+                           surname="Novák", label="", local_status=None,
+                           local_kinds=set(), first_name="Jan", uni_id=uni_id)
+
+    assert mod._resolve_adipidno(tgt("BP"), mod.ROLE_SUPERVISOR, "Vedoucí") == ("999", "")
+    assert seen["person"] == "Vedoucí"                     # jen mezi mými pracemi
+    # Dvě DP téhož jména: rozhodne osobní číslo…
+    assert mod._resolve_adipidno(tgt("DP", "A2"), mod.ROLE_SUPERVISOR, "") == ("888", "")
+    # …bez něj je to nejednoznačné → žádné ID.
+    adip, err = mod._resolve_adipidno(tgt("DP"), mod.ROLE_SUPERVISOR, "")
+    assert adip == "" and "nejednoznačné" in err
 
 
 def test_find_new_works_sets_flag(qapp, service) -> None:
@@ -173,3 +195,43 @@ def test_opposing_sync_backfills_status(qapp, service, monkeypatch) -> None:
     dlg._scan()
 
     assert service.get_opposing_thesis(op.id).stag_state_code == "DUO"
+
+
+@pytest.mark.parametrize(("resolved", "stored"), [
+    (("", "nejednoznačné — ve STAG 2 odpovídající práce"), ""),
+    (("555", ""), "555"),
+])
+def test_scan_without_stag_id_stores_only_unique_match(
+    qapp, service, monkeypatch, resolved, stored
+) -> None:
+    st = Student(first_name="Jan", last_name="Novák", university_id="A24002")
+    service.upsert_student(st)
+    t = Thesis(type=ThesisType.DP, status=ThesisStatus.IN_PROGRESS,
+               academic_year="2026/2027", student_id=st.id)
+    service.upsert_thesis(t)
+    seen = {}
+
+    def fake_resolve(work, person_role, person_surname=""):
+        seen["work"] = work
+        seen["person"] = person_surname
+        return resolved
+
+    class _Prof:
+        user_surname = "Vedoucí"
+
+    class _PM:
+        active = _Prof()
+
+    monkeypatch.setattr(mod, "resolve_adipidno", fake_resolve)
+    monkeypatch.setattr(mod.stag_api, "download_csv", lambda a: _CSV_DUO)
+    monkeypatch.setattr(mod.stag_api, "list_thesis_files", lambda a: [])
+    dlg = StagSyncDialog(service, "supervisor", profile_manager=_PM())
+    dlg._scan()
+
+    w = seen["work"]
+    assert (w.surname, w.first_name, w.uni_id, w.academic_year, w.type_code) == (
+        "Novák", "Jan", "A24002", "2026/2027", "DP")
+    assert seen["person"] == "Vedoucí"
+    assert (service.get_thesis(t.id).adipidno or "") == stored
+    if not stored:
+        assert "nejednoznačné" in dlg._targets[0].error

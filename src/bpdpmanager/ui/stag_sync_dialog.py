@@ -37,11 +37,11 @@ from ..i18n import tr
 from ..models.enums import AttachmentKind, ThesisStatus
 from ..services import BackupManager, stag_api
 from ..services.stag_csv_importer import load_stag_csv_bytes
+from ..services.stag_match import LocalWork, resolve_adipidno
 from .stag_import_dialog import (
     _SECTION_TO_KIND,
     STAG_STATE_TO_STATUS,
     _fmt_size,
-    _fold,
 )
 
 
@@ -57,6 +57,10 @@ class _SyncTarget:
     local_status: ThesisStatus | None      # None u oponovaných (nemají stav)
     local_kinds: set[AttachmentKind]
     adipidno: str = ""
+    # Pro přísné dohledání STAG ID (když chybí) — viz services.stag_match.
+    first_name: str = ""
+    uni_id: str = ""
+    academic_year: str = ""
     # vyplní se po dotažení ze STAG:
     found_via_search: bool = False
     stag_status_code: str = ""
@@ -97,26 +101,16 @@ def _fetch_target_state(adipidno: str) -> tuple[str, list[stag_api.StagFile], st
     return status_code, files, ""
 
 
-def _resolve_adipidno(surname: str, type_code: str, role: str) -> str:
-    """Dohledá adipIdno práce ve STAG dle příjmení studenta (best-effort)."""
+def _resolve_adipidno(tgt: _SyncTarget, role: str, person_surname: str) -> tuple[str, str]:
+    """Přísné dohledání STAG ID (``services.stag_match``) → ``(adipidno, chyba)``."""
     person_role = (
         stag_api.ROLE_SUPERVISOR if role == ROLE_SUPERVISOR else stag_api.ROLE_OPPONENT
     )
-    try:
-        results = stag_api.search_theses(surname, "", person_role)
-    except Exception:  # noqa: BLE001
-        return ""
-    folded = _fold(surname)
-    for r in results:
-        rtype = "DP" if "diplom" in (r.type_label or "").lower() else (
-            "BP" if "bakal" in (r.type_label or "").lower() else ""
-        )
-        if rtype and rtype != type_code:
-            continue
-        if folded and folded not in _fold(r.surname):
-            continue
-        return r.adipidno
-    return ""
+    work = LocalWork(
+        surname=tgt.surname, type_code=tgt.type_code, first_name=tgt.first_name,
+        uni_id=tgt.uni_id, academic_year=tgt.academic_year,
+    )
+    return resolve_adipidno(work, person_role, person_surname)
 
 
 class StagSyncDialog(QDialog):
@@ -237,6 +231,9 @@ class StagSyncDialog(QDialog):
                 is_opposing=True, obj_id=o.id, type_code=o.type.value,
                 surname=o.student_last_name, label=label, local_status=None,
                 local_kinds=kinds, adipidno=o.adipidno or "",
+                first_name=o.student_first_name or "",
+                uni_id=o.student_university_id or "",
+                academic_year=o.academic_year,
             )
         t = self.service.get_thesis(obj_id)
         if t is None:
@@ -250,6 +247,9 @@ class StagSyncDialog(QDialog):
             is_opposing=False, obj_id=t.id, type_code=t.type.value,
             surname=surname, label=label, local_status=t.status,
             local_kinds=kinds, adipidno=t.adipidno or "",
+            first_name=student.first_name if student else "",
+            uni_id=(student.university_id or "") if student else "",
+            academic_year=t.academic_year,
         )
 
     def _collect_targets(self) -> list[_SyncTarget]:
@@ -278,6 +278,9 @@ class StagSyncDialog(QDialog):
                     is_opposing=False, obj_id=t.id, type_code=t.type.value,
                     surname=surname, label=label, local_status=t.status,
                     local_kinds=kinds, adipidno=t.adipidno or "",
+                    first_name=student.first_name if student else "",
+                    uni_id=(student.university_id or "") if student else "",
+                    academic_year=t.academic_year,
                 ))
         else:
             current = self.service.current_academic_year()
@@ -291,6 +294,9 @@ class StagSyncDialog(QDialog):
                     is_opposing=True, obj_id=o.id, type_code=o.type.value,
                     surname=o.student_last_name, label=label, local_status=None,
                     local_kinds=kinds, adipidno=o.adipidno or "",
+                    first_name=o.student_first_name or "",
+                    uni_id=o.student_university_id or "",
+                    academic_year=o.academic_year,
                 ))
         return targets
 
@@ -315,15 +321,20 @@ class StagSyncDialog(QDialog):
         progress.setMinimumDuration(0)
         progress.setValue(0)
 
+        # Příjmení uživatele z profilu → hledá se jen mezi jeho pracemi.
+        person_surname = ""
+        if self.profile_manager and self.profile_manager.active:
+            person_surname = self.profile_manager.active.user_surname or ""
+
         def work(tgt: _SyncTarget) -> _SyncTarget:
             adip = tgt.adipidno
             if not adip:
-                adip = _resolve_adipidno(tgt.surname, tgt.type_code, self.role)
+                adip, err = _resolve_adipidno(tgt, self.role, person_surname)
                 if adip:
                     tgt.adipidno = adip
                     tgt.found_via_search = True
                 else:
-                    tgt.error = "nenalezeno ve STAG (chybí STAG ID i shoda dle příjmení)"
+                    tgt.error = err
                     return tgt
             status_code, files, err = _fetch_target_state(adip)
             tgt.stag_status_code = status_code

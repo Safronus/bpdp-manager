@@ -22,6 +22,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 ### Fixed
 - **Náhled importu ukazoval stav i u existujících prací, ale import ho
   ignoroval** — teď se zvolený stav skutečně uloží (souhrn ukáže počet změn).
+- **„Aktualizace práce ze STAG" mohla k práci uložit STAG ID cizí práce.**
+  U práce bez STAG ID hledala jen podle příjmení (i jako podřetězec) a typu,
+  vzala první shodu a ID hned uložila. Teď hledá jen mezi tvými pracemi,
+  vyžaduje shodu příjmení, křestního jména a typu, ověří osobní číslo a rok
+  z detailu STAG a ID uloží jen při jediné shodě (jinak „nenalezeno" /
+  „nejednoznačné").
 - **Náhled importu pároval jinak než import:** hlásil „Aktualizovat" i u práce
   s jiným STAG ID (repetent), ačkoli import pak založil novou. Párování je teď
   shodné.
