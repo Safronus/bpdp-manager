@@ -21,10 +21,28 @@ except OSError:
     pass
 
 
+def _examples_dir() -> Path:
+    """Složka ``examples/`` — v repu vedle ``src/``, v zabalené appce v bundlu."""
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", ".")) / "examples"
+    return Path(__file__).resolve().parent.parent.parent / "examples"
+
+
 def main() -> int:
+    from . import __version__
+
     parser = argparse.ArgumentParser(
         prog="bpdp-manager",
         description="Správa vedení BP/DP prací.",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"BPDPManager {__version__}",
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Ověří instalaci (resources, závislosti, sestavení okna) nad dočasnými "
+             "daty a skončí. Návratový kód 0 = OK.",
     )
     parser.add_argument(
         "--load-demo",
@@ -37,7 +55,14 @@ def main() -> int:
         default=None,
         help="Cesta k vlastnímu db.json (jinak ~/.bpdpmanager/db.json).",
     )
-    args = parser.parse_args()
+    # macOS při spuštění z Finderu občas předá „-psn_0_12345" (process serial
+    # number) — argparse by na neznámém přepínači spadl ještě před otevřením okna.
+    args = parser.parse_args([a for a in sys.argv[1:] if not a.startswith("-psn_")])
+
+    if args.self_test:
+        from .selftest import run_selftest
+
+        return run_selftest()
 
     from .services import ThesisService
     from .storage import Database, JsonRepository
@@ -45,7 +70,7 @@ def main() -> int:
     repo = JsonRepository(path=args.db) if args.db else JsonRepository()
 
     if args.load_demo:
-        seed_path = Path(__file__).resolve().parent.parent.parent / "examples" / "seed_demo.json"
+        seed_path = _examples_dir() / "seed_demo.json"
         if not seed_path.exists():
             print(f"Demo soubor nenalezen: {seed_path}", file=sys.stderr)
             return 1

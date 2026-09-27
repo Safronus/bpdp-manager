@@ -7,7 +7,24 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+### Added
+- **Spustitelná aplikace pro macOS (Apple Silicon).** `scripts/build_macos.sh`
+  sestaví přes PyInstaller `BPDPManager.app` + `.dmg` (build mimo iCloud do
+  `~/.cache/bpdpmanager-build`), podepíše ji ad-hoc, ověří podpis a spustí na
+  zabalené appce smoke test. Aplikace pak běží bez nainstalovaného Pythonu.
+- **Smoke test instalace `--self-test`** (ze zdrojů i v zabalené appce): ověří
+  přibalené resources (nápověda CZ/EN, komise, slovník, šablony, certifikát,
+  ikona), importy závislostí, načtení komisí, kontrolu pravopisu, sestavení
+  hlavního okna a v zabalené appce i **skutečný start QtWebEngine** (vestavěný
+  prohlížeč SZZ admin). Běží nad dočasnými daty, reálných dat se nedotkne.
+- Přepínač **`--version`**.
+
 ### Fixed
+- **Restart aplikace (změna jazyka, aktualizace) v zabalené appce.** Spouštěl
+  `sys.executable -m bpdpmanager` — v `.app` je to samotná binárka, která by
+  argumenty `-m bpdpmanager` nepřijala a nová instance by se nespustila.
+- Spuštění z Finderu s argumentem `-psn_…` (process serial number, macOS) už
+  neshodí parsování přepínačů.
 - **Testy komisí a exportu do kalendáře už nezávisí na dnešním datu.** Od
   1. 9. 2026 (přechod na akademický rok 2026/2027) padalo 6 testů — testovací
   data jsou pro 2025/2026, ale aplikace počítá oponované práce jen z aktuálního

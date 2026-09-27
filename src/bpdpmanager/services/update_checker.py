@@ -143,11 +143,23 @@ def perform_update(root: Path) -> tuple[bool, str]:
     return True, "Aktualizace proběhla. Aplikace se restartuje."
 
 
+def restart_command() -> list[str]:
+    """Příkaz pro spuštění nové instance aplikace.
+
+    Ze zdrojů ``python -m bpdpmanager``; v zabalené aplikaci (PyInstaller) je
+    ``sys.executable`` samotná binárka aplikace — ``-m bpdpmanager`` by dostala
+    jako neznámé argumenty a nová instance by se vůbec nespustila.
+    """
+    if getattr(sys, "frozen", False):
+        return [sys.executable]
+    return [sys.executable, "-m", "bpdpmanager"]
+
+
 def restart_app() -> None:
-    """Spustí novou instanci aplikace a ukončí tuto (po úspěšném update)."""
+    """Spustí novou instanci aplikace a ukončí tuto (po update / změně jazyka)."""
     from PySide6.QtWidgets import QApplication
 
-    subprocess.Popen([sys.executable, "-m", "bpdpmanager"])  # nezávislý proces
+    subprocess.Popen(restart_command())  # nezávislý proces
     app = QApplication.instance()
     if app is not None:
         app.quit()

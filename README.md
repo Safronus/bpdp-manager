@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 2.6.3** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 2.29.5** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -254,7 +254,10 @@ src/bpdpmanager/
 ├── services/      # business logika (ThesisService) a PDF parser harmonogramu
 ├── ui/            # PySide6 okna, dialogy, widgety
 │   └── widgets/   # znovupoužitelné komponenty (DocumentsWidget, StatusBadge, …)
-└── resources/     # statické zdroje (styly, defaultní obory…)
+├── resources/     # statické zdroje (styly, defaultní obory…)
+└── selftest.py    # smoke test instalace (--self-test)
+packaging/         # PyInstaller spec + launcher pro macOS .app
+scripts/           # build_macos.sh (build .app/.dmg), make_icon.py
 ```
 
 ## Datové soubory
@@ -281,6 +284,43 @@ pip install -e .[dev]
 pytest
 ruff check src tests
 ```
+
+### Spustitelná aplikace (macOS `.app` / `.dmg`)
+
+Samostatnou aplikaci pro **macOS Apple Silicon** (bez nutnosti mít Python) sestaví:
+
+```bash
+scripts/build_macos.sh
+```
+
+Skript udělá **PyInstaller build** (`packaging/bpdpmanager.spec`) → **ad-hoc podpis**
+→ ověření podpisu → **smoke test zabalené aplikace** → **`.dmg`**. Build běží **mimo
+repozitář** (výchozí `~/.cache/bpdpmanager-build`, lze změnit `BUILD_ROOT=…`), protože
+repo často leží v iCloudu a tisíce souborů v `build/` by se synchronizovaly. Výstup:
+
+- `~/.cache/bpdpmanager-build/dist/BPDPManager.app`
+- `~/.cache/bpdpmanager-build/dist/BPDPManager-<verze>-macos-arm64.dmg`
+
+Verze se bere z jediného zdroje pravdy (`__version__` v `src/bpdpmanager/__init__.py`).
+Když je `.venv` symlink (venv mimo iCloud), skript volá Python přes **rozřešenou
+cestu** — jinak by PyInstaller špatně přibalil QtWebEngine a bundle nešel podepsat.
+
+**Smoke test** instalace lze spustit i ručně (ze zdrojů i v zabalené appce); běží nad
+dočasnými daty a na tvoje reálná data nesahá:
+
+```bash
+bpdp-manager --self-test          # ze zdrojů
+~/.cache/bpdpmanager-build/dist/BPDPManager.app/Contents/MacOS/BPDPManager --self-test
+bpdp-manager --version
+```
+
+Ověří přibalené resources (nápověda, komise, slovník, šablony, certifikát), importy
+závislostí, načtení komisí, pravopis, sestavení hlavního okna a v zabalené appce i
+**skutečný start QtWebEngine** (vestavěný prohlížeč SZZ admin). Návratový kód 0 = OK.
+
+> **Podpis:** aplikace je podepsaná *ad-hoc* (bez placeného Apple Developer účtu). Na
+> Macu, kde byla sestavena, běží normálně; na jiném Macu je při prvním spuštění potřeba
+> **pravý klik → Otevřít** (Gatekeeper).
 
 ## Ikona
 
