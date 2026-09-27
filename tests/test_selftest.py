@@ -48,6 +48,48 @@ def test_main_version_ignores_macos_psn_argument(monkeypatch, capsys) -> None:
     assert f"BPDPManager {__version__}" in capsys.readouterr().out
 
 
+def test_configure_tls_only_in_frozen_app(monkeypatch) -> None:
+    import certifi
+
+    from bpdpmanager.__main__ import _configure_tls
+
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    _configure_tls()                                   # ze zdrojů → nic
+    assert "SSL_CERT_FILE" not in os.environ
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    _configure_tls()                                   # .app → přibalené certifi
+    assert os.environ["SSL_CERT_FILE"] == certifi.where()
+
+    monkeypatch.setenv("SSL_CERT_FILE", "/vlastni/ca.pem")
+    _configure_tls()                                   # hodnotu uživatele nepřepíše
+    assert os.environ["SSL_CERT_FILE"] == "/vlastni/ca.pem"
+
+
+def test_selftest_tls_and_network_checks(monkeypatch) -> None:
+    import bpdpmanager.selftest as st
+    from bpdpmanager.services import stag_api
+    from bpdpmanager.services import update_checker as uc
+
+    buf = io.StringIO()
+    st._check_tls(st._Report(buf), frozen=False)
+    assert "✅ HTTPS: důvěryhodné certifikáty CA" in buf.getvalue()
+
+    # síťová část bez skutečné sítě: STAG OK, GitHub selže → 1 chyba
+    monkeypatch.setattr(stag_api, "check_reachable", lambda timeout=5.0: (True, ""))
+
+    def gh_fail(timeout=6.0):
+        raise OSError("offline")
+
+    monkeypatch.setattr(uc, "fetch_latest_release", gh_fail)
+    buf = io.StringIO()
+    rep = st._Report(buf)
+    st._check_network(rep)
+    out = buf.getvalue()
+    assert "✅ síť: STAG" in out and "❌ síť: GitHub Releases — OSError" in out
+    assert len(rep.failures) == 1
+
+
 def test_restart_command_source_and_frozen(monkeypatch) -> None:
     from bpdpmanager.services.update_checker import restart_command
 

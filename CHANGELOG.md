@@ -5,6 +5,26 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.30.2] - 2026-09-27
+
+### Fixed
+- **Hotová aplikace hlásila STAG jako offline a žádné HTTPS nefungovalo.**
+  Zabalená `.app` (sestavená v CI) hledala certifikáty v cestě z build stroje
+  (`/Library/Frameworks/Python.framework/…/etc/openssl`), která na jiném Macu
+  neexistuje → OpenSSL neměl žádnou důvěryhodnou CA a každé spojení selhalo na
+  `CERTIFICATE_VERIFY_FAILED`: indikátor STAG, import/stahování ze STAG,
+  **kontrola aktualizací** i odesílání e-mailu přes TLS. Aplikace teď při startu
+  použije přibalené certifikáty (**certifi**). Ze zdrojů se nic nemění.
+  ⚠️ Verze **2.30.0 a 2.30.1** se kvůli tomu **nedokážou samy aktualizovat** —
+  2.30.2 je potřeba stáhnout ručně z Releases.
+- Chyba certifikátu se v indikátoru STAG hlásila jako „nedostupný"; teď jako
+  **„TLS/certifikát"** (přesnější diagnóza).
+
+### Added
+- Self-test kontroluje **HTTPS certifikáty** (bez sítě; v `.app` i to, že se
+  používají přibalené — tahle kontrola by chybu zachytila už v CI) a s
+  přepínačem **`--self-test --network`** i skutečné spojení se STAG a GitHubem.
+
 ## [2.30.1] - 2026-09-27
 
 ### Added

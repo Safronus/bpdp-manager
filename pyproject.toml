@@ -31,6 +31,7 @@ dependencies = [
     "pydantic>=2.6",
     "pypdf[crypto]>=4.0",  # [crypto] = cryptography; STAG posudky jsou AES-šifrované
     "cryptography>=42",  # šifrovaný export/import cache SZZ (PBKDF2 + AES-256-GCM)
+    "certifi>=2024.2.2",  # CA certifikáty pro HTTPS v zabalené .app (viz __main__._configure_tls)
     "openpyxl>=3.1",
     "spylls>=0.1.7",  # čistě pythonní hunspell — kontrola pravopisu posudku
 ]

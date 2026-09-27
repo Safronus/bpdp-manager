@@ -813,6 +813,9 @@ def check_reachable(timeout: float = 5.0) -> tuple[bool, str]:
         return False, f"TLS/certifikát: {exc}"
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         reason = getattr(exc, "reason", exc)
+        if isinstance(reason, ssl.SSLError):
+            # urllib balí chybu certifikátu do URLError — není to „offline"
+            return False, f"TLS/certifikát: {reason}"
         return False, f"nedostupný: {reason}"
 
 

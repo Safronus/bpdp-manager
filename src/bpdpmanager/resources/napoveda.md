@@ -1557,6 +1557,7 @@ neblokuje (viz *Aktualizace aplikace*).
 python -m bpdpmanager              # spustí aplikaci
 python -m bpdpmanager --load-demo  # nahraje fiktivní demo data
 python -m bpdpmanager --self-test  # ověří instalaci (nad dočasnými daty) a skončí
+python -m bpdpmanager --self-test --network  # + skutečné spojení se STAG a GitHubem
 python -m bpdpmanager --version    # vypíše verzi
 ```
 

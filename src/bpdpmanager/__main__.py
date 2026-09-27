@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -21,6 +22,26 @@ except OSError:
     pass
 
 
+def _configure_tls() -> None:
+    """Zabalená aplikace: HTTPS důvěřuje certifikátům z přibaleného ``certifi``.
+
+    PyInstaller přibalí OpenSSL z build stroje (CI), který hledá certifikáty
+    v tamní cestě (``/Library/Frameworks/Python.framework/…/etc/openssl``). Na
+    jiném Macu neexistuje → OpenSSL nemá žádnou důvěryhodnou CA a každé HTTPS
+    (STAG, kontrola aktualizací, e-mail) selže na ``CERTIFICATE_VERIFY_FAILED``
+    — aplikace pak hlásí STAG jako offline. ``SSL_CERT_FILE`` čte OpenSSL při
+    vytvoření každého výchozího SSL kontextu. Hodnotu nastavenou uživatelem
+    nepřepisujeme; ze zdrojů se nic nemění (tam systémové úložiště funguje).
+    """
+    if not getattr(sys, "frozen", False) or os.environ.get("SSL_CERT_FILE"):
+        return
+    try:
+        import certifi
+    except ImportError:  # nemělo by nastat — certifi je běhová závislost
+        return
+    os.environ["SSL_CERT_FILE"] = certifi.where()
+
+
 def _examples_dir() -> Path:
     """Složka ``examples/`` — v repu vedle ``src/``, v zabalené appce v bundlu."""
     if getattr(sys, "frozen", False):
@@ -30,6 +51,8 @@ def _examples_dir() -> Path:
 
 def main() -> int:
     from . import __version__
+
+    _configure_tls()   # musí proběhnout před prvním HTTPS spojením
 
     parser = argparse.ArgumentParser(
         prog="bpdp-manager",
@@ -43,6 +66,11 @@ def main() -> int:
         action="store_true",
         help="Ověří instalaci (resources, závislosti, sestavení okna) nad dočasnými "
              "daty a skončí. Návratový kód 0 = OK.",
+    )
+    parser.add_argument(
+        "--network",
+        action="store_true",
+        help="S --self-test navíc ověří skutečné HTTPS spojení se STAG a GitHubem.",
     )
     parser.add_argument(
         "--load-demo",
@@ -62,7 +90,7 @@ def main() -> int:
     if args.self_test:
         from .selftest import run_selftest
 
-        return run_selftest()
+        return run_selftest(network=args.network)
 
     from .services import ThesisService
     from .storage import Database, JsonRepository

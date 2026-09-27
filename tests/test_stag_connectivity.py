@@ -39,3 +39,16 @@ def test_check_reachable_offline(monkeypatch) -> None:
     monkeypatch.setattr(urllib.request, "urlopen", boom)
     ok, detail = stag_api.check_reachable(1.0)
     assert not ok and "nedostupný" in detail
+
+
+def test_check_reachable_certificate_error_is_tls_not_offline(monkeypatch) -> None:
+    # Přesně tahle chyba v .app bez certifikátů: urllib balí SSL chybu do URLError.
+    import ssl
+
+    def boom(*a, **k):
+        raise urllib.error.URLError(ssl.SSLCertVerificationError(
+            1, "certificate verify failed: unable to get local issuer certificate"))
+
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    ok, detail = stag_api.check_reachable(1.0)
+    assert not ok and detail.startswith("TLS/certifikát") and "nedostupný" not in detail

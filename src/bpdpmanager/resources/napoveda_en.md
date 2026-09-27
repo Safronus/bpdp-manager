@@ -1425,6 +1425,7 @@ them (see *Application updates*).
 python -m bpdpmanager              # start the app
 python -m bpdpmanager --load-demo  # load fictional demo data
 python -m bpdpmanager --self-test  # verify the installation (on temporary data) and exit
+python -m bpdpmanager --self-test --network  # + real connection to STAG and GitHub
 python -m bpdpmanager --version    # print the version
 ```
 

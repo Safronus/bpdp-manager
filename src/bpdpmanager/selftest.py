@@ -6,7 +6,9 @@ lokálně po buildu. Kontroluje:
 1. přibalené resources (nápověda CZ/EN, komise SZZ, ikona, certifikát MyQ,
    slovník pravopisu, výchozí šablony, PDF složení komisí),
 2. importy těžkých závislostí (Qt vč. WebEngine, pydantic, cryptography,
-   pypdf, openpyxl, spylls) a u zabalené aplikace i helper QtWebEngineProcess,
+   certifi, pypdf, openpyxl, spylls) a u zabalené aplikace i helper
+   QtWebEngineProcess; HTTPS certifikáty (bez sítě — OpenSSL musí mít
+   důvěryhodné CA, v .app ty přibalené); s ``--network`` i skutečné spojení,
 3. že jde reálně načíst komise ze seedu, zkontrolovat pravopis a sestavit
    hlavní okno; v zabalené aplikaci navíc skutečně spustí render proces
    QtWebEngine (lokální HTML + JavaScript).
@@ -56,6 +58,7 @@ REQUIRED_MODULES = (
     "PySide6.QtWebEngineWidgets",
     "pydantic",
     "cryptography.hazmat.primitives.ciphers.aead",
+    "certifi",
     "pypdf",
     "openpyxl",
     "spylls",
@@ -108,6 +111,38 @@ def _check_imports(r: _Report, frozen: bool) -> None:
         meipass = Path(getattr(sys, "_MEIPASS", _PKG.parent))
         helpers = list(meipass.parent.rglob("QtWebEngineProcess"))
         r.check(bool(helpers), "helper QtWebEngineProcess v bundlu")
+
+
+def _check_tls(r: _Report, frozen: bool) -> None:
+    """HTTPS bez sítě: OpenSSL musí mít důvěryhodné CA (jinak STAG „offline").
+
+    V zabalené aplikaci navíc ověří, že se používají PŘIBALENÉ certifikáty —
+    cesta z build stroje (CI) na cizím Macu neexistuje, a protože na runneru
+    existuje, bez této kontroly by se chyba v CI nikdy neprojevila.
+    """
+    import ssl
+
+    n = len(ssl.create_default_context().get_ca_certs())
+    r.check(n > 0, f"HTTPS: důvěryhodné certifikáty CA ({n})")
+    if frozen:
+        cafile = Path(os.environ.get("SSL_CERT_FILE") or "/neexistuje")
+        contents = Path(sys.executable).resolve().parents[1]      # …/Contents
+        inside = cafile.is_file() and contents in cafile.resolve().parents
+        r.check(inside, f"HTTPS: přibalené certifikáty (SSL_CERT_FILE={cafile})")
+
+
+def _check_network(r: _Report) -> None:
+    """Skutečné HTTPS spojení (jen na vyžádání: ``--self-test --network``)."""
+    from .services import stag_api
+    from .services import update_checker as uc
+
+    ok, why = stag_api.check_reachable(timeout=8.0)
+    r.check(ok, f"síť: STAG {stag_api.BASE_URL}" + ("" if ok else f" — {why}"))
+    try:
+        rel = uc.fetch_latest_release(timeout=8.0)
+        r.ok(f"síť: GitHub Releases (poslední vydání {rel.version})")
+    except Exception as exc:  # jakákoli chyba = nefunkční kontrola aktualizací
+        r.bad(f"síť: GitHub Releases — {type(exc).__name__}: {exc}")
 
 
 def _check_webengine(r: _Report) -> None:
@@ -196,12 +231,15 @@ def _check_app(r: _Report, data_dir: Path, webengine: bool) -> None:
     window.deleteLater()
 
 
-def run_selftest(out: TextIO | None = None, *, webengine: bool | None = None) -> int:
+def run_selftest(out: TextIO | None = None, *, webengine: bool | None = None,
+                 network: bool = False) -> int:
     """Spustí smoke test; vrací 0 (OK) nebo 1 (selhání).
 
     ``webengine`` — spustit i skutečný render proces QtWebEngine. Výchozí
     ``None`` = jen v zabalené aplikaci (tam je bundlování nejrizikovější; ze
     zdrojů by v testech zbytečně startoval Chromium).
+    ``network`` — navíc skutečné HTTPS na STAG a GitHub (mimo CI build, aby
+    výpadek STAGu nerozbil sestavení).
     """
     from . import __version__
     from .config import ENV_DATA_DIR
@@ -216,6 +254,9 @@ def run_selftest(out: TextIO | None = None, *, webengine: bool | None = None) ->
 
     _check_resources(r)
     _check_imports(r, frozen)
+    _check_tls(r, frozen)
+    if network:
+        _check_network(r)
 
     previous = os.environ.get(ENV_DATA_DIR)
     with tempfile.TemporaryDirectory(prefix="bpdp-selftest-") as td:
