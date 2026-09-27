@@ -1264,10 +1264,19 @@ dialog opens:
 
 **App from a `.dmg` (BPDPManager.app)** — the latest version is taken from the
 last **published** package on GitHub Releases (not from the changelog alone, so
-a version whose `.dmg` is still being built is never offered). **⬇ Download new
-version** opens the new `.dmg` download in your browser. Then **quit the app**,
-open the `.dmg` and **drag BPDPManager into Applications** (replace). Your data
+a version whose `.dmg` is still being built is never offered). **⬇ Download and
+open** asks **where to save the `.dmg`** (pre-filled with the folder you chose last
+time, *Downloads* at first), downloads it with a progress bar (can be **cancelled**)
+and **verifies its SHA-256 checksum** against GitHub — on mismatch the file is
+discarded. It then opens the verified `.dmg`: **quit the app** and **drag
+BPDPManager from the `.dmg` window into Applications** (replace). A version
+downloaded this way has no "quarantine", so macOS **does not block** it. Your data
 (profiles, database, reviews) is stored outside the app, so it stays untouched.
+Delete old `.dmg` files yourself once you no longer need them.
+
+> Should a release exceptionally lack a checksum, **⬇ Download new version**
+> opens the download in your browser — the new version is then blocked on first
+> launch and *System Settings → Privacy & Security → Open Anyway* helps.
 
 **App from a git clone** (`pip install -e .`) — reads `CHANGELOG.md` from the
 main branch. **🔄 Update and restart** runs `git pull`, installs any new
@@ -1400,9 +1409,15 @@ between devices. The lock file guards concurrent access. The bytecode cache
 
 **Ready-made app (macOS, Apple Silicon):** download `BPDPManager-<version>-macos-arm64.dmg`
 from the [latest release on GitHub](https://github.com/Safronus/bpdp-manager/releases/latest),
-open it and drag **BPDPManager** into **Applications**. No Python needed. On the **first**
-launch use **right-click → Open** (the app is *ad-hoc* signed, so Gatekeeper doesn't know
-it yet). New versions are then offered by the app itself (see *Application updates*).
+open it and drag **BPDPManager** into **Applications**. No Python needed.
+
+On the **first** launch macOS blocks the app (a message that it **cannot be opened**, with
+only *Done* / *Move to Trash*) — it is only *ad-hoc* signed, without a paid Apple
+Developer account. Close the message, open **System Settings → Privacy & Security**,
+scroll down to *Security* and click **Open Anyway** next to BPDPManager (then confirm).
+Needed **once**. *(The old "right-click → Open" trick no longer works since macOS 15.)*
+Later versions are downloaded and verified by the app itself and macOS no longer blocks
+them (see *Application updates*).
 
 **From source:**
 

@@ -43,7 +43,8 @@ def test_release_notes_section_without_heading() -> None:
     assert "Spustitelna aplikace." in notes
     assert "Stara oprava" not in notes                 # jen tahle verze
     assert "BPDPManager-2.30.0-macos-arm64.dmg" in notes
-    assert "pravý klik → Otevřít" in notes
+    # macOS 15+ už „pravý klik → Otevřít" nenabízí (ověřeno na macOS 27)
+    assert "Přesto otevřít" in notes and "pravý klik" not in notes
 
 
 def test_release_notes_missing_version_raises() -> None:

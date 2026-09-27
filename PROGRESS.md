@@ -15,7 +15,10 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
 - **Release:** automaticky při změně verze — když tag `vX.Y.Z` pro aktuální
   `__version__` neexistuje, CI vytvoří tag + GitHub Release s `.dmg` a sekcí
   z `CHANGELOG.md`.
-- **Podpis:** ad-hoc (bez Apple Developer účtu) → na cizím Macu „pravý klik → Otevřít".
+- **Podpis:** ad-hoc (bez Apple Developer účtu). Staženo prohlížečem → karanténa →
+  macOS 15+ blokuje („nelze otevřít", jen Hotovo/Koš; „pravý klik → Otevřít" už
+  nefunguje — ověřeno uživatelem na macOS 27) → *Nastavení → Soukromí a zabezpečení
+  → Přesto otevřít*. Aktualizace proto stahuje aplikace sama (bez karantény).
 - **Aktualizace v zabalené appce:** místo `git pull` nabídnout stažení nového `.dmg`
   z GitHub Releases (verzi brát z posledního *vydaného* Release, ne z CHANGELOGu).
 - **Časované testy:** opravit testy (zafixovat akademický rok), ne logiku aplikace.
@@ -63,6 +66,23 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
 ### Stav
 Úkol „spustitelná a udržovaná verze" je hotový. Každý push do `main` = automatický
 build + testy; bump verze = automatický Release s `.dmg`.
+
+### Stahování aktualizace v aplikaci (2.30.1)
+- `update_checker.ReleaseInfo` (verze, url, **sha256 digest z GitHub API**, size),
+  `download_update()` → `.part`, průběžný SHA-256, zahození při neshodě/zrušení,
+  jen z `releases/download/` tohoto repa. Dialog: „Uložit jako…" s naposledy
+  zvolenou složkou (ui_pref `update_download_dir`, napoprvé Stažené), průběh,
+  zrušení, otevření `.dmg`. Bez digestu → záloha přes prohlížeč.
+- Ověřeno živě: stažení 235,8 MB z Release v2.30.0, SHA-256 OK, soubor ani
+  zkopírovaná `.app` **bez karantény**.
+- ⚠️ Úplné proklikání aktualizace z běžící `.app` jde až s vydáním novějším než
+  nainstalované (mechanismus ověřen skutečným stažením + testy dialogu).
+
+### Instalace u uživatele
+- `/Applications/BPDPManager.app` (Finder → Aplikace, Launchpad, Spotlight).
+  Instalováno ze staženého Release přes `gh` (bez karantény). Otevírá stávající
+  profil „Petr Žáček" (sdílený registr `~/Library/Application Support/BPDPManager/
+  profiles.json`, stejný jako verze ze zdrojů). Nespouštět obě verze současně.
 
 ### Venv (srovnáno 2026-09-27)
 - ✅ Nový čistý venv `~/.venvs/bpdp-manager` z **MacPorts Python 3.11.7**

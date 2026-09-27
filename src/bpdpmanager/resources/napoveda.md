@@ -1371,10 +1371,19 @@ dialog **Aktualizace aplikace**:
 
 **Aplikace z `.dmg` (BPDPManager.app)** — nejnovější verze se bere z posledního
 **vydaného** balíčku na GitHub Releases (ne ze samotného changelogu, aby se
-nenabízela verze, jejíž `.dmg` se teprve sestavuje). Tlačítko **⬇ Stáhnout novou
-verzi** otevře v prohlížeči stažení nového `.dmg`. Pak: **zavři aplikaci**, otevři
-`.dmg` a **přetáhni BPDPManager do složky Aplikace** (nahradit). Tvoje data
-(profily, databáze, posudky) jsou uložená mimo aplikaci, takže zůstanou beze změny.
+nenabízela verze, jejíž `.dmg` se teprve sestavuje). Tlačítko **⬇ Stáhnout a
+otevřít** se zeptá, **kam `.dmg` uložit** (předvyplní složku, kterou jsi zvolil
+minule, napoprvé *Stažené*), soubor stáhne s ukazatelem průběhu (jde **zrušit**)
+a **ověří jeho kontrolní součet SHA-256** proti údaji z GitHubu — při neshodě
+soubor zahodí. Ověřený `.dmg` pak sám otevře: **zavři aplikaci** a **přetáhni
+BPDPManager z okna `.dmg` do složky Aplikace** (nahradit). Takto stažená verze
+nemá „karanténu", takže ji macOS **neblokuje**. Tvoje data (profily, databáze,
+posudky) jsou uložená mimo aplikaci, takže zůstanou beze změny. Starší `.dmg`
+si ze složky smaž sám, až je nebudeš potřebovat.
+
+> Kdyby vydání výjimečně neneslo kontrolní součet, tlačítko **⬇ Stáhnout novou
+> verzi** otevře stažení v prohlížeči — pak nová verze napoprvé narazí na blokaci
+> a pomůže *Nastavení systému → Soukromí a zabezpečení → Přesto otevřít*.
 
 **Aplikace z git klonu** (`pip install -e .`) — čte se `CHANGELOG.md` z hlavní
 větve. **🔄 Aktualizovat a restartovat** provede `git pull` + doinstaluje
@@ -1532,9 +1541,15 @@ synchronizací.
 
 **Hotová aplikace (macOS, Apple Silicon):** stáhni `BPDPManager-<verze>-macos-arm64.dmg`
 z [posledního vydání na GitHubu](https://github.com/Safronus/bpdp-manager/releases/latest),
-otevři ho a přetáhni **BPDPManager** do složky **Aplikace**. Python není potřeba. Při
-**prvním** spuštění **pravý klik → Otevřít** (aplikace je podepsaná *ad-hoc*, Gatekeeper
-ji napoprvé nezná). Novou verzi pak nabídne sama po startu (viz *Aktualizace aplikace*).
+otevři ho a přetáhni **BPDPManager** do složky **Aplikace**. Python není potřeba.
+
+Při **prvním** spuštění macOS aplikaci zablokuje (hláška, že ji **nelze otevřít**, jen
+s tlačítky *Hotovo* / *Přesunout do koše*) — je podepsaná jen *ad-hoc*, bez placeného
+Apple Developer účtu. Zavři hlášku, otevři **Nastavení systému → Soukromí
+a zabezpečení**, sjeď dolů k části *Zabezpečení* a u BPDPManageru klikni na **Přesto
+otevřít** (a potvrď). Stačí **jednou**. *(Dřívější rada „pravý klik → Otevřít" od
+macOS 15 nefunguje.)* Další verze si aplikace stáhne a ověří sama a macOS je už
+neblokuje (viz *Aktualizace aplikace*).
 
 **Ze zdrojů:**
 

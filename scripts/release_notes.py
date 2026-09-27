@@ -23,9 +23,11 @@ INSTALL_NOTE = (
     "---\n\n"
     "**Instalace (macOS, Apple Silicon):** stáhni `BPDPManager-{version}"
     f"{DMG_SUFFIX}` níže, otevři ho a přetáhni **BPDPManager** do složky "
-    "**Aplikace**. Při prvním spuštění **pravý klik → Otevřít** (aplikace je "
-    "podepsaná ad-hoc, bez Apple Developer účtu). Aktualizaci pak nabídne "
-    "aplikace sama po startu."
+    "**Aplikace**. Aplikace je podepsaná jen ad-hoc (bez Apple Developer účtu), "
+    "takže ji macOS po stažení prohlížečem napoprvé zablokuje („nelze otevřít“): "
+    "otevři **Nastavení systému → Soukromí a zabezpečení** a dole u BPDPManageru "
+    "klikni na **Přesto otevřít**. Stačí jednou — další verze si aplikace "
+    "stáhne a ověří sama a macOS už je neblokuje."
 )
 
 

@@ -933,7 +933,11 @@ class MainWindow(QMainWindow):
             return  # tuto verzi si uživatel přál přeskočit
         from .update_dialog import UpdateDialog
 
-        dlg = UpdateDialog(info, self, check_enabled=True)
+        last_dir = (
+            self.profile_manager.get_ui_pref("update_download_dir")
+            if self.profile_manager else None
+        )
+        dlg = UpdateDialog(info, self, check_enabled=True, download_dir=last_dir)
         dlg.exec()
         if self.profile_manager:
             self.profile_manager.set_ui_pref(
@@ -941,6 +945,9 @@ class MainWindow(QMainWindow):
             )
             if dlg.skip_requested:
                 self.profile_manager.set_ui_pref("update_skip_version", info.latest)
+            if dlg.download_dir and dlg.download_dir != last_dir:
+                # kam uživatel naposledy ukládal .dmg — příště předvyplnit
+                self.profile_manager.set_ui_pref("update_download_dir", dlg.download_dir)
 
     # --- tichá kontrola STAG -------------------------------------------------
 

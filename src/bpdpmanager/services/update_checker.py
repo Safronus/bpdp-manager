@@ -11,7 +11,9 @@ Dva režimy:
 * **Zabalená aplikace** (PyInstaller ``.app``) — nejnovější verze se bere
   z posledního *vydaného* GitHub Release (ne z CHANGELOGu: sekce v CHANGELOGu
   existuje dřív, než CI release dostaví). Update = stažení nového ``.dmg``
-  v prohlížeči; výměnu aplikace dokončí uživatel (přetáhnout do Aplikací).
+  přímo v aplikaci s ověřením SHA-256 (:func:`download_update`; bez
+  karantény, takže ho Gatekeeper po přetažení do Aplikací nezablokuje);
+  když Release digest neuvádí, záloha přes prohlížeč.
 
 Jiná instalace (např. pip bez klonu) aktualizovat neumí — kontrola se neprovádí.
 """
@@ -40,10 +42,15 @@ RELEASES_API = "https://api.github.com/repos/Safronus/bpdp-manager/releases/late
 RELEASES_URL_PREFIX = "https://github.com/Safronus/bpdp-manager/releases/"
 #: Záloha, když Release nemá .dmg asset nebo URL neprojde validací.
 RELEASES_PAGE = RELEASES_URL_PREFIX + "latest"
+#: Přímé stažení assetu Release — jen odsud smí aplikace stahovat .dmg.
+RELEASES_DOWNLOAD_PREFIX = RELEASES_URL_PREFIX + "download/"
 #: Koncovka instalačního souboru, který vyrábí CI (scripts/build_macos.sh).
 DMG_SUFFIX = "-macos-arm64.dmg"
 
 _SECTION_RE = re.compile(r"^## \[(\d+(?:\.\d+)*)\]", re.MULTILINE)
+#: Digest assetu v GitHub API: „sha256:<64 hex>".
+_DIGEST_RE = re.compile(r"^sha256:([0-9a-fA-F]{64})$")
+_HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def is_frozen() -> bool:
@@ -85,6 +92,34 @@ class UpdateInfo:
     versions: list[str] = field(default_factory=list)
     #: Zabalená aplikace: odkaz ke stažení nového .dmg (prázdné = git režim).
     download_url: str = ""
+    #: SHA-256 (hex) .dmg z GitHubu — prázdné = nejde ověřit (→ prohlížeč).
+    download_sha256: str = ""
+    #: Velikost .dmg v bajtech (0 = neznámá) — pro průběh stahování.
+    download_size: int = 0
+
+    @property
+    def can_download_in_app(self) -> bool:
+        """Jde .dmg stáhnout přímo v aplikaci s ověřením kontrolního součtu?"""
+        return (self.download_url.startswith(RELEASES_DOWNLOAD_PREFIX)
+                and bool(_HEX64_RE.match(self.download_sha256)))
+
+
+@dataclass
+class ReleaseInfo:
+    """Poslední vydaný GitHub Release: verze, odkaz a u .dmg i kontrolní součet."""
+
+    version: str
+    url: str               # .dmg asset, nebo (záloha) stránka Release
+    sha256: str = ""       # hex digest .dmg; prázdné = neověřitelné
+    size: int = 0          # bajty; 0 = neznámá
+
+
+class UpdateDownloadError(Exception):
+    """Stažení aktualizace selhalo (síť, kontrolní součet, neplatný odkaz…)."""
+
+
+class UpdateDownloadCancelledError(UpdateDownloadError):
+    """Uživatel stahování zrušil."""
 
 
 def fetch_changelog(timeout: float = 6.0) -> str:
@@ -127,11 +162,12 @@ def _safe_release_url(url: object) -> str:
     return RELEASES_PAGE
 
 
-def parse_latest_release(data: object) -> tuple[str, str]:
-    """Z JSON odpovědi ``releases/latest`` vytáhne ``(verze, odkaz ke stažení)``.
+def parse_latest_release(data: object) -> ReleaseInfo:
+    """Z JSON odpovědi ``releases/latest`` vytáhne :class:`ReleaseInfo`.
 
-    Preferuje ``.dmg`` asset (``*-macos-arm64.dmg``), jinak stránku Release.
-    Neplatná odpověď → ``ValueError`` (volající ji tiše spolkne).
+    Preferuje ``.dmg`` asset (``*-macos-arm64.dmg``) vč. jeho SHA-256 digestu
+    a velikosti, jinak stránku Release. Digest se použije jen k validnímu
+    odkazu na asset tohoto repa. Neplatná odpověď → ``ValueError``.
     """
     if not isinstance(data, dict):
         raise ValueError("Neočekávaná odpověď GitHub API.")
@@ -139,16 +175,23 @@ def parse_latest_release(data: object) -> tuple[str, str]:
     if not isinstance(tag, str) or parse_version(tag) == (0,):
         raise ValueError(f"Release bez platného tagu: {tag!r}")
     version = tag[1:] if tag[:1] in ("v", "V") else tag
-    url = ""
+    url, sha, size = "", "", 0
     for asset in data.get("assets") or []:
         if isinstance(asset, dict) and str(asset.get("name", "")).endswith(DMG_SUFFIX):
             url = asset.get("browser_download_url", "")
+            m = _DIGEST_RE.match(str(asset.get("digest") or ""))
+            sha = m.group(1).lower() if m else ""
+            raw_size = asset.get("size")
+            size = raw_size if isinstance(raw_size, int) and raw_size > 0 else 0
             break
-    return version, _safe_release_url(url or data.get("html_url"))
+    safe = _safe_release_url(url or data.get("html_url"))
+    if safe != url or not safe.startswith(RELEASES_DOWNLOAD_PREFIX):
+        sha, size = "", 0       # digest platí jen pro validní odkaz na asset
+    return ReleaseInfo(version=version, url=safe, sha256=sha, size=size)
 
 
-def fetch_latest_release(timeout: float = 6.0) -> tuple[str, str]:
-    """Stáhne poslední vydaný GitHub Release → ``(verze, odkaz ke stažení)``."""
+def fetch_latest_release(timeout: float = 6.0) -> ReleaseInfo:
+    """Stáhne informace o posledním vydaném GitHub Release."""
     import json
     import urllib.request
 
@@ -164,7 +207,7 @@ def fetch_latest_release(timeout: float = 6.0) -> tuple[str, str]:
 def check_for_frozen_update(
     current_version: str,
     *,
-    release: tuple[str, str] | None = None,
+    release: ReleaseInfo | None = None,
     changelog_text: str | None = None,
 ) -> UpdateInfo | None:
     """Kontrola pro zabalenou aplikaci: nejnovější verze = poslední Release.
@@ -173,7 +216,8 @@ def check_for_frozen_update(
     když se ho nepodaří stáhnout, nabídne se update i tak (bez novinek).
     ``release``/``changelog_text`` lze předat v testech.
     """
-    latest, url = release if release is not None else fetch_latest_release()
+    rel = release if release is not None else fetch_latest_release()
+    latest = rel.version
     cur, top = parse_version(current_version), parse_version(latest)
     if top <= cur:
         return None
@@ -188,8 +232,76 @@ def check_for_frozen_update(
         latest=latest,
         changelog_md="\n\n".join(md for _v, md in newer),
         versions=[v for v, _md in newer] or [latest],
-        download_url=url,
+        download_url=rel.url,
+        download_sha256=rel.sha256,
+        download_size=rel.size,
     )
+
+
+def download_update(
+    url: str,
+    dest: Path,
+    expected_sha256: str,
+    *,
+    progress=None,
+    is_cancelled=None,
+    timeout: float = 30.0,
+    chunk_size: int = 1 << 20,
+) -> Path:
+    """Stáhne instalační .dmg z Releases do ``dest`` a ověří jeho SHA-256.
+
+    Stahuje do ``<dest>.part`` a přejmenuje teprve po úspěšném ověření — po
+    chybě nebo zrušení nezůstane rozpracovaný ani podvržený soubor.
+    ``progress(staženo, celkem)`` se volá po každém bloku (``celkem`` 0 =
+    neznámé), ``is_cancelled()`` → ``True`` stahování přeruší.
+
+    Soubor stažený takto (ne prohlížečem) nemá karanténní atribut, takže ho
+    macOS po přetažení do Aplikací nezablokuje. Bezpečnost místo Gatekeeperu
+    zajišťuje HTTPS + shoda SHA-256 s digestem, který k assetu eviduje GitHub,
+    a stahování výhradně z Releases tohoto repozitáře.
+    """
+    import hashlib
+    import urllib.request
+
+    if not (isinstance(url, str) and url.startswith(RELEASES_DOWNLOAD_PREFIX)):
+        raise UpdateDownloadError("Odkaz nevede na instalační soubor tohoto projektu.")
+    expected = (expected_sha256 or "").strip().lower()
+    if not _HEX64_RE.match(expected):
+        raise UpdateDownloadError("Chybí kontrolní součet — soubor nejde ověřit.")
+
+    dest = Path(dest)
+    part = dest.with_name(dest.name + ".part")
+    digest = hashlib.sha256()
+    done = 0
+    req = urllib.request.Request(url, headers={"User-Agent": "bpdp-manager-update"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp, part.open("wb") as fh:
+            total = int(resp.headers.get("Content-Length") or 0)
+            while True:
+                if is_cancelled is not None and is_cancelled():
+                    raise UpdateDownloadCancelledError("Stahování zrušeno.")
+                block = resp.read(chunk_size)
+                if not block:
+                    break
+                fh.write(block)
+                digest.update(block)
+                done += len(block)
+                if progress is not None:
+                    progress(done, total)
+    except UpdateDownloadError:
+        part.unlink(missing_ok=True)
+        raise
+    except Exception as exc:  # síť, disk… → srozumitelná chyba, žádný zbytek
+        part.unlink(missing_ok=True)
+        raise UpdateDownloadError(f"Stažení selhalo: {exc}") from exc
+
+    if digest.hexdigest() != expected:
+        part.unlink(missing_ok=True)
+        raise UpdateDownloadError(
+            "Kontrolní součet nesedí — stažený soubor byl zahozen. Zkus to znovu."
+        )
+    part.replace(dest)
+    return dest
 
 
 def repo_root() -> Path | None:

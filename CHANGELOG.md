@@ -5,7 +5,25 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
-## [Unreleased]
+## [2.30.1] - 2026-09-27
+
+### Added
+- **Aktualizace se stahuje přímo v aplikaci a ověřuje.** Tlačítko **⬇ Stáhnout
+  a otevřít** se zeptá, kam `.dmg` uložit (předvyplní naposledy zvolenou složku,
+  napoprvé *Stažené*), stáhne ho s ukazatelem průběhu (jde zrušit), **ověří
+  SHA-256 proti digestu z GitHub API** (při neshodě soubor zahodí, nikdy
+  nezůstane rozpracovaný `.part`) a otevře ho ve Finderu. Takto stažená verze
+  nemá karanténu, takže ji **macOS po přetažení do Aplikací neblokuje** (dřív by
+  každá aktualizace stažená prohlížečem narazila na Gatekeeper). Stahuje se
+  výhradně z Releases tohoto repozitáře. Když Release digest neuvádí, záloha
+  přes prohlížeč s návodem.
+
+### Fixed
+- **Návod na první spuštění hotové aplikace byl chybný.** „Pravý klik →
+  Otevřít" od macOS 15 nefunguje — na macOS 27 ověřeno, že dialog nabízí jen
+  *Hotovo / Přesunout do koše*. README, nápověda CZ/EN i poznámky k vydáním
+  teď vedou na **Nastavení systému → Soukromí a zabezpečení → Přesto otevřít**
+  (stačí jednou).
 
 ### Changed
 - **Vývojové prostředí sjednocené na Python 3.11** (stejný jako v CI). README

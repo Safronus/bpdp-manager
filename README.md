@@ -9,7 +9,7 @@ Jednoduchá desktopová aplikace v Pythonu (PySide6) pro správu vedení a zadá
 jednotlivé akademické roky, studenty, stav prací, body zadání, oponenty a zájemce
 o budoucí témata.
 
-**Aktuální verze: 2.30.0** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
+**Aktuální verze: 2.30.1** — viz [CHANGELOG.md](CHANGELOG.md) pro historii.
 
 📖 **[Kompletní nápověda](src/bpdpmanager/resources/napoveda.md)** — popis všech funkcí a jak to funguje. Stejný obsah je dostupný i přímo v aplikaci přes toolbar **❓ Nápověda** (nebo klávesu **F1**). Nápověda je *jediný zdroj pravdy* — udržuje se v souboru [`src/bpdpmanager/resources/napoveda.md`](src/bpdpmanager/resources/napoveda.md), takže in-app okno i tento odkaz vždy ukazují aktuální stav.
 
@@ -22,7 +22,7 @@ o budoucí témata.
 - **🏛 Komise SZZ** — záložka s komisemi státnic po akademických rocích: složení komisí (barva, **obor**, členové) je **předpřipravené z veřejných dat v gitu** (`resources/komise_szz.json`) a načte se samo po startu; **rozpis studentů** (jména + osobní čísla) se přidává lokálním importem PDF a napojí na správnou komisi podle barvy **a oboru** (Mgr fialová je NKYB i NUI). Zvýraznění tvých studentů v rozpisu **barvou jména** (vedení zeleně, oponovaní fialově; jméno klikací na souhrn SZZ) a ⭐ komisí, kde jsi členem. Samostatný panel **Můj harmonogram obhajob** (nahoře nadcházející s odpočtem k nejbližší, pod nimi sekce **📜 Historie** s už odbavenými — Obhájeno/Neobhájeno) s tlačítkem **📆 Přidat do kalendáře** — export nadcházejících obhajob do Apple/Outlook/Google jako `.ics` s připomínkou (Bc 45 min / Mgr 60 min). Spodní sekce **📊 Statistika obhajob** — dvě tabulky vedle sebe: *Obhájeno/Neobhájeno/Bez obhajoby* (kategorie „Nedokončeno" se needviduje — student na státnicích logicky práci dokončil) **podle barvy komise** (počty i **%**, + **sloupcový graf** v záložce *Graf* — kategorie značí **ikona** ✓/✗/○ pod sloupcem, nuly jako patka „0", sloupce dělené na **segmenty po dnech** s datem a plným rozpadem v tooltipu) a **podle členů komise** (řazeno dle příjmení s českou diakritikou); stav všech studentů komisí se zjišťuje ze STAG podle jména (tiše jen v období státnic ~30 min po obhajobě, jinak tlačítkem 🔄 s průběhem kontroly). Tři panely jsou v **posuvných rozhraních** (`QSplitter`) — na velkém monitoru vypadají dle obsahu jako dřív, na úzkém okně se **nepřekrývají** (lze je přetáhnout); spodní statistika je **vždy ve čtyřech záložkách** (*Podle komise / Graf / Podle členů / 🏛 Průběh SZZ*) v plné šířce se scrollbary — na velkém i malém rozlišení. **🏛 Státnice (admin) — průběh SZZ** (toolbar *👤 profil*): pro vedoucího s rolí **ZAPISOVATEL STÁTNIC** ve STAG okno s **vestavěným prohlížečem** (heslo se neukládá, jen cookie session v profilu; **blok sledovačů**) — po přihlášení a zadání **osobního čísla** stáhne kompletní **průběh SZZ** studenta (předměty + zkoušející + otázky, obhajoba, celkový výsledek), vše klíčované os. číslem; **stažené záznamy se ukládají do cache** (`szz_results.json` v profilu) a jdou zobrazit i bez přihlášení (📂 Z cache); **šifrovaný export/import cache** (📤/📥, `*.szzenc`, **PBKDF2 + AES-256-GCM** s heslem — heslo se neukládá); **tichá inkrementální kontrola** komisí (*🔄 Zkontrolovat zbývající* — hotové se přeskočí, *🔁 Zkontrolovat všechny*, ⏹ Stop; první přihlášení tiše zkontroluje všechny, pak jen dnešní aditivně, s progresem; při vypršení session vyzve k re-loginu a plynule pokračuje). Stažená data vykreslí záložka **🏛 Průběh SZZ** ve *Statistice obhajob* (respektuje výběr v stromu): souhrn, **graf „Celkový výsledek studia"** (S vyznamenáním / Prospěl / Neprospěl / Nevyplněno), **per komise / per zkoušející (náročnost) / per předmět** s rozložením známek A–F a číselným průměrem (A=1…F=6; u zkoušejících je **Ø i medián obarvené gradientem náročnosti** — zeleně nejhodnější … červeně nejpřísnější; medián je odolnější vůči počtu zkoušení; sloupec **Zk./den** = zkoušení na den (zohlední počet dní v komisi); **Rozložení A-F po sloupcích** (zarovnané), u jména **pořadí + puntík vlastní komise**, sloupce **Doma/cizí** (ve své vs cizí komisi) a **Komise** (rozpad dle barvy — barevné tečky ●); s přepínačem řazení *počtem · průměrem · mediánem · za den*), graf rozložení po čtyřech **dimenzích** (zkoušky / celkové předměty / obhajoba / celkový výsledek SZZ — proto se počty F mezi sekcemi liší), sekci **❌ Neúspěšní studenti (F)** (kdo a v čem neuspěl, rozděleno po dimenzích, s **klikacími jmény** na souhrn SZZ a jmény i v tooltipu F segmentu). Otázky/průběh se v agregaci nezobrazují (jsou nenormované) — najdeš je jen v **Souhrnu SZZ studenta** (❓ u předmětů i obhajoby)
 - **Přepínání jazyka CZ / EN** — tlačítko 🌐 v toolbaru (volba v profilu, projeví se po restartu); čeština výchozí, v EN je přeložené celé UI i kompletní nápověda
 - **Hotová aplikace pro macOS (Apple Silicon)** — `.dmg` z GitHub Releases, bez nutnosti Pythonu; vzniká **automaticky v GitHub Actions** (lint, testy, build, smoke test zabalené appky) a při změně verze se sám vydá nový Release
-- **Automatická kontrola aktualizací** — tichá kontrola nové verze proti GitHubu po startu; dialog ukáže changelog všech verzí mezi nainstalovanou a nejnovější. V **hotové aplikaci** nabídne stažení nového `.dmg` (verze z posledního *vydaného* Release), při běhu **z git klonu** provede `git pull` + `pip install -e .` a restart (lze vypnout, lokální změny v klonu se nikdy nepřepisují)
+- **Automatická kontrola aktualizací** — tichá kontrola nové verze proti GitHubu po startu; dialog ukáže changelog všech verzí mezi nainstalovanou a nejnovější. V **hotové aplikaci** si nové `.dmg` (verze z posledního *vydaného* Release) **stáhne sama** do zvolené složky, **ověří SHA-256** a otevře ho — bez blokace Gatekeeperem; při běhu **z git klonu** provede `git pull` + `pip install -e .` a restart (lze vypnout, lokální změny v klonu se nikdy nepřepisují)
 - **Evidence prací** strukturovaná podle akademického roku, typu (BP/DP) a stavu
 - **7 stavů toku**: *Zájemce bez tématu → Zájemce s tématem → Vypsané téma → V řešení → Obhájeno / Neobhájeno / Nedokončeno*, s validací přechodů. *Neobhájeno* (neúspěšná obhajoba, STAG *DBUO/OPUNO*) je odlišeno od *Nedokončeno* (práce nikdy nedotažená k obhajobě, STAG *ND*) i od *Odevzdáno bez obhajoby* (hnědá; odevzdaná, ale ukončená bez pokusu o obhajobu, STAG *OPUBPOO*) — rozliší se automaticky při importu/aktualizaci ze STAG (i tiché kontrole). *Schválené téma* bylo v 0.15.0 sloučeno do *V řešení*. *Druhý pokus obhajoby* je podporovaný — z *Nedokončeno* i *Neobhájeno* se práce dá vrátit do *V řešení* nebo (oprava omylu) přímo do *Obhájeno*.
 - **Studenti**: jméno, obor (forma studia se odvozuje z přípony `-P` / `-K`), osobní číslo UTB (např. A24390), email, telefon, poznámka. Správa studentů: strom *BP/DP → obor → studenti*, řazeno dle příjmení, barevné odlišení aktuálních/budoucích/dokončených, **real-time filtr podle příjmení** (necitlivý na diakritiku) a filtr „Skrýt historické" (obhájené i nedokončené).
@@ -68,11 +68,16 @@ o budoucí témata.
 1. Stáhni `BPDPManager-<verze>-macos-arm64.dmg` z
    **[posledního vydání](https://github.com/Safronus/bpdp-manager/releases/latest)**.
 2. Otevři `.dmg` a přetáhni **BPDPManager** do složky **Aplikace**.
-3. Při **prvním** spuštění: **pravý klik → Otevřít** (aplikace je podepsaná *ad-hoc*,
-   bez placeného Apple Developer účtu, takže ji Gatekeeper napoprvé nezná).
+3. Při **prvním** spuštění macOS aplikaci zablokuje („nelze otevřít" — je podepsaná jen
+   *ad-hoc*, bez placeného Apple Developer účtu). Otevři **Nastavení systému →
+   Soukromí a zabezpečení**, dole u BPDPManageru klikni na **Přesto otevřít** a potvrď.
+   Stačí to **jednou**. *(Starší rada „pravý klik → Otevřít" od macOS 15 nefunguje —
+   ověřeno na macOS 27.)*
 
-Python ani nic dalšího není potřeba. Novou verzi aplikace nabídne **sama po startu**
-(tlačítko *⬇ Stáhnout novou verzi*); data jsou uložená mimo aplikaci, výměnou se nezmění.
+Python ani nic dalšího není potřeba. Novou verzi aplikace nabídne **sama po startu**:
+tlačítkem *⬇ Stáhnout a otevřít* si zvolíš, kam `.dmg` uložit, aplikace ho stáhne,
+**ověří kontrolní součet (SHA-256)** a otevře — jen přetáhneš BPDPManager do Aplikací.
+Takto stažené verze už macOS neblokuje; data jsou uložená mimo aplikaci, výměnou se nezmění.
 
 > **Jak vznikají vydání:** každý push do `main` projde v **GitHub Actions** lintem,
 > testy a buildem (včetně smoke testu zabalené aplikace). Když se změní verze
@@ -342,9 +347,11 @@ Ověří přibalené resources (nápověda, komise, slovník, šablony, certifik
 závislostí, načtení komisí, pravopis, sestavení hlavního okna a v zabalené appce i
 **skutečný start QtWebEngine** (vestavěný prohlížeč SZZ admin). Návratový kód 0 = OK.
 
-> **Podpis:** aplikace je podepsaná *ad-hoc* (bez placeného Apple Developer účtu). Na
-> Macu, kde byla sestavena, běží normálně; na jiném Macu je při prvním spuštění potřeba
-> **pravý klik → Otevřít** (Gatekeeper).
+> **Podpis:** aplikace je podepsaná *ad-hoc* (bez placeného Apple Developer účtu). Lokálně
+> sestavená běží normálně; stažená **prohlížečem** dostane karanténu a macOS ji napoprvé
+> zablokuje → *Nastavení systému → Soukromí a zabezpečení → Přesto otevřít* (viz Instalace).
+> Aktualizace stahuje aplikace sama (`update_checker.download_update`, ověření SHA-256
+> proti digestu z GitHub API) — bez karantény, takže se neblokují.
 
 ## Ikona
 

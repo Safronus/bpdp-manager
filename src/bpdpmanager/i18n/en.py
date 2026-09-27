@@ -1104,9 +1104,27 @@ EN: dict[str, str] = {
         "Could not load the list of changes — see the release page.",
     "⬇ Stahuje se instalační soubor .dmg. Až se stáhne: zavři aplikaci, "
     "otevři .dmg a přetáhni BPDPManager do složky Aplikace (nahradit). "
-    "Tvoje data zůstanou beze změny.":
+    "Když macOS hlásí, že aplikaci nelze otevřít: Nastavení systému → "
+    "Soukromí a zabezpečení → Přesto otevřít. Tvoje data zůstanou beze změny.":
         "⬇ The .dmg installer is downloading. When it finishes: quit the app, "
         "open the .dmg and drag BPDPManager into Applications (replace). "
+        "If macOS says the app cannot be opened: System Settings → "
+        "Privacy & Security → Open Anyway. Your data stays untouched.",
+    # Stažení aktualizace přímo v aplikaci (ověření SHA-256)
+    "⬇ Stáhnout a otevřít": "⬇ Download and open",
+    "Kam uložit instalační soubor": "Where to save the installer",
+    "Obraz disku (*.dmg)": "Disk image (*.dmg)",
+    "Zrušit stahování": "Cancel download",
+    "⏳ Ruším stahování…": "⏳ Cancelling download…",
+    # „Stahování zrušeno." už je výše (stejný překlad) — nezdvojovat klíč.
+    "⬇ Stahuji instalační soubor…": "⬇ Downloading the installer…",
+    "⬇ Stahuji instalační soubor… {d} / {t} MB":
+        "⬇ Downloading the installer… {d} / {t} MB",
+    "✅ Staženo a ověřeno (SHA-256). Otevírám instalační soubor — zavři "
+    "BPDPManager a přetáhni ho z okna .dmg do složky Aplikace (nahradit). "
+    "Tvoje data zůstanou beze změny.":
+        "✅ Downloaded and verified (SHA-256). Opening the installer — quit "
+        "BPDPManager and drag it from the .dmg window into Applications (replace). "
         "Your data stays untouched.",
     '🔍 Hledat:': '🔍 Search:',
     '🔍 Kontrola konzistence se STAG': '🔍 STAG consistency check',
