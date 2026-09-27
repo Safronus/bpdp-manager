@@ -176,6 +176,11 @@ zůstává; zpřísnit dohledání.
   + hlídač v `build_macos.sh` (find non-ASCII → exit 1) + test ve zdrojích.
 - Ověřeno: lokální build → kopie Finderem → `codesign --verify` OK + self-test OK.
 - Uživatel počká na 2.31.3 a aktualizuje v aplikaci (ověří opravu v reálném postupu).
+- 1. CI běh 2.31.3 (36343714548) padl na hlídači: `find … | head -5` + `pipefail`
+  → „find: stdout: Undefined error: 0" (příčina v CI nevysvětlena, lokálně 0 nálezů
+  ve všech locale). Nahrazeno kontrolou v Pythonu (`ec46dd3`) — v CI „✅ jen ASCII".
+- ✅ **Vydáno v2.31.3** (CI 36343947794; 839 testů, ruff 333). Ověřeno: stažený .dmg
+  (SHA-256 = digest) → kopie Finderem → `codesign --verify` OK.
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).
