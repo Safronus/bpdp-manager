@@ -5,6 +5,19 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [Unreleased]
+
+### Changed
+- **Vývojové prostředí sjednocené na Python 3.11** (stejný jako v CI). README
+  radilo vytvořit venv přes `python3.12` — spuštěno nad existujícím 3.11 venvem to
+  vyrobilo **smíchané prostředí** (`python` 3.11, `pip` 3.12, dvě vrstvy
+  balíčků). Návod teď vede na 3.11, všude používá `python -m pip` a varuje, že
+  `python -m venv` se nesmí pouštět přes existující venv; přidána kontrola
+  `python`/`pip`/`lib`.
+- **Verze ruff zafixovaná v `pyproject.toml`** (`ruff==0.16.9`, dev) — jediný
+  zdroj pravdy pro lokální lint i CI (workflow už verzi nepinuje zvlášť).
+  Počet chyb beze změny (335).
+
 ## [2.30.0] - 2026-09-27
 
 ### Added

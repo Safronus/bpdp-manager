@@ -84,9 +84,9 @@ Python ani nic dalšího není potřeba. Novou verzi aplikace nabídne **sama po
 ```bash
 git clone https://github.com/safronus/bpdp-manager.git
 cd bpdp-manager
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e .
+python -m pip install -e .
 ```
 
 > **zsh tip:** pokud chceš nainstalovat i dev závislosti, napiš `pip install -e ".[dev]"` v uvozovkách — zsh by jinak `[dev]` interpretoval jako glob a hlásil `no matches found`.
@@ -95,7 +95,7 @@ Ze zdrojů je doporučený postup **venv + pip z klonu** — jako jediný ze zdr
 
 #### Jak získat Python 3.11+ bez Homebrew
 
-Aplikace potřebuje **Python 3.11 nebo novější**. Homebrew k tomu vůbec není potřeba — vyber si jednu cestu podle systému. Ověření na konci: `python3 --version` (na Windows `py --version`) musí ukázat **3.11+**.
+Aplikace potřebuje **Python 3.11 nebo novější**; **doporučená verze je 3.11** — na ní běží testy i build v CI (hotová `.app` Python nepotřebuje vůbec). Homebrew k tomu vůbec není potřeba — vyber si jednu cestu podle systému. Ověření na konci: `python3 --version` (na Windows `py --version`) musí ukázat **3.11+**.
 
 **macOS**
 
@@ -103,12 +103,12 @@ Aplikace potřebuje **Python 3.11 nebo novější**. Homebrew k tomu vůbec nen�
 - **uv** — jediný binárek (od Astral), umí rovnou stáhnout i Python:
   ```bash
   curl -LsSf https://astral.sh/uv/install.sh | sh
-  uv python install 3.12
+  uv python install 3.11
   ```
 - **pyenv** (správa více verzí Pythonu, bez brew):
   ```bash
   curl -fsSL https://pyenv.run | bash      # poté přidej pyenv do shellu dle výpisu
-  pyenv install 3.12 && pyenv global 3.12
+  pyenv install 3.11 && pyenv global 3.11
   ```
 - ⚠️ Systémový `python3` z *Xcode Command Line Tools* bývá starší/omezený — radši použij některou z cest výše.
 
@@ -117,9 +117,9 @@ Aplikace potřebuje **Python 3.11 nebo novější**. Homebrew k tomu vůbec nen�
 - **Oficiální instalátor** z [python.org/downloads/windows](https://www.python.org/downloads/windows/) — při instalaci zaškrtni **„Add python.exe to PATH"**.
 - **winget** (zabudovaný ve Windows 10/11):
   ```powershell
-  winget install Python.Python.3.12
+  winget install Python.Python.3.11
   ```
-- **Microsoft Store** — vyhledej „Python 3.12" a nainstaluj.
+- **Microsoft Store** — vyhledej „Python 3.11" a nainstaluj.
 
 **Linux**
 
@@ -191,21 +191,26 @@ zařízení má svůj vlastní venv lokálně.
 # 1) Mimo iCloud připrav složku pro venvy
 mkdir -p ~/.venvs
 
-# 2) Postav venv mimo projekt (libovolný Python 3.11+ — viz „Jak získat Python")
-python3.12 -m venv ~/.venvs/bpdp-manager                       # python.org / pyenv / distro
-# macOS s Homebrew:  /opt/homebrew/bin/python3.12 -m venv ~/.venvs/bpdp-manager
-# uv:                uv venv ~/.venvs/bpdp-manager --python 3.12
+# 2) Postav venv mimo projekt — Python 3.11 (stejný jako v CI, viz „Jak získat Python")
+python3.11 -m venv ~/.venvs/bpdp-manager                       # python.org / pyenv / distro
+# macOS s MacPorts:  /opt/local/bin/python3.11 -m venv ~/.venvs/bpdp-manager
+# uv:                uv venv ~/.venvs/bpdp-manager --python 3.11
 
 # 3) V projektu vytvoř symlink na ten venv (pokud .venv existuje, nejdřív ho smaž)
 cd <cesta-k-projektu>
 rm -rf .venv
 ln -s ~/.venvs/bpdp-manager .venv
 
-# 4) Aktivuj a nainstaluj jako obvykle — všechno funguje, jen reálné soubory leží mimo iCloud
-source .venv/bin/activate
-pip install -e ".[dev]"
-python -m bpdpmanager
+# 4) Nainstaluj přes „python -m pip" (vždy pip téhož Pythonu) — soubory leží mimo iCloud
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m bpdpmanager
 ```
+
+> ⚠️ **Nikdy nespouštěj `python -m venv` nad už existujícím venvem s jiným Pythonem.**
+> Nepřepíše ho, ale **smíchá** — vznikne venv, kde `python` je jedna verze a `pip`
+> druhá (balíčky se pak instalují jinam, než odkud aplikace běží). Chceš-li změnit
+> verzi Pythonu, starý venv nejdřív přesuň/smaž (`mv ~/.venvs/bpdp-manager
+> ~/.venvs/bpdp-manager.bak`) a vytvoř nový podle kroků 2–4.
 
 ### Použití z druhého zařízení
 
@@ -214,18 +219,18 @@ symlink `.venv` je už nasynchronizovaný, jen na něj připrav cíl:
 
 ```bash
 mkdir -p ~/.venvs
-python3.12 -m venv ~/.venvs/bpdp-manager      # nebo /opt/homebrew/bin/python3.12 (Homebrew)
+python3.11 -m venv ~/.venvs/bpdp-manager      # nebo /opt/local/bin/python3.11 (MacPorts)
 cd <cesta-k-projektu>
-source .venv/bin/activate
-pip install -e ".[dev]"
+.venv/bin/python -m pip install -e ".[dev]"
 ```
 
 Ověření, že to sedí:
 
 ```bash
-ls -la .venv          # → /Users/<ty>/.venvs/bpdp-manager
-readlink .venv        # → /Users/<ty>/.venvs/bpdp-manager
-which python          # → cesta přes .venv/bin/python (přes symlink)
+readlink .venv                   # → /Users/<ty>/.venvs/bpdp-manager
+.venv/bin/python --version       # → Python 3.11.x
+.venv/bin/python -m pip --version  # → … (python 3.11) — musí být STEJNÁ verze
+ls ~/.venvs/bpdp-manager/lib     # → jen python3.11 (víc složek = smíchaný venv)
 ```
 
 ### Volitelně: ochrana .git/
@@ -299,8 +304,8 @@ Cestu lze přepsat env proměnnou `BPDPMANAGER_DATA_DIR` (např. pro testování
 ## Vývoj
 
 ```bash
-pip install -e .[dev]
-pytest
+python -m pip install -e ".[dev]"   # ruff je zafixovaný (stejná verze jako CI)
+python -m pytest
 ruff check src tests
 ```
 

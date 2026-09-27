@@ -44,11 +44,10 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
 
 ### Důležité technické poznámky
 - **Testy ověřovat podle exit kódu, ne jen podle „N passed"** (`tail` ho skryje).
-- `.venv` je symlink na `~/.venvs/bpdp-manager` a má namíchané Pythony
-  (`.venv/bin/python` = 3.11, `.venv/bin/pip` = 3.12!). Instalovat vždy přes
-  `.venv/bin/python -m pip`. Build skript volá Python přes rozřešenou cestu
-  (`pwd -P`), jinak PyInstaller vyrobí neúplný `QtWebEngineCore.framework`
-  a `codesign` selže („bundle format unrecognized").
+- `.venv` je symlink na `~/.venvs/bpdp-manager` (Python 3.11.7, srovnáno — viz
+  sekce Venv). Instalovat vždy přes `.venv/bin/python -m pip`. Build skript volá
+  Python přes rozřešenou cestu (`pwd -P`), jinak PyInstaller vyrobí neúplný
+  `QtWebEngineCore.framework` a `codesign` selže („bundle format unrecognized").
 - Velikost: `.app` ~531 MB / `.dmg` ~235 MB — z toho ~285 MB je Chromium
   (QtWebEngine, nutný pro prohlížeč SZZ admin). Nepoužívané Qt moduly jen ~40 MB → neořezáváme.
 - Pillow je v `excludes` záměrně NE — `xlsx_image_in_cell` ho volitelně používá.
@@ -65,8 +64,25 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
 Úkol „spustitelná a udržovaná verze" je hotový. Každý push do `main` = automatický
 build + testy; bump verze = automatický Release s `.dmg`.
 
+### Venv (srovnáno 2026-09-27)
+- ✅ Nový čistý venv `~/.venvs/bpdp-manager` z **MacPorts Python 3.11.7**
+  (`/opt/local/bin/python3.11`; stejná minor verze jako CI, ne-conda → PyInstaller
+  bez varování). `python`, `pip`, `lib/` = jen 3.11. Ověřeno: pytest exit 0
+  (753), ruff 335, `--self-test`, lokální build + self-test `.app` vč. WebEngine.
+- Příčina směsi: README radilo `python3.12 -m venv` nad existující venv → opraveno.
+- Starý venv (záloha 1,3 GB) smazán po ověření, že na něm nic jiného nezávisí;
+  odstraněn i iCloud duplikát symlinku `.venv 2`. Ze starého chybí jen ručně
+  doinstalovaný profiler `py-spy` (projekt ho nepotřebuje).
+- ruff zafixován v `pyproject.toml` (0.16.9) jako jediný zdroj pro lokál i CI.
+
+### Naplánováno
+- **Upgrade Pythonu před 10/2027** (konec podpory 3.11). Doporučeno **3.13**
+  (podpora do 10/2029). K 2026-09-27 ověřeno: všechny binární závislosti
+  (PySide6, shiboken6, pydantic-core, cryptography, cffi, pyinstaller, pillow)
+  mají kola pro 3.12–3.14 na macOS arm64. Postup: nový venv + `python-version`
+  v CI + ověřit testy/build/self-test + nová verze. Uživatel zatím zvolil zůstat na 3.11.
+
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
-- Srovnat namíchaný venv (`.venv/bin/pip` → Python 3.12, `python` → 3.11).
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).
 - Pillow je runtime-volitelný, ale jen v `dev` závislostech (bez něj se nespočítá
   velikost loga v posudku) — zvážit přesun do hlavních závislostí.

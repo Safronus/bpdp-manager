@@ -25,7 +25,7 @@ akademického vedoucího. Komunikace v češtině, kód a identifikátory v angl
 ## Spouštění
 
 ```bash
-pip install -e .[dev]
+python -m pip install -e ".[dev]"   # Python 3.11 (= CI); pip vždy přes python -m
 python -m bpdpmanager           # spustí aplikaci
 python -m bpdpmanager --load-demo  # nahraje fiktivní demo data
 pytest                          # spustí testy
