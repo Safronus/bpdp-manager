@@ -1,15 +1,20 @@
 """Tichá kontrola aktualizací po startu + dialog „Je k dispozici nová verze".
 
 Kontrola běží na vlákně (neblokuje start); offline/chyba = ticho. Dialog ukáže
-novou verzi a changelog všech verzí mezi nainstalovanou a nejnovější; po
-potvrzení provede ``git pull`` + ``pip install -e .`` a restartuje aplikaci.
+novou verzi a changelog všech verzí mezi nainstalovanou a nejnovější. Po
+potvrzení:
+
+* z git klonu — ``git pull`` + ``pip install -e .`` a restart aplikace,
+* v zabalené aplikaci (.app) — otevře stažení nového ``.dmg`` z GitHub
+  Releases a vysvětlí, jak aplikaci vyměnit.
 """
 
 from __future__ import annotations
 
 import threading
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QObject, Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -43,8 +48,11 @@ class UpdateChecker(QObject):
     def _work(self) -> None:
         info = None
         try:
-            if uc.repo_root() is not None:      # mimo git klon nelze updatovat
+            if uc.is_frozen():                  # .app → poslední GitHub Release
+                info = uc.check_for_frozen_update(self._current)
+            elif uc.repo_root() is not None:    # git klon → CHANGELOG na main
                 info = uc.check_for_update(self._current)
+            # jinak (pip bez klonu) aktualizovat neumíme → ticho
         except Exception:
             info = None
         self.finished.emit(info)
@@ -96,7 +104,10 @@ class UpdateDialog(QDialog):
         lay.addWidget(sub)
         self.changelog = QTextBrowser()
         self.changelog.setOpenExternalLinks(True)
-        self.changelog.setMarkdown(info.changelog_md)
+        self.changelog.setMarkdown(
+            info.changelog_md
+            or tr("Seznam novinek se nepodařilo načíst — najdeš ho na stránce vydání.")
+        )
         lay.addWidget(self.changelog, stretch=1)
 
         self.status = QLabel("")
@@ -108,7 +119,12 @@ class UpdateDialog(QDialog):
         lay.addWidget(self.cb_check)
 
         btns = QHBoxLayout()
-        self.btn_update = QPushButton(tr("🔄 Aktualizovat a restartovat"))
+        # Zabalená aplikace se nemůže sama přepsat — nabídne stažení .dmg.
+        self._download_mode = bool(info.download_url)
+        self.btn_update = QPushButton(
+            tr("⬇ Stáhnout novou verzi") if self._download_mode
+            else tr("🔄 Aktualizovat a restartovat")
+        )
         self.btn_update.setDefault(True)
         self.btn_update.clicked.connect(self._on_update)
         self.btn_skip = QPushButton(tr("Přeskočit tuto verzi"))
@@ -130,12 +146,26 @@ class UpdateDialog(QDialog):
         self.reject()
 
     def _on_update(self) -> None:
+        if self._download_mode:
+            self._open_download()
+            return
         for b in (self.btn_update, self.btn_skip, self.btn_later):
             b.setEnabled(False)
         self.status.setText(tr("⏳ Stahuji aktualizaci (git pull + závislosti)…"))
         self._worker = _UpdateWorker(parent=self)
         self._worker.done.connect(self._on_update_done)
         self._worker.start()
+
+    def _open_download(self) -> None:
+        """Zabalená appka: otevře stažení .dmg v prohlížeči + návod na výměnu."""
+        QDesktopServices.openUrl(QUrl(self.info.download_url))
+        self.btn_update.setEnabled(False)
+        self.btn_later.setText(tr("Zavřít"))
+        self.status.setText(tr(
+            "⬇ Stahuje se instalační soubor .dmg. Až se stáhne: zavři aplikaci, "
+            "otevři .dmg a přetáhni BPDPManager do složky Aplikace (nahradit). "
+            "Tvoje data zůstanou beze změny."
+        ))
 
     def _on_update_done(self, ok: bool, msg: str) -> None:
         self._worker = None

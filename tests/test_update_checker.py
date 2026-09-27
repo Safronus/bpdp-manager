@@ -140,3 +140,111 @@ def test_update_dialog_unchecking_disables(qapp) -> None:
     dlg.cb_check.setChecked(False)
     dlg.reject()
     assert dlg.check_enabled is False
+
+
+# ── Zabalená aplikace (.app): update z GitHub Releases ─────────────────────
+
+_REL = "https://github.com/Safronus/bpdp-manager/releases/"
+_DMG_URL = _REL + "download/v2.30.0/BPDPManager-2.30.0-macos-arm64.dmg"
+
+
+def test_parse_latest_release_prefers_dmg() -> None:
+    data = {
+        "tag_name": "v2.30.0",
+        "html_url": _REL + "tag/v2.30.0",
+        "assets": [
+            {"name": "poznamky.txt", "browser_download_url": _REL + "download/x.txt"},
+            {"name": "BPDPManager-2.30.0-macos-arm64.dmg",
+             "browser_download_url": _DMG_URL},
+        ],
+    }
+    assert uc.parse_latest_release(data) == ("2.30.0", _DMG_URL)
+
+
+def test_parse_latest_release_fallbacks_and_url_validation() -> None:
+    # bez .dmg assetu → stránka Release
+    no_dmg = {"tag_name": "v2.30.0", "html_url": _REL + "tag/v2.30.0", "assets": []}
+    assert uc.parse_latest_release(no_dmg) == ("2.30.0", _REL + "tag/v2.30.0")
+    # odkaz mimo náš repozitář se NIKDY neotevře → bezpečná záloha
+    evil = {"tag_name": "v2.30.0", "html_url": "https://evil.example/r",
+            "assets": [{"name": "BPDPManager-2.30.0-macos-arm64.dmg",
+                        "browser_download_url": "https://evil.example/x.dmg"}]}
+    assert uc.parse_latest_release(evil) == ("2.30.0", uc.RELEASES_PAGE)
+    # neplatná odpověď → ValueError
+    with pytest.raises(ValueError):
+        uc.parse_latest_release({"tag_name": "latest"})
+    with pytest.raises(ValueError):
+        uc.parse_latest_release(["není", "dict"])
+
+
+def test_check_for_frozen_update_limits_to_release() -> None:
+    # CHANGELOG už má 1.19.0, ale CI ho ještě nevydalo → nesmí se nabídnout.
+    changelog = "## [1.19.0] - 2026-06-12\n\n- Budoucí verze\n\n" + _CHANGELOG
+    info = uc.check_for_frozen_update(
+        "1.17.3", release=("1.18.0", _DMG_URL), changelog_text=changelog)
+    assert info is not None
+    assert info.latest == "1.18.0" and info.download_url == _DMG_URL
+    assert info.versions == ["1.18.0", "1.17.4"]
+    assert "Budoucí verze" not in info.changelog_md
+    # aktuální / novější než release → nic
+    assert uc.check_for_frozen_update(
+        "1.18.0", release=("1.18.0", _DMG_URL), changelog_text=changelog) is None
+    assert uc.check_for_frozen_update(
+        "1.19.0", release=("1.18.0", _DMG_URL), changelog_text=changelog) is None
+
+
+def test_check_for_frozen_update_offline_changelog(monkeypatch) -> None:
+    def boom():
+        raise OSError("offline")
+
+    monkeypatch.setattr(uc, "fetch_changelog", boom)
+    info = uc.check_for_frozen_update("1.0.0", release=("1.1.0", _DMG_URL))
+    assert info is not None and info.changelog_md == "" and info.versions == ["1.1.0"]
+
+
+def test_update_checker_branches(monkeypatch, qapp) -> None:
+    from bpdpmanager.ui.update_dialog import UpdateChecker
+
+    sentinel = uc.UpdateInfo(current="1.0.0", latest="1.1.0", changelog_md="")
+    got: list = []
+
+    # zabalená appka → Release, git se vůbec neřeší
+    monkeypatch.setattr(uc, "is_frozen", lambda: True)
+    monkeypatch.setattr(uc, "check_for_frozen_update", lambda cur: sentinel)
+    monkeypatch.setattr(uc, "repo_root", lambda: pytest.fail("git v .app"))
+    checker = UpdateChecker("1.0.0")
+    checker.finished.connect(got.append)
+    checker._work()
+    assert got == [sentinel]
+
+    # ani .app, ani git klon (pip) → ticho
+    monkeypatch.setattr(uc, "is_frozen", lambda: False)
+    monkeypatch.setattr(uc, "repo_root", lambda: None)
+    got.clear()
+    checker._work()
+    assert got == [None]
+
+
+def test_update_dialog_download_mode(monkeypatch, qapp) -> None:
+    import bpdpmanager.ui.update_dialog as ud
+
+    opened: list[str] = []
+
+    class _FakeDesktop:
+        @staticmethod
+        def openUrl(url) -> bool:  # noqa: N802 (Qt API)
+            opened.append(url.toString())
+            return True
+
+    monkeypatch.setattr(ud, "QDesktopServices", _FakeDesktop)
+    monkeypatch.setattr(uc, "perform_update",
+                        lambda root: pytest.fail("v .app se nesmí dělat git pull"))
+    info = uc.UpdateInfo(current="2.29.5", latest="2.30.0", changelog_md="",
+                         download_url=_DMG_URL)
+    dlg = ud.UpdateDialog(info, check_enabled=True)
+    assert dlg.btn_update.text().startswith("⬇")
+    assert "stránce vydání" in dlg.changelog.toPlainText()   # prázdný changelog
+    dlg.btn_update.click()
+    assert opened == [_DMG_URL]
+    assert not dlg.btn_update.isEnabled()
+    assert ".dmg" in dlg.status.text() and "Aplikace" in dlg.status.text()

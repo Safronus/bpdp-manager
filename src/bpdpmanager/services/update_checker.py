@@ -4,9 +4,16 @@ Zdroj pravdy je ``CHANGELOG.md`` v ``main`` větvi na GitHubu (Keep a Changelog
 formát — sekce ``## [X.Y.Z] - datum``). Z něj se vyčte nejnovější verze i
 changelog všech verzí mezi nainstalovanou a nejnovější.
 
-Update = ``git pull --ff-only`` v kořeni klonu + ``pip install -e .`` (kvůli
-novým závislostem) + restart aplikace. Funguje jen když aplikace běží z git
-klonu (jiná instalace nemá jak updatovat — kontrola se pak neprovádí).
+Dva režimy:
+
+* **Git klon** — update = ``git pull --ff-only`` v kořeni klonu + ``pip install
+  -e .`` (kvůli novým závislostem) + restart aplikace.
+* **Zabalená aplikace** (PyInstaller ``.app``) — nejnovější verze se bere
+  z posledního *vydaného* GitHub Release (ne z CHANGELOGu: sekce v CHANGELOGu
+  existuje dřív, než CI release dostaví). Update = stažení nového ``.dmg``
+  v prohlížeči; výměnu aplikace dokončí uživatel (přetáhnout do Aplikací).
+
+Jiná instalace (např. pip bez klonu) aktualizovat neumí — kontrola se neprovádí.
 """
 
 from __future__ import annotations
@@ -25,7 +32,23 @@ CHANGELOG_URL = (
     "https://raw.githubusercontent.com/Safronus/bpdp-manager/main/CHANGELOG.md"
 )
 
+#: Poslední vydaný Release (pro zabalenou aplikaci) — veřejné API, bez tokenu
+#: (limit 60 dotazů/h na IP; kontrola běží jednou po startu).
+RELEASES_API = "https://api.github.com/repos/Safronus/bpdp-manager/releases/latest"
+#: Jen odkazy s tímto prefixem se smí otevřít v prohlížeči (obrana proti
+#: podvržené/nečekané odpovědi API).
+RELEASES_URL_PREFIX = "https://github.com/Safronus/bpdp-manager/releases/"
+#: Záloha, když Release nemá .dmg asset nebo URL neprojde validací.
+RELEASES_PAGE = RELEASES_URL_PREFIX + "latest"
+#: Koncovka instalačního souboru, který vyrábí CI (scripts/build_macos.sh).
+DMG_SUFFIX = "-macos-arm64.dmg"
+
 _SECTION_RE = re.compile(r"^## \[(\d+(?:\.\d+)*)\]", re.MULTILINE)
+
+
+def is_frozen() -> bool:
+    """True, když aplikace běží jako zabalená (PyInstaller .app)."""
+    return bool(getattr(sys, "frozen", False))
 
 
 def parse_version(s: str) -> tuple[int, ...]:
@@ -60,6 +83,8 @@ class UpdateInfo:
     latest: str
     changelog_md: str                      # spojené sekce novějších verzí
     versions: list[str] = field(default_factory=list)
+    #: Zabalená aplikace: odkaz ke stažení nového .dmg (prázdné = git režim).
+    download_url: str = ""
 
 
 def fetch_changelog(timeout: float = 6.0) -> str:
@@ -92,6 +117,78 @@ def check_for_update(current_version: str, changelog_text: str | None = None) ->
         latest=newer[0][0],
         changelog_md="\n\n".join(md for _v, md in newer),
         versions=[v for v, _md in newer],
+    )
+
+
+def _safe_release_url(url: object) -> str:
+    """Vrátí ``url`` jen když míří do Releases tohoto repozitáře, jinak zálohu."""
+    if isinstance(url, str) and url.startswith(RELEASES_URL_PREFIX):
+        return url
+    return RELEASES_PAGE
+
+
+def parse_latest_release(data: object) -> tuple[str, str]:
+    """Z JSON odpovědi ``releases/latest`` vytáhne ``(verze, odkaz ke stažení)``.
+
+    Preferuje ``.dmg`` asset (``*-macos-arm64.dmg``), jinak stránku Release.
+    Neplatná odpověď → ``ValueError`` (volající ji tiše spolkne).
+    """
+    if not isinstance(data, dict):
+        raise ValueError("Neočekávaná odpověď GitHub API.")
+    tag = data.get("tag_name")
+    if not isinstance(tag, str) or parse_version(tag) == (0,):
+        raise ValueError(f"Release bez platného tagu: {tag!r}")
+    version = tag[1:] if tag[:1] in ("v", "V") else tag
+    url = ""
+    for asset in data.get("assets") or []:
+        if isinstance(asset, dict) and str(asset.get("name", "")).endswith(DMG_SUFFIX):
+            url = asset.get("browser_download_url", "")
+            break
+    return version, _safe_release_url(url or data.get("html_url"))
+
+
+def fetch_latest_release(timeout: float = 6.0) -> tuple[str, str]:
+    """Stáhne poslední vydaný GitHub Release → ``(verze, odkaz ke stažení)``."""
+    import json
+    import urllib.request
+
+    req = urllib.request.Request(
+        RELEASES_API,
+        headers={"User-Agent": "bpdp-manager-update-check",
+                 "Accept": "application/vnd.github+json"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return parse_latest_release(json.loads(resp.read().decode("utf-8")))
+
+
+def check_for_frozen_update(
+    current_version: str,
+    *,
+    release: tuple[str, str] | None = None,
+    changelog_text: str | None = None,
+) -> UpdateInfo | None:
+    """Kontrola pro zabalenou aplikaci: nejnovější verze = poslední Release.
+
+    Changelog se dočte z CHANGELOG.md (jen verze ``aktuální < v ≤ release``);
+    když se ho nepodaří stáhnout, nabídne se update i tak (bez novinek).
+    ``release``/``changelog_text`` lze předat v testech.
+    """
+    latest, url = release if release is not None else fetch_latest_release()
+    cur, top = parse_version(current_version), parse_version(latest)
+    if top <= cur:
+        return None
+    try:
+        text = changelog_text if changelog_text is not None else fetch_changelog()
+        sections = parse_changelog_sections(text)
+    except Exception:  # offline apod. — update nabídnout i bez novinek
+        sections = []
+    newer = [(v, md) for v, md in sections if cur < parse_version(v) <= top]
+    return UpdateInfo(
+        current=current_version,
+        latest=latest,
+        changelog_md="\n\n".join(md for _v, md in newer),
+        versions=[v for v, _md in newer] or [latest],
+        download_url=url,
     )
 
 

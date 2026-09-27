@@ -1098,6 +1098,16 @@ EN: dict[str, str] = {
     '📥 Importovat profil ze ZIPu…': '📥 Import profile from ZIP…',
     '🔀 Potvrdit merge': '🔀 Confirm merge',
     '🔄 Aktualizovat a restartovat': '🔄 Update and restart',
+    # Aktualizace zabalené aplikace (.app) — stažení nového .dmg
+    "⬇ Stáhnout novou verzi": "⬇ Download new version",
+    "Seznam novinek se nepodařilo načíst — najdeš ho na stránce vydání.":
+        "Could not load the list of changes — see the release page.",
+    "⬇ Stahuje se instalační soubor .dmg. Až se stáhne: zavři aplikaci, "
+    "otevři .dmg a přetáhni BPDPManager do složky Aplikace (nahradit). "
+    "Tvoje data zůstanou beze změny.":
+        "⬇ The .dmg installer is downloading. When it finishes: quit the app, "
+        "open the .dmg and drag BPDPManager into Applications (replace). "
+        "Your data stays untouched.",
     '🔍 Hledat:': '🔍 Search:',
     '🔍 Kontrola konzistence se STAG': '🔍 STAG consistency check',
     '🔍 Vyhledat ve STAG': '🔍 Search in STAG',

@@ -1250,22 +1250,32 @@ details, all dialogs, tooltips) and this complete help are translated.
 
 ## Application updates
 
-A **silent update check** against GitHub runs after start (reads
-`CHANGELOG.md` from the main branch; offline or on error nothing is shown).
-When a newer version exists, the **Application update** dialog opens:
+A **silent update check** against GitHub runs after start (offline or on error
+nothing is shown). When a newer version exists, the **Application update**
+dialog opens:
 
 - shows the **new version** and the **changelog of all versions between**
   yours and the latest,
-- **🔄 Update and restart** runs `git pull`, installs any new dependencies
-  (`pip install -e .`) and **restarts** the app,
+- the update button depends on how you run the app (see below),
 - **Skip this version** — this version won't be offered again (the next will),
 - **Later** — the dialog appears again on the next start,
 - the **Check for updates on app start** checkbox turns the check off
   entirely (re-enable in `profiles.json` → `ui_prefs.update_check_enabled`).
 
-> **Note:** updating only works when the app runs from a **git clone**
-> (standard `pip install -e .` setup). Local uncommitted changes are never
-> overwritten — the dialog asks you to clean them up instead.
+**App from a `.dmg` (BPDPManager.app)** — the latest version is taken from the
+last **published** package on GitHub Releases (not from the changelog alone, so
+a version whose `.dmg` is still being built is never offered). **⬇ Download new
+version** opens the new `.dmg` download in your browser. Then **quit the app**,
+open the `.dmg` and **drag BPDPManager into Applications** (replace). Your data
+(profiles, database, reviews) is stored outside the app, so it stays untouched.
+
+**App from a git clone** (`pip install -e .`) — reads `CHANGELOG.md` from the
+main branch. **🔄 Update and restart** runs `git pull`, installs any new
+dependencies (`pip install -e .`) and **restarts** the app. Local uncommitted
+changes are never overwritten — the dialog asks you to clean them up instead.
+
+> **Note:** other installs (e.g. `pipx` / pip without a clone) can't update —
+> the check is skipped there.
 
 ---
 

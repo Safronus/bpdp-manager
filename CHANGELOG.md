@@ -18,6 +18,12 @@ verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
   hlavního okna a v zabalené appce i **skutečný start QtWebEngine** (vestavěný
   prohlížeč SZZ admin). Běží nad dočasnými daty, reálných dat se nedotkne.
 - Přepínač **`--version`**.
+- **Aktualizace i v zabalené aplikaci (.app).** Tichá kontrola po startu bere
+  nejnovější verzi z posledního **vydaného** GitHub Release (ne z CHANGELOGu —
+  ten předbíhá sestavení `.dmg`). Dialog místo `git pull` nabídne **⬇ Stáhnout
+  novou verzi** (otevře `.dmg` v prohlížeči) a vysvětlí výměnu aplikace; data
+  zůstanou beze změny. Odkaz z GitHub API se otevře jen když míří do Releases
+  tohoto repozitáře. Běh z git klonu funguje jako dřív.
 
 ### Fixed
 - **Restart aplikace (změna jazyka, aktualizace) v zabalené appce.** Spouštěl

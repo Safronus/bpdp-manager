@@ -26,9 +26,14 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
   `--version`, oprava restartu ve zmražené appce. Ověřeno: build, podpis, self-test
   zabalené appky (vč. skutečného startu QtWebEngine), ostré spuštění (Cocoa okno),
   DMG (checksum, obsah, podpis). 744 testů zelených, ruff baseline 335.
+- ✅ **Fáze 3 — aktualizace v zabalené appce** (pořadí prohozeno s Fází 2: první
+  vydaná `.app` musí umět updaty, jinak by se uživatel o dalších verzích nedozvěděl).
+  `check_for_frozen_update` (verze z posledního vydaného Release, changelog jen
+  ≤ release), dialog „⬇ Stáhnout novou verzi", validace URL z API, nápověda CZ/EN.
+  Ověřeno i proti živému GitHub API.
 - ⏳ **Fáze 2 — GitHub Actions** (`.github/workflows/build.yml`): testy + ruff ratchet
-  (≤ 335) + build + artefakt; release při novém tagu. Poprvé vydá **2.30.0**.
-- ⏳ **Fáze 3 — aktualizace v zabalené appce** + nápověda CZ/EN, README (instalace z `.dmg`).
+  (≤ 335) + build + artefakt; release při novém tagu. Poprvé vydá **2.30.0**;
+  v témže commitu README „instalace z .dmg" + nápověda „Spuštění".
 
 ### Důležité technické poznámky
 - `.venv` je symlink na `~/.venvs/bpdp-manager` a má namíchané Pythony
@@ -44,4 +49,5 @@ sestaví a vydá, a umí uživateli nabídnout aktualizaci.
 - Nesouvisející netrackovaný soubor `zaloha_videa.mp4` v kořeni — necommitovat.
 
 ### Další krok
-Commit + push Fáze 1, pak Fáze 2 (workflow + ruff ratchet + release 2.30.0).
+Fáze 2: workflow + ruff ratchet + bump na 2.30.0 (README ř. 12 „Aktuální verze",
+CHANGELOG `[Unreleased]` → `[2.30.0]`) → push spustí první automatický release.
