@@ -164,6 +164,18 @@ zůstává; zpřísnit dohledání.
 - Testy `tests/test_stag_pairing_new.py` (vč. celého toku subset → spárování →
   V řešení + zadání); bez změn padají (4 / 3). 837 testů.
 - ⚠️ Neověřeno proti živému STAGu (jen podvržená data).
+- ✅ v2.31.2 vydána (CI 36337109973) a **uživatel ji aktualizoval v aplikaci —
+  funguje** (první ostrý E2E test updateru ✅; STAG ✅, GitHub ✅ v self-testu).
+
+## Hotovo: podpis po přetažení Finderem (2.31.3)
+- Zjištěno na nainstalované 2.31.2: `codesign` „sealed resource is missing or
+  invalid". Příčina ověřena pokusem: Finder při kopii převádí názvy s diakritikou
+  NFC → NFD (cp/ditto ne); 8 šablon „… - Vedoucí.xlsx". DMG z Release byl v pořádku.
+- Odsouhlaseno: ASCII názvy (`… - Vedouci.xlsx`; zobrazované názvy beze změny,
+  soubor v profilu se jmenuje dle zobrazovaného názvu → existující profily OK)
+  + hlídač v `build_macos.sh` (find non-ASCII → exit 1) + test ve zdrojích.
+- Ověřeno: lokální build → kopie Finderem → `codesign --verify` OK + self-test OK.
+- Uživatel počká na 2.31.3 a aktualizuje v aplikaci (ověří opravu v reálném postupu).
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).

@@ -4,8 +4,12 @@ Obory (vč. STAG zkratek) jsou v :data:`bpdpmanager.config.DEFAULT_OBORY`.
 Šablony posudků jsou prázdné XLSX formuláře v
 ``resources/default_templates/`` pojmenované konvencí::
 
-    {AppKód} - {BP|DP} - {Vedoucí|Oponent}.xlsx
-    např. „NSWI - DP - Vedoucí.xlsx", „SWI-EN - BP - Oponent.xlsx"
+    {AppKód} - {BP|DP} - {Vedouci|Oponent}.xlsx
+    např. „NSWI - DP - Vedouci.xlsx", „SWI-EN - BP - Oponent.xlsx"
+
+Názvy souborů jsou **jen ASCII** (bez „í"): Finder při přetažení aplikace
+převede diakritiku v názvech na jinou normalizaci Unicode (NFD) a rozbil by
+podpis balíčku. Zobrazovaný název šablony („Vedoucí DP — …") se skládá v kódu.
 
 Z názvu jde deterministicky odvodit typ práce, roli, jazyk i obor —
 viz :func:`parse_default_template_filename`. Šablony jsou **form-neutrální**

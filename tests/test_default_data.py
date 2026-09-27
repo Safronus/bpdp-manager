@@ -79,6 +79,11 @@ def test_parse_template_filename_variants() -> None:
     assert (s.type, s.role, s.language, s.obor) == (ThesisType.BP, "opponent", "en", "SWI")
     assert "(EN)" in s.name
 
+    # dodávané soubory mají ASCII název (…Vedouci.xlsx), zobrazovaný s diakritikou
+    s = parse_default_template_filename(Path("NSWI - DP - Vedouci.xlsx"))
+    assert s is not None and s.role == "supervisor"
+    assert s.name == "Vedoucí DP — NSWI"
+
     # case-insensitive role (zdroj měl i 'vedoucí' malým písmenem)
     s = parse_default_template_filename(Path("SWI-K - BP - vedoucí.xlsx"))
     assert s is not None and s.role == "supervisor"
@@ -294,3 +299,25 @@ def test_derive_form_handles_en_suffix() -> None:
     assert derive_form_from_obor("NKYB-K-EN") == StudyForm.COMBINED
     assert derive_form_from_obor("SWI-P") == StudyForm.PRESENTIAL
     assert derive_form_from_obor("NUI") is None
+
+
+def test_bundled_resource_names_are_ascii() -> None:
+    """Soubory přibalené do .app jen s ASCII názvy — Finder by jinak při
+    přetažení převedl diakritiku (NFC → NFD) a rozbil podpis balíčku."""
+    root = Path(__file__).resolve().parent.parent
+    bad = [
+        str(p.relative_to(root))
+        for base in (root / "src" / "bpdpmanager", root / "examples")
+        for p in base.rglob("*")
+        if any(ord(c) > 127 for c in p.name) and "__pycache__" not in p.parts
+    ]
+    assert bad == []
+
+
+def test_all_default_templates_still_discovered() -> None:
+    from bpdpmanager.services.default_data import list_default_template_specs
+
+    specs = list_default_template_specs()
+    sup = [s for s in specs if s.role == "supervisor"]
+    assert len(sup) == 8 and all(s.name.startswith("Vedoucí ") for s in sup)
+    assert len(specs) == 16

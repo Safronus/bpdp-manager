@@ -5,6 +5,18 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.31.3] - 2026-09-27
+
+### Fixed
+- **Po přetažení aplikace do Aplikací ve Finderu přestal sedět podpis**
+  (`codesign`: „a sealed resource is missing or invalid"). Finder převádí
+  diakritiku v názvech souborů do jiné podoby Unicode (NFD) a osm přibalených
+  šablon „… - Vedoucí.xlsx" tak mělo jiné názvy, než s jakými byl balíček
+  podepsán. Aplikace běžela, ale s karanténou (stažení prohlížečem) by ji
+  macOS mohl odmítnout jako poškozenou. Šablony mají teď ASCII názvy
+  („… - Vedouci.xlsx"; zobrazované názvy v aplikaci se nemění), build selže,
+  kdyby se do balíčku dostal název s diakritikou, a test to hlídá už ve zdrojích.
+
 ## [2.31.2] - 2026-09-27
 
 ### Added

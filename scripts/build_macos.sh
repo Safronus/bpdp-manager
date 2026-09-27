@@ -57,6 +57,14 @@ codesign --force --deep --sign - "$APP"
 
 echo "▶ 3/5 ověření podpisu…"
 codesign --verify --deep --strict "$APP"
+# Názvy souborů v balíčku jen ASCII: Finder při přetažení do Aplikací převede
+# diakritiku na NFD a podpis (počítaný nad NFC) by přestal sedět.
+NON_ASCII="$(cd "$APP" && find . -name '*[! -~]*' | head -5)"
+if [[ -n "$NON_ASCII" ]]; then
+    echo "❌ V balíčku jsou názvy s diakritikou (Finder by rozbil podpis):" >&2
+    echo "$NON_ASCII" >&2
+    exit 1
+fi
 
 echo "▶ 4/5 smoke test zabalené aplikace (dočasná data)…"
 SELFTEST_DATA="$(mktemp -d -t bpdp-selftest)"
