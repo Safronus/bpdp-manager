@@ -5,6 +5,36 @@ Všechny významné změny v projektu jsou zaznamenány v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování dodržuje [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [2.31.0] - 2026-09-27
+
+### Added
+- **➕ Nová práce — jeden dialog místo tří.** Tlačítka *Nová práce*,
+  *🌱 Zájemce* a *🕘 Minulá práce* nahradil jediný dialog: typ BP/DP, **stav**
+  (od *Zájemce bez tématu* po *Obhájeno*; výchozí podle záložky), **akademický
+  rok** s nabídkou podle stavu (budoucí stavy letošní + 2 další, *V řešení*
+  a ukončené letošní a minulé), student, obor, název a anotace. Výchozí rok
+  budoucích stavů je podle měsíce: září až prosinec letošní, jinak příští.
+  Ručně zvolený rok přežije změnu stavu.
+- **Výběr studenta z tabulky s podrobnostmi** (v dialogu nové práce
+  a tlačítkem **…** v detailu práce): hledání bez diakritiky podle jména,
+  osobního čísla, oboru i e-mailu; sloupce *Os. číslo · Obor · Forma · E-mail
+  · Práce*; detail studenta se všemi pracemi; záznamy se stejným jménem jsou
+  zvýrazněné. Tlačítko **⤴ Nový záznam z vybraného (BP → DP)** založí nový
+  záznam téže osoby pro navazující studium (jiné osobní číslo i obor).
+- **Upozornění v dialogu nové práce** (neblokují uložení): student už má
+  neukončenou práci stejného typu; DP se zakládá na záznam, který má BP
+  (pro DP bývá ve STAGu nové osobní číslo).
+
+### Fixed
+- **Zájemce na běžící akademický rok nešlo zařadit.** Detail na záložce
+  budoucích prací nabízel jen příští a přespříští rok — po 1. 9. 2026 tedy
+  chyběl 2026/2027, i když se témata běžícího roku ještě vypisují
+  a schvalují. Nabídka je teď letošní + 2 další.
+- **Při stejném jméně dvou studentů se k práci uložil špatný záznam.** Detail
+  práce dohledával studenta podle textu jména, takže u BP a DP záznamu téže
+  osoby vzal vždy první — i když byl vybraný ten druhý. Teď má přednost
+  skutečně vybraná položka.
+
 ## [2.30.2] - 2026-09-27
 
 ### Fixed

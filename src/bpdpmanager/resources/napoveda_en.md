@@ -163,10 +163,10 @@ suggested grade from old `.doc`** reviews. PDF and `.docx` work without it.
 Students, opponents and supervisors are already in the database (the STAG
 import created them). You can also:
 
-- **add a thesis manually** (toolbar *+ New thesis*) — for cases not in STAG,
-- **🌱 Candidate** — a new future thesis with an optional quick form
-  (student, programme, title, annotation; nothing is required). Default
-  status is *Listed topic*.
+- **add a thesis manually** (toolbar **➕ New thesis**) — one dialog for a
+  candidate, listed topic, thesis in progress or a past thesis; pick the
+  student from a table with student ID and theses (see the section *New
+  thesis and student selection*),
 - click **📝 Write review…** on a thesis *In progress*.
 
 ---
@@ -181,7 +181,9 @@ grey *Profile / Refresh / Help*), a **🔍 search field** below it and then the
 - **Currently supervised theses** — theses *In progress*. The tab title shows
   the **count**.
 - **Theses in the next academic year Y/Y** — *Candidate without/with topic*,
-  *Listed topic*. The count is **coloured by capacity**: under 15 green,
+  *Listed topic*. The tab follows the **status**, not the year: in the detail
+  the year can be **this year + 2 more** — this year too, because topics of the
+  running year are still being listed and approved after 1 September. The count is **coloured by capacity**: under 15 green,
   exactly 15 yellow, over 15 red. Future theses have no grades or reviews, so
   the **S/O**, *Reviews* and *Sent* columns are hidden.
 - **History** — *Defended*, *Failed defense*, *Not completed*. Filters above
@@ -293,6 +295,47 @@ Transitions are validated — the *Transition to status* buttons offer only
 allowed targets, and the panel is shown **only for work-in-progress theses**.
 
 ---
+
+## New thesis and student selection
+
+The toolbar **➕ New thesis** opens **a single dialog** for every case
+(previously separate *New thesis*, *🌱 Candidate* and *🕘 Past thesis*):
+
+- **Type** BP / DP and **Status** — anything from *Candidate without topic* to
+  *Defended* or *Not completed*. Default status by tab: *Current* → *In
+  progress*, *History* → *Defended*, otherwise *Listed topic*.
+- **Academic year** — choices by status: future statuses (candidates, listed
+  topic) **this year + 2 more**, *In progress* and finished **this year and
+  past years**. The default year of future statuses follows the **month**:
+  September to December this year (topics of the running year), January to
+  August next year. *In progress* → this year, finished → last year. A year you
+  change by hand is kept when the status changes (if it is offered).
+- **Student** — **Select…** opens *Select student* (below), **✕** removes the
+  student. **Programme** is prefilled from the student and saved to them.
+- **Title** and **Annotation** — optional; whatever you leave empty stays empty.
+- **Warnings** (orange, never blocking): the student already has an
+  **unfinished thesis of the same type**, or you are creating a **DP on a
+  record that has a BP** — a DP usually has a **new student ID** in STAG, so
+  it is probably the old bachelor record. The link in the warning opens the
+  student selection to pick another record or create a new one.
+
+### Select student
+
+Instead of a long drop-down with names only: a **table** with *Name · Student
+ID · Programme · Form · E-mail · Theses* and a **detail** of the selected
+student on the right (contacts, note, all their theses with titles).
+
+- **Search** without accents by name, student ID, programme and e-mail
+  (several words must all match, e.g. `novak nswi`).
+- Records sharing the **same name** are **bold** (with a warning in the
+  detail) — typically the same person as BP and DP with different student
+  IDs; tell them apart by ID, programme and theses.
+- **+ New student** and **⤴ New record from selected (BP → DP)** — creates a
+  new record of the same person (name, e-mail and phone are copied; enter the
+  new student ID and programme).
+- **No student** selects nobody; double-click a row = *Select*.
+- The selection is also in the **thesis detail**: the **…** button next to
+  the *Student* field (the autocomplete field stays as a quick path).
 
 ## Thesis — detail (tabs)
 

@@ -180,14 +180,10 @@ posudků (převede je na pozadí na text). PDF a `.docx` fungují i bez něj.
 Studenti, oponenti i vedoucí už v databázi jsou (založil je import ze STAG —
 krok 3), takže je **ručně zakládat nemusíš**. Dále můžeš:
 
-- **ručně přidat práci** (toolbar *+ Nová práce*) — pro případy, které ve STAG
-  nejsou,
-- **🌱 Zájemce** — nová budoucí práce s dialogem, kde rovnou (volitelně)
-  vyplníš **studenta, obor, název a anotaci** (nic není povinné — co
-  nevyplníš, zůstane prázdné). Studenta lze rovnou **založit tlačítkem
-  „+ Nový"** (vč. oboru). Obor je **vždy editovatelný**; při výběru studenta se
-  předvyplní jeho oborem a (je-li student zvolen) se k němu uloží. Stav je
-  defaultně *Vypsané téma* (lze změnit na *Zájemce s tématem* / *bez tématu*).
+- **ručně přidat práci** (toolbar **➕ Nová práce**) — jeden dialog pro
+  zájemce, vypsané téma, rozpracovanou i minulou práci; studenta vybereš
+  z tabulky s osobním číslem a pracemi (viz sekce *Nová práce a výběr
+  studenta*),
 - u práce *V řešení* kliknout **📝 Napsat posudek…**.
 
 ---
@@ -203,6 +199,9 @@ zelená *Vytvořit*, modrá *Správa*, fialová *Šablony posudků*, tyrkysová
   **počet** vedených prací.
 - **Práce v dalším akademickém roce R/R** — *Zájemce bez tématu*,
   *Zájemce s tématem*, *Vypsané téma* (v názvu záložky je příští akad. rok).
+  Záložka se řídí **stavem**, ne rokem: rok práce lze v detailu zvolit
+  **letošní + 2 další** — i letošní, protože po 1. 9. se témata běžícího roku
+  ještě vypisují a schvalují.
   V titulku je **počet budoucích prací barevně podle kapacity**: pod 15 zeleně,
   rovných 15 žlutě, nad 15 červeně. Budoucí práce ještě nemají známky ani
   posudky, takže se nezobrazují sloupce **V/O**, *Posudky* ani *Odesláno*.
@@ -355,6 +354,47 @@ zobrazuje **jen u rozpracovaných prací** (aktuálně vedené / budoucí); u
 **historických** (*Obhájeno / Neobhájeno / Nedokončeno*) je skrytý.
 
 ---
+
+## Nová práce a výběr studenta
+
+Toolbar **➕ Nová práce** otevře **jediný dialog** pro všechny případy (dřív
+zvlášť *Nová práce*, *🌱 Zájemce* a *🕘 Minulá práce*):
+
+- **Typ** BP / DP a **Stav** — cokoli od *Zájemce bez tématu* po *Obhájeno*
+  nebo *Nedokončeno*. Výchozí stav podle záložky: *Aktuální* → *V řešení*,
+  *Historie* → *Obhájeno*, jinak *Vypsané téma*.
+- **Akademický rok** — nabídka podle stavu: budoucí stavy (zájemci, vypsané
+  téma) **letošní + 2 další**, *V řešení* a ukončené **letošní a minulé**.
+  Výchozí rok budoucích stavů je **podle měsíce**: září až prosinec letošní
+  (témata běžícího roku), leden až srpen příští. *V řešení* → letošní,
+  ukončené → minulý. Rok, který ručně změníš, zůstane i po změně stavu (je-li
+  v nabídce).
+- **Student** — tlačítko **Vybrat…** otevře *Výběr studenta* (níže), **✕**
+  studenta odebere. **Obor** se předvyplní oborem studenta a uloží se k němu.
+- **Název** a **Anotace** — nepovinné, co nevyplníš, zůstane prázdné.
+- **Upozornění** (oranžově, uložení neblokují): student už má **neukončenou
+  práci stejného typu**, nebo zakládáš **DP na záznam, který má BP** — pro DP
+  bývá ve STAGu **nové osobní číslo**, takže jde nejspíš o starý bakalářský
+  záznam. Odkaz v upozornění otevře výběr studenta, kde zvolíš jiný záznam
+  nebo založíš nový.
+
+### Výběr studenta
+
+Místo dlouhého rozbalovacího seznamu jen se jmény: **tabulka** se sloupci
+*Jméno · Os. číslo · Obor · Forma · E-mail · Práce* a vpravo **detail**
+vybraného studenta (kontakty, poznámka, všechny jeho práce s názvy).
+
+- **Hledání** bez diakritiky podle jména, osobního čísla, oboru i e-mailu
+  (víc slov = musí sedět všechna, např. `novak nswi`).
+- Záznamy se **stejným jménem** jsou **tučně** (a v detailu s upozorněním) —
+  typicky tatáž osoba jako BP a DP s různými osobními čísly; rozliš je podle
+  os. čísla, oboru a prací.
+- **+ Nový student** a **⤴ Nový záznam z vybraného (BP → DP)** — založí nový
+  záznam téže osoby (převezme jméno, e-mail a telefon; osobní číslo a obor
+  doplníš nové).
+- **Bez studenta** vybere „nikoho", dvojklik na řádek = *Vybrat*.
+- Výběr je i v **detailu práce**: tlačítko **…** vedle pole *Student*
+  (pole s našeptáváním zůstává jako rychlá cesta).
 
 ## Práce — detail (záložky)
 

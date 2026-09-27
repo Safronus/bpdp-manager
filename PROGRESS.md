@@ -111,16 +111,28 @@ build + testy; bump verze = automatický Release s `.dmg`.
   mají kola pro 3.12–3.14 na macOS arm64. Postup: nový venv + `python-version`
   v CI + ověřit testy/build/self-test + nová verze. Uživatel zatím zvolil zůstat na 3.11.
 
-## Rozpracováno: sloučení „Nová práce" + „Zájemce", výběr studenta (od 2.31.0)
-Zjištění: v detailu na tabu Budoucí nabízí rok jen příští + přespříští
-(`_academic_year_choices`, YEAR_MODE_FUTURE) → zájemce na běžící rok 2026/2027
-nejde zařadit. Výběr studenta = combobox jen se jménem (BP a DP záznam téže osoby
-s jiným os. číslem nejdou rozlišit).
-Odsouhlaseno: (a) rok na Budoucí = letošní + 2 další; (b) stav vybíraný v dialogu,
-výchozí dle tabu; (c) dialog výběru studenta s tabulkou (jméno, os. č., obor,
-forma, e-mail, dosavadní práce) + detail, použitý v novém dialogu i v detailu práce.
-⚠️ Nejasné: zda do jednoho dialogu sloučit i „Minulou práci" (odpověď „1 + 2") —
-doptat se.
+## Hotovo: sloučení „Nová práce" + „Zájemce" + „Minulá práce", výběr studenta (2.31.0)
+Odsouhlaseno 2026-09-27 (interaktivně): jeden dialog pro vše (i Minulá práce);
+stav v dialogu, výchozí dle záložky; rok budoucích stavů výchozí dle měsíce
+(září až prosinec letošní, jinak příští); výběrový dialog studenta s tabulkou +
+detail v novém dialogu i v detailu práce; „Nový záznam z vybraného (BP → DP)";
+upozornění na neukončenou práci stejného typu a na DP zakládanou na záznam s BP.
+- ✅ Fáze A `e0db94c` — detail na tabu Budoucí: rok letošní + 2 další.
+- ✅ Fáze B `05bf219` — `services/student_lookup.py`, `ui/student_picker_dialog.py`,
+  tlačítko „…" v detailu; oprava `_resolve_combo_id` (stejné jméno → bral první
+  záznam; regresní test ověřen, že bez opravy padá).
+- ✅ Fáze C `511c401` — `services/new_thesis.py`, `ui/new_thesis_dialog.py`, jediné
+  tlačítko ➕ Nová práce; smazány `_new_thesis*`, `_new_future_thesis`,
+  `_new_past_thesis` + nepoužité EN klíče a importy (ruff 335 → 334, baseline v CI 334).
+- ✅ Fáze D — nápověda CZ/EN (nová sekce „Nová práce a výběr studenta"), README,
+  CHANGELOG [2.31.0], verze 2.31.0. 801 testů, self-test OK.
+- Vizuálně ověřeno offscreen renderem (fiktivní data): výběr studenta, dialog nové
+  práce (oprava: `QFormLayout` na macOS neroztahoval pole → AllNonFixedFieldsGrow).
+- ⚠️ Neověřeno ručním proklikáním v běžící aplikaci (jen testy + render).
+- ⚠️ Otevřené: titulek tabu Budoucí „Práce v dalším akademickém roce <příští>"
+  neodpovídá, když obsahuje i zájemce na letošní rok — čeká na rozhodnutí.
+- Další krok: CI vydá v2.31.0 → aktualizace z běžící 2.30.2 přes „⬇ Stáhnout"
+  v aplikaci = první ostrý E2E test updateru.
 
 ### Otevřené body (neřešeno, čeká na rozhodnutí uživatele)
 - Lint dluh 335 chyb ruff (ratchet brání růstu; po snížení upravit `RUFF_BASELINE`).
